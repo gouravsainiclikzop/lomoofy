@@ -1,0 +1,1217 @@
+@extends('layouts.frontend')
+
+@section('title', 'Home - Lomoofy Industries')
+
+@section('content')
+<!-- ============================ Hero Banner  Start================================== -->
+			<div class="home-slider margin-bottom-0">
+
+				<!-- Slide -->
+				<div data-background-image="{{ asset('frontend/images/banner-2.png') }}" class="item">
+					<div class="container">
+						<div class="row">
+							<div class="col-md-12">
+								<div class="home-slider-container">
+
+									<!-- Slide Title -->
+									<div class="home-slider-desc">
+										<div class="home-slider-title mb-4">
+											<h5 class="theme-cl fs-sm ft-ragular mb-0">Winter Collection</h5>
+											<h1 class="mb-1 ft-bold lg-heading">New Winter<br>Collections 2021</h1>
+											<span class="trending">There's nothing like trend</span>
+										</div>
+
+										<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
+									</div>
+									<!-- Slide Title / End -->
+
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<!-- Slide -->
+				<div data-background-image="{{ asset('frontend/images/banner-5.png') }}" class="item">
+					<div class="container">
+						<div class="row">
+							<div class="col-md-12">
+								<div class="home-slider-container">
+
+									<!-- Slide Title -->
+									<div class="home-slider-desc">
+										<div class="home-slider-title mb-4">
+											<h5 class="theme-cl fs-sm ft-ragular mb-0">Winter Collection</h5>
+											<h1 class="mb-1 ft-bold lg-heading">New Winter<br>Collections 2021</h1>
+											<span class="trending">There's nothing like trend</span>
+										</div>
+
+										<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
+									</div>
+									<!-- Slide Title / End -->
+
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Slide -->
+				<div data-background-image="{{ asset('frontend/images/banner-3.png') }}" class="item">
+					<div class="container">
+						<div class="row">
+							<div class="col-md-12">
+								<div class="home-slider-container">
+
+									<!-- Slide Title -->
+									<div class="home-slider-desc">
+										<div class="home-slider-title mb-4">
+											<h5 class="theme-cl fs-sm ft-ragular mb-0">Winter Collection</h5>
+											<h1 class="mb-1 ft-bold lg-heading">New Winter<br>Collections 2021</h1>
+											<span class="trending">There's nothing like trend</span>
+										</div>
+
+										<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
+									</div>
+									<!-- Slide Title / End -->
+
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</div>
+			<!-- ============================ Hero Banner End ================================== -->
+			
+
+			
+			<!-- ========================= Category Style ========================== -->
+			<section class="middle">
+				<div class="container">
+					<div class="row g-0">
+						
+						<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
+							<div class="single_cats">
+								<a href="#" class="cards card-overflow card-scale lg_height">
+									<div class="bg-image" style="background:url({{ asset('frontend/images/b-8.png') }})no-repeat;"></div>
+									<div class="ct_body">
+										<div class="ct_body_caption left">	
+											<h2 class="m-0 ft-bold lh-1 fs-md text-upper">Women Clothes</h2>
+											<span>3272 Items</span>
+										</div>
+										<div class="ct_footer left">
+											<span class="stretched-link fs-md">Browse Items <i class="ti-arrow-circle-right"></i></span>
+										</div>
+									</div>
+								</a>
+							</div>
+							
+							<div class="single_cats">
+								<a href="#" class="cards card-overflow card-scale md_height">
+									<div class="bg-image" style="background:url({{ asset('frontend/images/b-5.png') }})no-repeat;"></div>
+									<div class="ct_body">
+										<div class="ct_body_caption left">	
+											<h2 class="m-0 ft-bold lh-1 fs-md text-upper">Men's Wear</h2>
+											<span>7632 Items</span>
+										</div>
+										<div class="ct_footer left">
+											<span class="stretched-link fs-md">Browse Items <i class="ti-arrow-circle-right"></i></span>
+										</div>
+									</div>
+								</a>
+							</div>
+							
+						</div>
+						
+						<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
+							<!-- row -->
+							<div class="row no-gutters">
+								
+								<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+									<div class="single_cats">
+										<a href="#" class="cards card-overflow card-scale md_height">
+											<div class="bg-image" style="background:url({{ asset('frontend/images/b-3.png') }})no-repeat;"></div>
+											<div class="ct_body">
+												<div class="ct_body_caption left">	
+													<h2 class="m-0 ft-bold lh-1 fs-md text-upper">Kid's Wear</h2>
+													<span>4072 Items</span>
+												</div>
+												<div class="ct_footer left">
+													<span class="stretched-link fs-md">Browse Items <i class="ti-arrow-circle-right"></i></span>
+												</div>
+											</div>
+										</a>
+									</div>
+									<div class="single_cats">
+										<a href="#" class="cards card-overflow card-scale lg_height">
+											<div class="bg-image" style="background:url({{ asset('frontend/images/b-7.png') }})no-repeat;"></div>
+											<div class="ct_body">
+												<div class="ct_body_caption left">	
+													<h2 class="m-0 ft-bold lh-1 fs-md text-upper">Men's Jackets</h2>
+													<span>9652 Items</span>
+												</div>
+												<div class="ct_footer left">
+													<span class="stretched-link fs-md">Browse Items <i class="ti-arrow-circle-right"></i></span>
+												</div>
+											</div>
+										</a>
+									</div>
+								</div>
+								
+							</div>
+							<!-- /row -->
+							
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- ============================ Category Style =============================== -->
+
+  
+
+			<section class="space gray">
+				<div class="container">
+					
+					<div class="row justify-content-center">
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+							<div class="sec_title position-relative text-center">
+								<h2 class="off_title">Best Seller</h2>
+								<h3 class="ft-bold pt-3">Best Seller</h3>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row">
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+							<div class="slide_items">
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/8.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Set</a></h5>
+													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$119.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/9.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Formal Men Lowers</a></h5>
+													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$129.00</span><span class="ft-medium theme-cl fs-md">$79.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/10.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Suit</a></h5>
+													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$80.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-sold text-white position-absolute ft-regular ab-left text-upper">Sold Out</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/11.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Fancy Lady Dress</a></h5>
+													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$149.00</span><span class="ft-medium theme-cl fs-md">$110.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/12.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Flix Flox Jeans</a></h5>
+													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$90.00</span><span class="ft-medium theme-cl fs-md">$49.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/13.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Fancy Salwar Suits</a></h5>
+													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$114.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/14.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Collot Full Dress</a></h5>
+													<div class="elis_rty"><span class="ft-medium theme-cl fs-md text-dark">$120.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+				</div>
+			</section>
+
+
+			<section class="bg-cover" style="background:url({{ asset('frontend/images/bg-2.jpg') }}) no-repeat;" data-overlay="1">
+				<div class="container">
+					<div class="row justify-content-center">
+						<div class="col-xl-8 col-lg-9 col-md-12 col-sm-12">
+							
+							<div class="deals_wrap text-center"> 
+								<h2 class="ft-bold text-light">Only Summer Collections</h2>
+								<p class="text-light">At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.</p>
+								<div class="mt-5">
+									<a href="{{ route('frontend.shop') }}" class="btn btn-white stretched-links">Start Shopping <i class="lni lni-arrow-right"></i></a>
+								</div>
+							</div>
+							
+						</div>
+					</div>
+				</div>
+			</section>
+
+
+			<section class="middle gray">
+				<div class="container">
+				
+					<div class="row justify-content-center">
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+							<div class="sec_title position-relative text-center">
+								<h2 class="off_title">New Arrivals</h2>
+								<h3 class="ft-bold pt-3">New Arrivals</h3>
+							</div>
+						</div>
+					</div>
+					
+					<!-- row -->
+					<div class="row align-items-center rows-products">
+					
+						<!-- Single -->
+						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
+							<div class="product_grid card b-0">
+								<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+								<div class="card-body p-0">
+									<div class="shop_thumb position-relative">
+										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/1.jpg') }}" alt="..."></a>
+										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer b-0 p-0 pt-2">
+									<div class="d-flex align-items-start justify-content-between">
+										<div class="text-left">
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color1" id="white" checked="">
+												<label class="form-option-label small rounded-circle" for="white"><span class="form-option-color rounded-circle blc1"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color1" id="blue">
+												<label class="form-option-label small rounded-circle" for="blue"><span class="form-option-color rounded-circle blc2"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color1" id="yellow">
+												<label class="form-option-label small rounded-circle" for="yellow"><span class="form-option-color rounded-circle blc3"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color1" id="pink">
+												<label class="form-option-label small rounded-circle" for="pink"><span class="form-option-color rounded-circle blc4"></span></label>
+											</div>
+										</div>
+										<div class="text-right">
+											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+										</div>
+									</div>
+									<div class="text-left">
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Set</a></h5>
+										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Single -->
+						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
+							<div class="product_grid card b-0">
+								<div class="badge bg-info text-white position-absolute ft-regular ab-left text-upper">New</div>
+								<div class="card-body p-0">
+									<div class="shop_thumb position-relative">
+										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/2.jpg') }}" alt="..."></a>
+										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer b-0 p-0 pt-2">
+									<div class="d-flex align-items-start justify-content-between">
+										<div class="text-left">
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color2" id="white2">
+												<label class="form-option-label small rounded-circle" for="white2"><span class="form-option-color rounded-circle blc5"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color2" id="blue2">
+												<label class="form-option-label small rounded-circle" for="blue2"><span class="form-option-color rounded-circle blc2"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color2" id="yellow2">
+												<label class="form-option-label small rounded-circle" for="yellow2"><span class="form-option-color rounded-circle blc6"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color2" id="pink2">
+												<label class="form-option-label small rounded-circle" for="pink2"><span class="form-option-color rounded-circle blc4"></span></label>
+											</div>
+										</div>
+										<div class="text-right">
+											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+										</div>
+									</div>
+									<div class="text-left">
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Formal Men Lowers</a></h5>
+										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Single -->
+						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
+							<div class="product_grid card b-0">
+								<div class="card-body p-0">
+									<div class="shop_thumb position-relative">
+										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/3.jpg') }}" alt="..."></a>
+										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer b-0 p-0 pt-2">
+									<div class="d-flex align-items-start justify-content-between">
+										<div class="text-left">
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color3" id="white3" checked="">
+												<label class="form-option-label small rounded-circle" for="white3"><span class="form-option-color rounded-circle blc7"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color3" id="blue3">
+												<label class="form-option-label small rounded-circle" for="blue3"><span class="form-option-color rounded-circle blc2"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color3" id="yellow3">
+												<label class="form-option-label small rounded-circle" for="yellow3"><span class="form-option-color rounded-circle blc5"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color3" id="pink3">
+												<label class="form-option-label small rounded-circle" for="pink3"><span class="form-option-color rounded-circle blc3"></span></label>
+											</div>
+										</div>
+										<div class="text-right">
+											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+										</div>
+									</div>
+									<div class="text-left">
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Suit</a></h5>
+										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Single -->
+						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
+							<div class="product_grid card b-0">
+								<div class="badge bg-warning text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+								<div class="card-body p-0">
+									<div class="shop_thumb position-relative">
+										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/4.jpg') }}" alt="..."></a>
+										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer b-0 p-0 pt-2">
+									<div class="d-flex align-items-start justify-content-between">
+										<div class="text-left">
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color4" id="white4">
+												<label class="form-option-label small rounded-circle" for="white4"><span class="form-option-color rounded-circle blc8"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color4" id="blue4">
+												<label class="form-option-label small rounded-circle" for="blue4"><span class="form-option-color rounded-circle blc2"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color4" id="yellow4">
+												<label class="form-option-label small rounded-circle" for="yellow4"><span class="form-option-color rounded-circle blc6"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color4" id="pink4">
+												<label class="form-option-label small rounded-circle" for="pink4"><span class="form-option-color rounded-circle blc5"></span></label>
+											</div>
+										</div>
+										<div class="text-right">
+											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+										</div>
+									</div>
+									<div class="text-left">
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Fancy Lady Dress</a></h5>
+										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Single -->
+						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
+							<div class="product_grid card b-0">
+								<div class="card-body p-0">
+									<div class="shop_thumb position-relative">
+										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/5.jpg') }}" alt="..."></a>
+										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer b-0 p-0 pt-2">
+									<div class="d-flex align-items-start justify-content-between">
+										<div class="text-left">
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color5" id="white5">
+												<label class="form-option-label small rounded-circle" for="white5"><span class="form-option-color rounded-circle blc8"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color5" id="blue5">
+												<label class="form-option-label small rounded-circle" for="blue5"><span class="form-option-color rounded-circle blc5"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color5" id="yellow5">
+												<label class="form-option-label small rounded-circle" for="yellow5"><span class="form-option-color rounded-circle blc3"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color5" id="pink5">
+												<label class="form-option-label small rounded-circle" for="pink5"><span class="form-option-color rounded-circle blc6"></span></label>
+											</div>
+										</div>
+										<div class="text-right">
+											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+										</div>
+									</div>
+									<div class="text-left">
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Flix Flox Jeans</a></h5>
+										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Single -->
+						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
+							<div class="product_grid card b-0">
+								<div class="badge bg-danger text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+								<div class="card-body p-0">
+									<div class="shop_thumb position-relative">
+											<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/6.jpg') }}" alt="..."></a>
+										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer b-0 p-0 pt-2">
+									<div class="d-flex align-items-start justify-content-between">
+										<div class="text-left">
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color6" id="white6">
+												<label class="form-option-label small rounded-circle" for="white"><span class="form-option-color rounded-circle blc1"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color6" id="blue6">
+												<label class="form-option-label small rounded-circle" for="blue6"><span class="form-option-color rounded-circle blc7"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color6" id="yellow6">
+												<label class="form-option-label small rounded-circle" for="yellow6"><span class="form-option-color rounded-circle blc3"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color6" id="pink6">
+												<label class="form-option-label small rounded-circle" for="pink6"><span class="form-option-color rounded-circle blc6"></span></label>
+											</div>
+										</div>
+										<div class="text-right">
+											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+										</div>
+									</div>
+									<div class="text-left">
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Fancy Salwar Suits</a></h5>
+										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Single -->
+						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
+							<div class="product_grid card b-0">
+								<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+								<div class="card-body p-0">
+									<div class="shop_thumb position-relative">
+										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/7.jpg') }}" alt="..."></a>
+										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer b-0 p-0 pt-2">
+									<div class="d-flex align-items-start justify-content-between">
+										<div class="text-left">
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color7" id="white7">
+												<label class="form-option-label small rounded-circle" for="white7"><span class="form-option-color rounded-circle blc2"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color7" id="blue7">
+												<label class="form-option-label small rounded-circle" for="blue7"><span class="form-option-color rounded-circle blc8"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color7" id="yellow7">
+												<label class="form-option-label small rounded-circle" for="yellow7"><span class="form-option-color rounded-circle blc3"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color7" id="pink7">
+												<label class="form-option-label small rounded-circle" for="pink7"><span class="form-option-color rounded-circle blc6"></span></label>
+											</div>
+										</div>
+										<div class="text-right">
+											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+										</div>
+									</div>
+									<div class="text-left">
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Printed Straight Kurta</a></h5>
+										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Single -->
+						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
+							<div class="product_grid card b-0">
+								<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+								<div class="card-body p-0">
+									<div class="shop_thumb position-relative">
+											<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/8.jpg') }}" alt="..."></a>
+										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+										</div>
+									</div>
+								</div>
+								<div class="card-footer b-0 p-0 pt-2">
+									<div class="d-flex align-items-start justify-content-between">
+										<div class="text-left">
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color88" id="white88">
+												<label class="form-option-label small rounded-circle" for="white88"><span class="form-option-color rounded-circle blc7"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color88" id="blue88">
+												<label class="form-option-label small rounded-circle" for="blue88"><span class="form-option-color rounded-circle blc2"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color88" id="yellow88">
+												<label class="form-option-label small rounded-circle" for="yellow88"><span class="form-option-color rounded-circle blc5"></span></label>
+											</div>
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input" type="radio" name="color88" id="pink88">
+												<label class="form-option-label small rounded-circle" for="pink88"><span class="form-option-color rounded-circle blc3"></span></label>
+											</div>
+										</div>
+										<div class="text-right">
+											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+										</div>
+									</div>
+									<div class="text-left">
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Collot Full Dress</a></h5>
+										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+					</div>
+					<!-- row -->
+					 
+					
+				</div>
+			</section>
+
+
+			<section class="p-0">
+				<div class="container-fluid p-0">
+					<div class="row g-0">
+					
+						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+							<a href="{{ route('frontend.shop') }}" class="card card-overflow card-scale no-radius mb-0">
+							<div class="bg-image" style="background:url({{ asset('frontend/images/a-1.png') }})no-repeat;" data-overlay="2"></div>
+								<div class="ct_body">
+									<div class="ct_body_caption">	
+										<h1 class="mb-0 ft-bold text-light">Mens</h1>
+									</div>
+									<div class="ct_footer">
+										<span class="btn btn-white stretched-links">Shop Mens <i class="lni lni-arrow-right"></i>
+										</span>
+									</div>
+								</div>
+							</a>
+						</div>
+						
+						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+							<a href="{{ route('frontend.shop') }}" class="card card-overflow card-scale no-radius mb-0">
+							<div class="bg-image" style="background:url({{ asset('frontend/images/a-2.png') }})no-repeat;" data-overlay="2"></div>
+								<div class="ct_body">
+									<div class="ct_body_caption">	
+										<h1 class="mb-0 ft-bold text-light">Kids</h1>
+									</div>
+									<div class="ct_footer">
+										<span class="btn btn-white stretched-links">Shop Kids <i class="lni lni-arrow-right"></i>
+										</span>
+									</div>
+								</div>
+							</a>
+						</div>
+						
+						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+							<a href="{{ route('frontend.shop') }}" class="card card-overflow card-scale no-radius mb-0">
+							<div class="bg-image" style="background:url({{ asset('frontend/images/a-3.png') }})no-repeat;" data-overlay="2"></div>
+								<div class="ct_body">
+									<div class="ct_body_caption">	
+										<h1 class="mb-0 ft-bold text-light">Womens</h1>
+									</div>
+									<div class="ct_footer">
+										<span class="btn btn-white stretched-links">Shop Womens <i class="lni lni-arrow-right"></i>
+										</span>
+									</div>
+								</div>
+							</a>
+						</div>
+						
+					</div>
+				</div>
+			</section>
+
+
+			
+			<!-- ======================= Recently Viewed ======================== -->
+			<section class="space gray">
+				<div class="container">
+					
+					<div class="row justify-content-center">
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+							<div class="sec_title position-relative text-center">
+								<h2 class="off_title">Recently Viewed</h2>
+								<h3 class="ft-bold pt-3">Recently Viewed </h3>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row">
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+							<div class="slide_items">
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/1.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Stylish Leather Jacket</a></h5>
+													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$199.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/2.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Designer T-Shirt</a></h5>
+													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$89.00</span><span class="ft-medium theme-cl fs-md">$59.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/3.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Classic Denim Jeans</a></h5>
+													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$99.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/4.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Elegant Summer Dress</a></h5>
+													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$149.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/5.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Sporty Sneakers</a></h5>
+													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$129.00</span><span class="ft-medium theme-cl fs-md">$89.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/6.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Casual Polo Shirt</a></h5>
+													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$69.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- single Item -->
+								<div class="single_itesm">
+									<div class="product_grid card b-0 mb-0">
+										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+										<div class="card-body p-0">
+											<div class="shop_thumb position-relative">
+												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/7.jpg') }}" alt="..."></a>
+												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+												</div>
+											</div>
+										</div>
+										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+											<div class="text-left">
+												<div class="text-center">
+													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Winter Wool Sweater</a></h5>
+													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$159.00</span></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+				</div>
+			</section>
+
+ 
+			<!-- ======================= Customer Review ======================== -->
+			<section class="gray">
+				<div class="container">
+					
+					<div class="row justify-content-center">
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+							<div class="sec_title position-relative text-center">
+								<h2 class="off_title">Testimonials</h2>
+								<h3 class="ft-bold pt-3">Testimonials</h3>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row justify-content-center">
+						<div class="col-xl-9 col-lg-10 col-md-12 col-sm-12">
+							<div class="reviews-slide px-3">
+								 
+								<div class="single_review">
+									<div class="sng_rev_thumb"><figure><img src="{{ asset('frontend/images/team-1.jpg') }}" class="img-fluid circle" alt=""></figure></div>
+									<div class="sng_rev_caption text-center">
+										<div class="rev_desc mb-4">
+											<p class="fs-md">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
+										</div>
+										<div class="rev_author">
+											<h4 class="mb-0">Mark Jevenue</h4>
+											<span class="fs-sm">CEO of Addle</span>
+										</div>
+									</div>
+								</div>
+								 
+								<div class="single_review">
+									<div class="sng_rev_thumb"><figure><img src="{{ asset('frontend/images/team-2.jpg') }}" class="img-fluid circle" alt=""></figure></div>
+									<div class="sng_rev_caption text-center">
+										<div class="rev_desc mb-4">
+											<p class="fs-md">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
+										</div>
+										<div class="rev_author">
+											<h4 class="mb-0">Henna Bajaj</h4>
+											<span class="fs-sm">Aqua Founder</span>
+										</div>
+									</div>
+								</div>
+								 
+								<div class="single_review">
+									<div class="sng_rev_thumb"><figure><img src="{{ asset('frontend/images/team-3.jpg') }}" class="img-fluid circle" alt=""></figure></div>
+									<div class="sng_rev_caption text-center">
+										<div class="rev_desc mb-4">
+											<p class="fs-md">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
+										</div>
+										<div class="rev_author">
+											<h4 class="mb-0">John Cenna</h4>
+											<span class="fs-sm">CEO of Plike</span>
+										</div>
+									</div>
+								</div>
+								 
+								<div class="single_review">
+									<div class="sng_rev_thumb"><figure><img src="{{ asset('frontend/images/team-4.jpg') }}" class="img-fluid circle" alt=""></figure></div>
+									<div class="sng_rev_caption text-center">
+										<div class="rev_desc mb-4">
+											<p class="fs-md">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
+										</div>
+										<div class="rev_author">
+											<h4 class="mb-0">Madhu Sharma</h4>
+											<span class="fs-sm">Team Manager</span>
+										</div>
+									</div>
+								</div>
+								
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- ======================= Customer Review ======================== --> 
+ 
+			<!-- ======================= Blog Start ============================ -->
+			<section class="space min">
+				<div class="container"> 
+					<div class="row justify-content-center">
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+							<div class="sec_title position-relative text-center">
+								<h2 class="off_title">Latest News</h2>
+								<h3 class="ft-bold pt-3">Latest Updates</h3>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row">
+						
+						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+							<div class="_blog_wrap">
+								<div class="_blog_thumb mb-2">
+									<a href="blog-detail.html" class="d-block"><img src="{{ asset('frontend/images/bl-1.png') }}" class="img-fluid rounded" alt=""></a>
+								</div>
+								<div class="_blog_caption">
+									<span class="text-muted">26 Jan 2021</span>
+									<h5 class="bl_title lh-1"><a href="blog-detail.html">Let's start bring sale on this saummer vacation.</a></h5>
+									<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis</p>
+									<a href="blog-detail.html" class="text-dark fs-sm">Continue Reading..</a>
+								</div>
+							</div>
+						</div>
+						
+						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+							<div class="_blog_wrap">
+								<div class="_blog_thumb mb-2">
+									<a href="blog-detail.html" class="d-block"><img src="{{ asset('frontend/images/bl-2.png') }}" class="img-fluid rounded" alt=""></a>
+								</div>
+								<div class="_blog_caption">
+									<span class="text-muted">17 July 2021</span>
+									<h5 class="bl_title lh-1"><a href="blog-detail.html">Let's start bring sale on this saummer vacation.</a></h5>
+									<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis</p>
+									<a href="blog-detail.html" class="text-dark fs-sm">Continue Reading..</a>
+								</div>
+							</div>
+						</div>
+						
+						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+							<div class="_blog_wrap">
+								<div class="_blog_thumb mb-2">
+									<a href="blog-detail.html" class="d-block"><img src="{{ asset('frontend/images/bl-3.png') }}" class="img-fluid rounded" alt=""></a>
+								</div>
+								<div class="_blog_caption">
+									<span class="text-muted">10 Aug 2021</span>
+									<h5 class="bl_title lh-1"><a href="blog-detail.html">Let's start bring sale on this saummer vacation.</a></h5>
+									<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis</p>
+									<a href="blog-detail.html" class="text-dark fs-sm">Continue Reading..</a>
+								</div>
+							</div>
+						</div>
+						
+					</div>
+					
+				</div>
+			</section>
+			<!-- ======================= Blog Start ============================ -->
+			
+
+
+
+			<!-- ======================= Instagram Start ============================ -->
+			<!-- <section class="p-0">
+				<div class="container-fluid p-0">
+					
+					<div class="row no-gutters">
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+							<div class="sec_title position-relative text-center">
+								<h2 class="off_title">Instagram Gallery</h2>
+								<span class="fs-lg ft-bold theme-cl pt-3">@mahak_71</span>
+								<h3 class="ft-bold lh-1">From Instagram</h3>
+							</div>
+						</div>
+					</div>
+					
+					<div class="row no-gutters">
+						
+						<div class="col">
+							<div class="_insta_wrap">
+								<div class="_insta_thumb">
+									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-1.png') }}" class="img-fluid" alt=""></a>
+								</div>
+							</div>
+						</div>
+						<div class="col">
+							<div class="_insta_wrap">
+								<div class="_insta_thumb">
+									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-2.png') }}" class="img-fluid" alt=""></a>
+								</div>
+							</div>
+						</div>
+						<div class="col">
+							<div class="_insta_wrap">
+								<div class="_insta_thumb">
+									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-3.png') }}" class="img-fluid" alt=""></a>
+								</div>
+							</div>
+						</div>
+						<div class="col">
+							<div class="_insta_wrap">
+								<div class="_insta_thumb">
+									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-7.png') }}" class="img-fluid" alt=""></a>
+								</div>
+							</div>
+						</div>
+						<div class="col">
+							<div class="_insta_wrap">
+								<div class="_insta_thumb">
+									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-8.png') }}" class="img-fluid" alt=""></a>
+								</div>
+							</div>
+						</div>
+						<div class="col">
+							<div class="_insta_wrap">
+								<div class="_insta_thumb">
+									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-4.png') }}" class="img-fluid" alt=""></a>
+								</div>
+							</div>
+						</div>
+						<div class="col">
+							<div class="_insta_wrap">
+								<div class="_insta_thumb">
+									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-5.png') }}" class="img-fluid" alt=""></a>
+								</div>
+							</div>
+						</div>
+						<div class="col">
+							<div class="_insta_wrap">
+								<div class="_insta_thumb">
+									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-6.png') }}" class="img-fluid" alt=""></a>
+								</div>
+							</div>
+						</div>
+						
+					</div>
+					
+				</div>
+			</section> -->
+			<!-- ======================= Instagram Start ============================ -->
+@endsection

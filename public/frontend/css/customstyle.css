@@ -1,0 +1,784 @@
+/* ==============================================================
+   Multi-Level Hierarchical Dropdown Menu Styles (3 Levels)
+   Compatible with existing styles.css
+   ============================================================== */
+
+/* Mobile - Show submenu structure, hide mega menu */
+@media(max-width: 992px) {
+    /* Hide mega menu panel on mobile */
+    .mega-menu-item {
+        display: none !important;
+    }
+    
+    /* Show mobile submenu structure */
+    .main-menu-item {
+        display: block !important;
+    }
+}
+
+@media(max-width: 500px) {
+  /* Hide mega menu panel on mobile */
+  .mega-menu-item {
+    display: none !important;
+}
+
+/* Show mobile submenu structure */
+.main-menu-item {
+    display: block !important;
+}
+}
+/* Desktop - Show mega menu, hide submenu structure */
+@media(min-width: 993px) {
+    /* Show mega menu panel on desktop */
+    .mega-menu-item  {
+        display: block !important;
+    }
+    
+    /* Hide mobile submenu structure on desktop */
+    .main-menu-item{
+        display: none !important;
+    }
+
+
+ 
+/* Level 1 - Main Menu Item */
+.nav-menu > li {
+    position: relative;
+}
+
+/* Level 2 - First Dropdown */
+.nav-menu > li > .nav-dropdown {
+    min-width: 250px;
+    max-width: 800px;
+    height: auto;
+    margin: 0;
+    padding: 15px;
+    display: none;
+    position: absolute;
+    z-index: 98;
+    white-space: normal;
+    background: #ffffff;
+    border-radius: 0.5rem;
+    box-shadow: 0px 0px 42px 0px rgba(32, 32, 32, 0.15);
+    -webkit-box-shadow: 0px 0px 42px 0px rgba(32, 32, 32, 0.15);
+    top: 100%;
+    left: 0;
+    overflow-y: auto;
+    overflow-x: visible; /* Allow arrow to show */
+    overflow: visible; /* Override to show arrow */
+    column-count: auto;
+    column-width: 200px;
+    column-gap: 20px;
+    column-fill: auto;
+}
+
+.nav-menu > li > .nav-dropdown:before {
+    background-color: #ffffff;
+    content: "";
+    width: 22px;
+    height: 22px;
+    left: 27px;
+    top: -12px;
+    position: absolute;
+    -webkit-transform: rotate(45deg);
+    -moz-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    -o-transform: rotate(45deg);
+    transform: rotate(45deg);
+    -o-transition: all 0.2s ease 0s;
+    transition: all 0.2s ease 0s;
+    -webkit-transition: all 0.2s ease 0s;
+    -moz-transition: all 0.2s ease 0s;
+    box-shadow: -2px -2px 5px rgba(0, 0, 0, 0.05);
+    z-index: 99;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Level 2 - Dropdown Items */
+.nav-dropdown > li {
+    width: 100%;
+    float: none;
+    clear: none;
+    position: relative;
+    text-align: left;
+    display: inline-block;
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 0;
+}
+
+.nav-dropdown > li > a {
+    width: 100%;
+    padding: 14px 20px 14px 10px;
+    border-bottom: 1px solid #e4e8ec;
+    display: inline-block;
+    float: left;
+    color: #333c56;
+    -webkit-transition: all 0.3s ease 0s;
+    -moz-transition: all 0.3s ease 0s;
+    -o-transition: all 0.3s ease 0s;
+    transition: all 0.3s ease 0s;
+    font-family: 'Jost', sans-serif;
+    font-size: 15px;
+    position: relative;
+    font-weight: 500;
+}
+
+.nav-dropdown > li:last-child > a {
+    border-bottom: none;
+}
+
+.nav-dropdown > li > a:hover,
+.nav-dropdown > li > a:focus {
+    padding-left: 20px;
+    color: #e52d2d;
+}
+
+/* Items with subcategories - show subcategories below */
+.nav-dropdown > li.has-submenu {
+    border-bottom: 1px solid #e4e8ec;
+}
+
+.nav-dropdown > li.has-submenu:last-child {
+    border-bottom: none;
+}
+
+/* Level 2 - Items with Level 3 Submenu - Remove arrow indicator */
+.nav-dropdown > li.has-submenu > a {
+    padding-right: 20px;
+}
+
+.nav-dropdown > li.has-submenu > a:after {
+    display: none; /* Remove arrow indicator */
+}
+
+/* Override styles.css rule that positions subcategories to the right */
+.nav-dropdown .nav-dropdown {
+    left: auto !important;
+}
+
+/* Level 3 - Subcategories displayed below parent (not as side menu) */
+.nav-dropdown > li.has-submenu > .nav-dropdown,
+.nav-dropdown > li.has-submenu > .nav-submenu,
+.nav-menu > li > .nav-dropdown > li.has-submenu > .nav-dropdown,
+.nav-menu > li > .nav-dropdown > li.has-submenu > .nav-submenu {
+    position: static !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+    min-width: auto;
+    width: 100%;
+    margin: 0;
+    padding: 8px 0 12px 20px;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    border: none;
+    white-space: normal;
+    z-index: auto;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.nav-dropdown > li.has-submenu > .nav-dropdown:before {
+    display: none;
+}
+
+/* Level 3 - Subcategory items displayed in columns below parent */
+.nav-dropdown > li.has-submenu > .nav-dropdown > li,
+.nav-dropdown > li.has-submenu > .nav-submenu > li {
+    flex: 0 0 auto;
+    min-width: 120px;
+    width: auto;
+    padding: 0;
+    margin: 0;
+    border-bottom: none;
+    float: none;
+    clear: none;
+    position: relative;
+    text-align: left;
+    list-style: none;
+    display: block;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.nav-dropdown > li.has-submenu > .nav-dropdown > li > a,
+.nav-dropdown > li.has-submenu > .nav-submenu > li > a {
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: none;
+    color: #333c56;
+    font-weight: 400;
+    font-family: 'Jost', sans-serif;
+    transition: all 0.3s ease;
+    display: block;
+    width: 100%;
+    float: none;
+    text-decoration: none;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.nav-dropdown > li.has-submenu > .nav-dropdown > li:last-child > a,
+.nav-dropdown > li.has-submenu > .nav-submenu > li:last-child > a {
+    border-bottom: none;
+}
+
+.nav-dropdown > li.has-submenu > .nav-dropdown > li > a:hover,
+.nav-dropdown > li.has-submenu > .nav-dropdown > li > a:focus,
+.nav-dropdown > li.has-submenu > .nav-submenu > li > a:hover,
+.nav-dropdown > li.has-submenu > .nav-submenu > li > a:focus {
+    padding-left: 0;
+    color: #e52d2d;
+}
+
+/* Hover States for Multi-Level */
+.nav-menu > li:hover > .nav-dropdown {
+    display: block;
+}
+
+/* Ensure subcategories are always visible below parent */
+.nav-dropdown > li.has-submenu > .nav-dropdown {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Active/Focus States */
+.nav-menu > .active > a,
+.nav-menu > .focus > a,
+.nav-menu > li:hover > a {
+    color: #e52d2d !important;
+}
+
+.nav-dropdown > .focus > a,
+.nav-dropdown > li:hover > a {
+    color: #e52d2d;
+}
+
+/* Submenu Indicator for Level 1 */
+.nav-menu > li > a .submenu-indicator {
+    margin-left: 6px;
+    margin-top: 6px;
+    float: right;
+    transition: all .3s;
+}
+
+.nav-menu > li > a .submenu-indicator-chevron {
+    height: 6px;
+    width: 6px;
+    display: block;
+    border-style: solid;
+    border-width: 0 1px 1px 0;
+    border-color: transparent #506377 #506377 transparent;
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+    transition: border .3s;
+}
+
+.nav-menu > .active > a .submenu-indicator-chevron,
+.nav-menu > .focus > a .submenu-indicator-chevron,
+.nav-menu > li:hover > a .submenu-indicator-chevron {
+    border-color: transparent #e52d2d #e52d2d transparent;
+}
+
+
+/* Smooth Transitions */
+.nav-dropdown {
+    animation: fadeInDown 0.3s ease;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Custom animation for centered mega menu */
+@keyframes fadeInDownCentered {
+    from {
+        opacity: 0;
+        -webkit-transform: translateX(-50%) translateY(-10px) !important;
+        -moz-transform: translateX(-50%) translateY(-10px) !important;
+        -ms-transform: translateX(-50%) translateY(-10px) !important;
+        -o-transform: translateX(-50%) translateY(-10px) !important;
+        transform: translateX(-50%) translateY(-10px) !important;
+    }
+    to {
+        opacity: 1;
+        -webkit-transform: translateX(-50%) translateY(0) !important;
+        -moz-transform: translateX(-50%) translateY(0) !important;
+        -ms-transform: translateX(-50%) translateY(0) !important;
+        -o-transform: translateX(-50%) translateY(0) !important;
+        transform: translateX(-50%) translateY(0) !important;
+    }
+}
+
+/* Level 3 Animation - Only for non-static positioned menus */
+.nav-dropdown > li:not(.has-submenu) > .nav-dropdown {
+    animation: fadeInRight 0.3s ease;
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Prevent Level 3 from going off-screen (Right Side) - Not needed for static positioning */
+.nav-menu > li:last-child .nav-dropdown > li.has-submenu > .nav-dropdown,
+.nav-menu > li:nth-last-child(2) .nav-dropdown > li.has-submenu > .nav-dropdown,
+.nav-menu > li:nth-last-child(3) .nav-dropdown > li.has-submenu > .nav-dropdown {
+    left: auto !important;
+    right: auto !important;
+    position: static !important;
+}
+
+/* Dark Menu Support */
+.light-menu .nav-menu > li > a,
+.light-menu .nav-menu > li > a .submenu-indicator-chevron {
+    color: #ffffff;
+    border-color: transparent #ffffff #ffffff transparent;
+}
+
+.light-menu .nav-menu > li:hover > a,
+.light-menu .nav-menu > .active > a {
+    color: #ffffff !important;
+}
+
+.light-menu .nav-menu > li:hover > a .submenu-indicator-chevron {
+    border-color: transparent #ffffff #ffffff transparent;
+}
+
+/* Category Image Support (if needed in future) */
+.nav-dropdown > li > a .category-image {
+    width: 30px;
+    height: 30px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 10px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+/* Badge/Count Support */
+.nav-dropdown > li > a .category-count {
+    float: right;
+    background: #f4f5f7;
+    color: #6e7c90;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 10px;
+}
+
+.nav-dropdown > li > a:hover .category-count {
+    background: #e52d2d;
+    color: #ffffff;
+}
+
+/* ==============================================================
+   Mega Menu Styles (Cilory/Myntra/Ajio Style)
+   ============================================================== */
+
+/* Mega Menu Item */
+.nav-menu > li.mega-menu-item {
+    position: relative;
+}
+
+/* Mega Menu Panel - Content-Based Width */
+.mega-menu-panel {
+    display: none;
+    position: fixed;
+    left: 50vw !important;
+    right: auto !important;
+    top: auto;
+    width: auto;
+    min-width: 900px;
+    max-width: 1200px;
+    height: auto;
+    min-height: 400px;
+    max-height: 600px;
+    background: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    -webkit-box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    z-index: 999;
+    padding: 0;
+    margin-top: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    -webkit-transform: translateX(-50%);
+    -moz-transform: translateX(-50%);
+    -ms-transform: translateX(-50%);
+    -o-transform: translateX(-50%);
+    transform: translateX(-50%);
+    animation: fadeInDownCentered 0.3s ease;
+    white-space: normal;
+    overflow-y: auto;
+    overflow-x: visible; /* Allow arrow to show */
+    overflow: visible; /* Override to show arrow */
+}
+
+.nav-menu > li.mega-menu-item:hover > .mega-menu-panel {
+    display: block;
+}
+
+/* Arrow indicator for mega menu - positioned dynamically via JavaScript */
+.nav-menu > li.mega-menu-item > .mega-menu-panel:before,
+.mega-menu-panel:before {
+    background-color: #ffffff;
+    content: "";
+    width: 22px;
+    height: 22px;
+    left: 50%;
+    top: -12px;
+    position: absolute;
+    -webkit-transform: translateX(-50%) rotate(45deg);
+    -moz-transform: translateX(-50%) rotate(45deg);
+    -ms-transform: translateX(-50%) rotate(45deg);
+    -o-transform: translateX(-50%) rotate(45deg);
+    transform: translateX(-50%) rotate(45deg);
+    -o-transition: all 0.2s ease 0s;
+    transition: all 0.2s ease 0s;
+    -webkit-transition: all 0.2s ease 0s;
+    -moz-transition: all 0.2s ease 0s;
+    box-shadow: -2px -2px 5px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Mega Menu Container */
+.mega-menu-container {
+    padding: 40px 30px;
+    width: 100%;
+}
+
+/* Mega Menu Row */
+.mega-menu-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 40px;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+/* Mega Menu Column */
+.mega-menu-column {
+    flex: 0 0 auto;
+    min-width: 160px;
+    max-width: 200px;
+    width: auto;
+}
+
+/* Mega Menu Title */
+.mega-menu-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111111;
+    margin: 0 0 0px 0;
+    padding: 0 0 8px 0;
+    font-family: 'Jost', sans-serif;
+    text-transform: none;
+    letter-spacing: 0;
+    border-bottom: none;
+    display: block;
+    width: 100%;
+    line-height: 1.4;
+}
+
+/* Mega Menu List */
+.mega-menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.mega-menu-list li {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mega-menu-list li a {
+    display: block;
+    padding: 4px 0;
+    color: #333c56;
+    font-size: 13px;
+    font-weight: 400;
+    font-family: 'Jost', sans-serif;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    padding-left: 0;
+    line-height: 1.5;
+}
+
+.mega-menu-list li a:hover,
+.mega-menu-list li a:focus {
+    color: #e52d2d;
+    padding-left: 0;
+}
+
+.mega-menu-list li a:before {
+    display: none;
+}
+
+}
+
+/* ==============================================================
+   Header Search Box Styles
+   ============================================================== */
+
+.header-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-form {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    min-width: 250px;
+    max-width: 500px;
+    padding: 10px 50px 10px 15px;
+    border: 2px solid #e4e8ec;
+    border-radius: 50px;
+    font-size: 14px;
+    font-family: 'Jost', sans-serif;
+    color: #333c56;
+    background: #ffffff;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: #010101; 
+}
+
+.search-input::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+.search-btn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #010101;
+    border: none;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.search-btn:hover {
+    background: #010101;
+    transform: translateY(-50%) scale(1.05);
+}
+
+.search-btn i {
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* Mobile Search Input */
+.mobile_nav .search-input-wrapper {
+    width: 100%;
+    padding: 10px 15px;
+}
+
+.mobile_nav .header-search-box {
+    width: 100%;
+}
+
+.mobile_nav .search-input {
+    min-width: 100%;
+    max-width: 100%;
+}
+
+/* Desktop Search Input in Nav Menu */
+.nav-menu-social .search-input-wrapper {
+    margin-right: 15px;
+}
+
+.nav-menu-social .header-search-box {
+    min-width: 300px;
+}
+
+
+/* ==============================================================
+   Shop By Categories Styles
+   ============================================================== */
+
+.shop-by-categories {
+    margin-top: 20px;
+}
+
+/* Desktop Grid View - Show on larger screens */
+.category-grid-view {
+    display: flex;
+}
+
+/* Mobile Slider View - Hide on larger screens */
+.category-slider-view {
+    display: none;
+}
+
+.category-slider {
+    padding: 0 15px;
+}
+
+.category-slider .slick-slide {
+    padding: 0 3px;
+}
+
+.category-slider .category-tab-item {
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+
+.category-slider .slick-list {
+    margin: 0 -3px;
+}
+
+.category-slider .slick-prev,
+.category-slider .slick-next {
+    z-index: 10;
+    width: 35px;
+    height: 35px;
+}
+
+.category-slider .slick-prev {
+    left: -10px;
+}
+
+.category-slider .slick-next {
+    right: -10px;
+}
+
+.category-slider .slick-prev:before,
+.category-slider .slick-next:before {
+    font-size: 20px;
+    color: #010101;
+    opacity: 0.8;
+}
+
+.category-slider .slick-prev:hover:before,
+.category-slider .slick-next:hover:before {
+    opacity: 1;
+}
+
+.category-tab-item {
+	display: block;
+	text-decoration: none;
+	text-align: center;
+	transition: all 0.3s ease;
+	padding: 0px;
+	border-radius: 8px;
+	background: #ffffff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+	transition: all 0.3s ease;
+	position: relative;
+}
+
+.category-tab-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+}
+
+
+.category-image-wrapper {
+	width: 100%;
+	height: 180px;
+	overflow: visible; /* Allow badge to overflow */
+	border-radius: 8px;
+	background: #f8f9fa;
+	margin-bottom: 5px;
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.category-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.category-tab-item:hover .category-image {
+    transform: scale(1.05);
+}
+
+.category-label {
+	font-size: 10px;
+	font-weight: 600;
+	color: #000000;
+	font-family: 'Jost', sans-serif;
+	position: absolute;
+	top: -10px;
+	right: -8px;
+	background: #e3eaee;
+	padding: 4px 10px;
+	border-radius: -3px;
+	z-index: 10;
+	transition: all 0.3s ease;
+	white-space: nowrap;
+	backdrop-filter: blur(5px);
+	-webkit-backdrop-filter: blur(5px);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+
+.category-tab-item:hover .category-label {
+	/* transform: scale(1.05); */
+    font-size:13px;
+    /* padding: ; */
+}       
+
+
+

@@ -1,0 +1,384 @@
+/* ==============================================================
+   Responsive Styles
+   Extracted from customstyle.css
+   ============================================================== */
+
+/* ==============================================================
+   Navigation Responsive Styles
+   ============================================================== */
+
+/* Responsive - Mobile/Portrait Mode */
+@media (max-width: 992px) {
+    .navigation-portrait .nav-dropdown {
+        width: 100%;
+        position: static;
+        left: 0;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+        background: #f8f9fa;
+        height: auto;
+        max-width: 100%;
+        column-count: 1;
+        column-width: auto;
+    }
+
+    .navigation-portrait .nav-menu > li > .nav-dropdown:before {
+        display: none;
+    }
+
+    .navigation-portrait .nav-dropdown > li > a {
+        padding: 12px 20px 12px 30px;
+        font-size: 15px;
+    }
+
+    .navigation-portrait .nav-dropdown > li.has-submenu > .nav-dropdown {
+        position: static;
+        margin-left: 0;
+        padding-left: 20px;
+        box-shadow: none;
+        background: #f0f0f0;
+        display: flex !important;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .navigation-portrait .nav-dropdown > li.has-submenu > .nav-dropdown > li {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .navigation-portrait .nav-dropdown > li.has-submenu > .nav-dropdown > li > a {
+        padding-left: 50px;
+    }
+
+    .navigation-portrait .nav-dropdown > li.has-submenu > a:after {
+        right: 24px;
+    }
+
+    /* Mobile submenu indicator */
+    .navigation-portrait .submenu-indicator {
+        width: 100%;
+        height: 44px;
+        margin-top: 0;
+        position: absolute;
+        text-align: center;
+        z-index: 20000;
+        right: 0;
+        top: 0;
+    }
+
+    .navigation-portrait .submenu-indicator-chevron {
+        position: absolute;
+        top: 18px;
+        right: 24px;
+    }
+}
+
+/* ==============================================================
+   Mega Menu Responsive Styles
+   ============================================================== */
+
+/* Responsive Mega Menu */
+@media (max-width: 992px) {
+    .mega-menu-panel {
+        position: static;
+        width: 100%;
+        min-width: 100%;
+        border-radius: 0;
+        box-shadow: none;
+        border-top: 1px solid #e4e8ec;
+        white-space: normal;
+    }
+
+    .mega-menu-container {
+        padding: 20px 15px;
+        width: 100%;
+    }
+
+    .mega-menu-row {
+        flex-direction: column;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+
+    .mega-menu-column {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .mega-menu-title {
+        font-size: 12px;
+        margin-bottom: 12px;
+    }
+
+    .mega-menu-list li a {
+        padding: 10px 0;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .mega-menu-container {
+        padding: 15px;
+    }
+
+    .mega-menu-row {
+        gap: 25px;
+    }
+
+    .mega-menu-title {
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+
+    .mega-menu-list li a {
+        padding: 8px 0;
+        font-size: 12px;
+    }
+}
+
+/* ==============================================================
+   Search Input Responsive Styles
+   ============================================================== */
+
+@media (max-width: 992px) {
+    .nav-menu-social .header-search-box {
+        min-width: 200px;
+    }
+    
+    .search-input {
+        min-width: 200px;
+        max-width: 300px;
+        font-size: 13px;
+        padding: 8px 45px 8px 12px;
+    }
+    
+    .search-btn {
+        width: 34px;
+        height: 34px;
+    }
+    
+    .search-btn i {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-menu-social .header-search-box {
+        min-width: 150px;
+    }
+    
+    .search-input {
+        min-width: 150px;
+        max-width: 200px;
+        font-size: 12px;
+        padding: 7px 40px 7px 10px;
+    }
+}
+
+/* ==============================================================
+   Mobile Search Hide
+   ============================================================== */
+
+@media (max-width: 992px) {
+    .search-input-wrapper {
+        display: none !important;
+    }
+}
+
+/* ==============================================================
+   Shop By Categories Responsive Styles
+   ============================================================== */
+
+@media (max-width: 992px) {
+    .category-image-wrapper {
+        height: 150px;
+    }
+    
+    .category-label {
+        font-size: 10px;
+        padding: 3px 8px;
+        top: 12px;
+        right: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Hide grid view on mobile */
+    .category-grid-view {
+        display: none !important;
+    }
+    
+    /* Show slider view on mobile */
+    .category-slider-view {
+        display: block !important;
+    }
+    
+    .category-slider {
+        padding: 0 3px;
+        margin: 0;
+    }
+    
+    .category-slider .slick-slide {
+        padding: 0 1.5px;
+    }
+    
+    .category-slider .slick-list {
+        margin: 0 -1.5px;
+    }
+    
+    .category-slider .category-image-wrapper {
+        height: 65px;
+        margin-bottom: 2px;
+    }
+    
+    .category-slider .category-label {
+        font-size: 6px;
+        padding: 2px 3px;
+        top: 2px;
+        right: 2px;
+        border-radius: 2px;
+        line-height: 1.1;
+    }
+    
+    .category-slider .category-tab-item {
+        margin: 2px;
+        /* padding: 2px; */
+    }
+    
+    .category-slider .category-tab-item:hover .category-label {
+        font-size: 7px;
+    }
+    
+    .category-slider .slick-prev,
+    .category-slider .slick-next {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .category-slider .slick-prev {
+        left: 0;
+    }
+    
+    .category-slider .slick-next {
+        right: 0;
+    }
+    
+    .category-slider .slick-prev:before,
+    .category-slider .slick-next:before {
+        font-size: 12px;
+    }
+    
+    .shop-by-categories {
+        margin-top: 15px;
+        padding: 0;
+    }
+    
+    .shop-by-categories .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+@media (max-width: 600px) {
+    .category-slider {
+        padding: 0 2px;
+    }
+    
+    .category-slider .slick-slide {
+        padding: 0 1px;
+    }
+    
+    .category-slider .slick-list {
+        margin: 0 -1px;
+    }
+    
+    .category-slider .category-image-wrapper {
+        height: 60px;
+    }
+    
+    .category-slider .category-label {
+        font-size: 6px;
+        padding: 2px 3px;
+    }
+    
+    .shop-by-categories .container {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    
+    .shop-shop-by {
+        line-height: 0px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 500px) {
+    .category-slider {
+        padding: 0 1px;
+    }
+    
+    .category-slider .slick-slide {
+        padding: 0 0.5px;
+    }
+    
+    .category-slider .slick-list {
+        margin: 0 -0.5px;
+    }
+    
+    .category-slider .category-image-wrapper {
+        height: 55px;
+    }
+    
+    .category-slider .category-label {
+        font-size: 6px;
+        padding: 1px 2px;
+    }
+    
+    .shop-by-categories .container {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+}
+
+@media (max-width: 400px) {
+    .category-slider {
+        padding: 0 1px;
+    }
+    
+    .category-slider .slick-slide {
+        padding: 0 0.5px;
+    }
+    
+    .category-slider .slick-list {
+        margin: 0 -0.5px;
+    }
+    
+    .category-slider .category-image-wrapper {
+        height: 50px;
+    }
+    
+    .category-slider .category-label {
+        font-size: 5px;
+        padding: 1px 2px;
+    }
+    
+    .shop-by-categories .container {
+        padding-left: 3px;
+        padding-right: 3px;
+    }
+}
+
+@media (max-width: 360px) {
+    .category-slider .category-image-wrapper {
+        height: 55px;
+    }
+    
+    .category-slider .category-label {
+        font-size: 6px;
+        padding: 2px 3px;
+    }
+}
+

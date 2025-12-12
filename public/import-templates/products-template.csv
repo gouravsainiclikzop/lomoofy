@@ -1,0 +1,4 @@
+Product SKU,Product Name,Product Type,Status,Price,Sale Price,Brand Slugs (comma separated),Category Slugs (comma separated),Subcategory Slugs (comma separated),Tag List,Description,Short Description
+SKU-001,Sample Product,variable,hidden,100.00,90.00,other,home-appliances|kitchen-appliances,small-appliances|large-appliances,"tag1, tag2","<p>Main content here</p>","Quick summary"
+
+
