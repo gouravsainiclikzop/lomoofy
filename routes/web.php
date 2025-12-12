@@ -241,6 +241,42 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
         Route::delete('/{id}', [\App\Http\Controllers\WarehouseController::class, 'destroy'])->name('destroy');
     });
     
+    // Shipping Management Routes (Master Data)
+    Route::prefix('master-data/shipping')->name('shipping.')->group(function () {
+        // Shipping Zones
+        Route::prefix('zones')->name('zones.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ShippingZoneController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\ShippingZoneController::class, 'getData'])->name('data');
+            Route::get('/{id}/edit', [\App\Http\Controllers\ShippingZoneController::class, 'edit'])->name('edit');
+            Route::post('/', [\App\Http\Controllers\ShippingZoneController::class, 'store'])->name('store');
+            Route::post('/bulk-delete', [\App\Http\Controllers\ShippingZoneController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('/{id}', [\App\Http\Controllers\ShippingZoneController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\ShippingZoneController::class, 'destroy'])->name('destroy');
+        });
+        
+        // Shipping Methods
+        Route::prefix('methods')->name('methods.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ShippingMethodController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\ShippingMethodController::class, 'getData'])->name('data');
+            Route::get('/{id}/edit', [\App\Http\Controllers\ShippingMethodController::class, 'edit'])->name('edit');
+            Route::post('/', [\App\Http\Controllers\ShippingMethodController::class, 'store'])->name('store');
+            Route::post('/bulk-delete', [\App\Http\Controllers\ShippingMethodController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('/{id}', [\App\Http\Controllers\ShippingMethodController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\ShippingMethodController::class, 'destroy'])->name('destroy');
+        });
+        
+        // Shipping Rates
+        Route::prefix('rates')->name('rates.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ShippingRateController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\ShippingRateController::class, 'getData'])->name('data');
+            Route::get('/{id}/edit', [\App\Http\Controllers\ShippingRateController::class, 'edit'])->name('edit');
+            Route::post('/', [\App\Http\Controllers\ShippingRateController::class, 'store'])->name('store');
+            Route::post('/bulk-delete', [\App\Http\Controllers\ShippingRateController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('/{id}', [\App\Http\Controllers\ShippingRateController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\ShippingRateController::class, 'destroy'])->name('destroy');
+        });
+    });
+    
     // Field Management Routes
     Route::get('/field-management', [\App\Http\Controllers\FieldManagementController::class, 'index'])->name('field-management.index');
     Route::get('/field-management/data', [\App\Http\Controllers\FieldManagementController::class, 'getData'])->name('field-management.data');

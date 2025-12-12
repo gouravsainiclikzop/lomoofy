@@ -63,7 +63,7 @@
                         </li>
                         
                         <!-- Master Data Menu -->
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('master-data.*') || request()->routeIs('attributes.*') || request()->routeIs('brands.*') || request()->routeIs('categories.*') || request()->routeIs('units.*') || request()->routeIs('warehouses.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
+                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('master-data.*') || request()->routeIs('attributes.*') || request()->routeIs('brands.*') || request()->routeIs('categories.*') || request()->routeIs('units.*') || request()->routeIs('warehouses.*') || request()->routeIs('shipping.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
                             <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
                                 <span class="sa-nav__icon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
@@ -105,6 +105,36 @@
                                         </span>
                                         <span class="sa-nav__title">Warehouses</span>
                                     </a>
+                                </li>
+                                <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('shipping.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
+                                    <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
+                                        <span class="sa-nav__icon">
+                                            <i class='bx bx-ship'></i>
+                                        </span>
+                                        <span class="sa-nav__title">Shipping</span>
+                                        <span class="sa-nav__arrow">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="6" height="9" viewBox="0 0 6 9" fill="currentColor">
+                                                <path d="M5.605,0.213 C6.007,0.613 6.107,1.212 5.706,1.612 L2.696,4.511 L5.706,7.409 C6.107,7.809 6.107,8.509 5.605,8.808 C5.204,9.108 4.702,9.108 4.301,8.709 L-0.013,4.511 L4.401,0.313 C4.702,-0.087 5.304,-0.087 5.605,0.213 Z"></path>
+                                            </svg>
+                                        </span>
+                                    </a>
+                                    <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content="">
+                                        <li class="sa-nav__menu-item {{ request()->routeIs('shipping.zones.*') ? 'sa-nav__menu-item--active' : '' }}">
+                                            <a href="{{ route('shipping.zones.index') }}" class="sa-nav__link">
+                                                <span class="sa-nav__title">Zones</span>
+                                            </a>
+                                        </li>
+                                        <li class="sa-nav__menu-item {{ request()->routeIs('shipping.methods.*') ? 'sa-nav__menu-item--active' : '' }}">
+                                            <a href="{{ route('shipping.methods.index') }}" class="sa-nav__link">
+                                                <span class="sa-nav__title">Methods</span>
+                                            </a>
+                                        </li>
+                                        <li class="sa-nav__menu-item {{ request()->routeIs('shipping.rates.*') ? 'sa-nav__menu-item--active' : '' }}">
+                                            <a href="{{ route('shipping.rates.index') }}" class="sa-nav__link">
+                                                <span class="sa-nav__title">Rates</span>
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </li>
                             </ul>
                         </li>
