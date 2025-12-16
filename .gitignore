@@ -25,3 +25,4 @@ Thumbs.db
 *.zip
 /ecomm-dashboard-theme
 /test
+/public/location-json/cities.json
