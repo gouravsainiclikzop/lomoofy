@@ -72,7 +72,7 @@
                             </div>
                             <small class="text-muted small mt-2 d-block">
                                 <i class="fas fa-info-circle me-1"></i>
-                                Select one or more attributes to create product variants. If no attributes are selected, a default variant will be automatically created.
+                                Select one or more attributes to create product variants.
                             </small>
                         </div>
                     </div>
@@ -95,8 +95,12 @@
                             </div>
                             <div class="col-12 text-end">
                                 <button type="button" class="btn btn-primary" id="addVariantBtn">
-                                    <i class="fas fa-plus me-1"></i> Add Variant
+                                    <i class="fas fa-magic me-1"></i> Generate All Variants
                                 </button>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Select multiple values for each attribute to generate all combinations
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -178,6 +182,40 @@
                 background: #555;
             }
             
+            /* Attribute values checkbox container scrollbar styling */
+            .attribute-values-checkbox-container {
+                max-height: 100px !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                border: 1px solid #dee2e6;
+                border-radius: 0.375rem;
+                padding: 10px;
+                background-color: #fff;
+                /* Firefox scrollbar styling */
+                scrollbar-width: thin;
+                scrollbar-color: #888 #f1f1f1;
+            }
+            
+            .attribute-values-checkbox-container::-webkit-scrollbar {
+                width: 10px !important;
+                height: 10px;
+            }
+            
+            .attribute-values-checkbox-container::-webkit-scrollbar-track {
+                background: #f1f1f1 !important;
+                border-radius: 4px;
+            }
+            
+            .attribute-values-checkbox-container::-webkit-scrollbar-thumb {
+                background: #888 !important;
+                border-radius: 4px;
+                border: 1px solid #f1f1f1;
+            }
+            
+            .attribute-values-checkbox-container::-webkit-scrollbar-thumb:hover {
+                background: #555 !important;
+            }
+            
             .attribute-checkbox-item {
                 padding: 0.5rem;
                 margin-bottom: 0.25rem;
@@ -196,6 +234,11 @@
             .attribute-checkbox-item .form-check-label {
                 cursor: pointer;
                 width: 100%;
+            }
+            
+            /* Variant Toast z-index fix */
+            #variantToast {
+                z-index: 1100 !important;
             }
             
             .attribute-checkbox-item .form-check-input {
@@ -281,22 +324,21 @@
                             <input type="text" class="form-control form-control-sm" id="variantName" name="variant_name">
                             <small class="text-muted">Editable variant name (auto-generated from attributes)</small>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label form-label-sm">MRP</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">₹</span>
                                 <input type="number" class="form-control form-control-sm" id="variantPrice" name="variant_price" step="0.01">
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label form-label-sm">Sell Price</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">₹</span>
                                 <input type="number" class="form-control form-control-sm" id="variantSalePrice" name="variant_sale_price" step="0.01">
                             </div>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label form-label-sm mb-2">Discount Settings</label>
+                        <div class="col-12"> 
                             <div class="row g-2">
                                 <div class="col-md-4">
                                     <label class="form-label form-label-sm">Discount Type</label>
@@ -327,33 +369,15 @@
                         <div class="col-12">
                             <hr>
                             <h6 class="mb-3"><i data-feather="package" class="me-2"></i> Inventory</h6>
+                          
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label form-label-sm">Stock Quantity</label>
-                            <input type="number" class="form-control form-control-sm" id="variantStockQuantity" name="variant_stock_quantity" min="0" value="0">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label form-label-sm">Stock Status</label>
-                            <select class="form-select form-select-sm" id="variantStockStatus" name="variant_stock_status">
-                                <option value="in_stock">In Stock</option>
-                                <option value="out_of_stock">Out of Stock</option>
-                                <option value="on_backorder">On Backorder</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label form-label-sm">Low Stock Threshold</label>
                             <input type="number" class="form-control form-control-sm" id="variantLowStockThreshold" name="variant_low_stock_threshold" min="0" value="0">
                             <small class="text-muted d-block" style="font-size: 0.7rem;">Alert when stock falls below this</small>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label form-label-sm d-block">Manage Stock</label>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="variantManageStock" name="variant_manage_stock" checked>
-                                <label class="form-check-label" for="variantManageStock">Enable Stock Tracking</label>
-                            </div>
-                        </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label form-label-sm d-block">Status</label>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="variantStatusToggle" name="variant_is_active">
@@ -451,8 +475,12 @@
                 'low_stock_threshold' => $variant->low_stock_threshold ?? 0,
                 'measurements' => $variant->measurements ?? [],
                 'highlights_details' => $variant->highlights_details ?? [],
-                'images' => $variant->images->pluck('image_path')->map(function ($path) {
-                    return $path;
+                'images' => $variant->images->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'path' => $image->image_path,
+                        'url' => asset('storage/' . $image->image_path),
+                    ];
                 })->values(),
             ];
         })->values()->toJson(JSON_UNESCAPED_UNICODE);
@@ -881,7 +909,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialize variants table visibility and default variant
+    // Initialize variants table visibility
     const variantsTableContainer = document.getElementById('variantsTableContainer');
     const variantsTableBody = document.getElementById('variantsTableBody');
     const bulkActions = document.getElementById('bulkActions');
@@ -891,39 +919,20 @@ document.addEventListener('DOMContentLoaded', function() {
         variantsTableContainer.style.display = 'block';
     }
     
-    // Trigger initial check for default variant after a short delay
-    // Also call updateAttributeValuesConfig to ensure default variant is created
+    // Trigger initial check for variants after a short delay
+    // Also call updateAttributeValuesConfig to initialize variants
     setTimeout(function() {
         // Ensure table is visible
         if (variantsTableContainer) {
             variantsTableContainer.style.display = 'block';
         }
         
-        // Check if updateAttributeValuesConfig exists and call it to trigger default variant creation
+        // Check if updateAttributeValuesConfig exists and call it to initialize variants
         if (typeof updateAttributeValuesConfig === 'function') {
             updateAttributeValuesConfig();
         }
         
-        // Also directly check and create default variant if needed
-        const selectedIds = getSelectedAttributeIds();
-        let hasVariants = false;
-        try {
-            hasVariants = typeof generatedVariants !== 'undefined' && Array.isArray(generatedVariants) && generatedVariants.length > 0;
-        } catch(e) {}
-        
-        const hasVariantsInTable = variantsTableBody && variantsTableBody.querySelectorAll('tr').length > 0;
-        
-        if (selectedIds.length === 0 && !hasVariants && !hasVariantsInTable) {
-            if (typeof createDefaultVariant === 'function') {
-                setTimeout(function() {
-                    createDefaultVariant();
-                }, 100);
-            } else if (typeof window.createDefaultVariant === 'function') {
-                setTimeout(function() {
-                    window.createDefaultVariant();
-                }, 100);
-            }
-        }
+        // Default variant creation removed per user request
     }, 300);
     const variantEditModalElement = document.getElementById('variantEditModal');
     const variantEditModal = variantEditModalElement ? new bootstrap.Modal(variantEditModalElement) : null;
@@ -1828,97 +1837,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Note: Variants section visibility is controlled by the dynamic form's section visibility logic
     
     // Function to create a default variant when no attributes are selected
+    // DISABLED: Default variant creation removed per user request
     function createDefaultVariant() {
-        const productNameEl = document.getElementById('productName');
-        const productName = productNameEl ? productNameEl.value : 'Product';
-        const defaultSku = (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 15) : 'PROD') + '-DEFAULT-' + Date.now().toString().slice(-6);
-        
-        const defaultVariant = {
-            id: null,
-            name: productName || 'Default Variant',
-            sku: defaultSku,
-            barcode: '',
-            price: '0.00',
-            sale_price: '',
-            cost_price: '',
-            low_stock_threshold: '',
-            stock_quantity: 0,
-            stock_status: 'in_stock',
-            manage_stock: true,
-            is_active: true,
-            discount_type: '',
-            discount_value: '',
-            discount_active: false,
-            attributes: {},
-            weight: '',
-            length: '',
-            width: '',
-            height: '',
-            diameter: '',
-            measurements: [],
-            images: []
-        };
-        
-        if (!Array.isArray(generatedVariants)) {
-            generatedVariants = [];
-        }
-        
-        // Only add if we don't already have a default variant (one without attributes)
-        const hasDefault = generatedVariants.some(v => 
-            !v.attributes || Object.keys(v.attributes || {}).length === 0
-        );
-        
-        if (!hasDefault) {
-            generatedVariants.push(defaultVariant);
-            displayVariants();
-        }
+        // Do nothing - default variant creation is disabled
+        return;
     }
     
-    // Make function accessible globally
+    // Make function accessible globally (but it does nothing)
     window.createDefaultVariant = createDefaultVariant;
     
     // Initialize for edit mode if product exists and has variants
     if (Array.isArray(existingVariantsPayload) && existingVariantsPayload.length > 0) {
         loadExistingVariants(existingVariantsPayload);
-    } else {
-        // Auto-generate default variant when no attributes are selected and no existing variants
-        // Check immediately and also after a short delay to ensure all initialization is complete
-        function checkAndCreateDefaultVariant() {
-            const selectedIds = getSelectedAttributeIds();
-            const hasVariants = Array.isArray(generatedVariants) && generatedVariants.length > 0;
-            const hasVariantsInTable = variantsTableBody && variantsTableBody.querySelectorAll('tr').length > 0;
-            
-            if (selectedIds.length === 0 && !hasVariants && !hasVariantsInTable) {
-                createDefaultVariant();
-            }
-        }
-        
-        // Try after delays to ensure all functions are defined
-        setTimeout(function() {
-            checkAndCreateDefaultVariant();
-        }, 100);
-        setTimeout(checkAndCreateDefaultVariant, 500);
-        setTimeout(checkAndCreateDefaultVariant, 1000);
-        
-        // Also trigger updateAttributeValuesConfig which will create default variant
-        setTimeout(function() {
-            if (typeof updateAttributeValuesConfig === 'function') {
-                updateAttributeValuesConfig();
-            }
-        }, 800);
     }
-    
-    // Also ensure default variant is created on initial page load
-    // This runs after all script initialization
-    setTimeout(function() {
-        const selectedIds = getSelectedAttributeIds();
-        const hasVariants = Array.isArray(generatedVariants) && generatedVariants.length > 0;
-        const hasVariantsInTable = variantsTableBody && variantsTableBody.querySelectorAll('tr').length > 0;
-        
-        if (selectedIds.length === 0 && !hasVariants && !hasVariantsInTable && typeof createDefaultVariant === 'function') {
-            createDefaultVariant();
-        }
-    }, 1500);
+    // Default variant auto-creation removed per user request
 
     // Attribute selection
     function attributeIsUsedInVariants(attributeId) {
@@ -2110,7 +2042,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             variantAttributeSelectors.innerHTML = '';
 
-            // Create dropdown selectors for each selected attribute
+            // Create multi-select checkboxes for each selected attribute
             selectedAttributeIds.forEach(attributeId => {
                 // Get attribute info using helper function
                 const attrInfo = getAttributeInfo(attributeId);
@@ -2119,39 +2051,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 const attributeType = attrInfo.type;
                 const attributeName = attrInfo.name;
                 
-                // Create dropdown for this attribute
+                // Create checkbox container for this attribute
                 const selectorDiv = document.createElement('div');
                 selectorDiv.className = 'col-md-12 mb-3';
+                selectorDiv.setAttribute('data-attribute-id', attributeId);
                 selectorDiv.innerHTML = `
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-    <label class="form-label mb-0">
-        ${escapeHtml(attributeName)}
-    </label>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label mb-0">
+                        <strong>${escapeHtml(attributeName)}</strong>
+                        <small class="text-muted ms-2">(Select multiple values)</small>
+                    </label>
 
-    <button type="button"
-            class="btn btn-sm add-attribute-value-btn"
-            data-attribute-id="${attributeId}"
-            data-attribute-type="${attributeType}"
-            data-attribute-name="${escapeHtml(attributeName)}"
-            title="Add new value for ${escapeHtml(attributeName)}"
-            style="background:#f5c000; color:#ffffff; border:none; padding:4px 10px; border-radius:4px; display:flex; align-items:center;">
-        
-        <i class="bx bx-plus-circle me-1" 
-           style="color:#ffffff; margin-right:.25rem;"></i>
-        
-        Add Value
-    </button>
-</div>
-
-                    <select class="form-select variant-attribute-selector" data-attribute-id="${attributeId}" data-attribute-type="${attributeType}">
-                        <option value="">-- Select ${escapeHtml(attributeName)} --</option>
-                    </select>
+                    <button type="button"
+                            class="btn btn-sm add-attribute-value-btn"
+                            data-attribute-id="${attributeId}"
+                            data-attribute-type="${attributeType}"
+                            data-attribute-name="${escapeHtml(attributeName)}"
+                            title="Add new value for ${escapeHtml(attributeName)}"
+                            style="background:#f5c000; color:#ffffff; border:none; padding:4px 10px; border-radius:4px; display:flex; align-items:center;">
+                        
+                        <i class="bx bx-plus-circle me-1" 
+                           style="color:#ffffff; margin-right:.25rem;"></i>
+                        
+                        Add Value
+                    </button>
+                  </div>
+                  <div class="attribute-values-checkbox-container" 
+                       data-attribute-id="${attributeId}" 
+                       data-attribute-type="${attributeType}">
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Loading values...
+                    </div>
+                  </div>
                 `;
                 
                 variantAttributeSelectors.appendChild(selectorDiv);
                 
-                // Load attribute values for this dropdown (will initialize Select2)
-                loadAttributeValuesForSelector(attributeId, attributeType, selectorDiv.querySelector('select'));
+                // Load attribute values for this attribute (will show as checkboxes)
+                loadAttributeValuesForMultiSelect(attributeId, attributeType, selectorDiv.querySelector('.attribute-values-checkbox-container'));
                 
                 // Attach click handler for "Add Value" button
                 const addValueBtn = selectorDiv.querySelector('.add-attribute-value-btn');
@@ -2190,16 +2127,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 variantsTableContainer.style.display = 'block';
             }
             
-            // Then create default variant
-            if (typeof createDefaultVariant === 'function') {
-                createDefaultVariant();
-            } else if (typeof window.createDefaultVariant === 'function') {
-                window.createDefaultVariant();
-            } else {
-                // Fallback: Show table even if function doesn't exist
-                if (variantsTableContainer) {
-                    variantsTableContainer.style.display = 'block';
-                }
+            // Default variant creation removed per user request
+            // Show table if it exists
+            if (variantsTableContainer) {
+                variantsTableContainer.style.display = 'block';
             }
         } else {
             // Hide table when attributes are selected but no variants generated yet
@@ -2216,15 +2147,132 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Call updateAttributeValuesConfig on page load to initialize default variant if needed
-    // This ensures the default variant is created when no attributes are selected
+    // Call updateAttributeValuesConfig on page load to initialize variants
+    // Default variant creation removed per user request
     setTimeout(function() {
         if (typeof updateAttributeValuesConfig === 'function') {
             updateAttributeValuesConfig();
         }
     }, 100);
 
-    // Load attribute values for dropdown selector and initialize Select2
+    // Load attribute values for multi-select checkboxes
+    function loadAttributeValuesForMultiSelect(attributeId, attributeType, containerElement) {
+        const attributeKey = String(attributeId);
+        
+        // Check cache first
+        if (attributeValuesCache.has(attributeKey)) {
+            const cachedData = attributeValuesCache.get(attributeKey);
+            populateMultiSelectFromData(attributeId, attributeType, containerElement, cachedData);
+            return;
+        }
+        
+        // Check if there's already an ongoing request for this attribute
+        if (attributeValuesPromises.has(attributeKey)) {
+            attributeValuesPromises.get(attributeKey).then(data => {
+                populateMultiSelectFromData(attributeId, attributeType, containerElement, data);
+            });
+            return;
+        }
+        
+        // Create and cache the promise
+        const fetchPromise = fetch(`{{ url('attributes') }}/${attributeId}/values`)
+            .then(response => response.json())
+            .then(data => {
+                // Cache the result
+                attributeValuesCache.set(attributeKey, data);
+                // Remove from promises cache
+                attributeValuesPromises.delete(attributeKey);
+                return data;
+            })
+            .catch(error => {
+                // Remove from promises cache on error
+                attributeValuesPromises.delete(attributeKey);
+                throw error;
+            });
+        
+        // Store the promise
+        attributeValuesPromises.set(attributeKey, fetchPromise);
+        
+        fetchPromise.then(data => {
+            populateMultiSelectFromData(attributeId, attributeType, containerElement, data);
+        }).catch(error => {
+            console.error('Error loading attribute values for multi-select:', error);
+            containerElement.innerHTML = '<div class="text-danger text-center py-2">Error loading values. Please try again.</div>';
+        });
+    }
+    
+    // Populate multi-select checkboxes from data
+    function populateMultiSelectFromData(attributeId, attributeType, containerElement, data) {
+        containerElement.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            containerElement.innerHTML = `
+                <div class="text-muted text-center py-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No values available. Click "Add Value" to create one.
+                </div>
+            `;
+            return;
+        }
+        
+        // Create checkbox grid
+        const checkboxGrid = document.createElement('div');
+        checkboxGrid.className = 'row g-2';
+        
+        data.forEach(value => {
+            const valueItem = value.value || '';
+            const colorCode = value.color_code || '';
+            
+            const colDiv = document.createElement('div');
+            colDiv.className = attributeType === 'color' ? 'col-6 col-md-4 col-lg-3' : 'col-12';
+            
+            const checkboxId = `attr_${attributeId}_value_${valueItem.replace(/[^a-zA-Z0-9]/g, '_')}_${value.id || Date.now()}`;
+            
+            let checkboxHtml = '';
+            
+            if (attributeType === 'color' && colorCode) {
+                // Color attribute with color swatch
+                checkboxHtml = `
+                    <div class="form-check">
+                        <input class="form-check-input variant-attribute-value-checkbox" 
+                               type="checkbox" 
+                               id="${checkboxId}"
+                               value="${escapeHtml(valueItem)}"
+                               data-attribute-id="${attributeId}"
+                               data-attribute-type="${attributeType}"
+                               data-color-code="${escapeHtml(colorCode)}">
+                        <label class="form-check-label d-flex align-items-center" for="${checkboxId}" style="cursor: pointer;">
+                            <span class="color-swatch me-2" 
+                                  style="width: 30px; height: 30px; border: 2px solid #dee2e6; border-radius: 4px; background-color: ${escapeHtml(colorCode)}; display: inline-block; flex-shrink: 0;"></span>
+                            <span>${escapeHtml(valueItem)}</span>
+                        </label>
+                    </div>
+                `;
+            } else {
+                // Regular attribute
+                checkboxHtml = `
+                    <div class="form-check">
+                        <input class="form-check-input variant-attribute-value-checkbox" 
+                               type="checkbox" 
+                               id="${checkboxId}"
+                               value="${escapeHtml(valueItem)}"
+                               data-attribute-id="${attributeId}"
+                               data-attribute-type="${attributeType}">
+                        <label class="form-check-label" for="${checkboxId}" style="cursor: pointer;">
+                            ${escapeHtml(valueItem)}
+                        </label>
+                    </div>
+                `;
+            }
+            
+            colDiv.innerHTML = checkboxHtml;
+            checkboxGrid.appendChild(colDiv);
+        });
+        
+        containerElement.appendChild(checkboxGrid);
+    }
+
+    // Load attribute values for dropdown selector and initialize Select2 (kept for backward compatibility)
     function loadAttributeValuesForSelector(attributeId, attributeType, selectElement) {
         const attributeKey = String(attributeId);
         
@@ -2729,7 +2777,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert(result.message || 'Attribute value created successfully');
                 }
                 
-                // Refresh the Select2 dropdown for this attribute
+                // Clear cache for this attribute to force reload
+                const attributeKey = String(attributeId);
+                attributeValuesCache.delete(attributeKey);
+                
+                // Refresh the multi-select checkbox container for this attribute
+                const checkboxContainer = document.querySelector(`.attribute-values-checkbox-container[data-attribute-id="${attributeId}"]`);
+                if (checkboxContainer) {
+                    const attributeType = checkboxContainer.getAttribute('data-attribute-type');
+                    loadAttributeValuesForMultiSelect(attributeId, attributeType, checkboxContainer);
+                }
+                
+                // Also refresh the Select2 dropdown for this attribute (for backward compatibility)
                 const selectElement = document.querySelector(`select.variant-attribute-selector[data-attribute-id="${attributeId}"]`);
                 if (selectElement) {
                     const $select = $(selectElement);
@@ -2870,123 +2929,193 @@ document.addEventListener('DOMContentLoaded', function() {
         return `idx:${index}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
     }
 
-    // Add single variant button handler
+    // Generate all combinations (cartesian product) of selected attribute values
+    function generateAllCombinations(selectedValuesByAttribute) {
+        const attributeIds = Object.keys(selectedValuesByAttribute);
+        
+        if (attributeIds.length === 0) {
+            return [];
+        }
+        
+        // Get all value arrays
+        const valueArrays = attributeIds.map(attrId => selectedValuesByAttribute[attrId]);
+        
+        // Generate cartesian product
+        function cartesianProduct(arrays) {
+            if (arrays.length === 0) return [[]];
+            if (arrays.length === 1) return arrays[0].map(v => [v]);
+            
+            const [first, ...rest] = arrays;
+            const restProduct = cartesianProduct(rest);
+            const result = [];
+            
+            for (const value of first) {
+                for (const combination of restProduct) {
+                    result.push([value, ...combination]);
+                }
+            }
+            
+            return result;
+        }
+        
+        const combinations = cartesianProduct(valueArrays);
+        
+        // Convert to variant objects
+        return combinations.map(combination => {
+            const variantAttributes = {};
+            attributeIds.forEach((attrId, index) => {
+                variantAttributes[attrId] = combination[index];
+            });
+            return variantAttributes;
+        });
+    }
+    
+    // Get selected values for all attributes from checkboxes
+    function getSelectedAttributeValues() {
+        const selectedValuesByAttribute = {};
+        
+        // Get all checked value checkboxes
+        const checkedBoxes = document.querySelectorAll('.variant-attribute-value-checkbox:checked');
+        
+        checkedBoxes.forEach(checkbox => {
+            const attributeId = checkbox.getAttribute('data-attribute-id');
+            const value = checkbox.value;
+            
+            if (!selectedValuesByAttribute[attributeId]) {
+                selectedValuesByAttribute[attributeId] = [];
+            }
+            
+            selectedValuesByAttribute[attributeId].push(value);
+        });
+        
+        return selectedValuesByAttribute;
+    }
+    
+    // Add variants button handler - generates all combinations
     const addVariantBtn = document.getElementById('addVariantBtn');
     if (addVariantBtn) {
         addVariantBtn.addEventListener('click', function() {
-            const selectors = document.querySelectorAll('.variant-attribute-selector');
-            const variantAttributes = {};
-            let allSelected = true;
+            // Get selected values for all attributes
+            const selectedValuesByAttribute = getSelectedAttributeValues();
             
-            // Collect selected values from all attribute selectors (works with Select2)
-            selectors.forEach(select => {
-                const attributeId = select.dataset.attributeId;
-                const $select = $(select);
-                const value = $select.val() ? String($select.val()).trim() : '';
-                
-                if (!value) {
-                    allSelected = false;
-                    $select.addClass('is-invalid');
-                    // Also add invalid class to Select2 container
-                    $select.next('.select2-container').addClass('is-invalid');
-                } else {
-                    $select.removeClass('is-invalid');
-                    $select.next('.select2-container').removeClass('is-invalid');
-                    variantAttributes[attributeId] = value;
-                }
-            });
+            // Check if at least one value is selected for each attribute
+            const selectedAttributeIds = Array.from(document.querySelectorAll('.attribute-checkbox:checked')).map(cb => cb.value);
+            let hasMissingSelections = false;
             
-            if (!allSelected) {
-                showToast('error', 'Please select a value for all attributes before adding a variant.');
-                return;
-            }
-            
-            // Check if this variant combination already exists
-            const existingVariant = generatedVariants.find(variant => {
-                const normalized = normalizeAttributesPayload(variant.attributes || {});
-                const keys = Object.keys(normalized).sort();
-                const newKeys = Object.keys(variantAttributes).sort();
-                
-                if (keys.length !== newKeys.length) return false;
-                
-                return keys.every(key => {
-                    return normalized[key] === variantAttributes[key];
-                });
-            });
-            
-            if (existingVariant) {
-                showToast('error', 'This variant combination already exists.');
-                return;
-            }
-            
-            // Generate SKU for new variant
-            const variantValueTexts = [];
-            Object.keys(variantAttributes).forEach(attributeId => {
-                const value = variantAttributes[attributeId];
-                const selector = document.querySelector(`[data-attribute-id="${attributeId}"]`);
-                if (selector) {
-                    const $select = $(selector);
-                    const selectedOption = $select.find(`option[value="${value}"]`);
-                    if (selectedOption.length) {
-                        const valueText = selectedOption.text().trim();
-                        // Extract just the value part (before any parentheses or extra text)
-                        const cleanValue = valueText.split('(')[0].trim();
-                        variantValueTexts.push(cleanValue);
-                    } else {
-                        variantValueTexts.push(value.toString());
+            selectedAttributeIds.forEach(attributeId => {
+                if (!selectedValuesByAttribute[attributeId] || selectedValuesByAttribute[attributeId].length === 0) {
+                    hasMissingSelections = true;
+                    // Highlight the attribute container
+                    const container = document.querySelector(`[data-attribute-id="${attributeId}"] .attribute-values-checkbox-container`);
+                    if (container) {
+                        container.style.borderColor = '#dc3545';
+                        setTimeout(() => {
+                            container.style.borderColor = '#dee2e6';
+                        }, 2000);
                     }
-                } else {
-                    variantValueTexts.push(value.toString());
                 }
             });
             
-            const skuSuffix = variantValueTexts.map(valueText =>
-                valueText.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3)
-            ).join('-');
+            if (hasMissingSelections) {
+                showToast('error', 'Please select at least one value for each attribute before generating variants.');
+                return;
+            }
             
-            // Get parent SKU or product name for base
-            const parentSku = document.getElementById('productSku')?.value || '';
-            const productName = document.getElementById('productName')?.value || '';
-            const baseSku = parentSku ? parentSku.replace('PRD-', '').split('-')[0] : 
-                          (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10) : 'VAR');
-            const variantIndex = generatedVariants.length + 1;
-            const autoSku = `${baseSku}-${variantIndex}-${skuSuffix}`;
+            // Sync generatedVariants with DOM before checking for duplicates
+            syncGeneratedVariantsFromDOM();
             
-            // Create new variant
-            const newVariant = {
-                attributes: variantAttributes,
-                name: Object.values(variantAttributes).join(' - '),
-                sku: autoSku,
-                price: '',
-                sale_price: '',
-                is_active: true,
-                measurements: [],
-                images: []
-            };
+            // Generate all combinations
+            const combinations = generateAllCombinations(selectedValuesByAttribute);
+            
+            if (combinations.length === 0) {
+                showToast('error', 'No combinations to generate. Please select at least one value for each attribute.');
+                return;
+            }
+            
+            // Check for existing variants and filter out duplicates
+            const newVariants = [];
+            let skippedCount = 0;
+            
+            combinations.forEach(variantAttributes => {
+                // Check if this variant combination already exists
+                // Use synced generatedVariants array
+                const existingVariant = generatedVariants.find(variant => {
+                    const normalized = normalizeAttributesPayload(variant.attributes || {});
+                    const keys = Object.keys(normalized).sort();
+                    const newKeys = Object.keys(variantAttributes).sort();
+                    
+                    if (keys.length !== newKeys.length) return false;
+                    
+                    return keys.every(key => {
+                        return normalized[key] === variantAttributes[key];
+                    });
+                });
+                
+                if (!existingVariant) {
+                    // Generate SKU for new variant
+                    const variantValueTexts = Object.values(variantAttributes).map(value => {
+                        return String(value).toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3);
+                    });
+                    
+                    const skuSuffix = variantValueTexts.join('-');
+                    
+                    // Get parent SKU or product name for base
+                    const parentSku = document.getElementById('productSku')?.value || '';
+                    const productName = document.getElementById('productName')?.value || '';
+                    const baseSku = parentSku ? parentSku.replace('PRD-', '').split('-')[0] : 
+                                  (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10) : 'VAR');
+                    const variantIndex = generatedVariants.length + newVariants.length + 1;
+                    const autoSku = `${baseSku}-${variantIndex}-${skuSuffix}`;
+                    
+                    // Create new variant
+                    const newVariant = {
+                        attributes: variantAttributes,
+                        name: Object.values(variantAttributes).join(' - '),
+                        sku: autoSku,
+                        price: '',
+                        sale_price: '',
+                        is_active: true,
+                        measurements: [],
+                        images: []
+                    };
+                    
+                    newVariants.push(newVariant);
+                } else {
+                    skippedCount++;
+                }
+            });
+            
+            if (newVariants.length === 0) {
+                showToast('info', `All ${combinations.length} variant combination(s) already exist.`);
+                return;
+            }
             
             // Add to generated variants
             if (!Array.isArray(generatedVariants)) {
                 generatedVariants = [];
             }
-            generatedVariants.push(newVariant);
+            generatedVariants.push(...newVariants);
             
             // Display variants
             displayVariants();
+            
+            // Sync generatedVariants with DOM after display (to ensure indices match)
+            syncGeneratedVariantsFromDOM();
             
             // Show variants table
             variantsTableContainer.style.display = 'block';
             bulkActions.style.display = 'block';
             
-            // Clear selectors (works with Select2)
-            selectors.forEach(select => {
-                const $select = $(select);
-                $select.val(null).trigger('change');
-                $select.removeClass('is-invalid');
-                $select.next('.select2-container').removeClass('is-invalid');
+            // Clear all checkboxes
+            document.querySelectorAll('.variant-attribute-value-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
             });
             
             // Show success message
-            showToast('success', 'Variant added successfully.');
+            const message = skippedCount > 0 
+                ? `${newVariants.length} variant(s) added successfully. ${skippedCount} duplicate(s) skipped.`
+                : `${newVariants.length} variant(s) generated successfully.`;
+            showToast('success', message);
             
             if (!isRestoringVariantDraft) {
                 persistVariantDraft();
@@ -3110,12 +3239,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update variant images section visibility (will be called after variants are added)
         
         if (!Array.isArray(generatedVariants) || generatedVariants.length === 0) {
-            // If no variants and no attributes selected, create default variant
-            const selectedIds = getSelectedAttributeIds();
-            if (selectedIds.length === 0 && typeof createDefaultVariant === 'function') {
-                createDefaultVariant();
-                return; // Will be called again after variant is created
-            }
+            // Default variant creation removed per user request
             return;
         }
         
@@ -3130,8 +3254,23 @@ document.addEventListener('DOMContentLoaded', function() {
             let variantDiscountActive;
             let variantMeasurements = [];
             let variantAttributes = {};
+            let variantImages = [];
             
-            const normalizedImages = normalizeVariantImages(variant.images);
+            // Preserve full image structure (id, path, url) instead of normalizing to strings
+            const variantImagesSource = variant.images || [];
+            const normalizedImages = Array.isArray(variantImagesSource) 
+                ? variantImagesSource.map(img => {
+                    // If already in correct format (object with id, path, url), keep it
+                    if (typeof img === 'object' && (img.id || img.path || img.url)) {
+                        return img;
+                    }
+                    // If string, convert to object format (but without ID - can't delete these)
+                    if (typeof img === 'string') {
+                        return { path: img, url: img.startsWith('http') ? img : `/storage/${img.replace(/^\/?storage\//, '')}` };
+                    }
+                    return img;
+                })
+                : [];
 
             let normalizedAttributes = {};
 
@@ -3293,8 +3432,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 measurements: variantMeasurements,
                 attributes: variantAttributes,
                 images: normalizedImages,
+                stock_quantity: variant.stock_quantity || 0,
+                stock_status: variant.stock_status || 'in_stock',
+                manage_stock: variant.manage_stock || false,
+                low_stock_threshold: variant.low_stock_threshold || 0,
+                highlights_details: variant.highlights_details || null,
+                barcode: variant.barcode || ''
             };
             row.dataset.variantId = datasetPayload.id ? String(datasetPayload.id) : '';
+            row.dataset.variantIndex = String(index);
             row.dataset.variantData = JSON.stringify(datasetPayload);
             const idHidden = row.querySelector('[data-variant-id-input]');
             if (idHidden) {
@@ -3338,13 +3484,11 @@ document.addEventListener('DOMContentLoaded', function() {
             variantsTableContainer.style.display = 'block';
             bulkActions.style.display = 'block';
         } else {
-            // Check if no attributes are selected - if so, create default variant instead of hiding
+            // Check if no attributes are selected - hide table if no variants
             const selectedIds = getSelectedAttributeIds();
             if (selectedIds.length === 0) {
-                // No attributes selected - create default variant
-                if (typeof createDefaultVariant === 'function') {
-                    createDefaultVariant();
-                }
+                // No attributes selected - hide table (default variant creation removed)
+                variantsTableContainer.style.display = 'none';
             } else {
                 // Attributes selected but no variants - hide table until variants are created
                 variantsTableContainer.style.display = 'none';
@@ -3414,27 +3558,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Populate inventory fields
-            const stockQuantityInput = document.getElementById('variantStockQuantity');
-            const stockStatusSelect = document.getElementById('variantStockStatus');
+            // Note: Stock Quantity and Stock Status are managed from Inventory module only
             const lowStockThresholdInput = document.getElementById('variantLowStockThreshold');
-            const manageStockToggle = document.getElementById('variantManageStock');
             
             const stockQuantityHidden = row.querySelector('[data-variant-stock-quantity-input]');
             const stockStatusHidden = row.querySelector('[data-variant-stock-status-input]');
             const lowStockThresholdHidden = row.querySelector('[data-variant-low-stock-threshold-input]');
             const manageStockHidden = row.querySelector('[data-variant-manage-stock-input]');
             
-            if (stockQuantityInput && stockQuantityHidden) {
-                stockQuantityInput.value = stockQuantityHidden.value || '0';
-            }
-            if (stockStatusSelect && stockStatusHidden) {
-                stockStatusSelect.value = stockStatusHidden.value || 'in_stock';
-            }
+            // Stock quantity and status are read-only (managed from Inventory module)
+            // Keep existing values from hidden inputs for form submission
+            
             if (lowStockThresholdInput && lowStockThresholdHidden) {
                 lowStockThresholdInput.value = lowStockThresholdHidden.value || '0';
-            }
-            if (manageStockToggle && manageStockHidden) {
-                manageStockToggle.checked = manageStockHidden.value === '1';
             }
             
             // Populate other fields first
@@ -3551,25 +3687,38 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Add existing images
             if (Array.isArray(existingImages) && existingImages.length > 0) {
-                existingImages.forEach(path => {
-                    if (path) {
-                        const normalizedPath = path.startsWith('http')
-                            ? path
-                            : `/storage/${path.replace(/^\/?storage\//, '')}`;
+                existingImages.forEach(img => {
+                    // Handle both old format (string path) and new format (object with id, path, url)
+                    if (typeof img === 'string') {
+                        // Old format: just a path string
+                        const normalizedPath = img.startsWith('http')
+                            ? img
+                            : `/storage/${img.replace(/^\/?storage\//, '')}`;
                         allImages.push({
                             src: normalizedPath,
+                            type: 'existing',
+                            path: img
+                        });
+                    } else if (img && (img.path || img.url)) {
+                        // New format: object with id, path, url
+                        allImages.push({
+                            id: img.id,
+                            src: img.url || (img.path.startsWith('http') ? img.path : `/storage/${img.path.replace(/^\/?storage\//, '')}`),
+                            path: img.path,
                             type: 'existing'
                         });
                     }
                 });
             }
             
-            // Add new files
-            newFiles.forEach(file => {
+            // Add new files with index for removal
+            newFiles.forEach((file, fileIndex) => {
                 allImages.push({
                     src: URL.createObjectURL(file),
                     type: 'new',
-                    name: file.name
+                    name: file.name,
+                    fileIndex: fileIndex,
+                    file: file // Store file reference for removal
                 });
             });
             
@@ -3606,12 +3755,46 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     const cardBody = document.createElement('div');
                     cardBody.className = 'card-body p-2';
-                    cardBody.innerHTML = `
+                    
+                    let bodyContent = `
                         <small class="text-muted d-block text-truncate" title="${image.name || 'Image'}">
                             ${image.name || `Image ${index + 1}`}
                         </small>
-                        <span class="badge bg-${image.type === 'existing' ? 'success' : 'info'} badge-sm">${image.type === 'existing' ? 'Existing' : 'New'}</span>
+                        <span class="badge bg-${image.type === 'existing' ? 'success' : 'info'} badge-sm mb-2">${image.type === 'existing' ? 'Existing' : 'New'}</span>
                     `;
+                    
+                    // Add delete button for both existing and new images
+                    // For existing images: show delete if we have an ID (database image)
+                    if (image.type === 'existing') {
+                        if (image.id) {
+                            // Delete button for existing images (from database with ID)
+                            bodyContent += `
+                                <button type="button" class="btn btn-sm btn-outline-danger w-100 delete-variant-image-btn" 
+                                        data-image-id="${image.id}" 
+                                        data-variant-index="${variantIndex}"
+                                        data-image-type="existing"
+                                        title="Delete this image">
+                                    <i class="fas fa-trash-alt me-1"></i> Delete
+                                </button>
+                            `;
+                        }
+                        // If no ID (old format string), we can't delete individually - no button
+                    } else if (image.type === 'new') {
+                        // Remove button for newly selected images (from file input)
+                        if (image.fileIndex !== undefined && image.fileIndex !== null) {
+                            bodyContent += `
+                                <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-new-variant-image-btn" 
+                                        data-file-index="${image.fileIndex}" 
+                                        data-variant-index="${variantIndex}"
+                                        data-image-type="new"
+                                        title="Remove this image">
+                                    <i class="fas fa-trash-alt me-1"></i> Remove
+                                </button>
+                            `;
+                        }
+                    }
+                    
+                    cardBody.innerHTML = bodyContent;
                     
                     card.appendChild(img);
                     card.appendChild(cardBody);
@@ -3633,6 +3816,222 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 document.getElementById('variantImagesViewModal').removeEventListener('hidden.bs.modal', cleanup);
             }, { once: true });
+        }
+    });
+    
+    // Handle delete variant image button click
+    $(document).on('click', '.delete-variant-image-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+            return;
+        }
+        
+        const btn = $(this);
+        const imageId = btn.data('image-id');
+        const variantIndex = btn.data('variant-index');
+        const card = btn.closest('.col-md-4, .col-sm-6');
+        
+        // Disable button and show loading
+        btn.prop('disabled', true);
+        btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Deleting...');
+        
+        $.ajax({
+            url: '{{ route("products.deleteVariantImage") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                image_id: imageId
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Remove the card from modal
+                    card.fadeOut(300, function() {
+                        $(this).remove();
+                        
+                        // Update row's existing images data
+                        const row = document.querySelector(`tr[data-variant-index="${variantIndex}"]`);
+                        if (row) {
+                            const existingImages = extractExistingImagesFromRow(row);
+                            const updatedImages = existingImages.filter(img => {
+                                // Keep old format (string paths) - we can't delete those individually
+                                if (typeof img === 'string') {
+                                    return true;
+                                }
+                                // For new format (objects), filter out the deleted image
+                                return !img.id || img.id !== imageId;
+                            });
+                            row.dataset.existingImages = JSON.stringify(updatedImages);
+                            
+                            // Update preview if visible
+                            const previewEl = row.querySelector('[data-variant-image-preview]');
+                            if (previewEl) {
+                                const imageInput = row.querySelector('.variant-image-input');
+                                updateVariantImagePreview(previewEl, imageInput && imageInput.files && imageInput.files.length ? imageInput.files : null, updatedImages);
+                            }
+                            
+                            // Update view button state
+                            const viewBtn = row.querySelector('.view-variant-images-btn');
+                            if (viewBtn) {
+                                const hasFiles = imageInput && imageInput.files && imageInput.files.length > 0;
+                                const hasExistingImages = Array.isArray(updatedImages) && updatedImages.length > 0;
+                                const hasImages = hasFiles || hasExistingImages;
+                                
+                                if (hasImages) {
+                                    viewBtn.classList.remove('btn-outline-info');
+                                    viewBtn.classList.add('btn-outline-success');
+                                } else {
+                                    viewBtn.classList.remove('btn-outline-success');
+                                    viewBtn.classList.add('btn-outline-info');
+                                }
+                            }
+                        }
+                        
+                        // Check if modal is now empty
+                        const container = document.getElementById('variantImagesViewContainer');
+                        const remainingCards = container.querySelectorAll('.col-md-4, .col-sm-6');
+                        const emptyMessage = document.getElementById('variantImagesViewEmpty');
+                        
+                        if (remainingCards.length === 0) {
+                            container.style.display = 'none';
+                            if (emptyMessage) {
+                                emptyMessage.style.display = 'block';
+                            }
+                        }
+                    });
+                    
+                    if (typeof showToast === 'function') {
+                        showToast('success', response.message || 'Image deleted successfully');
+                    }
+                } else {
+                    btn.prop('disabled', false);
+                    btn.html('<i class="fas fa-trash-alt me-1"></i> Delete');
+                    if (typeof showToast === 'function') {
+                        showToast('error', response.message || 'Failed to delete image');
+                    }
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false);
+                btn.html('<i class="fas fa-trash-alt me-1"></i> Delete');
+                const errorMsg = xhr.responseJSON?.message || 'Failed to delete image';
+                if (typeof showToast === 'function') {
+                    showToast('error', errorMsg);
+                }
+            }
+        });
+    });
+    
+    // Handle remove newly selected variant image button click
+    $(document).on('click', '.remove-new-variant-image-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!confirm('Are you sure you want to remove this image? It will not be uploaded.')) {
+            return;
+        }
+        
+        const btn = $(this);
+        const fileIndex = parseInt(btn.data('file-index'));
+        const variantIndex = btn.data('variant-index');
+        const card = btn.closest('.col-md-4, .col-sm-6');
+        const row = document.querySelector(`tr[data-variant-index="${variantIndex}"]`);
+        
+        if (!row) {
+            return;
+        }
+        
+        const imageInput = row.querySelector('.variant-image-input');
+        if (!imageInput || !imageInput.files || imageInput.files.length === 0) {
+            // If no files, just remove the card
+            card.fadeOut(300, function() {
+                $(this).remove();
+            });
+            return;
+        }
+        
+        // Create a new FileList without the removed file
+        const dt = new DataTransfer();
+        const files = Array.from(imageInput.files);
+        
+        files.forEach((file, index) => {
+            if (index !== fileIndex) {
+                dt.items.add(file);
+            }
+        });
+        
+        // Update the file input
+        imageInput.files = dt.files;
+        
+        // Revoke the object URL to free memory
+        const img = card.querySelector('img');
+        if (img && img.src.startsWith('blob:')) {
+            URL.revokeObjectURL(img.src);
+        }
+        
+        // Remove the card from modal
+        card.fadeOut(300, function() {
+            $(this).remove();
+            
+            // Update preview
+            const previewEl = row.querySelector('[data-variant-image-preview]');
+            if (previewEl) {
+                const existingImages = extractExistingImagesFromRow(row);
+                updateVariantImagePreview(previewEl, imageInput.files && imageInput.files.length ? imageInput.files : null, existingImages);
+            }
+            
+            // Update view button state
+            const viewBtn = row.querySelector('.view-variant-images-btn');
+            if (viewBtn) {
+                const hasFiles = imageInput.files && imageInput.files.length > 0;
+                const existingImages = extractExistingImagesFromRow(row);
+                const hasExistingImages = Array.isArray(existingImages) && existingImages.length > 0;
+                const hasImages = hasFiles || hasExistingImages;
+                
+                if (hasImages) {
+                    viewBtn.classList.remove('btn-outline-info');
+                    viewBtn.classList.add('btn-outline-success');
+                } else {
+                    viewBtn.classList.remove('btn-outline-success');
+                    viewBtn.classList.add('btn-outline-info');
+                }
+            }
+            
+            // Trigger change event to update any listeners
+            const changeEvent = new Event('change', { bubbles: true });
+            imageInput.dispatchEvent(changeEvent);
+            
+            // Check if modal is still open and refresh it
+            const modal = document.getElementById('variantImagesViewModal');
+            const isModalOpen = modal && modal.classList.contains('show');
+            
+            if (isModalOpen) {
+                // Modal is still open, refresh the display by re-triggering view images
+                const viewBtn = row.querySelector('.view-variant-images-btn');
+                if (viewBtn) {
+                    // Small delay to ensure file input is updated
+                    setTimeout(function() {
+                        viewBtn.click();
+                    }, 150);
+                }
+            } else {
+                // Modal is closed, just check if empty
+                const container = document.getElementById('variantImagesViewContainer');
+                const remainingCards = container.querySelectorAll('.col-md-4, .col-sm-6');
+                const emptyMessage = document.getElementById('variantImagesViewEmpty');
+                
+                if (remainingCards.length === 0) {
+                    container.style.display = 'none';
+                    if (emptyMessage) {
+                        emptyMessage.style.display = 'block';
+                    }
+                }
+            }
+        });
+        
+        if (typeof showToast === 'function') {
+            showToast('success', 'Image removed from selection');
         }
     });
     
@@ -3748,27 +4147,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Save inventory fields
+            // Note: Stock Quantity and Stock Status are managed from Inventory module only
+            // Keep existing values (don't update from form)
             const stockQuantityHidden = row.querySelector('[data-variant-stock-quantity-input]');
             const stockStatusHidden = row.querySelector('[data-variant-stock-status-input]');
             const lowStockThresholdHidden = row.querySelector('[data-variant-low-stock-threshold-input]');
             const manageStockHidden = row.querySelector('[data-variant-manage-stock-input]');
             
-            const stockQuantityInput = document.getElementById('variantStockQuantity');
-            const stockStatusSelect = document.getElementById('variantStockStatus');
             const lowStockThresholdInput = document.getElementById('variantLowStockThreshold');
-            const manageStockToggle = document.getElementById('variantManageStock');
             
-            if (stockQuantityHidden && stockQuantityInput) {
-                stockQuantityHidden.value = stockQuantityInput.value || '0';
+            // Stock quantity and status remain unchanged (managed from Inventory module)
+            // Only update if hidden inputs don't exist (new variant)
+            if (stockQuantityHidden && !stockQuantityHidden.value) {
+                stockQuantityHidden.value = '0'; // Default for new variants
             }
-            if (stockStatusHidden && stockStatusSelect) {
-                stockStatusHidden.value = stockStatusSelect.value || 'in_stock';
+            if (stockStatusHidden && !stockStatusHidden.value) {
+                stockStatusHidden.value = 'in_stock'; // Default for new variants
             }
+            
             if (lowStockThresholdHidden && lowStockThresholdInput) {
                 lowStockThresholdHidden.value = lowStockThresholdInput.value || '0';
-            }
-            if (manageStockHidden && manageStockToggle) {
-                manageStockHidden.value = manageStockToggle.checked ? '1' : '0';
             }
 
             const measurements = collectMeasurementsFromModal();
@@ -4308,6 +4706,82 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Sync generatedVariants array with actual DOM rows
+    function syncGeneratedVariantsFromDOM() {
+        if (!variantsTableBody) {
+            generatedVariants = [];
+            return [];
+        }
+        
+        const rows = variantsTableBody.querySelectorAll('tr');
+        const syncedVariants = [];
+        
+        rows.forEach((row, index) => {
+            const variantDataStr = row.dataset.variantData;
+            if (variantDataStr) {
+                try {
+                    const variantData = JSON.parse(variantDataStr);
+                    // Reconstruct variant object from row data
+                    const variant = {
+                        id: variantData.id || null,
+                        name: variantData.name || '',
+                        sku: variantData.sku || '',
+                        price: variantData.price || '',
+                        sale_price: variantData.sale_price || '',
+                        is_active: variantData.is_active !== false,
+                        discount_type: variantData.discount_type || '',
+                        discount_value: variantData.discount_value || '',
+                        discount_active: variantData.discount_active || false,
+                        measurements: variantData.measurements || [],
+                        attributes: variantData.attributes || {},
+                        images: variantData.images || [],
+                        stock_quantity: variantData.stock_quantity || 0,
+                        stock_status: variantData.stock_status || 'in_stock',
+                        manage_stock: variantData.manage_stock || false,
+                        low_stock_threshold: variantData.low_stock_threshold || 0,
+                        highlights_details: variantData.highlights_details || null,
+                        barcode: variantData.barcode || ''
+                    };
+                    syncedVariants.push(variant);
+                } catch (e) {
+                    console.error('Error parsing variant data from row:', e, variantDataStr);
+                }
+            } else {
+                // If no variantData, try to extract from form fields (fallback)
+                const skuInput = row.querySelector('[name*="[sku]"]');
+                const priceInput = row.querySelector('[name*="[price]"]');
+                const attributesInput = row.querySelector('[data-variant-attributes-input]');
+                
+                if (skuInput || priceInput || attributesInput) {
+                    let attributes = {};
+                    if (attributesInput && attributesInput.value) {
+                        try {
+                            attributes = JSON.parse(attributesInput.value);
+                        } catch (e) {
+                            console.error('Error parsing attributes from input:', e);
+                        }
+                    }
+                    
+                    const variant = {
+                        id: row.dataset.variantId || null,
+                        name: row.querySelector('[data-variant-name-input]')?.value || '',
+                        sku: skuInput?.value || '',
+                        price: priceInput?.value || '',
+                        sale_price: row.querySelector('[name*="[sale_price]"]')?.value || '',
+                        is_active: row.querySelector('[data-variant-status-input]')?.value === '1',
+                        attributes: attributes,
+                        images: []
+                    };
+                    syncedVariants.push(variant);
+                }
+            }
+        });
+        
+        generatedVariants = syncedVariants;
+        console.log('Synced generatedVariants from DOM:', syncedVariants.length, 'variants');
+        return syncedVariants;
+    }
+
     document.getElementById('bulkDeleteBtn').addEventListener('click', function() {
         const selectedRows = getSelectedVariantRows();
         if (selectedRows.length === 0) {
@@ -4319,18 +4793,20 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedRows.forEach(row => {
                 row.remove();
             });
+            
+            // Sync generatedVariants array with remaining DOM rows
+            syncGeneratedVariantsFromDOM();
+            
             showToast('success', `${selectedRows.length} variants deleted`);
             
             // Check if any variants remain
             const remainingRows = variantsTableBody.querySelectorAll('tr');
             if (remainingRows.length === 0) {
-                // Check if no attributes are selected - if so, create default variant instead of hiding
+                // Check if no attributes are selected - hide table if no variants
                 const selectedIds = getSelectedAttributeIds();
                 if (selectedIds.length === 0) {
-                    // No attributes selected - create default variant
-                    if (typeof createDefaultVariant === 'function') {
-                        createDefaultVariant();
-                    }
+                    // No attributes selected - hide table (default variant creation removed)
+                    variantsTableContainer.style.display = 'none';
                 } else {
                     // Attributes selected but all variants deleted - hide table
                     variantsTableContainer.style.display = 'none';
@@ -4369,6 +4845,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Display the variants
         displayVariants();
+         
+        syncGeneratedVariantsFromDOM();
 
         // Show the variants table and bulk actions
         variantsTableContainer.style.display = 'block';
@@ -4385,6 +4863,7 @@ document.addEventListener('DOMContentLoaded', function() {
             toast = document.createElement('div');
             toast.id = 'variantToast';
             toast.className = 'toast position-fixed top-0 end-0 m-3';
+            toast.style.zIndex = '1100'; // Higher than productFormNav (1000) and sticky-bottom (10)
             toast.setAttribute('role', 'alert');
             toast.setAttribute('aria-live', 'assertive');
             toast.setAttribute('aria-atomic', 'true');
@@ -4537,19 +5016,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!hasContent && Array.isArray(existingImages) && existingImages.length) {
-            existingImages.forEach(path => {
-                if (!path) {
+            existingImages.forEach(img => {
+                // Handle both old format (string path) and new format (object with id, path, url)
+                let imagePath = null;
+                if (typeof img === 'string') {
+                    imagePath = img;
+                } else if (img && (img.path || img.url)) {
+                    imagePath = img.path || img.url;
+                }
+                
+                if (!imagePath) {
                     return;
                 }
-                const normalizedPath = path.startsWith('http')
-                    ? path
-                    : `/storage/${path.replace(/^\/?storage\//, '')}`;
+                
+                const normalizedPath = imagePath.startsWith('http')
+                    ? imagePath
+                    : `/storage/${imagePath.replace(/^\/?storage\//, '')}`;
                 const wrapper = document.createElement('div');
                 wrapper.className = 'variant-image-thumb';
-                const img = document.createElement('img');
-                img.src = normalizedPath;
-                img.alt = 'Variant image';
-                wrapper.appendChild(img);
+                const imgEl = document.createElement('img');
+                imgEl.src = normalizedPath;
+                imgEl.alt = 'Variant image';
+                wrapper.appendChild(imgEl);
                 previewEl.appendChild(wrapper);
             });
             hasContent = true;
@@ -4990,10 +5478,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 type: 'GET',
                 success: function(response) {
                     if (response.success && response.attributes) {
-                        // Filter only variant attributes (is_variation = true)
-                        const variantAttrs = response.attributes.filter(function(attr) {
-                            return attr.is_variation === true || attr.is_variation === 1 || attr.is_variation === '1';
-                        }).map(function(attr) {
+                        console.log('Fallback: Total attributes received:', response.attributes.length);
+                        // Show ALL attributes (not just visible or variant ones) when no category attributes
+                        // This allows users to see and use any attribute for variants
+                        const variantAttrs = response.attributes.map(function(attr) {
                             return {
                                 id: attr.id,
                                 name: attr.name || '',
@@ -5015,11 +5503,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             };
                         });
                         
+                        console.log('Fallback: All attributes loaded:', variantAttrs.length);
+                        console.log('Fallback: Attribute names:', variantAttrs.map(a => a.name));
+                        
                         // Recursively call this function with the loaded attributes
                         if (variantAttrs.length > 0) {
                             window.updateVariantAttributesSelect2(variantAttrs);
                         } else {
-                            // No variant attributes found even after loading all
+                            // No visible attributes found even after loading all
                             container.innerHTML = '';
                             const noAttributesMsg = document.createElement('div');
                             noAttributesMsg.className = 'text-muted text-center p-3';
@@ -5345,59 +5836,11 @@ document.addEventListener('DOMContentLoaded', function() {
             hasVariants = false;
         }
         
-        // If no attributes selected and no variants, create default variant
+        // Default variant creation removed per user request
+        // If no attributes selected and no variants, hide the table
         if (selectedIds.length === 0 && !hasVariants && !hasVariantsInTable) {
-            if (typeof createDefaultVariant === 'function') {
-                createDefaultVariant();
-            } else if (typeof window.createDefaultVariant === 'function') {
-                window.createDefaultVariant();
-            } else {
-                // Fallback: manually create and show a default variant row
-                if (variantsTableBody) {
-                    const productName = document.getElementById('productName') ? document.getElementById('productName').value : 'Product';
-                    const defaultSku = (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 15) : 'PROD') + '-DEFAULT-' + Date.now().toString().slice(-6);
-                    
-                    const defaultRow = `
-                        <tr data-variant-index="0">
-                            <td>
-                                <input type="text" class="form-control form-control-sm" name="variants[0][name]" value="${productName || 'Default Variant'}" />
-                            </td>
-                            <td>
-                                <input type="text" class="form-control form-control-sm" name="variants[0][sku]" value="${defaultSku}" required />
-                            </td>
-                            <td>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text">₹</span>
-                                    <input type="number" class="form-control form-control-sm" name="variants[0][price]" value="0.00" step="0.01" required />
-                                </div>
-                            </td>
-                            <td>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text">₹</span>
-                                    <input type="number" class="form-control form-control-sm" name="variants[0][sale_price]" value="" step="0.01" />
-                                </div>
-                            </td>
-                            <td>
-                                <small class="text-muted">-</small>
-                            </td>
-                            <td>
-                                <input type="file" class="form-control form-control-sm" name="variants[0][images][]" accept="image/*" multiple />
-                            </td>
-                            <td>
-                                <span class="badge bg-success">Active</span>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editVariantRow(this)">
-                                    <i class="bx bx-edit"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteVariantRow(this)">
-                                    <i class="bx bx-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                    variantsTableBody.innerHTML = defaultRow;
-                }
+            if (variantsTableContainer) {
+                variantsTableContainer.style.display = 'none';
             }
         }
     }, 1500);
@@ -5676,12 +6119,11 @@ document.addEventListener('DOMContentLoaded', function() {
             hasVariants = false;
         }
         
+        // Default variant creation removed per user request
+        // If no attributes selected and no variants, hide the table
         if (selectedIds.length === 0 && !hasVariants && !hasVariantsInTable) {
-            // Create default variant
-            if (typeof createDefaultVariant === 'function') {
-                createDefaultVariant();
-            } else if (typeof window.createDefaultVariant === 'function') {
-                window.createDefaultVariant();
+            if (variantsTableContainer) {
+                variantsTableContainer.style.display = 'none';
             }
         }
         

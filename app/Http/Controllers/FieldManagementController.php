@@ -82,6 +82,9 @@ class FieldManagementController extends Controller
             ->ordered()
             ->get()
             ->map(function($field) {
+                // Always use isSystemField() to ensure system fields are properly identified
+                $isSystem = $field->isSystemField();
+                
                 return [
                     'field_key' => $field->field_key,
                     'label' => $field->label,
@@ -94,8 +97,19 @@ class FieldManagementController extends Controller
                     'validation_rules' => $field->validation_rules,
                     'help_text' => $field->help_text,
                     'sort_order' => $field->sort_order,
+                    'is_system' => $isSystem,
                 ];
-            });
+            })
+            ->sortBy(function($field) {
+                // First sort by is_system (system fields first), then by field_group, then by sort_order
+                $group = $field['field_group'] ?? 'zzz_other'; // Put null groups at the end
+                return [
+                    !$field['is_system'] ? 1 : 0, // System fields first (0 < 1)
+                    $group, // Then by group
+                    $field['sort_order'] ?? 9999, // Then by sort_order
+                ];
+            })
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -113,6 +127,9 @@ class FieldManagementController extends Controller
             ->orderBy('id', 'asc')
             ->get()
             ->map(function($field) {
+                // Always use isSystemField() to ensure system fields are properly identified
+                $isSystem = $field->isSystemField();
+                
                 return [
                     'field_key' => $field->field_key,
                     'label' => $field->label,
@@ -127,8 +144,19 @@ class FieldManagementController extends Controller
                     'validation_rules' => $field->validation_rules,
                     'help_text' => $field->help_text,
                     'sort_order' => $field->sort_order,
+                    'is_system' => $isSystem,
                 ];
-            });
+            })
+            ->sortBy(function($field) {
+                // First sort by is_system (system fields first), then by field_group, then by sort_order
+                $group = $field['field_group'] ?? 'zzz_other'; // Put null groups at the end
+                return [
+                    !$field['is_system'] ? 1 : 0, // System fields first (0 < 1)
+                    $group, // Then by group
+                    $field['sort_order'] ?? 9999, // Then by sort_order
+                ];
+            })
+            ->values();
 
         return response()->json([
             'success' => true,

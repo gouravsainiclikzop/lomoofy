@@ -7,9 +7,12 @@
     <div class="py-5">
         <div class="row g-4">
             <div class="col">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 m-0">Inventory Management</h1>
                     <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-info" onclick="exportInventory()">
+                            <i class="bx bx-export me-1"></i> Export Inventory
+                        </button>
                         <button type="button" class="btn btn-success" onclick="openImportInventoryModal()">
                             <i class="bx bx-import me-1"></i> Import Inventory
                         </button>
@@ -66,7 +69,6 @@
                             <th>SKU</th>
                             <th>Product</th>
                             <th>Type</th>
-                            <th>Manage Stock</th>
                             <th>Stock Quantity</th>
                             <th>Warehouses</th>
                             <th>Stock Status</th>
@@ -110,11 +112,11 @@
                         <input type="hidden" id="editManageStock" name="manage_stock" value="1">
 
                         <div class="col-md-6" id="editWarehouseField">
-                            <label for="editWarehouse" class="form-label">Warehouse</label>
-                            <select class="form-select" id="editWarehouse" name="warehouse_id">
-                                <option value="">Select Warehouse (Optional)</option>
+                            <label for="editWarehouse" class="form-label">Warehouse <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editWarehouse" name="warehouse_id" required>
+                                <option value="">Select Warehouse</option>
                             </select>
-                            <small class="text-muted">Leave empty to update total stock</small>
+                            <small class="text-muted">Required to update stock quantity</small>
                             <div class="invalid-feedback"></div>
                         </div>
 
@@ -126,9 +128,10 @@
                             <div class="invalid-feedback"></div>
                         </div>
 
-                        <div class="col-md-6" id="editStockQuantityField">
+                        <div class="col-md-6" id="editStockQuantityField" style="display: none;">
                             <label for="editStockQuantity" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="editStockQuantity" name="stock_quantity" min="0" required>
+                            <input type="number" class="form-control" id="editStockQuantity" name="stock_quantity" min="0" required disabled>
+                            <small class="text-muted">Select a warehouse first to update stock quantity</small>
                             <div class="invalid-feedback"></div>
                         </div>
 
@@ -143,28 +146,10 @@
                             <div class="invalid-feedback"></div>
                         </div>
 
-                        <div class="col-md-6" id="editStockStatusField">
-                            <label for="editStockStatus" class="form-label">Stock Status</label>
-                            <select class="form-select" id="editStockStatus" name="stock_status">
-                                <option value="in_stock">In Stock</option>
-                                <option value="out_of_stock">Out of Stock</option>
-                                <option value="on_backorder">On Backorder</option>
-                            </select>
-                            <small class="text-muted">Auto-updated based on quantity</small>
-                            <div class="invalid-feedback"></div>
-                        </div>
-
                         <div class="col-12" id="stockBreakdownSection" style="display: none;">
                             <hr>
                             <h6>Stock Breakdown by Warehouse</h6>
                             <div id="stockBreakdownContent"></div>
-                        </div>
-
-                        <div class="col-md-6" id="editLowStockField">
-                            <label for="editLowStockThreshold" class="form-label">Low Stock Threshold</label>
-                            <input type="number" class="form-control" id="editLowStockThreshold" name="low_stock_threshold" min="0" value="5">
-                            <small class="text-muted">Alert when stock falls below this number</small>
-                            <div class="invalid-feedback"></div>
                         </div>
 
                         <div class="col-md-6" id="editStockLocationField">
@@ -248,8 +233,8 @@
                                 <th>SKU</th>
                                 <th>Product</th>
                                 <th>Type</th>
-                                <th>Manage Stock</th>
                                 <th>Stock Quantity</th>
+                                <th>Warehouses</th>
                                 <th>Stock Status</th>
                                 <th>Low Stock Threshold</th>
                             </tr>
@@ -266,17 +251,31 @@
                         <h6 class="card-title">Add Stock</h6>
                         <div class="row g-3">
                             <div class="col-md-6">
+                                <label for="addStockWarehouse" class="form-label">Warehouse <span class="text-danger">*</span></label>
+                                <select class="form-select" id="addStockWarehouse" required>
+                                    <option value="">Select Warehouse</option>
+                                </select>
+                                <small class="text-muted">Select warehouse to add stock to</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="addStockLocation" class="form-label">Location (Optional)</label>
+                                <select class="form-select" id="addStockLocation">
+                                    <option value="">No Specific Location</option>
+                                </select>
+                                <small class="text-muted">Optional warehouse location</small>
+                            </div>
+                            <div class="col-md-6">
                                 <label for="stockQuantity" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="stockQuantity" min="0" value="0" required>
                                 <small class="text-muted">Enter the quantity to add to selected products</small>
                             </div>
                             <div class="col-md-6">
-                                <label for="stockStatus" class="form-label">Stock Status</label>
-                                <select class="form-select" id="stockStatus">
-                                    <option value="in_stock">In Stock</option>
-                                    <option value="out_of_stock">Out of Stock</option>
-                                    <option value="on_backorder">On Backorder</option>
+                                <label for="addStockUpdateType" class="form-label">Update Type</label>
+                                <select class="form-select" id="addStockUpdateType">
+                                    <option value="increment">Add to Existing</option>
+                                    <option value="set">Set Quantity</option>
                                 </select>
+                                <small class="text-muted">How to update the stock</small>
                             </div>
                         </div>
                     </div>
@@ -319,7 +318,9 @@
                                 <li>Download the sample file to see the correct format</li>
                                 <li>Use SKU to identify variants (required)</li>
                                 <li><strong>Stock Quantity will be ADDED to existing quantity</strong> (not replaced)</li>
-                                <li>Only fill in the columns you want to update</li>
+                                <li><strong>Warehouse is REQUIRED:</strong> Include <strong>Warehouse Code</strong> in the file OR select a default warehouse below</li>
+                                <li>Include <strong>Location Code</strong> column (optional) for specific warehouse locations</li>
+                                <li>Stock quantity updates require warehouse selection - total quantity cannot be updated directly</li>
                                 <li>Supported formats: CSV, XLS, XLSX</li>
                             </ul>
                         </div>
@@ -333,6 +334,9 @@
                                 <option value="all">All Variants (First 1000)</option>
                                 <option value="low_stock">Low Stock / Near Empty</option>
                             </select>
+                            <select class="form-select" id="sampleWarehouse" style="max-width: 200px;">
+                                <option value="">All Warehouses</option>
+                            </select>
                             <button type="button" class="btn btn-outline-secondary" id="downloadSampleBtn" onclick="downloadSampleFile(event)">
                                 <i class="bx bx-download me-1"></i> Download
                             </button>
@@ -341,9 +345,24 @@
                     </div>
                     
                     <div class="mb-3">
+                        <button type="button" class="btn btn-outline-info btn-sm" id="showWarehouseCodesBtn" onclick="showWarehouseCodesModal()">
+                            <i class="bx bx-info-circle me-1"></i> View Warehouse & Location Codes
+                        </button>
+                        <small class="text-muted d-block mt-1">Click to see all available warehouse codes and location codes for reference</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="importWarehouse" class="form-label">Default Warehouse</label>
+                        <select class="form-select" id="importWarehouse" name="warehouse_id">
+                            <option value="">Select Default Warehouse (or use Warehouse Code in file)</option>
+                        </select>
+                        <small class="text-muted"><strong>Required:</strong> Either provide Warehouse Code in the file OR select a default warehouse here. Stock quantity updates require warehouse selection.</small>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="importFile" class="form-label">Select File to Import <span class="text-danger">*</span></label>
                         <input type="file" class="form-control" id="importFile" name="file" accept=".csv,.xls,.xlsx" required>
-                        <small class="text-muted">Maximum file size: 10MB</small>
+                        <small class="text-muted">Maximum file size: 10MB. File should include columns: SKU, Stock Quantity to Add, Warehouse Code (required if no default warehouse selected), Location Code (optional)</small>
                     </div>
                     
                     <div class="mb-3">
@@ -376,6 +395,45 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Warehouse & Location Codes Modal -->
+<div class="modal fade" id="warehouseCodesModal" tabindex="-1" aria-labelledby="warehouseCodesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="warehouseCodesModalLabel">
+                    <i class="bx bx-info-circle me-2"></i>Warehouse & Location Codes Reference
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Reference Guide:</strong> Use these codes in the <strong>Warehouse Code</strong> and <strong>Location Code</strong> columns when importing inventory.
+                </div>
+                
+                <div id="warehouseCodesLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading warehouse and location codes...</p>
+                </div>
+                
+                <div id="warehouseCodesContent" style="display: none;">
+                    <div id="warehouseCodesTableContainer"></div>
+                </div>
+                
+                <div id="warehouseCodesEmpty" class="text-center py-4" style="display: none;">
+                    <i class="bx bx-package text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">No warehouses found. Please add warehouses first.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -453,6 +511,57 @@
 
 /* Variant column now sizes to content - removed fixed min-width */
 </style>
+<!-- Inventory History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="historyModalLabel">
+                    <i class="fas fa-history me-2"></i>Inventory History
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Variant:</strong> <span id="historyVariantName"></span> | 
+                    <strong>SKU:</strong> <span id="historyVariantSku"></span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Warehouse</th>
+                                <th>Location</th>
+                                <th>Previous Qty</th>
+                                <th>New Qty</th>
+                                <th>Change</th>
+                                <th>Type</th>
+                                <th>Reference</th>
+                                <th>User</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- History will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="historyEmpty" class="text-center text-muted py-4" style="display: none;">
+                    <i class="fas fa-history fa-3x mb-3"></i>
+                    <p>No history found for this variant.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="clearHistoryBtn" onclick="clearInventoryHistory()" style="display: none;">
+                    <i class="fas fa-trash me-1"></i> Clear History
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -476,13 +585,19 @@ function loadWarehouses() {
             if (response.success) {
                 let warehouseSelect = $('#filterWarehouse');
                 let editWarehouseSelect = $('#editWarehouse');
+                let importWarehouseSelect = $('#importWarehouse');
+                let sampleWarehouseSelect = $('#sampleWarehouse');
                 
                 warehouseSelect.empty().append('<option value="">All Warehouses</option>');
                 editWarehouseSelect.empty().append('<option value="">Select Warehouse (Optional)</option>');
+                importWarehouseSelect.empty().append('<option value="">No Default Warehouse (Use Warehouse Code from file)</option>');
+                sampleWarehouseSelect.empty().append('<option value="">All Warehouses</option>');
                 
                 response.data.forEach(function(warehouse) {
                     warehouseSelect.append(`<option value="${warehouse.id}">${warehouse.name} (${warehouse.code})</option>`);
                     editWarehouseSelect.append(`<option value="${warehouse.id}">${warehouse.name} (${warehouse.code})</option>`);
+                    importWarehouseSelect.append(`<option value="${warehouse.id}">${warehouse.name} (${warehouse.code})</option>`);
+                    sampleWarehouseSelect.append(`<option value="${warehouse.id}">${warehouse.name} (${warehouse.code})</option>`);
                 });
             }
         }
@@ -535,7 +650,7 @@ function initializeDataTable() {
                 width: 'auto'
             },
             {
-                targets: 9, // Actions column
+                targets: 8, // Actions column
                 width: '100px',
                 orderable: false
             }
@@ -595,7 +710,6 @@ function initializeDataTable() {
                     return '<span class="badge bg-info">Variant</span>';
                 }
             },
-            { data: 'manage_stock' },
             {
                 data: 'stock_quantity',
                 render: function(data, type, row) {
@@ -615,9 +729,14 @@ function initializeDataTable() {
                     
                     let html = `<div class="d-flex flex-column gap-1">`;
                     row.warehouse_breakdown.forEach(function(stock) {
+                        // Show warehouse name with total quantity (summed across all locations)
+                        let quantityDisplay = stock.quantity || 0;
+                        let availableDisplay = stock.available_quantity !== undefined ? stock.available_quantity : quantityDisplay;
+                        
                         html += `<div class="small">
                             <span class="badge bg-primary">${stock.warehouse_name}</span>
-                            <span class="text-muted">(${stock.quantity})</span>
+                            <span class="text-muted">(${quantityDisplay})</span>
+                            ${availableDisplay !== quantityDisplay ? `<span class="text-success">[Avail: ${availableDisplay}]</span>` : ''}
                         </div>`;
                     });
                     html += `</div>`;
@@ -625,17 +744,16 @@ function initializeDataTable() {
                 }
             },
             {
-                data: 'stock_quantity',
-                render: function(data, type, row) {
-                    const isLow = row.is_low_stock;
-                    return `<span class="${isLow ? 'low-stock' : ''}">${data}</span>`;
-                }
-            },
-            {
                 data: 'stock_status',
                 render: function(data, type, row) {
                     const statusClass = `stock-${row.stock_status_value.replace(/_/g, '-')}`;
-                    return `<span class="stock-status ${statusClass}">${data}</span>`;
+                    const isLow = row.is_low_stock;
+                    let statusHtml = `<span class="stock-status ${statusClass}">${data}</span>`;
+                    // Show low stock badge when stock is at or below threshold (and > 0)
+                    if (isLow) {
+                        statusHtml += ` <span class="badge bg-warning text-dark">Low Stock</span>`;
+                    }
+                    return statusHtml;
                 }
             },
             { data: 'low_stock_threshold' },
@@ -643,9 +761,14 @@ function initializeDataTable() {
                 data: 'id',
                 render: function(data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-primary" onclick="editInventory(${data}, true, '${row.name.replace(/'/g, "\\'")}', '${row.sku.replace(/'/g, "\\'")}')">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-primary" onclick="editInventory(${data}, true, '${row.name.replace(/'/g, "\\'")}', '${row.sku.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="viewHistory(${data}, '${row.name.replace(/'/g, "\\'")}', '${row.sku.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-history"></i> History
+                            </button>
+                        </div>
                     `;
                 }
             }
@@ -671,10 +794,17 @@ function setupEventListeners() {
 
     // Warehouse selection in edit modal
     $('#editWarehouse').on('change', function() {
-        loadWarehouseLocations($(this).val());
-        if ($(this).val()) {
+        const warehouseId = $(this).val();
+        loadWarehouseLocations(warehouseId);
+        if (warehouseId) {
+            $('#editStockQuantityField').show();
+            $('#editStockQuantity').prop('required', true).prop('disabled', false);
+            $('#editUpdateTypeField').show();
             loadStockBreakdown();
         } else {
+            $('#editStockQuantityField').hide();
+            $('#editStockQuantity').prop('required', false).prop('disabled', true).val('');
+            $('#editUpdateTypeField').hide();
             $('#stockBreakdownSection').hide();
         }
     });
@@ -706,20 +836,18 @@ function loadStockBreakdown() {
         success: function(response) {
             if (response.success && response.data.length > 0) {
                 let html = '<table class="table table-sm table-bordered">';
-                html += '<thead><tr><th>Warehouse</th><th>Location</th><th>Quantity</th><th>Reserved</th><th>Available</th></tr></thead><tbody>';
+                html += '<thead><tr><th>Warehouse</th><th>Location</th><th>Quantity</th></tr></thead><tbody>';
                 
                 response.data.forEach(function(stock) {
                     html += `<tr>
                         <td>${stock.warehouse_name} (${stock.warehouse_code})</td>
                         <td>${stock.location_code}</td>
-                        <td>${stock.quantity}</td>
-                        <td>${stock.reserved_quantity}</td>
-                        <td><strong>${stock.available_quantity}</strong></td>
+                        <td><strong>${stock.quantity}</strong></td>
                     </tr>`;
                 });
                 
                 html += '</tbody></table>';
-                html += `<p class="mb-0"><strong>Total Stock:</strong> ${response.total_stock} | <strong>Available:</strong> ${response.available_stock}</p>`;
+                html += `<p class="mb-0"><strong>Total Stock:</strong> ${response.total_stock}</p>`;
                 
                 $('#stockBreakdownContent').html(html);
                 $('#stockBreakdownSection').show();
@@ -734,12 +862,10 @@ function toggleStockFields() {
     // Fields are always enabled, just hide/show product-specific fields for variants
     const isVariant = $('#isVariant').val() === '1';
     
-    // Low stock threshold is available for both variants and products
     // Only hide product-specific fields (stock location, backorder) for variants
     if (!isVariant) {
-        $('#editLowStockField, #editStockLocationField, #editBackorderField').show();
+        $('#editStockLocationField, #editBackorderField').show();
     } else {
-        $('#editLowStockField').show(); // Show low stock threshold for variants
         $('#editStockLocationField, #editBackorderField').hide(); // Hide product-only fields
     }
 }
@@ -764,9 +890,6 @@ function editInventory(id, isVariant = true, variantName = '', variantSku = '') 
     $('#variantName').text(variantName || variantData.name);
     $('#variantSku').text(variantSku || variantData.sku);
     $('#editManageStock').val(variantData.manage_stock === 'Yes' ? '1' : '0');
-    $('#editStockQuantity').val(variantData.stock_quantity);
-    $('#editStockStatus').val(variantData.stock_status_value);
-    $('#editLowStockThreshold').val(variantData.low_stock_threshold || 0);
     
     // Reset warehouse fields
     $('#editWarehouse').val('');
@@ -774,15 +897,130 @@ function editInventory(id, isVariant = true, variantName = '', variantSku = '') 
     $('#editWarehouseLocationField').hide();
     $('#editUpdateType').val('set');
     $('#editUpdateTypeField').hide();
+    $('#editStockQuantity').val('').prop('required', false).prop('disabled', true);
     
     // Load stock breakdown
     loadStockBreakdown();
     
-    // Show all variant-relevant fields including low stock threshold
-    $('#editStockQuantityField, #editStockStatusField, #editLowStockField, #editWarehouseField').show();
+    // Show all variant-relevant fields
+    $('#editWarehouseField').show();
+    $('#editStockQuantityField').hide(); // Hide until warehouse is selected
     $('#editStockLocationField, #editBackorderField').hide(); // Hide fields not applicable to variants
     toggleStockFields();
     editModal.show();
+}
+
+let currentHistoryVariantId = null;
+
+function viewHistory(variantId, variantName, variantSku) {
+    // Store current variant ID for clear function
+    currentHistoryVariantId = variantId;
+    
+    // Set variant info in modal
+    $('#historyVariantName').text(variantName || 'N/A');
+    $('#historyVariantSku').text(variantSku || 'N/A');
+    
+    // Clear previous history
+    $('#historyTableBody').empty();
+    $('#historyEmpty').hide();
+    $('#clearHistoryBtn').hide();
+    
+    // Show loading
+    $('#historyTableBody').html('<tr><td colspan="10" class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
+    
+    // Show modal
+    const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
+    historyModal.show();
+    
+    // Load history
+    $.ajax({
+        url: `/inventory/${variantId}/history`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data.history.length > 0) {
+                let historyHtml = '';
+                response.data.history.forEach(function(record) {
+                    const changeClass = record.quantity_change > 0 ? 'text-success' : record.quantity_change < 0 ? 'text-danger' : 'text-muted';
+                    const changeSign = record.quantity_change > 0 ? '+' : '';
+                    
+                    // Special styling for history cleared records
+                    const isCleared = record.reference_type === 'history_cleared';
+                    const rowClass = isCleared ? 'table-warning' : '';
+                    const refBadgeClass = isCleared ? 'bg-warning text-dark' : 'bg-secondary';
+                    
+                    historyHtml += `
+                        <tr class="${rowClass}">
+                            <td>${record.created_at}</td>
+                            <td>${record.warehouse_name}</td>
+                            <td>${record.location_name}</td>
+                            <td>${record.previous_quantity}</td>
+                            <td><strong>${record.new_quantity}</strong></td>
+                            <td class="${changeClass}"><strong>${changeSign}${record.quantity_change}</strong></td>
+                            <td><span class="badge bg-info">${record.change_type}</span></td>
+                            <td><span class="badge ${refBadgeClass}">${record.reference_type || 'N/A'}</span></td>
+                            <td>${record.user_name}</td>
+                            <td>${record.notes || '-'}</td>
+                        </tr>
+                    `;
+                });
+                $('#historyTableBody').html(historyHtml);
+                // Show clear button if there are records (excluding the clearance record itself)
+                const nonClearedRecords = response.data.history.filter(r => r.reference_type !== 'history_cleared');
+                if (nonClearedRecords.length > 0) {
+                    $('#clearHistoryBtn').show();
+                }
+            } else {
+                $('#historyTableBody').empty();
+                $('#historyEmpty').show();
+                $('#clearHistoryBtn').hide();
+            }
+        },
+        error: function(xhr) {
+            $('#historyTableBody').html('<tr><td colspan="10" class="text-center text-danger">Error loading history</td></tr>');
+            showToast('Error loading inventory history', 'error');
+            $('#clearHistoryBtn').hide();
+        }
+    });
+}
+
+function clearInventoryHistory() {
+    if (!currentHistoryVariantId) {
+        showToast('Variant ID is missing', 'error');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to clear all inventory history for this variant? This action cannot be undone. A record of this clearance will be kept as the last activity.')) {
+        return;
+    }
+    
+    const btn = $('#clearHistoryBtn');
+    const originalHtml = btn.html();
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Clearing...');
+    
+    $.ajax({
+        url: `/inventory/${currentHistoryVariantId}/history/clear`,
+        type: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                showToast(response.message, 'success');
+                // Reload history to show the clearance record
+                const variantName = $('#historyVariantName').text();
+                const variantSku = $('#historyVariantSku').text();
+                viewHistory(currentHistoryVariantId, variantName, variantSku);
+            } else {
+                showToast(response.message || 'Error clearing history', 'error');
+                btn.prop('disabled', false).html(originalHtml);
+            }
+        },
+        error: function(xhr) {
+            const errorMsg = xhr.responseJSON?.message || 'Error clearing inventory history';
+            showToast(errorMsg, 'error');
+            btn.prop('disabled', false).html(originalHtml);
+        }
+    });
 }
 
 function updateInventory() {
@@ -794,28 +1032,32 @@ function updateInventory() {
     }
     
     const isVariant = $('#isVariant').val() === '1';
+    const stockQuantity = $('#editStockQuantity').val();
+    const warehouseId = $('#editWarehouse').val();
+    
+    // Validate warehouse selection if stock quantity is being updated
+    if (stockQuantity !== '' && stockQuantity !== null && !warehouseId) {
+        showToast('Please select a warehouse to update stock quantity', 'error');
+        $('#editWarehouse').addClass('is-invalid');
+        return;
+    }
     
     const formData = {
         is_variant: isVariant,
         manage_stock: $('#editManageStock').val() === '1' ? 1 : 0,
-        stock_quantity: $('#editStockQuantity').val(),
-        stock_status: $('#editStockStatus').val(),
     };
     
-    // Add warehouse fields if warehouse is selected
-    if ($('#editWarehouse').val()) {
-        formData.warehouse_id = $('#editWarehouse').val();
+    // Only add stock_quantity if warehouse is selected
+    if (warehouseId && stockQuantity !== '' && stockQuantity !== null) {
+        formData.stock_quantity = stockQuantity;
+        formData.warehouse_id = warehouseId;
         formData.warehouse_location_id = $('#editWarehouseLocation').val() || null;
         formData.update_type = $('#editUpdateType').val() || 'set';
     }
     
-    // Add low_stock_threshold for variants
-    if (isVariant) {
-        formData.low_stock_threshold = $('#editLowStockThreshold').val() || 0;
-    } else {
-        // Add product-specific fields only if not a variant
+    // Add product-specific fields only if not a variant
+    if (!isVariant) {
         formData.allow_backorder = $('#editAllowBackorder').is(':checked') ? 1 : 0;
-        formData.low_stock_threshold = $('#editLowStockThreshold').val();
         formData.stock_location = $('#editStockLocation').val();
     }
 
@@ -933,6 +1175,13 @@ function openAddInventoryModal() {
     $('#productSearch').val('');
     $('#filterProductBrand').val('');
     $('#filterProductCategory').val('');
+    $('#addStockWarehouse').val('');
+    $('#addStockLocation').empty().append('<option value="">No Specific Location</option>');
+    $('#stockQuantity').val(0);
+    $('#addStockUpdateType').val('increment');
+    
+    // Load warehouses
+    loadWarehousesForAddInventory();
     
     // Load variants
     loadVariantsForSelection();
@@ -940,6 +1189,46 @@ function openAddInventoryModal() {
     
     addInventoryModal.show();
 }
+
+function loadWarehousesForAddInventory() {
+    $.ajax({
+        url: '{{ route("inventory.warehouses") }}',
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                let warehouseSelect = $('#addStockWarehouse');
+                warehouseSelect.empty().append('<option value="">Select Warehouse</option>');
+                
+                response.data.forEach(function(warehouse) {
+                    warehouseSelect.append(`<option value="${warehouse.id}">${warehouse.name} (${warehouse.code})</option>`);
+                });
+            }
+        }
+    });
+}
+
+// Load locations when warehouse is selected in Add Inventory modal
+$('#addStockWarehouse').on('change', function() {
+    const warehouseId = $(this).val();
+    if (warehouseId) {
+        $.ajax({
+            url: '{{ route("inventory.warehouse-locations", ":id") }}'.replace(':id', warehouseId),
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    let locationSelect = $('#addStockLocation');
+                    locationSelect.empty().append('<option value="">No Specific Location</option>');
+                    
+                    response.data.forEach(function(location) {
+                        locationSelect.append(`<option value="${location.id}">${location.full_location}</option>`);
+                    });
+                }
+            }
+        });
+    } else {
+        $('#addStockLocation').empty().append('<option value="">No Specific Location</option>');
+    }
+});
 
 function loadBrandsAndCategories() {
     // Load brands
@@ -977,12 +1266,13 @@ function loadVariantsForSelection() {
     const brandId = $('#filterProductBrand').val();
     const categoryId = $('#filterProductCategory').val();
     
-    let url = '{{ route("products.data") }}?';
+    // Use inventory.data route which includes warehouse breakdown
+    let url = '{{ route("inventory.data") }}?';
     const params = new URLSearchParams();
     // DataTable required parameters
     params.append('draw', '1');
     params.append('start', '0');
-    params.append('length', '1000'); // Get more products
+    params.append('length', '1000'); // Get more variants
     if (search) {
         params.append('search[value]', search);
     }
@@ -995,66 +1285,36 @@ function loadVariantsForSelection() {
             return response.json();
         })
         .then(data => {
-            console.log('Products data received:', data); // Debug log
-            const productsData = data.data || [];
+            console.log('Inventory data received:', data); // Debug log
+            const inventoryData = data.data || [];
             
-            // Filter by brand and category
-            let filteredProducts = productsData;
-            if (brandId) {
-                filteredProducts = filteredProducts.filter(p => {
-                    return p.brands && p.brands.some(b => b.id == brandId);
-                });
-            }
-            if (categoryId) {
-                filteredProducts = filteredProducts.filter(p => {
-                    return p.category && p.category.id == categoryId;
-                });
-            }
+            // Filter by brand and category (need to check product data)
+            // Since inventory.data returns variants directly, we need to filter differently
+            // For now, we'll use all variants and filter client-side if needed
+            // Note: inventory.data doesn't include brand/category filters, so we'll show all
+            let filteredVariants = inventoryData;
             
-            // Flatten variants: convert products to variants array
-            variantsData = [];
-            filteredProducts.forEach(product => {
-                const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
-                
-                if (hasVariants && product.variants && product.variants.length > 0) {
-                    // Product has variants - add each variant
-                    product.variants.forEach(variant => {
-                        // Use variant image if available, otherwise fallback to product image
-                        const variantImageUrl = variant.image_url || product.thumbnail_url || '/assets/images/placeholder.jpg';
-                        
-                        variantsData.push({
-                            id: variant.id,
-                            name: variant.name || 'Variant',
-                            sku: variant.sku,
-                            image_url: variantImageUrl,
-                            product_id: product.id,
-                            product_name: product.name,
-                            type: 'Variant',
-                            manage_stock: variant.manage_stock ? 'Yes' : 'No',
-                            stock_quantity: variant.stock_quantity || 0,
-                            stock_status: variant.stock_status ? variant.stock_status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'In Stock',
-                            stock_status_value: variant.stock_status || 'in_stock',
-                            low_stock_threshold: variant.low_stock_threshold || 0
-                        });
-                    });
-                } else {
-                    // Simple product - create a pseudo-variant entry
-                    variantsData.push({
-                        id: `product_${product.id}`, // Use prefix to distinguish from variant IDs
-                        name: product.name,
-                        sku: product.sku || '-',
-                        image_url: product.thumbnail_url || '/assets/images/placeholder.jpg',
-                        product_id: product.id,
-                        product_name: product.name,
-                        type: 'Product',
-                        manage_stock: product.manage_stock ? 'Yes' : 'No',
-                        stock_quantity: product.stock_quantity || 0,
-                        stock_status: 'In Stock',
-                        stock_status_value: 'in_stock',
-                        low_stock_threshold: 0
-                    });
-                }
+            // Convert inventory data format to variantsData format
+            variantsData = filteredVariants.map(variant => {
+                return {
+                    id: variant.id,
+                    name: variant.name || 'Variant',
+                    sku: variant.sku,
+                    image_url: variant.image_url || '/assets/images/placeholder.jpg',
+                    product_id: variant.product_id,
+                    product_name: variant.product_name,
+                    type: variant.type || 'Variant',
+                    manage_stock: variant.manage_stock || 'No',
+                    stock_quantity: variant.stock_quantity || 0,
+                    stock_status: variant.stock_status || 'In Stock',
+                    stock_status_value: variant.stock_status_value || 'in_stock',
+                    low_stock_threshold: variant.low_stock_threshold || 0,
+                    warehouse_breakdown: variant.warehouse_breakdown || []
+                };
             });
+            
+            // Apply brand and category filters if needed (would require additional API call)
+            // For now, we'll show all variants from inventory
             
             console.log('Variants loaded:', variantsData.length); // Debug log
             
@@ -1113,14 +1373,24 @@ function renderVariantsSelectionTable() {
                         ${variant.type}
                     </span>
                 </td>
-                <td>${variant.manage_stock}</td>
-                <td>${variant.stock_quantity}</td>
+                <td>${variant.stock_quantity || 0}</td>
+                <td>
+                    ${variant.warehouse_breakdown && variant.warehouse_breakdown.length > 0 
+                        ? `<div class="d-flex flex-column gap-1">${variant.warehouse_breakdown.map(stock => 
+                            `<div class="small">
+                                <span class="badge bg-primary">${stock.warehouse_name || 'N/A'}</span>
+                                <span class="text-muted">(${stock.quantity || 0})</span>
+                            </div>`
+                          ).join('')}</div>`
+                        : '<span class="text-muted">-</span>'
+                    }
+                </td>
                 <td>
                     <span class="stock-status stock-${variant.stock_status_value.replace(/_/g, '-')}">
                         ${variant.stock_status}
                     </span>
                 </td>
-                <td>${variant.low_stock_threshold}</td>
+                <td>${variant.low_stock_threshold || 0}</td>
             </tr>
         `;
         tbody.append(variantRow);
@@ -1213,7 +1483,14 @@ function debounce(func, wait) {
 
 function addStockToSelected() {
     const stockQuantity = parseInt($('#stockQuantity').val());
-    const stockStatus = $('#stockStatus').val();
+    const warehouseId = $('#addStockWarehouse').val();
+    const locationId = $('#addStockLocation').val();
+    const updateType = $('#addStockUpdateType').val();
+    
+    if (!warehouseId) {
+        showToast('Please select a warehouse', 'error');
+        return;
+    }
     
     if (!stockQuantity || stockQuantity < 0) {
         showToast('Please enter a valid stock quantity', 'error');
@@ -1232,7 +1509,8 @@ function addStockToSelected() {
     const actualVariantIds = variantIds.filter(id => !String(id).startsWith('product_'));
     
     // Confirm action
-    let confirmMessage = `Add ${stockQuantity} units to ${variantIds.length} selected variant(s)?`;
+    const updateTypeText = updateType === 'set' ? 'Set' : 'Add';
+    let confirmMessage = `${updateTypeText} ${stockQuantity} units to ${variantIds.length} selected variant(s) in warehouse?`;
     
     if (!confirm(confirmMessage)) {
         return;
@@ -1248,7 +1526,9 @@ function addStockToSelected() {
             product_ids: productIds,
             variant_ids: actualVariantIds,
             stock_quantity: stockQuantity,
-            stock_status: stockStatus,
+            warehouse_id: warehouseId,
+            warehouse_location_id: locationId || null,
+            update_type: updateType,
             _token: $('meta[name="csrf-token"]').attr('content')
         },
         success: function(response) {
@@ -1293,6 +1573,8 @@ function openImportInventoryModal() {
     // Reset form
     $('#importInventoryForm')[0].reset();
     $('#sampleFileType').val('default');
+    $('#sampleWarehouse').val('');
+    $('#importWarehouse').val('');
     $('#importProgress').hide();
     $('#importErrors').hide();
     $('#importErrorsList').empty();
@@ -1304,8 +1586,99 @@ function openImportInventoryModal() {
 function downloadSampleFile(event) {
     event.preventDefault();
     const type = $('#sampleFileType').val();
-    const url = '{{ route("inventory.sample") }}?type=' + type;
+    const warehouseId = $('#sampleWarehouse').val();
+    let url = '{{ route("inventory.sample") }}?type=' + type;
+    if (warehouseId) {
+        url += '&warehouse_id=' + warehouseId;
+    }
     window.location.href = url;
+}
+
+function showWarehouseCodesModal() {
+    const modal = new bootstrap.Modal(document.getElementById('warehouseCodesModal'));
+    const loadingEl = document.getElementById('warehouseCodesLoading');
+    const contentEl = document.getElementById('warehouseCodesContent');
+    const emptyEl = document.getElementById('warehouseCodesEmpty');
+    const tableContainer = document.getElementById('warehouseCodesTableContainer');
+    
+    // Reset display
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+    
+    // Show modal
+    modal.show();
+    
+    // Fetch data
+    $.ajax({
+        url: '{{ route("inventory.warehouse-codes-reference") }}',
+        type: 'GET',
+        success: function(response) {
+            loadingEl.style.display = 'none';
+            
+            if (response.success && response.data && response.data.length > 0) {
+                let html = '<div class="table-responsive"><table class="table table-bordered table-hover table-sm">';
+                html += '<thead class="table-light"><tr><th>Warehouse Name</th><th>Warehouse Code</th><th>Location Code</th><th>Rack</th><th>Shelf</th><th>Bin</th></tr></thead>';
+                html += '<tbody>';
+                
+                response.data.forEach(function(warehouse) {
+                    if (warehouse.locations && warehouse.locations.length > 0) {
+                        warehouse.locations.forEach(function(location, index) {
+                            html += '<tr>';
+                            if (index === 0) {
+                                html += `<td rowspan="${warehouse.locations.length}" class="align-middle"><strong>${warehouse.name}</strong></td>`;
+                                html += `<td rowspan="${warehouse.locations.length}" class="align-middle"><code>${warehouse.code}</code></td>`;
+                            }
+                            html += `<td><code>${location.code || 'N/A'}</code></td>`;
+                            html += `<td>${location.rack || '-'}</td>`;
+                            html += `<td>${location.shelf || '-'}</td>`;
+                            html += `<td>${location.bin || '-'}</td>`;
+                            html += '</tr>';
+                        });
+                    } else {
+                        // Warehouse with no locations
+                        html += '<tr>';
+                        html += `<td><strong>${warehouse.name}</strong></td>`;
+                        html += `<td><code>${warehouse.code}</code></td>`;
+                        html += '<td colspan="4" class="text-muted">No locations configured</td>';
+                        html += '</tr>';
+                    }
+                });
+                
+                html += '</tbody></table></div>';
+                tableContainer.innerHTML = html;
+                contentEl.style.display = 'block';
+            } else {
+                emptyEl.style.display = 'block';
+            }
+        },
+        error: function(xhr) {
+            loadingEl.style.display = 'none';
+            emptyEl.style.display = 'block';
+            emptyEl.innerHTML = '<div class="alert alert-danger"><i class="bx bx-error me-2"></i>Error loading warehouse codes. Please try again.</div>';
+        }
+    });
+}
+
+function exportInventory() {
+    const warehouseId = $('#filterWarehouse').val();
+    const stockStatus = $('#filterStockStatus').val();
+    const lowStock = $('#filterLowStock').is(':checked') ? '1' : '';
+    
+    let url = '{{ route("inventory.export") }}?';
+    const params = new URLSearchParams();
+    
+    if (warehouseId) {
+        params.append('warehouse_id', warehouseId);
+    }
+    if (stockStatus) {
+        params.append('stock_status', stockStatus);
+    }
+    if (lowStock) {
+        params.append('low_stock', lowStock);
+    }
+    
+    window.location.href = url + params.toString();
 }
 
 // Handle import form submission
@@ -1314,10 +1687,16 @@ $('#importInventoryForm').on('submit', function(e) {
     
     const formData = new FormData(this);
     const fileInput = $('#importFile')[0];
+    const warehouseId = $('#importWarehouse').val();
     
     if (!fileInput.files || !fileInput.files[0]) {
         showToast('Please select a file to import', 'error');
         return;
+    }
+    
+    // Add warehouse_id to form data if selected
+    if (warehouseId) {
+        formData.append('warehouse_id', warehouseId);
     }
     
     // Show progress

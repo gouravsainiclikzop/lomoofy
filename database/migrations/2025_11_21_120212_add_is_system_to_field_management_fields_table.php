@@ -24,6 +24,7 @@ return new class extends Migration
             'password_confirmation',
             'address_type',
             'full_address',
+            'country',
             'state',
             'city',
             'pincode',

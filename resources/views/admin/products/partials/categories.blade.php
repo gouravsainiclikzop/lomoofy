@@ -146,34 +146,7 @@
                 </div>
             </div>
 
-            {{-- Default Warehouse Selection --}}
-            <div class="row g-3">
-                <div class="col-12">
-                    <div class="mb-3">
-                        <label for="productDefaultWarehouse" class="form-label form-label-sm">
-                            <i class="fas fa-warehouse me-1"></i> Warehouse
-                        </label>
-                        <select class="form-select form-select-sm" id="productDefaultWarehouse" name="default_warehouse_id">
-                            <option value="">Use Primary Warehouse{{ $defaultWarehouse ? ' (' . $defaultWarehouse->name . ')' : ' (None Set)' }}</option>
-                            @foreach($warehouses ?? [] as $warehouse)
-                                <option value="{{ $warehouse->id }}" 
-                                        {{ ($selectedWarehouseId ?? null) == $warehouse->id ? 'selected' : '' }}
-                                        {{ $warehouse->is_default ? 'data-is-primary="true"' : '' }}>
-                                    {{ $warehouse->name }} ({{ $warehouse->code }})
-                                    @if($warehouse->is_default)
-                                        - Primary
-                                    @endif
-                                </option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Select a default warehouse for this product. If not set, the system's primary warehouse will be used.
-                        </small>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                </div>
-            </div>
+            {{-- Default Warehouse Selection - REMOVED: Warehouse management moved to Inventory module --}}
 
         </div>
     </div>
@@ -499,34 +472,47 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Set selected categories if editing
+    // Always load all attributes by default on page load
+    loadAllAttributes();
+    
+    // Set pre-selected categories if any (for edit mode) - but don't filter attributes
     const selectedCategoryIdsScript = document.getElementById('selectedCategoryIdsJSON');
     const selectedCategoryIds = selectedCategoryIdsScript ? JSON.parse(selectedCategoryIdsScript.textContent) : [];
     if (selectedCategoryIds && selectedCategoryIds.length > 0) {
-        $('#productCategory').val(selectedCategoryIds).trigger('change');
-        // Load attributes for all selected categories
-        if (selectedCategoryIds.length > 0) {
-            loadAttributesByCategories(selectedCategoryIds);
-        }
-    } else {
-        // If no categories are selected, load all attributes by default
-        loadAllAttributes();
+        // Set the category selection but don't trigger filtering
+        $('#productCategory').val(selectedCategoryIds);
+        // Don't call loadAttributesByCategories here - keep showing all attributes
     }
     
-    // Load attributes when category changes (combine attributes from all selected categories)
+    // Load attributes when category changes (filter by category if selected, otherwise show all)
+    // Only filter when user manually changes category, not on initial page load
     let categoryChangeTimeout;
+    let isInitialLoad = true;
     $('#productCategory').on('change', function() {
+        // Skip filtering on initial load - user hasn't changed anything yet
+        if (isInitialLoad) {
+            isInitialLoad = false;
+            return;
+        }
+        
         // Debounce to prevent multiple rapid calls
         clearTimeout(categoryChangeTimeout);
         categoryChangeTimeout = setTimeout(function() {
             const categoryIds = $('#productCategory').val();
             if (categoryIds && categoryIds.length > 0 && Array.isArray(categoryIds)) {
-                // Load attributes for all selected categories and combine them
+                // Filter attributes by selected categories (user manually selected)
                 loadAttributesByCategories(categoryIds);
             } else {
-                clearAttributes();
+                // No category selected, show all attributes
+                loadAllAttributes();
             }
         }, 300);
     });
+    
+    // Mark initial load as complete after a short delay
+    setTimeout(function() {
+        isInitialLoad = false;
+    }, 500);
     
     console.log('=== SELECT2 INITIALIZATION COMPLETE ===');
     
@@ -640,19 +626,62 @@ document.addEventListener('DOMContentLoaded', function() {
         loadExistingTags();
     })();
 
-    // Load attributes by multiple categories (combines attributes from all)
+    // Load attributes by multiple categories
+    // Filter only if exactly ONE category is selected AND it has attributes
+    // Otherwise, show ALL attributes (no filter)
     function loadAttributesByCategories(categoryIds) {
         if (!categoryIds || !Array.isArray(categoryIds) || categoryIds.length === 0) {
             clearAttributes();
+            // No categories selected - load all attributes
+            if (typeof loadAllAttributes === 'function') {
+                loadAllAttributes();
+            }
             return;
         }
 
-        // If only one category, use the single category function
+        // If only one category, check if it has attributes
         if (categoryIds.length === 1) {
-            loadAttributesByCategory(categoryIds[0]);
+            const categoryId = categoryIds[0];
+            $.ajax({
+                url: '{{ route("products.attributes-by-category") }}',
+                type: 'GET',
+                data: { category_id: categoryId },
+                success: function(response) {
+                    if (response.success) {
+                        const hasVariantAttributes = Array.isArray(response.variant_attributes) && response.variant_attributes.length > 0;
+                        
+                        // Only filter if this single category has attributes
+                        if (hasVariantAttributes) {
+                            // Filter: show only this category's attributes
+                            updateVariantAttributes(response.variant_attributes);
+                            if (typeof window.updateVariantAttributesSelect2 === 'function') {
+                                window.updateVariantAttributesSelect2(response.variant_attributes);
+                            }
+                            updateStaticAttributes(response.static_attributes);
+                        } else {
+                            // No attributes in this category - show all attributes (no filter)
+                            if (typeof loadAllAttributes === 'function') {
+                                loadAllAttributes();
+                            }
+                        }
+                    } else {
+                        // Error or no success - show all attributes (no filter)
+                        if (typeof loadAllAttributes === 'function') {
+                            loadAllAttributes();
+                        }
+                    }
+                },
+                error: function() {
+                    // Error loading - show all attributes (no filter)
+                    if (typeof loadAllAttributes === 'function') {
+                        loadAllAttributes();
+                    }
+                }
+            });
             return;
         }
 
+        // Multiple categories selected - check if ALL have attributes
         // Load attributes for all categories in parallel using jQuery's $.when()
         const ajaxCalls = categoryIds.map(categoryId => {
             return $.ajax({
@@ -675,22 +704,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                // Combine all variant attributes (remove duplicates by ID)
+                // Check if all categories have attributes
+                let allCategoriesHaveAttributes = true;
                 const allVariantAttributes = [];
                 const attributeIdsSeen = new Set();
                 
                 responses.forEach(function(response) {
                     if (response && response.success && Array.isArray(response.variant_attributes)) {
+                        if (response.variant_attributes.length === 0) {
+                            allCategoriesHaveAttributes = false;
+                        }
                         response.variant_attributes.forEach(function(attr) {
                             if (!attributeIdsSeen.has(attr.id)) {
                                 attributeIdsSeen.add(attr.id);
                                 allVariantAttributes.push(attr);
                             }
                         });
+                    } else {
+                        allCategoriesHaveAttributes = false;
                     }
                 });
 
-                // Combine all static attributes (remove duplicates by ID)
+                // If any category has no attributes, show ALL attributes (no filter)
+                if (!allCategoriesHaveAttributes || allVariantAttributes.length === 0) {
+                    console.log('Multiple categories selected but some have no attributes - showing all attributes (no filter)');
+                    if (typeof loadAllAttributes === 'function') {
+                        loadAllAttributes();
+                    }
+                    return;
+                }
+
+                // All categories have attributes - combine them
                 const allStaticAttributes = [];
                 const staticAttributeIdsSeen = new Set();
                 
@@ -729,40 +773,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     statusCode: jqXHR.status
                 });
                 
-                // Try to parse error response
-                let errorMessage = 'Failed to load attributes for selected categories';
-                let errorTitle = 'Error Loading Attributes';
-                
-                try {
-                    if (jqXHR.responseText) {
-                        const errorResponse = JSON.parse(jqXHR.responseText);
-                        if (errorResponse.message) {
-                            errorMessage = errorResponse.message;
-                        }
-                    }
-                } catch (e) {
-                    // If response is not JSON, use default message based on status
-                    if (jqXHR.status === 404) {
-                        errorMessage = 'One or more categories not found';
-                    } else if (jqXHR.status === 500) {
-                        errorMessage = 'Server error while loading attributes';
-                    }
-                }
-                
-                if (typeof showUserFriendlyAlert === 'function') {
-                    showUserFriendlyAlert(errorTitle, errorMessage, 'error');
+                // Error loading - show all attributes (no filter)
+                console.log('Error loading category attributes - showing all attributes (no filter)');
+                if (typeof loadAllAttributes === 'function') {
+                    loadAllAttributes();
                 } else {
-                    alert(errorTitle + ': ' + errorMessage);
+                    clearAttributes();
                 }
-                
-                clearAttributes();
             });
     }
 
     // Load attributes by category
+    // Filter only if this single category has attributes, otherwise show all attributes
     function loadAttributesByCategory(categoryId) {
         if (!categoryId) {
             clearAttributes();
+            // No category selected - load all attributes
+            if (typeof loadAllAttributes === 'function') {
+                loadAllAttributes();
+            }
             return;
         }
 
@@ -772,19 +801,33 @@ document.addEventListener('DOMContentLoaded', function() {
             data: { category_id: categoryId },
             success: function(response) {
                 if (response.success) {
-                    // Update variant attributes in variants tab (checkboxes)
-                    updateVariantAttributes(response.variant_attributes);
+                    const hasVariantAttributes = Array.isArray(response.variant_attributes) && response.variant_attributes.length > 0;
                     
-                    // Update variant attributes Select2 dropdown (if function exists)
-                    if (typeof window.updateVariantAttributesSelect2 === 'function') {
-                        window.updateVariantAttributesSelect2(response.variant_attributes);
+                    // Only filter if this category has attributes
+                    if (hasVariantAttributes) {
+                        // Filter: show only this category's attributes
+                        updateVariantAttributes(response.variant_attributes);
+                        
+                        // Update variant attributes Select2 dropdown (if function exists)
+                        if (typeof window.updateVariantAttributesSelect2 === 'function') {
+                            window.updateVariantAttributesSelect2(response.variant_attributes);
+                        }
+                        
+                        // Update static attributes in product attributes tab
+                        updateStaticAttributes(response.static_attributes);
+                    } else {
+                        // No attributes in this category - show all attributes (no filter)
+                        console.log('Category has no attributes - showing all attributes (no filter)');
+                        if (typeof loadAllAttributes === 'function') {
+                            loadAllAttributes();
+                        }
                     }
-                    
-                    // Update static attributes in product attributes tab
-                    updateStaticAttributes(response.static_attributes);
                 } else {
                     console.warn('Attributes loaded but success flag is false:', response);
-                    clearAttributes();
+                    // No success - show all attributes (no filter)
+                    if (typeof loadAllAttributes === 'function') {
+                        loadAllAttributes();
+                    }
                 }
             },
             error: function(xhr, status, error) {
@@ -795,41 +838,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     statusCode: xhr.status
                 });
                 
-                // Try to parse error response
-                let errorMessage = 'Failed to load attributes for this category';
-                let errorTitle = 'Error Loading Attributes';
-                
-                try {
-                    if (xhr.responseText) {
-                        const errorResponse = JSON.parse(xhr.responseText);
-                        if (errorResponse.message) {
-                            errorMessage = errorResponse.message;
-                        }
-                    }
-                } catch (e) {
-                    // If response is not JSON, use default message based on status
-                    if (xhr.status === 404) {
-                        errorMessage = 'The attributes endpoint was not found. Please contact support.';
-                        errorTitle = 'Route Not Found';
-                    } else if (xhr.status === 500) {
-                        errorMessage = 'A server error occurred while loading attributes. Please try again or contact support.';
-                        errorTitle = 'Server Error';
-                    } else if (xhr.status === 0) {
-                        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
-                        errorTitle = 'Connection Error';
-                    }
-                }
-                
-                // Show user-friendly alert if function exists
-                if (typeof showUserFriendlyAlert === 'function') {
-                    showUserFriendlyAlert(errorTitle, errorMessage, 'error');
+                // Error loading - show all attributes (no filter)
+                console.log('Error loading category attributes - showing all attributes (no filter)');
+                if (typeof loadAllAttributes === 'function') {
+                    loadAllAttributes();
                 } else {
-                    // Fallback to console and alert
-                    console.error('Error details:', errorMessage);
-                    alert(errorTitle + ': ' + errorMessage);
+                    clearAttributes();
                 }
-                
-                clearAttributes();
             }
         });
     }
@@ -996,10 +1011,40 @@ document.addEventListener('DOMContentLoaded', function() {
             url: '{{ route("products.attributes") }}',
             type: 'GET',
             success: function(response) {
+                console.log('loadAllAttributes - Response:', response);
                 if (response.success && response.attributes) {
-                    // Filter only variant attributes (is_variation = true)
-                    const variantAttributes = response.attributes.filter(function(attr) {
-                        return attr.is_variation === true || attr.is_variation === 1 || attr.is_variation === '1';
+                    console.log('loadAllAttributes - Total attributes received:', response.attributes.length);
+                    // Show ALL attributes in availableAttributesContainer (not just visible or variant ones)
+                    // This allows users to use any attribute for variants when no category attributes are available
+                    const variantAttributes = response.attributes.map(function(attr) {
+                        return {
+                            id: attr.id,
+                            name: attr.name || '',
+                            slug: attr.slug || '',
+                            type: attr.type || 'text',
+                            description: attr.description || '',
+                            is_required: attr.is_required || false,
+                            is_visible: attr.is_visible !== false,
+                            sort_order: attr.sort_order || 0,
+                            values: (attr.values || []).map(function(value) {
+                                return {
+                                    id: value.id || null,
+                                    value: value.value || '',
+                                    color_code: value.color_code || null,
+                                    image_path: value.image_path || null,
+                                    sort_order: value.sort_order || 0,
+                                };
+                            })
+                        };
+                    });
+                    
+                    console.log('loadAllAttributes - All attributes loaded:', variantAttributes.length);
+                    
+                    // Filter static attributes (is_variation = false) and visible
+                    const staticAttributes = response.attributes.filter(function(attr) {
+                        const isStatic = attr.is_variation === false || attr.is_variation === 0 || attr.is_variation === '0';
+                        const isVisible = attr.is_visible !== false && attr.is_visible !== 0 && attr.is_visible !== '0';
+                        return isStatic && isVisible;
                     }).map(function(attr) {
                         return {
                             id: attr.id,
@@ -1022,30 +1067,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         };
                     });
                     
-                    // Filter static attributes
-                    const staticAttributes = response.attributes.filter(function(attr) {
-                        return attr.is_variation === false || attr.is_variation === 0 || attr.is_variation === '0';
-                    }).map(function(attr) {
-                        return {
-                            id: attr.id,
-                            name: attr.name || '',
-                            slug: attr.slug || '',
-                            type: attr.type || 'text',
-                            description: attr.description || '',
-                            is_required: attr.is_required || false,
-                            is_visible: attr.is_visible !== false,
-                            sort_order: attr.sort_order || 0,
-                            values: (attr.values || []).map(function(value) {
-                                return {
-                                    id: value.id || null,
-                                    value: value.value || '',
-                                    color_code: value.color_code || null,
-                                    image_path: value.image_path || null,
-                                    sort_order: value.sort_order || 0,
-                                };
-                            })
-                        };
-                    });
+                    console.log('loadAllAttributes - Static attributes filtered:', staticAttributes.length);
+                    console.log('loadAllAttributes - Variant attribute names:', variantAttributes.map(a => a.name));
                     
                     // Update variant attributes in variants tab (checkboxes)
                     updateVariantAttributes(variantAttributes);

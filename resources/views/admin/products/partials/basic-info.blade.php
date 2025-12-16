@@ -95,6 +95,47 @@
                 </div>
             </div>
 
+            {{-- GST Type --}}
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label form-label-sm d-block mb-2">
+                        GST Type
+                    </label>
+                    <div class="btn-group w-100" role="group">
+                        @php
+                            $gstTypeValue = old('gst_type', isset($product) && $product->exists ? ($product->gst_type === false ? '0' : '1') : '1');
+                        @endphp
+                        <input type="radio" class="btn-check" name="gst_type" id="gstTypeInclusive" value="1"
+                               {{ $gstTypeValue == '1' || $gstTypeValue === true || $gstTypeValue === 1 ? 'checked' : '' }}>
+                        <label class="btn btn-outline-primary btn-sm" for="gstTypeInclusive">
+                            Inclusive of GST
+                        </label>
+                        <input type="radio" class="btn-check" name="gst_type" id="gstTypeExclusive" value="0"
+                               {{ $gstTypeValue == '0' || $gstTypeValue === false || $gstTypeValue === 0 ? 'checked' : '' }}>
+                        <label class="btn btn-outline-primary btn-sm" for="gstTypeExclusive">
+                            Exclusive of GST
+                        </label>
+                    </div>
+                    <div class="invalid-feedback"></div>
+                </div>
+            </div>
+
+            {{-- GST Percentage --}}
+            <div class="col-md-6">
+                <label for="gstPercentage" class="form-label form-label-sm">GST Percentage</label>
+                <select class="form-select form-select-sm" id="gstPercentage" name="gst_percentage">
+                    <option value="">Select GST Percentage</option>
+                    <option value="0" {{ old('gst_percentage', $product->gst_percentage ?? '') == '0' || old('gst_percentage', $product->gst_percentage ?? '') == 0 ? 'selected' : '' }}>0%</option>
+                    <option value="3" {{ old('gst_percentage', $product->gst_percentage ?? '') == '3' || old('gst_percentage', $product->gst_percentage ?? '') == 3 ? 'selected' : '' }}>3%</option>
+                    <option value="5" {{ old('gst_percentage', $product->gst_percentage ?? '') == '5' || old('gst_percentage', $product->gst_percentage ?? '') == 5 ? 'selected' : '' }}>5%</option>
+                    <option value="12" {{ old('gst_percentage', $product->gst_percentage ?? '') == '12' || old('gst_percentage', $product->gst_percentage ?? '') == 12 ? 'selected' : '' }}>12%</option>
+                    <option value="18" {{ old('gst_percentage', $product->gst_percentage ?? '') == '18' || old('gst_percentage', $product->gst_percentage ?? '') == 18 ? 'selected' : '' }}>18%</option>
+                    <option value="28" {{ old('gst_percentage', $product->gst_percentage ?? '') == '28' || old('gst_percentage', $product->gst_percentage ?? '') == 28 ? 'selected' : '' }}>28%</option>
+                </select>
+                <small class="text-muted small">Select GST percentage rate</small>
+                <div class="invalid-feedback"></div>
+            </div>
+
         </div>
 
        

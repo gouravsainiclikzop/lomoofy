@@ -7,11 +7,13 @@ use App\Models\ProductVariant;
 use App\Models\Warehouse;
 use App\Models\WarehouseLocation;
 use App\Models\InventoryStock;
+use App\Models\InventoryHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 
 class InventoryController extends Controller
@@ -116,31 +118,34 @@ class InventoryController extends Controller
             $totalStockQty = $variant->total_stock_quantity ?? ($variant->stock_quantity ?? 0);
             $availableStock = $variant->available_stock ?? $totalStockQty;
             
-            // Calculate stock status based on available stock if manage_stock is enabled
+            // Calculate stock status based on total stock quantity if manage_stock is enabled
             $calculatedStockStatus = $variant->stock_status;
             if ($variant->manage_stock) {
-                $calculatedStockStatus = $availableStock > 0 ? 'in_stock' : 'out_of_stock';
+                $calculatedStockStatus = $totalStockQty > 0 ? 'in_stock' : 'out_of_stock';
             }
             
-            // Get warehouse breakdown
-            $warehouseBreakdown = $variant->inventoryStocks->map(function($stock) {
+            // Get warehouse breakdown - group by warehouse and sum quantities across all locations
+            $warehouseBreakdown = $variant->inventoryStocks->groupBy('warehouse_id')->map(function($stocks, $warehouseId) {
+                $firstStock = $stocks->first();
                 return [
-                    'warehouse_id' => $stock->warehouse_id,
-                    'warehouse_name' => $stock->warehouse->name ?? 'N/A',
-                    'warehouse_code' => $stock->warehouse->code ?? 'N/A',
-                    'location_id' => $stock->warehouse_location_id,
-                    'location_code' => $stock->warehouseLocation->location_code ?? 'N/A',
-                    'quantity' => $stock->quantity,
-                    'reserved_quantity' => $stock->reserved_quantity,
-                    'available_quantity' => $stock->available_quantity,
+                    'warehouse_id' => $warehouseId,
+                    'warehouse_name' => $firstStock->warehouse->name ?? 'N/A',
+                    'warehouse_code' => $firstStock->warehouse->code ?? 'N/A',
+                    'quantity' => $stocks->sum('quantity'),
+                    'reserved_quantity' => $stocks->sum('reserved_quantity'),
+                    'available_quantity' => $stocks->sum('available_quantity'),
                 ];
-            })->toArray();
+            })->values()->toArray();
             
             // Get variant image or product image
             $variantImage = $variant->images->first();
             $imageUrl = $variantImage 
                 ? asset('storage/' . $variantImage->image_path)
                 : ($product->image_url ?? asset('assets/images/placeholder.jpg'));
+            
+            // Calculate low stock: stock quantity <= low stock threshold (and > 0, otherwise it's out of stock)
+            $lowStockThreshold = $variant->low_stock_threshold ?? 0;
+            $isLowStock = $variant->manage_stock && $totalStockQty > 0 && $totalStockQty <= $lowStockThreshold;
             
             return [
                 'id' => $variant->id,
@@ -159,12 +164,12 @@ class InventoryController extends Controller
                 'available_stock' => $availableStock,
                 'stock_status' => ucfirst(str_replace('_', ' ', $calculatedStockStatus)),
                 'stock_status_value' => $calculatedStockStatus,
-                'low_stock_threshold' => $variant->low_stock_threshold ?? 0,
+                'low_stock_threshold' => $lowStockThreshold,
                 'warehouse_breakdown' => $warehouseBreakdown,
                 'warehouse_count' => count($warehouseBreakdown),
                 'stock_location' => '-', // Variants don't have stock_location
                 'allow_backorder' => '-', // Variants don't have allow_backorder
-                'is_low_stock' => $variant->manage_stock && $availableStock <= ($variant->low_stock_threshold ?? 0),
+                'is_low_stock' => $isLowStock,
                 'created_at' => $variant->created_at->format('Y-m-d H:i:s'),
             ];
         })->filter(); // Remove any null entries
@@ -199,9 +204,8 @@ class InventoryController extends Controller
             $validator = Validator::make($request->all(), [
                 'manage_stock' => 'nullable|boolean',
                 'stock_quantity' => 'nullable|integer|min:0',
-                'stock_status' => 'nullable|in:in_stock,out_of_stock,on_backorder',
                 'low_stock_threshold' => 'nullable|integer|min:0',
-                'warehouse_id' => 'nullable|exists:warehouses,id',
+                'warehouse_id' => 'required_with:stock_quantity|exists:warehouses,id',
                 'warehouse_location_id' => 'nullable|exists:warehouse_locations,id',
                 'update_type' => 'nullable|in:set,increment,decrement', // How to update: set value, add to, or subtract from
             ]);
@@ -231,10 +235,18 @@ class InventoryController extends Controller
                 
                 $variant->update($updateData);
                 
-                // Handle warehouse-based stock update
-                if ($request->has('warehouse_id') && $request->has('stock_quantity')) {
+                // Handle warehouse-based stock update (required when stock_quantity is provided)
+                if ($request->has('stock_quantity')) {
+                    if (!$request->has('warehouse_id') || !$request->warehouse_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Warehouse selection is required to update stock quantity',
+                            'errors' => ['warehouse_id' => ['Warehouse is required when updating stock quantity']]
+                        ], 422);
+                    }
+                    
                     $warehouseId = $request->warehouse_id;
-                    $locationId = $request->warehouse_location_id;
+                    $locationId = $request->warehouse_location_id ?: null; // Convert empty string to null
                     $stockQuantity = $request->stock_quantity;
                     $updateType = $request->update_type ?? 'set';
                     
@@ -245,11 +257,13 @@ class InventoryController extends Controller
                         'warehouse_location_id' => $locationId,
                     ]);
                     
+                    $previousQuantity = $inventoryStock->quantity ?? 0;
+                    
                     // Update quantity based on update type
                     if ($updateType === 'increment') {
-                        $inventoryStock->quantity = ($inventoryStock->quantity ?? 0) + $stockQuantity;
+                        $inventoryStock->quantity = $previousQuantity + $stockQuantity;
                     } elseif ($updateType === 'decrement') {
-                        $inventoryStock->quantity = max(0, ($inventoryStock->quantity ?? 0) - $stockQuantity);
+                        $inventoryStock->quantity = max(0, $previousQuantity - $stockQuantity);
                     } else {
                         // 'set' - set the exact value
                         $inventoryStock->quantity = $stockQuantity;
@@ -257,24 +271,30 @@ class InventoryController extends Controller
                     
                     $inventoryStock->save();
                     
-                    // Sync total to variant stock_quantity for backward compatibility
-                    $totalStock = $variant->inventoryStocks()->sum('quantity');
-                    $variant->stock_quantity = $totalStock;
-                    $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
-                    $variant->save();
-                } else {
-                    // Legacy update - update variant stock_quantity directly
-                    $stockQuantity = $request->has('stock_quantity') ? $request->stock_quantity : $variant->stock_quantity;
-                    $stockStatus = $request->stock_status ?? $variant->stock_status;
-                    
-                    if ($manageStock && $request->has('stock_quantity')) {
-                        $stockStatus = $stockQuantity > 0 ? 'in_stock' : 'out_of_stock';
+                    // Log history if quantity changed
+                    if ($previousQuantity != $inventoryStock->quantity) {
+                        InventoryHistory::create([
+                            'product_variant_id' => $variant->id,
+                            'warehouse_id' => $warehouseId,
+                            'warehouse_location_id' => $locationId, // Use the same locationId (null if empty)
+                            'previous_quantity' => $previousQuantity,
+                            'new_quantity' => $inventoryStock->quantity,
+                            'quantity_change' => $inventoryStock->quantity - $previousQuantity,
+                            'change_type' => $updateType,
+                            'reference_type' => 'manual',
+                            'notes' => $request->notes ?? null,
+                            'user_id' => Auth::id(),
+                        ]);
                     }
                     
-                    $variant->update([
-                        'stock_quantity' => $stockQuantity,
-                        'stock_status' => $stockStatus,
-                    ]);
+                    // Sync total to variant stock_quantity for backward compatibility
+                    // Use fresh query to ensure we get the latest data
+                    $variant->refresh();
+                    $totalStock = $variant->inventoryStocks()->sum('quantity');
+                    $variant->stock_quantity = $totalStock;
+                    // Auto-calculate stock status: 0 = out_of_stock, > 0 = in_stock
+                    $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+                    $variant->save();
                 }
 
                 DB::commit();
@@ -283,13 +303,18 @@ class InventoryController extends Controller
                 $variant->refresh();
                 $variant->load(['inventoryStocks.warehouse', 'inventoryStocks.warehouseLocation']);
 
-                // Calculate display stock status
-                $totalStock = $variant->total_stock_quantity ?? ($variant->stock_quantity ?? 0);
-                $availableStock = $variant->available_stock ?? $totalStock;
-                $displayStockStatus = $variant->stock_status;
-                if ($variant->manage_stock) {
-                    $displayStockStatus = $availableStock > 0 ? 'in_stock' : 'out_of_stock';
-                }
+                // Calculate total stock directly from inventory stocks (more reliable than accessor)
+                $totalStockFromWarehouses = $variant->inventoryStocks()->sum('quantity');
+                $totalStock = $totalStockFromWarehouses > 0 ? $totalStockFromWarehouses : ($variant->stock_quantity ?? 0);
+                $totalReserved = $variant->inventoryStocks()->sum('reserved_quantity');
+                $availableStock = max(0, $totalStock - $totalReserved);
+                
+                // Auto-calculate: 0 = out_of_stock, > 0 = in_stock
+                $displayStockStatus = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+                
+                // Calculate low stock flag
+                $lowStockThreshold = $variant->low_stock_threshold ?? 0;
+                $isLowStock = $variant->manage_stock && $totalStock > 0 && $totalStock <= $lowStockThreshold;
                 
                 return response()->json([
                     'success' => true,
@@ -303,8 +328,8 @@ class InventoryController extends Controller
                         'available_stock' => $availableStock,
                         'stock_status' => ucfirst(str_replace('_', ' ', $displayStockStatus)),
                         'stock_status_value' => $displayStockStatus,
-                        'low_stock_threshold' => $variant->low_stock_threshold ?? 0,
-                        'is_low_stock' => $variant->manage_stock && $availableStock <= ($variant->low_stock_threshold ?? 0),
+                        'low_stock_threshold' => $lowStockThreshold,
+                        'is_low_stock' => $isLowStock,
                         'warehouse_breakdown' => $variant->inventoryStocks->map(function($stock) {
                             return [
                                 'warehouse_id' => $stock->warehouse_id,
@@ -417,8 +442,21 @@ class InventoryController extends Controller
             'variant_ids' => 'nullable|array',
             'variant_ids.*' => 'required|integer|exists:product_variants,id',
             'stock_quantity' => 'required|integer|min:0',
-            'stock_status' => 'nullable|in:in_stock,out_of_stock,on_backorder',
+            'warehouse_id' => 'required_with:variant_ids|exists:warehouses,id',
+            'warehouse_location_id' => 'nullable|exists:warehouse_locations,id',
+            'update_type' => 'nullable|in:set,increment,decrement',
         ]);
+        
+        // Additional validation: warehouse is required for variants
+        if ($validator->passes() && $request->has('variant_ids') && count($request->variant_ids ?? []) > 0) {
+            if (!$request->has('warehouse_id') || !$request->warehouse_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Warehouse selection is required when adding stock to variants',
+                    'errors' => ['warehouse_id' => ['Warehouse is required when updating variant stock']]
+                ], 422);
+            }
+        }
 
         // At least one of product_ids or variant_ids must be provided
         if ((!$request->has('product_ids') || count($request->product_ids) === 0) && 
@@ -439,16 +477,20 @@ class InventoryController extends Controller
         }
 
         try {
+            DB::beginTransaction();
+            
             $productIds = $request->product_ids ?? [];
             $variantIds = $request->variant_ids ?? [];
             $stockQuantity = $request->stock_quantity;
-            $stockStatus = $request->stock_status ?? 'in_stock';
+            $warehouseId = $request->warehouse_id;
+            $locationId = $request->warehouse_location_id ?: null; // Convert empty string to null
+            $updateType = $request->update_type ?? 'increment';
             
             $updated = 0;
             $skipped = 0;
             $errors = [];
 
-            // Process simple products
+            // Process simple products (legacy support - not recommended for warehouse-based inventory)
             foreach ($productIds as $productId) {
                 $product = Product::find($productId);
                 
@@ -469,17 +511,18 @@ class InventoryController extends Controller
                     $product->manage_stock = true;
                 }
 
-                // Add stock quantity (increment existing stock)
+                // Legacy: update product stock directly (not warehouse-based)
                 $currentStock = $product->stock_quantity ?? 0;
-                $newStock = $currentStock + $stockQuantity;
-
-                // Update stock status based on new quantity
-                $finalStockStatus = $stockStatus;
-                if ($newStock > 0 && $stockStatus === 'out_of_stock') {
-                    $finalStockStatus = 'in_stock';
-                } elseif ($newStock <= 0 && $stockStatus === 'in_stock') {
-                    $finalStockStatus = 'out_of_stock';
+                if ($updateType === 'increment') {
+                    $newStock = $currentStock + $stockQuantity;
+                } elseif ($updateType === 'decrement') {
+                    $newStock = max(0, $currentStock - $stockQuantity);
+                } else {
+                    $newStock = $stockQuantity;
                 }
+
+                // Auto-calculate stock status
+                $finalStockStatus = $newStock > 0 ? 'in_stock' : 'out_of_stock';
 
                 $product->update([
                     'manage_stock' => true,
@@ -490,7 +533,7 @@ class InventoryController extends Controller
                 $updated++;
             }
 
-            // Process variants
+            // Process variants with warehouse support
             foreach ($variantIds as $variantId) {
                 $variant = ProductVariant::find($variantId);
                 
@@ -502,29 +545,66 @@ class InventoryController extends Controller
                 // Enable stock management if not already enabled
                 if (!$variant->manage_stock) {
                     $variant->manage_stock = true;
+                    $variant->save();
                 }
 
-                // Add stock quantity (increment existing stock)
-                $currentStock = $variant->stock_quantity ?? 0;
-                $newStock = $currentStock + $stockQuantity;
-
-                // Update stock status based on new quantity
-                $finalStockStatus = $stockStatus;
-                if ($newStock > 0 && $stockStatus === 'out_of_stock') {
-                    $finalStockStatus = 'in_stock';
-                } elseif ($newStock <= 0 && $stockStatus === 'in_stock') {
-                    $finalStockStatus = 'out_of_stock';
+                // Warehouse-based stock update (required for variants)
+                if (!$warehouseId) {
+                    $errors[] = "Variant '{$variant->name}' requires warehouse selection to update stock";
+                    $skipped++;
+                    continue;
                 }
-
-                $variant->update([
-                    'manage_stock' => true,
-                    'stock_quantity' => $newStock,
-                    'stock_status' => $finalStockStatus,
+                
+                $inventoryStock = InventoryStock::firstOrNew([
+                    'product_variant_id' => $variant->id,
+                    'warehouse_id' => $warehouseId,
+                    'warehouse_location_id' => $locationId,
                 ]);
+                
+                $previousQuantity = $inventoryStock->quantity ?? 0;
+                
+                // Update quantity based on update type
+                if ($updateType === 'increment') {
+                    $inventoryStock->quantity = $previousQuantity + $stockQuantity;
+                } elseif ($updateType === 'decrement') {
+                    $inventoryStock->quantity = max(0, $previousQuantity - $stockQuantity);
+                } else {
+                    // 'set' - set the exact value
+                    $inventoryStock->quantity = $stockQuantity;
+                }
+                
+                $inventoryStock->save();
+                
+                // Log history if quantity changed
+                if ($previousQuantity != $inventoryStock->quantity) {
+                    InventoryHistory::create([
+                        'product_variant_id' => $variant->id,
+                        'warehouse_id' => $warehouseId,
+                        'warehouse_location_id' => $locationId, // Use the same locationId (null if empty)
+                        'previous_quantity' => $previousQuantity,
+                        'new_quantity' => $inventoryStock->quantity,
+                        'quantity_change' => $inventoryStock->quantity - $previousQuantity,
+                        'change_type' => $updateType,
+                        'reference_type' => 'bulk_add',
+                        'notes' => 'Bulk stock update',
+                        'user_id' => Auth::id(),
+                    ]);
+                }
+                
+                // Sync total to variant stock_quantity
+                $variant->refresh();
+                $totalStock = $variant->inventoryStocks()->sum('quantity');
+                $variant->stock_quantity = $totalStock;
+                $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+                $variant->save();
 
                 $updated++;
             }
+            
+            DB::commit();
 
+            DB::commit();
+            
             $message = "Stock added to {$updated} item(s)";
             if ($skipped > 0) {
                 $message .= ". {$skipped} item(s) skipped";
@@ -539,6 +619,7 @@ class InventoryController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error adding stock: ' . $e->getMessage()
@@ -547,13 +628,52 @@ class InventoryController extends Controller
     }
 
     /**
+     * Get warehouse and location codes reference for import
+     */
+    public function getWarehouseCodesReference()
+    {
+        $warehouses = Warehouse::where('status', 'active')
+            ->with(['locations' => function($query) {
+                $query->where('status', 'active')
+                      ->orderBy('rack')
+                      ->orderBy('shelf')
+                      ->orderBy('bin');
+            }])
+            ->orderBy('code')
+            ->get();
+        
+        $data = $warehouses->map(function($warehouse) {
+            return [
+                'id' => $warehouse->id,
+                'name' => $warehouse->name,
+                'code' => $warehouse->code,
+                'locations' => $warehouse->locations->map(function($location) {
+                    return [
+                        'id' => $location->id,
+                        'code' => $location->location_code,
+                        'rack' => $location->rack,
+                        'shelf' => $location->shelf,
+                        'bin' => $location->bin,
+                    ];
+                })->values(),
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+    /**
      * Download sample import file.
      */
     public function downloadSample(Request $request)
     {
         $type = $request->get('type', 'default'); // default, all, low_stock
+        $warehouseId = $request->get('warehouse_id'); // Optional warehouse filter
         
-        $query = ProductVariant::with('product')
+        $query = ProductVariant::with(['product', 'inventoryStocks.warehouse', 'inventoryStocks.warehouseLocation'])
             ->whereHas('product', function($q) {
                 $q->whereNull('deleted_at');
             });
@@ -567,6 +687,13 @@ class InventoryController extends Controller
                   });
         }
         
+        // Filter by warehouse if provided
+        if ($warehouseId) {
+            $query->whereHas('inventoryStocks', function($q) use ($warehouseId) {
+                $q->where('warehouse_id', $warehouseId);
+            });
+        }
+        
         // Limit results for 'all' to prevent huge files
         if ($type === 'all') {
             $variants = $query->orderBy('sku')->limit(1000)->get();
@@ -577,7 +704,18 @@ class InventoryController extends Controller
             $variants = collect();
         }
         
+        // Get warehouses for reference
+        $warehouses = Warehouse::where('status', 'active')
+            ->orderBy('code')
+            ->get(['id', 'name', 'code']);
+        
         $filename = 'inventory_import_sample_' . $type . '_' . date('Y-m-d') . '.csv';
+        if ($warehouseId) {
+            $warehouse = Warehouse::find($warehouseId);
+            if ($warehouse) {
+                $filename = 'inventory_import_' . str_replace(' ', '_', $warehouse->code) . '_' . date('Y-m-d') . '.csv';
+            }
+        }
         
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -588,20 +726,21 @@ class InventoryController extends Controller
         
         $output = fopen('php://output', 'w');
         
-        // Headers
+        // Headers with warehouse support
         fputcsv($output, [
             'SKU',
             'Stock Quantity to Add', 
-            'Manage Stock',
-            'Low Stock Threshold'
+            'Warehouse Code',
+            'Location Code (Optional)'
         ]);
         
         if ($type === 'default') {
             // Sample data rows for default
+            $warehouseCode = $warehouses->first()->code ?? 'WH-001';
             $sampleData = [
-                ['VARIANT-SKU-001', 100,  'Yes', 10],
-                ['VARIANT-SKU-002', 50,  'Yes', 5],
-                ['VARIANT-SKU-003', 0,  'Yes', 10],
+                ['VARIANT-SKU-001', 100, $warehouseCode, 'LOC-A1'],
+                ['VARIANT-SKU-002', 50, $warehouseCode, ''], // Empty location to show it's optional
+                ['VARIANT-SKU-003', 0, $warehouseCode, 'LOC-B2'],
             ];
             
             foreach ($sampleData as $row) {
@@ -610,11 +749,28 @@ class InventoryController extends Controller
         } else {
             // Real data from database
             foreach ($variants as $variant) {
+                // Get warehouse stock info if available
+                $warehouseStock = null;
+                
+                if ($warehouseId) {
+                    $warehouseStock = $variant->inventoryStocks
+                        ->where('warehouse_id', $warehouseId)
+                        ->first();
+                } else {
+                    // Get first warehouse stock if any
+                    $warehouseStock = $variant->inventoryStocks->first();
+                }
+                
+                $warehouseCode = $warehouseStock ? $warehouseStock->warehouse->code : '';
+                $locationCode = $warehouseStock && $warehouseStock->warehouseLocation 
+                    ? $warehouseStock->warehouseLocation->code 
+                    : '';
+                
                 fputcsv($output, [
                     $variant->sku,
                     '', // Empty quantity - user will fill
-                    $variant->manage_stock ? 'Yes' : 'No',
-                    $variant->low_stock_threshold ?? 0
+                    $warehouseCode, // Warehouse code
+                    $locationCode // Location code (optional)
                 ]);
             }
         }
@@ -735,8 +891,24 @@ class InventoryController extends Controller
             if ($stockQtyIndex === false) {
                 $stockQtyIndex = array_search('stock quantity to add', $headers);
             }
-            $manageStockIndex = array_search('manage stock', $headers);
-            $lowStockThresholdIndex = array_search('low stock threshold', $headers);
+            $warehouseCodeIndex = array_search('warehouse code', $headers);
+            
+            // Try multiple variations for location code column (case-insensitive)
+            $locationCodeIndex = false;
+            $locationVariations = [
+                'location code (optional)',
+                'location code',
+                'location',
+                'warehouse location',
+                'location code(optional)'
+            ];
+            foreach ($locationVariations as $variation) {
+                $index = array_search($variation, $headers);
+                if ($index !== false) {
+                    $locationCodeIndex = $index;
+                    break;
+                }
+            }
             
             if ($skuIndex === false) {
                 return response()->json([
@@ -744,6 +916,9 @@ class InventoryController extends Controller
                     'message' => 'SKU column is required in the import file'
                 ], 422);
             }
+            
+            // Get default warehouse from request if provided
+            $defaultWarehouseId = $request->input('warehouse_id');
             
             $processed = 0;
             $updated = 0;
@@ -785,48 +960,180 @@ class InventoryController extends Controller
                     }
                 }
                 
-                // Update variant inventory
-                $updateData = [];
-                
-                if ($stockQtyIndex !== false && isset($row[$stockQtyIndex])) {
-                    $stockQty = trim($row[$stockQtyIndex]);
-                    if ($stockQty !== '' && is_numeric($stockQty)) {
-                        // ADD to existing quantity instead of replacing
-                        $quantityToAdd = (int) $stockQty;
-                        $currentQuantity = (int) ($variant->stock_quantity ?? 0);
-                        $newQuantity = $currentQuantity + $quantityToAdd;
-                        $updateData['stock_quantity'] = $newQuantity;
+                try {
+                    DB::beginTransaction();
+                    
+                    // Determine warehouse
+                    $warehouseId = null;
+                    $locationId = null;
+                    
+                    if ($warehouseCodeIndex !== false && isset($row[$warehouseCodeIndex]) && trim($row[$warehouseCodeIndex])) {
+                        // Warehouse code provided in file
+                        $warehouseCode = trim($row[$warehouseCodeIndex]);
+                        $warehouse = Warehouse::where('code', $warehouseCode)
+                            ->where('status', 'active')
+                            ->first();
                         
-                        // Auto-update stock_status based on new quantity if manage_stock is enabled
-                        if ($variant->manage_stock) {
-                            $updateData['stock_status'] = $newQuantity > 0 ? 'in_stock' : 'out_of_stock';
+                        if (!$warehouse) {
+                            $errors[] = "Row " . ($i + 1) . ": Warehouse with code '{$warehouseCode}' not found";
+                            $skipped++;
+                            DB::rollBack();
+                            continue;
+                        }
+                        
+                        $warehouseId = $warehouse->id;
+                    } elseif ($defaultWarehouseId) {
+                        // Use default warehouse from form
+                        $warehouseId = $defaultWarehouseId;
+                    }
+                    
+                    // Find location if provided (works for both warehouse from file and default warehouse)
+                    if ($warehouseId && $locationCodeIndex !== false && isset($row[$locationCodeIndex]) && trim($row[$locationCodeIndex])) {
+                        $locationCode = trim($row[$locationCodeIndex]);
+                        
+                        // Skip if location code is "N/A" or empty
+                        if (strtoupper($locationCode) === 'N/A' || empty($locationCode)) {
+                            $locationId = null;
+                        } else {
+                            // Get all active locations for this warehouse and match by computed location_code
+                            // Since location_code is an accessor (computed from rack-shelf-bin), we need to
+                            // load locations and compare the computed value
+                            // Note: status is stored as enum 'active'/'inactive' in DB, not boolean
+                            $locations = WarehouseLocation::where('warehouse_id', $warehouseId)
+                                ->where('status', 'active')
+                                ->get();
+                            
+                            $location = null;
+                            $inputCode = strtolower(trim($locationCode));
+                            
+                            foreach ($locations as $loc) {
+                                // Compare the computed location_code with the input (case-insensitive)
+                                $locCode = strtolower(trim($loc->location_code));
+                                
+                                if ($locCode === $inputCode) {
+                                    $location = $loc;
+                                    break;
+                                }
+                                
+                                // Also try matching against full_location (e.g., "Rack-A-Shelf-1-Bin-A")
+                                // Extract just the values from full_location (remove "Rack:", "Shelf:", "Bin:" labels)
+                                $fullLoc = strtolower(trim($loc->full_location));
+                                // Remove labels and normalize
+                                $fullLocNormalized = preg_replace('/\b(rack|shelf|bin):\s*/i', '', $fullLoc);
+                                $fullLocNormalized = str_replace(', ', '-', $fullLocNormalized);
+                                $fullLocNormalized = str_replace(' ', '-', $fullLocNormalized);
+                                
+                                if ($fullLocNormalized === $inputCode || $fullLoc === $inputCode) {
+                                    $location = $loc;
+                                    break;
+                                }
+                                
+                                // Also try direct match on rack-shelf-bin combination
+                                // If input is "rac-3-s-3-b1", try to match rack="rac-3", shelf="s-3", bin="b1"
+                                $parts = explode('-', $inputCode);
+                                if (count($parts) >= 3) {
+                                    // Try matching last 3 parts as bin, shelf, rack (reverse order)
+                                    $tryBin = $parts[count($parts) - 1];
+                                    $tryShelf = count($parts) >= 2 ? $parts[count($parts) - 2] : null;
+                                    $tryRack = count($parts) >= 3 ? implode('-', array_slice($parts, 0, count($parts) - 2)) : null;
+                                    
+                                    if ($tryRack && strtolower(trim($loc->rack ?? '')) === $tryRack &&
+                                        $tryShelf && strtolower(trim($loc->shelf ?? '')) === $tryShelf &&
+                                        $tryBin && strtolower(trim($loc->bin ?? '')) === $tryBin) {
+                                        $location = $loc;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if ($location) {
+                                $locationId = $location->id;
+                            } else {
+                                // Don't error out - location is optional, just log a warning
+                                $errors[] = "Row " . ($i + 1) . ": Location with code '{$locationCode}' not found in warehouse. Available locations: " . 
+                                    $locations->pluck('location_code')->implode(', ') . ". Stock will be added without specific location.";
+                                $locationId = null; // Ensure it's null if not found
+                            }
+                        }
+                    } else {
+                        // No location code provided, ensure locationId is null
+                        $locationId = null;
+                    }
+                    
+                    // Update variant-level settings
+                    $updateData = [];
+                    
+                    // Update stock quantity (requires warehouse)
+                    if ($stockQtyIndex !== false && isset($row[$stockQtyIndex])) {
+                        $stockQty = trim($row[$stockQtyIndex]);
+                        if ($stockQty !== '' && is_numeric($stockQty)) {
+                            $quantityToAdd = (int) $stockQty;
+                            
+                            if (!$warehouseId) {
+                                $errors[] = "Row " . ($i + 1) . ": Warehouse is required to update stock quantity. Please provide Warehouse Code in the file or select a default warehouse.";
+                                $skipped++;
+                                DB::rollBack();
+                                continue;
+                            }
+                            
+                            // Update warehouse-specific stock
+                            // Note: firstOrNew uses all attributes to find existing record
+                            // So records with different locations are treated as separate records
+                            $inventoryStock = InventoryStock::firstOrNew([
+                                'product_variant_id' => $variant->id,
+                                'warehouse_id' => $warehouseId,
+                                'warehouse_location_id' => $locationId, // null or actual location ID
+                            ]);
+                            
+                            // Store previous quantity for history
+                            $previousQuantity = $inventoryStock->quantity ?? 0;
+                            
+                            // Always set location_id (even if null) to ensure it's saved correctly
+                            $inventoryStock->warehouse_location_id = $locationId;
+                            $inventoryStock->quantity = $previousQuantity + $quantityToAdd;
+                            $inventoryStock->save();
+                            
+                            // Log history if quantity changed (always log for imports to track location)
+                            if ($previousQuantity != $inventoryStock->quantity) {
+                                InventoryHistory::create([
+                                    'product_variant_id' => $variant->id,
+                                    'warehouse_id' => $warehouseId,
+                                    'warehouse_location_id' => $locationId, // This should be set if location was found
+                                    'previous_quantity' => $previousQuantity,
+                                    'new_quantity' => $inventoryStock->quantity,
+                                    'quantity_change' => $inventoryStock->quantity - $previousQuantity,
+                                    'change_type' => 'increment',
+                                    'reference_type' => 'import',
+                                    'notes' => 'Stock imported from file - Row ' . ($i + 1) . ($locationId ? ' (Location: ' . $locationCode . ')' : ''),
+                                    'user_id' => Auth::id(),
+                                ]);
+                            }
+                            
+                            // Sync total to variant stock_quantity
+                            $variant->refresh();
+                            $totalStock = $variant->inventoryStocks()->sum('quantity');
+                            $variant->stock_quantity = $totalStock;
+                            $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
                         }
                     }
-                }
-                
-                if ($manageStockIndex !== false && isset($row[$manageStockIndex])) {
-                    $manageStock = strtolower(trim($row[$manageStockIndex]));
-                    $updateData['manage_stock'] = in_array($manageStock, ['yes', '1', 'true', 'y']);
-                }
-                
-                if ($lowStockThresholdIndex !== false && isset($row[$lowStockThresholdIndex])) {
-                    $threshold = trim($row[$lowStockThresholdIndex]);
-                    if ($threshold !== '' && is_numeric($threshold)) {
-                        $updateData['low_stock_threshold'] = (int) $threshold;
+                    
+                    // Update variant if there are changes
+                    if (!empty($updateData)) {
+                        $variant->update($updateData);
                     }
-                }
-                
-                if (!empty($updateData)) {
-                    $variant->update($updateData);
+                    
                     // Refresh variant to get updated data
                     $variant->refresh();
+                    
+                    DB::commit();
                     $updated++;
-                } else {
-                    // No data to update, but still count as processed
+                    $processed++;
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    $errors[] = "Row " . ($i + 1) . ": Error processing - " . $e->getMessage();
                     $skipped++;
+                    $processed++;
                 }
-                
-                $processed++;
             }
             
             $message = "Import completed. Processed: {$processed}, Updated: {$updated}, Skipped: {$skipped}";
@@ -914,12 +1221,221 @@ class InventoryController extends Controller
             ];
         });
 
+        // Calculate total stock from the actual breakdown data
+        $totalStock = $breakdown->sum('quantity');
+        $totalReserved = $breakdown->sum('reserved_quantity');
+        $totalAvailable = $totalStock - $totalReserved;
+
         return response()->json([
             'success' => true,
             'data' => $breakdown,
-            'total_stock' => $variant->total_stock_quantity ?? 0,
-            'available_stock' => $variant->available_stock ?? 0,
+            'total_stock' => $totalStock,
+            'available_stock' => max(0, $totalAvailable),
         ]);
+    }
+
+    /**
+     * Get inventory history for a variant
+     */
+    public function getHistory($variantId)
+    {
+        $variant = ProductVariant::findOrFail($variantId);
+        
+        $history = InventoryHistory::with(['warehouse', 'warehouseLocation', 'user'])
+            ->forVariant($variantId)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($record) {
+                return [
+                    'id' => $record->id,
+                    'warehouse_name' => $record->warehouse ? $record->warehouse->name : 'N/A',
+                    'location_name' => $record->warehouseLocation ? $record->warehouseLocation->full_location : 'N/A',
+                    'previous_quantity' => $record->previous_quantity,
+                    'new_quantity' => $record->new_quantity,
+                    'quantity_change' => $record->quantity_change,
+                    'change_type' => ucfirst($record->change_type),
+                    'reference_type' => $record->reference_type,
+                    'notes' => $record->notes,
+                    'user_name' => $record->user ? $record->user->name : 'System',
+                    'created_at' => $record->created_at->format('Y-m-d H:i:s'),
+                    'is_cleared' => $record->reference_type === 'history_cleared',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'variant' => [
+                    'id' => $variant->id,
+                    'name' => $variant->name,
+                    'sku' => $variant->sku,
+                ],
+                'history' => $history,
+            ]
+        ]);
+    }
+
+    /**
+     * Clear inventory history for a variant
+     */
+    public function clearHistory(Request $request, $variantId)
+    {
+        $variant = ProductVariant::findOrFail($variantId);
+        
+        // Get count of records to be deleted
+        $historyCount = InventoryHistory::forVariant($variantId)->count();
+        
+        if ($historyCount === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No history records to clear'
+            ], 422);
+        }
+        
+        try {
+            DB::beginTransaction();
+            
+            // Delete all history records for this variant
+            InventoryHistory::forVariant($variantId)->delete();
+            
+            // Create a clearance record as the last activity
+            InventoryHistory::create([
+                'product_variant_id' => $variant->id,
+                'warehouse_id' => null,
+                'warehouse_location_id' => null,
+                'previous_quantity' => 0,
+                'new_quantity' => 0,
+                'quantity_change' => 0,
+                'change_type' => 'adjustment',
+                'reference_type' => 'history_cleared',
+                'reference_id' => null,
+                'notes' => "History cleared - {$historyCount} record(s) deleted",
+                'user_id' => Auth::id(),
+            ]);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Inventory history cleared successfully. {$historyCount} record(s) deleted.",
+                'deleted_count' => $historyCount
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error clearing history: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export inventory data to CSV
+     */
+    public function export(Request $request)
+    {
+        $warehouseId = $request->get('warehouse_id');
+        $stockStatus = $request->get('stock_status');
+        $lowStock = $request->get('low_stock') === '1';
+        
+        $query = ProductVariant::with([
+            'product',
+            'inventoryStocks.warehouse',
+            'inventoryStocks.warehouseLocation'
+        ])->whereHas('product', function($q) {
+            $q->whereNull('deleted_at');
+        });
+        
+        // Filter by warehouse if provided
+        if ($warehouseId) {
+            $query->whereHas('inventoryStocks', function($q) use ($warehouseId) {
+                $q->where('warehouse_id', $warehouseId);
+            });
+        }
+        
+        // Filter by stock status
+        if ($stockStatus) {
+            $query->where('stock_status', $stockStatus);
+        }
+        
+        // Filter low stock
+        if ($lowStock) {
+            $query->where('manage_stock', true)
+                  ->where(function($q) {
+                      $q->whereColumn('stock_quantity', '<=', 'low_stock_threshold')
+                        ->orWhere('stock_quantity', '<=', 0);
+                  });
+        }
+        
+        $variants = $query->orderBy('sku')->get();
+        
+        $warehouse = null;
+        if ($warehouseId) {
+            $warehouse = Warehouse::find($warehouseId);
+        }
+        
+        $filename = 'inventory_export_' . date('Y-m-d') . '.csv';
+        if ($warehouse) {
+            $filename = 'inventory_export_' . str_replace(' ', '_', $warehouse->code) . '_' . date('Y-m-d') . '.csv';
+        }
+        
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        // Output BOM for UTF-8 Excel compatibility
+        echo "\xEF\xBB\xBF";
+        
+        $output = fopen('php://output', 'w');
+        
+        // Headers
+        fputcsv($output, [
+            'SKU',
+            'Variant Name',
+            'Product Name',
+            'Stock Quantity',
+            'Stock Status',
+            'Low Stock Threshold',
+            'Warehouse Code',
+            'Location Code'
+        ]);
+        
+        foreach ($variants as $variant) {
+            $totalStock = $variant->total_stock_quantity ?? ($variant->stock_quantity ?? 0);
+            
+            if ($warehouseId && $variant->inventoryStocks->where('warehouse_id', $warehouseId)->count() > 0) {
+                // Export warehouse-specific data
+                foreach ($variant->inventoryStocks->where('warehouse_id', $warehouseId) as $stock) {
+                    fputcsv($output, [
+                        $variant->sku,
+                        $variant->name,
+                        $variant->product->name ?? 'N/A',
+                        $totalStock,
+                        ucfirst(str_replace('_', ' ', $variant->stock_status)),
+                        $variant->low_stock_threshold ?? 0,
+                        $stock->warehouse->code ?? '',
+                        $stock->warehouseLocation->location_code ?? ''
+                    ]);
+                }
+            } else {
+                // Export general data (no warehouse filter or no warehouse stock)
+                $warehouseStock = $variant->inventoryStocks->first();
+                fputcsv($output, [
+                    $variant->sku,
+                    $variant->name,
+                    $variant->product->name ?? 'N/A',
+                    $totalStock,
+                    ucfirst(str_replace('_', ' ', $variant->stock_status)),
+                    $variant->low_stock_threshold ?? 0,
+                    $warehouseStock ? $warehouseStock->warehouse->code ?? '' : '',
+                    $warehouseStock && $warehouseStock->warehouseLocation ? $warehouseStock->warehouseLocation->location_code ?? '' : ''
+                ]);
+            }
+        }
+        
+        fclose($output);
+        exit;
     }
 }
 

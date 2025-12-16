@@ -17,6 +17,9 @@ class Order extends Model
         'subtotal',
         'tax_amount',
         'shipping_amount',
+        'shipping_zone_id',
+        'shipping_method_id',
+        'shipping_rate_id',
         'discount_amount',
         'total_amount',
         'payment_method',
@@ -41,6 +44,21 @@ class Order extends Model
     public function items()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function shippingZone()
+    {
+        return $this->belongsTo(ShippingZone::class);
+    }
+
+    public function shippingMethod()
+    {
+        return $this->belongsTo(ShippingMethod::class);
+    }
+
+    public function shippingRate()
+    {
+        return $this->belongsTo(ShippingRate::class);
     }
 
     // Generate unique order number

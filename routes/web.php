@@ -69,6 +69,7 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/profile/update-name', [\App\Http\Controllers\ProfileController::class, 'updateName'])->name('profile.updateName');
     Route::post('/profile/update-email', [\App\Http\Controllers\ProfileController::class, 'updateEmail'])->name('profile.updateEmail');
     Route::post('/profile/update-password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.updatePassword');
+    Route::post('/profile/update-company-settings', [\App\Http\Controllers\ProfileController::class, 'updateCompanySettings'])->name('profile.updateCompanySettings');
     
     // Roles (GET and POST only)
     Route::get('/roles', [\App\Http\Controllers\RoleController::class, 'index'])->name('roles.index');
@@ -141,6 +142,7 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/products/{product}/toggle-status', [\App\Http\Controllers\ProductController::class, 'toggleStatus'])->name('products.toggleStatus');
     Route::post('/products/{product}/toggle-featured', [\App\Http\Controllers\ProductController::class, 'toggleFeatured'])->name('products.toggleFeatured');
     Route::post('/products/{product}/generate-variants', [\App\Http\Controllers\ProductController::class, 'generateVariants'])->name('products.generateVariants');
+    Route::post('/products/delete-variant-image', [\App\Http\Controllers\ProductController::class, 'deleteVariantImage'])->name('products.deleteVariantImage');
     Route::get('/products/{product}/seo', [\App\Http\Controllers\ProductController::class, 'getSeo'])->name('products.seo.get');
     Route::put('/products/{product}/seo', [\App\Http\Controllers\ProductController::class, 'updateSeo'])->name('products.seo.update');
     
@@ -152,9 +154,13 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/data', [\App\Http\Controllers\InventoryController::class, 'getData'])->name('inventory.data');
     Route::get('/inventory/sample', [\App\Http\Controllers\InventoryController::class, 'downloadSample'])->name('inventory.sample');
+    Route::get('/inventory/export', [\App\Http\Controllers\InventoryController::class, 'export'])->name('inventory.export');
     Route::get('/inventory/warehouses', [\App\Http\Controllers\InventoryController::class, 'getWarehouses'])->name('inventory.warehouses');
     Route::get('/inventory/warehouses/{warehouseId}/locations', [\App\Http\Controllers\InventoryController::class, 'getWarehouseLocations'])->name('inventory.warehouse-locations');
+    Route::get('/inventory/warehouse-codes-reference', [\App\Http\Controllers\InventoryController::class, 'getWarehouseCodesReference'])->name('inventory.warehouse-codes-reference');
     Route::get('/inventory/{variantId}/stock-breakdown', [\App\Http\Controllers\InventoryController::class, 'getStockBreakdown'])->name('inventory.stock-breakdown');
+    Route::get('/inventory/{variantId}/history', [\App\Http\Controllers\InventoryController::class, 'getHistory'])->name('inventory.history');
+    Route::post('/inventory/{variantId}/history/clear', [\App\Http\Controllers\InventoryController::class, 'clearHistory'])->name('inventory.history.clear');
     Route::post('/inventory/bulk-add', [\App\Http\Controllers\InventoryController::class, 'bulkAddStock'])->name('inventory.bulk-add');
     Route::post('/inventory/import', [\App\Http\Controllers\InventoryController::class, 'import'])->name('inventory.import');
     Route::post('/inventory/{id}', [\App\Http\Controllers\InventoryController::class, 'update'])->name('inventory.update');
@@ -297,7 +303,14 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::get('/customers', [\App\Http\Controllers\CustomerController::class, 'index'])->name('customers.index');
     Route::get('/customers/fields', [\App\Http\Controllers\CustomerController::class, 'getFields'])->name('customers.fields');
     Route::get('/customers/data', [\App\Http\Controllers\CustomerController::class, 'getData'])->name('customers.data');
+    Route::get('/customers/areas', [\App\Http\Controllers\CustomerController::class, 'getAreas'])->name('customers.areas');
+    Route::get('/customers/countries', [\App\Http\Controllers\CustomerController::class, 'getCountries'])->name('customers.countries');
+    Route::get('/customers/states', [\App\Http\Controllers\CustomerController::class, 'getStates'])->name('customers.states');
+    Route::get('/customers/cities', [\App\Http\Controllers\CustomerController::class, 'getCities'])->name('customers.cities');
     Route::get('/customers/{id}/edit', [\App\Http\Controllers\CustomerController::class, 'edit'])->name('customers.edit');
+    Route::get('/customers/{id}/addresses', [\App\Http\Controllers\CustomerController::class, 'getAddresses'])->name('customers.addresses');
+    Route::get('/customers/{id}/orders', [\App\Http\Controllers\CustomerController::class, 'getOrders'])->name('customers.orders');
+    Route::get('/customers/{id}/cart-items', [\App\Http\Controllers\CustomerController::class, 'getCartItems'])->name('customers.cart-items');
     Route::post('/customers', [\App\Http\Controllers\CustomerController::class, 'store'])->name('customers.store');
     Route::post('/customers/{id}', [\App\Http\Controllers\CustomerController::class, 'update'])->name('customers.update');
     Route::delete('/customers/{id}', [\App\Http\Controllers\CustomerController::class, 'destroy'])->name('customers.destroy');
@@ -305,8 +318,10 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     // Order Routes
     Route::get('/orders', [\App\Http\Controllers\OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/data', [\App\Http\Controllers\OrderController::class, 'getData'])->name('orders.data');
+    Route::get('/orders/counts', [\App\Http\Controllers\OrderController::class, 'getOrderCounts'])->name('orders.counts');
     Route::get('/orders/customers', [\App\Http\Controllers\OrderController::class, 'getCustomers'])->name('orders.customers');
     Route::get('/orders/customers/{id}', [\App\Http\Controllers\OrderController::class, 'getCustomerDetails'])->name('orders.customer.details');
+    Route::post('/orders/calculate-shipping', [\App\Http\Controllers\OrderController::class, 'calculateShipping'])->name('orders.calculate-shipping');
     Route::get('/orders/products', [\App\Http\Controllers\OrderController::class, 'getProducts'])->name('orders.products');
     Route::get('/orders/warehouses', [\App\Http\Controllers\OrderController::class, 'getWarehouses'])->name('orders.warehouses');
     Route::get('/orders/stock-availability', [\App\Http\Controllers\OrderController::class, 'getStockAvailability'])->name('orders.stock-availability');

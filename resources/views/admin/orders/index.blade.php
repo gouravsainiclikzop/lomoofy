@@ -40,37 +40,37 @@
                 <ul class="nav nav-tabs order-status-tabs" id="orderStatusTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" data-status="" type="button" role="tab">
-                            All
+                            All <span class="badge bg-secondary ms-1" id="count-all">{{ $orderCounts['all'] ?? 0 }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-status="pending" type="button" role="tab">
-                            Pending
+                            Pending <span class="badge bg-warning ms-1" id="count-pending">{{ $orderCounts['pending'] ?? 0 }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-status="processing" type="button" role="tab">
-                            Processing
+                            Processing <span class="badge bg-info ms-1" id="count-processing">{{ $orderCounts['processing'] ?? 0 }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-status="shipped" type="button" role="tab">
-                            Shipped
+                            Shipped <span class="badge bg-primary ms-1" id="count-shipped">{{ $orderCounts['shipped'] ?? 0 }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-status="delivered" type="button" role="tab">
-                            Delivered
+                            Delivered <span class="badge bg-success ms-1" id="count-delivered">{{ $orderCounts['delivered'] ?? 0 }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-status="cancelled" type="button" role="tab">
-                            Cancelled
+                            Cancelled <span class="badge bg-danger ms-1" id="count-cancelled">{{ $orderCounts['cancelled'] ?? 0 }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" data-status="refunded" type="button" role="tab">
-                            Refunded
+                            Refunded <span class="badge bg-secondary ms-1" id="count-refunded">{{ $orderCounts['refunded'] ?? 0 }}</span>
                         </button>
                     </li>
                 </ul>
@@ -202,6 +202,49 @@
                         </div>
                     </div>
 
+                    <!-- Shipping Address Section -->
+                    <div class="mb-4" id="shippingSection">
+                        <div class="card border-info">
+                            <div class="card-header bg-info bg-opacity-10">
+                                <h6 class="mb-0"><i class='bx bx-package me-2'></i>Shipping Address & Method</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Pincode <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="shippingPincode" name="shipping_pincode" placeholder="Enter pincode" maxlength="6">
+                                        <small class="text-muted">Required for shipping calculation</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">State</label>
+                                        <input type="text" class="form-control" id="shippingState" name="shipping_state" placeholder="Enter state">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">City</label>
+                                        <input type="text" class="form-control" id="shippingCity" name="shipping_city" placeholder="Enter city">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Shipping Method</label>
+                                        <select class="form-select" id="shippingMethod" name="shipping_method_id">
+                                            <option value="">Select Shipping Method</option>
+                                        </select>
+                                        <small class="text-muted">Select method to calculate shipping cost</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Shipping Zone</label>
+                                        <input type="text" class="form-control" id="shippingZone" readonly placeholder="Will be detected from address">
+                                        <input type="hidden" id="shippingZoneId" name="shipping_zone_id">
+                                    </div>
+                                </div>
+                                <div class="mt-3" id="shippingMethodsContainer" style="display: none;">
+                                    <div class="alert alert-info mb-0">
+                                        <small><i class='bx bx-info-circle me-1'></i>Select a shipping method above to calculate shipping cost</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Order Summary -->
                     <div class="order-summary mb-4">
                         <h6 class="mb-3">Order Summary</h6>
@@ -217,7 +260,13 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Shipping Amount</label>
-                                    <input type="number" class="form-control numeric-input" id="shippingAmount" name="shipping_amount" value="0" step="0.01" min="0">
+                                    <div class="input-group">
+                                        <input type="number" class="form-control numeric-input" id="shippingAmount" name="shipping_amount" value="0" step="0.01" min="0" readonly>
+                                        <button type="button" class="btn btn-outline-secondary" id="calculateShippingBtn" title="Calculate Shipping">
+                                            <i class='bx bx-calculator'></i> Calculate
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Enter address and select method to calculate</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -349,24 +398,73 @@
     background: white;
 }
 .invoice-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
     border-bottom: 2px solid #dee2e6;
+    align-items: start;
 }
 .invoice-company {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.invoice-company-logo-img {
+    margin-bottom: 1rem;
+}
+.invoice-company-logo-img img {
+    max-height: 70px;
+    max-width: 200px;
+    object-fit: contain;
 }
 .invoice-company-logo {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #20c997;
-    margin-bottom: 0.5rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 0.75rem;
+}
+.invoice-company-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.75rem;
+}
+.invoice-company-details {
+    font-size: 0.95rem;
+    color: #495057;
+    line-height: 1.8;
+}
+.invoice-company-details div {
+    margin-bottom: 0.25rem;
 }
 .invoice-shipping {
-    flex: 1;
-    text-align: right;
+    display: flex;
+    flex-direction: column;
+}
+ 
+.invoice-shipping-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+.invoice-shipping-details {
+    font-size: 0.95rem;
+    color: #212529;
+    line-height: 1.8;
+}
+ 
+.invoice-shipping-label {
+    font-weight: 600;
+    color: #495057;
+    display: inline-block;
+    min-width: 140px;
+}
+.invoice-shipping-value {
+    color: #212529;
 }
 .invoice-items-table {
     width: 100%;
@@ -446,6 +544,9 @@ $(document).ready(function() {
     
     // Load orders on page load
     loadOrders();
+    
+    // Load order counts on page load
+    loadOrderCounts();
     
     // Status Tab Click Handler
     $(document).on('click', '.order-status-tabs .nav-link', function(e) {
@@ -536,6 +637,9 @@ $(document).ready(function() {
                 if(response.success) {
                     showToast('success', 'Order status updated successfully');
                     $select.data('old-status', newStatus);
+                    
+                    // Update order counts
+                    loadOrderCounts();
                     
                     // If a status tab is active and the order status changed to a different status, reload the table
                     // This will hide the order if it no longer matches the current filter
@@ -710,6 +814,28 @@ $(document).ready(function() {
         });
     }
     
+    // Load Order Counts
+    function loadOrderCounts() {
+        $.ajax({
+            url: '{{ route("orders.counts") }}',
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.counts) {
+                    $('#count-all').text(response.counts.all || 0);
+                    $('#count-pending').text(response.counts.pending || 0);
+                    $('#count-processing').text(response.counts.processing || 0);
+                    $('#count-shipped').text(response.counts.shipped || 0);
+                    $('#count-delivered').text(response.counts.delivered || 0);
+                    $('#count-cancelled').text(response.counts.cancelled || 0);
+                    $('#count-refunded').text(response.counts.refunded || 0);
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading order counts:', xhr);
+            }
+        });
+    }
+    
     // Update Pagination
     function updatePagination(response) {
         let paginationHtml = '';
@@ -774,31 +900,95 @@ $(document).ready(function() {
                 if(response.success) {
                     let order = response.data;
                     let shippingAddress = order.shipping_address || {};
+                    let companySettings = order.company_settings || {};
+                    
+                    // Build address components separately
+                    let addressParts = [];
+                    if (shippingAddress.address_line1) addressParts.push(shippingAddress.address_line1);
+                    if (shippingAddress.address_line2) addressParts.push(shippingAddress.address_line2);
+                    if (shippingAddress.landmark) addressParts.push(shippingAddress.landmark);
+                    let address = addressParts.length > 0 ? addressParts.join(', ') : '-';
+                    
+                    // City with state
+                    let cityStateParts = [];
+                    if (shippingAddress.city) cityStateParts.push(shippingAddress.city);
+                    if (shippingAddress.state) cityStateParts.push(shippingAddress.state);
+                    let cityState = cityStateParts.length > 0 ? cityStateParts.join(', ') : '-';
+                    
+                    // Pin Code with Country
+                    let pinCodeCountryParts = [];
+                    if (shippingAddress.pincode) pinCodeCountryParts.push(shippingAddress.pincode);
+                    if (shippingAddress.country) pinCodeCountryParts.push(shippingAddress.country);
+                    let pinCodeCountry = pinCodeCountryParts.length > 0 ? pinCodeCountryParts.join(', ') : '-';
+                    
+                    // Format status badge color
+                    const statusColors = {
+                        'pending': '#ffc107',
+                        'processing': '#0dcaf0',
+                        'shipped': '#198754',
+                        'delivered': '#198754',
+                        'cancelled': '#dc3545',
+                        'refunded': '#6c757d'
+                    };
+                    const statusColor = statusColors[order.status.toLowerCase()] || '#6c757d';
+                    const statusText = order.status.charAt(0).toUpperCase() + order.status.slice(1);
                     
                     let invoiceHtml = `
                         <div class="invoice-container">
                             <div class="invoice-header">
+                                <!-- Left Column: Company Details -->
                                 <div class="invoice-company">
-                                    <div class="invoice-company-logo">Lomoofy</div>
-                                    <div><strong>Lomoof</strong></div>
-                                    <div>+91 9876315314</div>
-                                    <div>info@lomoof.com</div>
-                                    <div>123, Main Street, Anytown, USA</div>
-                                    <div class="mt-2">
-                                        <strong>Status:</strong> 
-                                        <span class="badge bg-primary">${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+                                    ${companySettings.company_logo ? 
+                                        `<div class="invoice-company-logo-img">
+                                            <img src="${companySettings.company_logo}" alt="Company Logo">
+                                        </div>` : 
+                                        `<div class="invoice-company-logo">${companySettings.company_logo_text || 'Lomoofy'}</div>`
+                                    }
+                                    <div class="invoice-company-name">${companySettings.company_name || 'Lomoof'}</div>
+                                    <div class="invoice-company-details">
+                                        ${companySettings.phone ? `<div>${companySettings.phone}</div>` : ''}
+                                        ${companySettings.email ? `<div>${companySettings.email}</div>` : ''}
+                                        ${companySettings.address ? `<div>${companySettings.address}</div>` : ''}
                                     </div>
                                 </div>
-                                <div class="invoice-shipping">
-                                    <h5>Shipping Details</h5>
-                                    <div><strong>Order Id:</strong> ${order.order_number}</div>
-                                    <div><strong>Name:</strong> ${order.customer.full_name}</div>
-                                    <div><strong>Phone:</strong> ${order.customer.phone || '-'}</div>
-                                    <div><strong>Email:</strong> ${order.customer.email}</div>
-                                    <div><strong>Address:</strong> ${shippingAddress.full_address || '-'}</div>
-                                    <div><strong>State:</strong> ${shippingAddress.state || '-'}${shippingAddress.city ? ', ' + shippingAddress.city : ''}</div>
-                                    <div><strong>Pin Code:</strong> ${shippingAddress.pincode || '-'}, India</div>
-                                    <div><strong>Payment Method:</strong> ${order.payment_method || 'Offline'}</div>
+                                
+                                <!-- Right Column: Invoice Title and Shipping Details -->
+                                <div class="invoice-shipping"> 
+                                    <div class="invoice-shipping-details">
+                                        <div class="invoice-shipping-section-title">Shipping Details</div>
+                                        <div>
+                                            <span class="invoice-shipping-label">Order Id :</span>
+                                            <span class="invoice-shipping-value">${order.order_number}</span>
+                                        </div>
+                                        <div>
+                                            <span class="invoice-shipping-label">Name :</span>
+                                            <span class="invoice-shipping-value">${order.customer.full_name}</span>
+                                        </div>
+                                        <div>
+                                            <span class="invoice-shipping-label">Phone :</span>
+                                            <span class="invoice-shipping-value">${order.customer.phone || '-'}</span>
+                                        </div>
+                                        <div>
+                                            <span class="invoice-shipping-label">Email :</span>
+                                            <span class="invoice-shipping-value">${order.customer.email}</span>
+                                        </div>
+                                        <div>
+                                            <span class="invoice-shipping-label">Address :</span>
+                                            <span class="invoice-shipping-value">${address}</span>
+                                        </div>
+                                        <div>
+                                            <span class="invoice-shipping-label">City with state:</span>
+                                            <span class="invoice-shipping-value">${cityState}</span>
+                                        </div>
+                                        <div>
+                                            <span class="invoice-shipping-label">Pin Code :</span>
+                                            <span class="invoice-shipping-value">${pinCodeCountry}</span>
+                                        </div>
+                                        <div>
+                                            <span class="invoice-shipping-label">Payment Method :</span>
+                                            <span class="invoice-shipping-value">${order.payment_method || 'Offline'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -808,19 +998,68 @@ $(document).ready(function() {
                                         <th>Item name</th>
                                         <th>Variant</th>
                                         <th>Unit Price</th>
+                                        <th>GST</th>
                                         <th>Quantity</th>
-                                        <th>Amount</th>
+                                        <th>Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                     `;
                     
+                    // Calculate total GST and track exclusive GST amount
+                    let totalGstAmount = 0;
+                    let exclusiveGstAmount = 0; // GST amount that needs to be added to grand total
+                    let gstBreakdown = {};
+                    
                     order.items.forEach(function(item) {
+                        let itemGstAmount = 0;
+                        // Handle GST type: true/1 = Inclusive, false/0 = Exclusive, default to Inclusive
+                        let gstType = item.gst_type !== undefined && item.gst_type !== null 
+                            ? (item.gst_type === true || item.gst_type === 1 || item.gst_type === '1' || item.gst_type === 'true') 
+                            : true;
+                        let gstPercentage = item.gst_percentage !== null && item.gst_percentage !== undefined 
+                            ? parseFloat(item.gst_percentage) 
+                            : 0;
+                        let itemTotal = parseFloat(item.total_price) || 0;
+                        
+                        // Format GST display
+                        let gstDisplay = '-';
+                        if (gstPercentage > 0) {
+                            let gstTypeText = gstType ? 'Inclusive' : 'Exclusive';
+                            gstDisplay = `${gstPercentage}% (${gstTypeText})`;
+                        }
+                        
+                        // Calculate GST amount if percentage is set
+                        if (gstPercentage > 0 && itemTotal > 0) {
+                            if (gstType) {
+                                // Inclusive of GST: GST = (total * percentage) / (100 + percentage)
+                                // Example: If total is ₹118 with 18% inclusive GST, GST = (118 * 18) / 118 = 18
+                                itemGstAmount = (itemTotal * gstPercentage) / (100 + gstPercentage);
+                            } else {
+                                // Exclusive of GST: GST = (total * percentage) / 100
+                                // Example: If total is ₹100 with 18% exclusive GST, GST = (100 * 18) / 100 = 18
+                                itemGstAmount = (itemTotal * gstPercentage) / 100;
+                                // For exclusive GST, we need to add this to the grand total
+                                exclusiveGstAmount += itemGstAmount;
+                            }
+                            
+                            totalGstAmount += itemGstAmount;
+                            
+                            // Group by GST percentage and type for breakdown
+                            let gstTypeText = gstType ? 'Inclusive' : 'Exclusive';
+                            let gstKey = `${gstPercentage}% (${gstTypeText})`;
+                            if (!gstBreakdown[gstKey]) {
+                                gstBreakdown[gstKey] = 0;
+                            }
+                            gstBreakdown[gstKey] += itemGstAmount;
+                        }
+                        
                         invoiceHtml += `
                             <tr>
                                 <td>${item.product_name}</td>
                                 <td>${item.variant_name || '-'}</td>
                                 <td>₹ ${parseFloat(item.unit_price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td>${gstDisplay}</td>
                                 <td>${item.quantity}</td>
                                 <td>₹ ${parseFloat(item.total_price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                             </tr>
@@ -840,14 +1079,46 @@ $(document).ready(function() {
                                     <tr>
                                         <td>Discount</td>
                                         <td>₹ ${parseFloat(order.discount_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                    </tr>
+                                    </tr>`;
+                    
+                    // Show GST breakdown if there is any GST
+                    if (totalGstAmount > 0) {
+                        // Show individual GST breakdowns if multiple rates
+                        let gstKeys = Object.keys(gstBreakdown);
+                        if (gstKeys.length > 1) {
+                            gstKeys.forEach(function(key) {
+                                invoiceHtml += `
+                                    <tr>
+                                        <td>GST ${key}</td>
+                                        <td>₹ ${parseFloat(gstBreakdown[key]).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    </tr>`;
+                            });
+                        }
+                        invoiceHtml += `
+                                    <tr>
+                                        <td>Total GST</td>
+                                        <td>₹ ${parseFloat(totalGstAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    </tr>`;
+                    }
+                    
+                    invoiceHtml += `
                                     <tr>
                                         <td>Delivery Charges</td>
                                         <td>₹ ${parseFloat(order.shipping_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                    </tr>
+                                    </tr>`;
+                    
+                    // Calculate correct Grand Total
+                    // For Inclusive GST: Subtotal already includes GST, so: Subtotal - Discount + Shipping
+                    // For Exclusive GST: Subtotal does NOT include GST, so: Subtotal - Discount + Exclusive GST + Shipping
+                    let subtotal = parseFloat(order.subtotal) || 0;
+                    let discount = parseFloat(order.discount_amount || 0);
+                    let shipping = parseFloat(order.shipping_amount || 0);
+                    let calculatedGrandTotal = subtotal - discount + exclusiveGstAmount + shipping;
+                    
+                    invoiceHtml += `
                                     <tr class="grand-total">
                                         <td>Grand Total</td>
-                                        <td>₹ ${parseFloat(order.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                        <td>₹ ${calculatedGrandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                     </tr>
                                 </table>
                             </div>
@@ -956,10 +1227,10 @@ $(document).ready(function() {
         itemCounter++;
         const itemId = `item_${itemCounter}`;
         
-        let productSelect = '<option value="">Select Product</option>';
+        let productSelectHtml = '<option value="">Select Product</option>';
         if (productsLoaded && products && products.length > 0) {
             products.forEach(function(product) {
-                productSelect += `<option value="${product.id}" data-type="${product.type}">${product.name} (${product.sku})</option>`;
+                productSelectHtml += `<option value="${product.id}" data-type="${product.type}">${product.name} (${product.sku})</option>`;
             });
         }
         
@@ -969,7 +1240,7 @@ $(document).ready(function() {
                     <div class="col-md-3">
                         <label class="form-label">Product <span class="text-danger">*</span></label>
                         <select class="form-select product-select" data-item-id="${itemId}" required>
-                            ${productSelect}
+                            ${productSelectHtml}
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -1006,8 +1277,13 @@ $(document).ready(function() {
         
         $('#orderItemsContainer').append(itemHtml);
         
-        // Populate warehouse dropdown
+        // Get references to selects
+        const productSelect = $(`.product-select[data-item-id="${itemId}"]`);
+        const variantSelect = $(`.variant-select[data-item-id="${itemId}"]`);
         const warehouseSelect = $(`.warehouse-select[data-item-id="${itemId}"]`);
+        const unitPriceInput = $(`.item-unit-price[data-item-id="${itemId}"]`);
+        
+        // Populate warehouse dropdown
         warehouseSelect.empty().append('<option value="">Auto (Default)</option>');
         if (warehousesLoaded && warehouses.length > 0) {
             warehouses.forEach(function(warehouse) {
@@ -1022,10 +1298,8 @@ $(document).ready(function() {
         });
         
         // Product change handler
-        $(`.product-select[data-item-id="${itemId}"]`).on('change', function() {
+        productSelect.on('change', function() {
             const productId = $(this).val();
-            const variantSelect = $(`.variant-select[data-item-id="${itemId}"]`);
-            const unitPriceInput = $(`.item-unit-price[data-item-id="${itemId}"]`);
             
             variantSelect.empty().append('<option value="">Select Variant</option>');
             unitPriceInput.val(0);
@@ -1043,6 +1317,52 @@ $(document).ready(function() {
                 }
             }
         });
+        
+        // If editing and itemData exists, set the product and variant
+        if (itemData && itemData.product_id) {
+            // Set the product value
+            productSelect.val(itemData.product_id);
+            
+            // Populate variants directly
+            const productId = itemData.product_id;
+            const product = products.find(p => parseInt(p.id) === parseInt(productId));
+            
+            if (product) {
+                variantSelect.empty().append('<option value="">Select Variant</option>');
+                
+                if (product.variants && product.variants.length > 0) {
+                    product.variants.forEach(function(variant) {
+                        const selected = itemData.product_variant_id && parseInt(itemData.product_variant_id) === parseInt(variant.id) ? 'selected' : '';
+                        variantSelect.append(`<option value="${variant.id}" data-price="${variant.price || 0}" ${selected}>${variant.name} (${variant.sku})</option>`);
+                    });
+                    
+                    // If variant is selected, update price and trigger change for stock check
+                    if (itemData.product_variant_id) {
+                        const selectedVariant = product.variants.find(v => parseInt(v.id) === parseInt(itemData.product_variant_id));
+                        if (selectedVariant) {
+                            unitPriceInput.val(selectedVariant.price || 0);
+                            // Trigger change to check stock availability
+                            variantSelect.trigger('change');
+                        }
+                    }
+                } else {
+                    // No variants, use product price
+                    unitPriceInput.val(product.price || 0);
+                    // Check stock availability for product without variant
+                    checkItemStockAvailability(itemId);
+                }
+            } else {
+                // Product not found in products array, trigger change to let handler deal with it
+                productSelect.trigger('change');
+                // Try to set variant after a delay
+                if (itemData.product_variant_id) {
+                    setTimeout(function() {
+                        variantSelect.val(itemData.product_variant_id);
+                        variantSelect.trigger('change');
+                    }, 100);
+                }
+            }
+        }
         
         // Variant change handler
         $(`.variant-select[data-item-id="${itemId}"]`).on('change', function() {
@@ -1147,6 +1467,123 @@ $(document).ready(function() {
     // Calculate total when amounts change
     $('#subtotal, #taxAmount, #shippingAmount, #discountAmount').on('input', calculateTotal);
     
+    // Shipping calculation
+    function calculateShipping() {
+        const pincode = $('#shippingPincode').val();
+        const state = $('#shippingState').val();
+        const city = $('#shippingCity').val();
+        const shippingMethodId = $('#shippingMethod').val();
+        
+        if (!pincode && !state && !city) {
+            showToast('error', 'Please enter shipping address (pincode, state, or city )');
+            return;
+        }
+        
+        // Collect order items for weight calculation
+        const items = [];
+        $('.order-item-row').each(function() {
+            const productId = $(this).find('.product-select').val();
+            const variantId = $(this).find('.variant-select').val();
+            const quantity = parseInt($(this).find('.item-quantity').val()) || 0;
+            
+            if (productId && quantity > 0) {
+                items.push({
+                    product_id: productId,
+                    variant_id: variantId || null,
+                    quantity: quantity
+                });
+            }
+        });
+        
+        if (items.length === 0) {
+            showToast('error', 'Please add items to the order first');
+            return;
+        }
+        
+        const subtotal = parseFloat($('#subtotal').val()) || 0;
+        
+        // Show loading
+        $('#calculateShippingBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+        
+        $.ajax({
+            url: '{{ route("orders.calculate-shipping") }}',
+            type: 'POST',
+            data: {
+                pincode: pincode,
+                state: state,
+                city: city,
+                shipping_method_id: shippingMethodId,
+                items: items,
+                order_total: subtotal,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    if (response.zone) {
+                        $('#shippingZone').val(response.zone.name);
+                        $('#shippingZoneId').val(response.zone.id);
+                    }
+                    
+                    if (response.methods && response.methods.length > 0) {
+                        // Populate shipping methods dropdown
+                        let methodsHtml = '<option value="">Select Shipping Method</option>';
+                        response.methods.forEach(function(method) {
+                            methodsHtml += `<option value="${method.id}" data-cost="${method.cost}" data-rate-id="${method.rate_id}">${method.name} - ₹${method.cost.toFixed(2)} (${method.estimated_days})</option>`;
+                        });
+                        $('#shippingMethod').html(methodsHtml);
+                        $('#shippingMethodsContainer').show();
+                        
+                        // Auto-select first method if none selected
+                        if (!shippingMethodId && response.methods.length > 0) {
+                            $('#shippingMethod').val(response.methods[0].id).trigger('change');
+                        } else if (shippingMethodId) {
+                            // Keep selected method if it exists
+                            $('#shippingMethod').val(shippingMethodId).trigger('change');
+                        }
+                    } else {
+                        $('#shippingMethod').html('<option value="">No shipping methods available for this address</option>');
+                        $('#shippingAmount').val(0);
+                        showToast('error', 'No shipping methods available for this address');
+                    }
+                } else {
+                    showToast('error', response.message || 'Error calculating shipping');
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.message || 'Error calculating shipping';
+                showToast('error', errorMsg);
+            },
+            complete: function() {
+                $('#calculateShippingBtn').prop('disabled', false).html('<i class=\'bx bx-calculator\'></i> Calculate');
+            }
+        });
+    }
+    
+    // Shipping method selection handler
+    $('#shippingMethod').on('change', function() {
+        const selectedOption = $(this).find('option:selected');
+        const cost = parseFloat(selectedOption.data('cost')) || 0;
+        const rateId = selectedOption.data('rate-id') || null;
+        $('#shippingAmount').val(cost.toFixed(2));
+        $('#shippingRateId').val(rateId || '');
+        calculateTotal();
+        console.log(selectedOption);
+        console.log(cost);
+        console.log(rateId);
+    });
+    
+    // Calculate shipping button
+    $('#calculateShippingBtn').on('click', function() {
+        calculateShipping();
+    });
+    
+    // Auto-calculate when pincode changes
+    $('#shippingPincode').on('blur', function() {
+        if ($(this).val().length >= 6) {
+            calculateShipping();
+        }
+    });
+    
     // Customer selection handler
     $('#customerId').on('change', function() {
         const customerId = $(this).val();
@@ -1175,6 +1612,22 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     let customer = response.data;
+                    let addressesHtml = '';
+                    if (customer.addresses && customer.addresses.length > 0) {
+                        customer.addresses.forEach(function(address) {
+                            const isDefault = address.is_default ? ' (Default)' : '';
+                            addressesHtml += `
+                                <option value="${address.id}" 
+                                        data-pincode="${address.pincode || ''}" 
+                                        data-state="${address.state || ''}" 
+                                        data-city="${address.city || ''}"
+                                        ${address.is_default ? 'selected' : ''}>
+                                    ${address.address_type} - ${address.pincode || 'No pincode'}${isDefault}
+                                </option>
+                            `;
+                        });
+                    }
+                    
                     let html = `
                         <div class="row g-3">
                             <div class="col-md-12">
@@ -1188,9 +1641,44 @@ $(document).ready(function() {
                                     </div>
                                 </div>
                             </div>
+                            ${customer.addresses && customer.addresses.length > 0 ? `
+                            <div class="col-md-12">
+                                <label class="form-label">Select Shipping Address</label>
+                                <select class="form-select" id="customerAddressSelect">
+                                    <option value="">Use address below or enter manually</option>
+                                    ${addressesHtml}
+                                </select>
+                            </div>
+                            ` : ''}
                         </div>
                     `;
                     $('#customerInfoContent').html(html);
+                    
+                    // Auto-fill shipping address when customer address is selected
+                    if (customer.addresses && customer.addresses.length > 0) {
+                        const defaultAddress = customer.addresses.find(a => a.is_default) || customer.addresses[0];
+                        if (defaultAddress) {
+                            $('#shippingPincode').val(defaultAddress.pincode || '');
+                            $('#shippingState').val(defaultAddress.state || '');
+                            $('#shippingCity').val(defaultAddress.city || '');
+                        }
+                        
+                        $('#customerAddressSelect').on('change', function() {
+                            const addressId = $(this).val();
+                            if (addressId) {
+                                const selectedAddress = customer.addresses.find(a => a.id == addressId);
+                                if (selectedAddress) {
+                                    $('#shippingPincode').val(selectedAddress.pincode || '');
+                                    $('#shippingState').val(selectedAddress.state || '');
+                                    $('#shippingCity').val(selectedAddress.city || '');
+                                    // Trigger shipping calculation
+                                    if (selectedAddress.pincode) {
+                                        calculateShipping();
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }
             },
             error: function(xhr) {
@@ -1219,9 +1707,17 @@ $(document).ready(function() {
             subtotal: $('#subtotal').val(),
             tax_amount: $('#taxAmount').val(),
             shipping_amount: $('#shippingAmount').val(),
+            shipping_zone_id: $('#shippingZoneId').val() || null,
+            shipping_method_id: $('#shippingMethod').val() || null,
+            shipping_rate_id: $('#shippingRateId').val() || null,
             discount_amount: $('#discountAmount').val(),
             total_amount: $('#totalAmount').val(),
             notes: $('#orderNotes').val(),
+            shipping_address: {
+                pincode: $('#shippingPincode').val(),
+                state: $('#shippingState').val(),
+                city: $('#shippingCity').val()
+            },
             items: []
         };
         
@@ -1264,6 +1760,7 @@ $(document).ready(function() {
                 if (response.success) {
                     $('#orderModal').modal('hide');
                     loadOrders();
+                    loadOrderCounts(); // Update counts after creating/updating order
                     showToast('success', isEditMode ? 'Order updated successfully!' : 'Order created successfully!');
                 } else {
                     showToast('error', response.message || 'Error saving order');
@@ -1354,6 +1851,7 @@ $(document).ready(function() {
                     showToast('success', response.message);
                     $('#deleteModal').modal('hide');
                     loadOrders();
+                    loadOrderCounts(); // Update counts after deleting order
                 }
             },
             error: function(xhr) {
@@ -1412,6 +1910,11 @@ $(document).ready(function() {
         $('#orderItemsContainer').empty();
         itemCounter = 0;
         $('#subtotal, #taxAmount, #shippingAmount, #discountAmount, #totalAmount').val(0);
+        $('#shippingPincode, #shippingState, #shippingCity').val('');
+        $('#shippingZone').val('');
+        $('#shippingZoneId').val('');
+        $('#shippingMethod').html('<option value="">Select Shipping Method</option>');
+        $('#shippingMethodsContainer').hide();
         $('#customerInfoCard').slideUp(300);
         $('#customerInfoContent').html('');
     });

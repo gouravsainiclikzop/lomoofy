@@ -9,6 +9,9 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Warehouse;
 use App\Models\InventoryStock;
+use App\Models\ShippingZone;
+use App\Models\ShippingMethod;
+use App\Models\ShippingRate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -20,7 +23,18 @@ class OrderController extends Controller
      */
     public function index()
     {
-        return view('admin.orders.index');
+        // Get order counts by status
+        $orderCounts = [
+            'all' => Order::count(),
+            'pending' => Order::where('status', 'pending')->count(),
+            'processing' => Order::where('status', 'processing')->count(),
+            'shipped' => Order::where('status', 'shipped')->count(),
+            'delivered' => Order::where('status', 'delivered')->count(),
+            'cancelled' => Order::where('status', 'cancelled')->count(),
+            'refunded' => Order::where('status', 'refunded')->count(),
+        ];
+        
+        return view('admin.orders.index', compact('orderCounts'));
     }
 
     /**
@@ -77,6 +91,27 @@ class OrderController extends Controller
     }
 
     /**
+     * Get order counts by status
+     */
+    public function getOrderCounts()
+    {
+        $orderCounts = [
+            'all' => Order::count(),
+            'pending' => Order::where('status', 'pending')->count(),
+            'processing' => Order::where('status', 'processing')->count(),
+            'shipped' => Order::where('status', 'shipped')->count(),
+            'delivered' => Order::where('status', 'delivered')->count(),
+            'cancelled' => Order::where('status', 'cancelled')->count(),
+            'refunded' => Order::where('status', 'refunded')->count(),
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'counts' => $orderCounts
+        ]);
+    }
+
+    /**
      * Get customers for dropdown
      */
     public function getCustomers()
@@ -118,7 +153,8 @@ class OrderController extends Controller
                     return [
                         'id' => $address->id,
                         'address_type' => $address->address_type,
-                        'full_address' => $address->full_address,
+                        'address_line1' => $address->address_line1,
+                        'address_line2' => $address->address_line2,
                         'landmark' => $address->landmark,
                         'state' => $address->state,
                         'city' => $address->city,
@@ -495,6 +531,36 @@ class OrderController extends Controller
 
         DB::beginTransaction();
         try {
+            // Prepare notes with shipping address
+            $notes = $request->notes;
+            if ($request->has('shipping_address')) {
+                $shippingAddress = $request->input('shipping_address');
+                $addressNotes = [];
+                if (!empty($shippingAddress['pincode'])) {
+                    $addressNotes[] = "Pincode: {$shippingAddress['pincode']}";
+                }
+                if (!empty($shippingAddress['state'])) {
+                    $addressNotes[] = "State: {$shippingAddress['state']}";
+                }
+                if (!empty($shippingAddress['city'])) {
+                    $addressNotes[] = "City: {$shippingAddress['city']}";
+                }
+                if (!empty($addressNotes)) {
+                    $notes = ($notes ? $notes . "\n\n" : '') . "Shipping Address: " . implode(', ', $addressNotes);
+                }
+            }
+            
+            // Get shipping rate ID if method is selected
+            $shippingRateId = null;
+            if ($request->shipping_method_id && $request->shipping_zone_id) {
+                // Find the rate that was used for calculation
+                $rate = ShippingRate::where('shipping_zone_id', $request->shipping_zone_id)
+                    ->where('shipping_method_id', $request->shipping_method_id)
+                    ->where('status', 'active')
+                    ->first();
+                $shippingRateId = $rate ? $rate->id : null;
+            }
+            
             $order = Order::create([
                 'source' => 'admin',
                 'customer_id' => $request->customer_id,
@@ -504,9 +570,12 @@ class OrderController extends Controller
                 'subtotal' => $request->subtotal ?? 0,
                 'tax_amount' => $request->tax_amount ?? 0,
                 'shipping_amount' => $request->shipping_amount ?? 0,
+                'shipping_zone_id' => $request->shipping_zone_id ?? null,
+                'shipping_method_id' => $request->shipping_method_id ?? null,
+                'shipping_rate_id' => $shippingRateId,
                 'discount_amount' => $request->discount_amount ?? 0,
                 'total_amount' => $request->total_amount,
-                'notes' => $request->notes,
+                'notes' => $notes,
             ]);
 
             foreach ($request->items as $itemData) {
@@ -578,7 +647,7 @@ class OrderController extends Controller
      */
     public function show($id)
     {
-        $order = Order::with(['customer.addresses', 'items'])->findOrFail($id);
+        $order = Order::with(['customer.addresses', 'items.product'])->findOrFail($id);
         
         // Get shipping address - try customer addresses first, then check notes for online orders
         $shippingAddress = null;
@@ -595,6 +664,9 @@ class OrderController extends Controller
             }
         }
         
+        // Get company settings
+        $companySettings = \App\Models\CompanySetting::getSettings();
+        
         $orderData = [
             'id' => $order->id,
             'order_number' => $order->order_number,
@@ -606,13 +678,30 @@ class OrderController extends Controller
                 'phone' => $order->customer ? ($order->customer->phone ?? 'N/A') : 'N/A',
             ],
             'shipping_address' => $shippingAddress,
+            'company_settings' => [
+                'company_name' => $companySettings->company_name,
+                'company_logo_text' => $companySettings->company_logo_text,
+                'company_logo' => $companySettings->company_logo ? asset('storage/' . $companySettings->company_logo) : null,
+                'phone' => $companySettings->phone,
+                'email' => $companySettings->email,
+                'address' => $companySettings->address,
+            ],
             'items' => $order->items->map(function($item) {
+                $product = $item->product;
+                // Get GST type: true = Inclusive, false = Exclusive
+                // Default to true (Inclusive) if not set
+                $gstType = $product ? ($product->gst_type !== null ? (bool)$product->gst_type : true) : true;
+                // Get GST percentage, default to null if not set
+                $gstPercentage = $product ? ($product->gst_percentage !== null ? (float)$product->gst_percentage : null) : null;
+                
                 return [
                     'product_name' => $item->product_name,
                     'variant_name' => $item->variant_name,
                     'unit_price' => $item->unit_price,
                     'quantity' => $item->quantity,
                     'total_price' => $item->total_price,
+                    'gst_type' => $gstType, // Explicitly cast to boolean
+                    'gst_percentage' => $gstPercentage, // Explicitly cast to float
                 ];
             }),
             'subtotal' => $order->subtotal,
@@ -832,6 +921,173 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error deleting order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Calculate shipping cost for order
+     */
+    public function calculateShipping(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'pincode' => 'nullable|string|max:10',
+            'state' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'shipping_method_id' => 'nullable|exists:shipping_methods,id',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.variant_id' => 'nullable|exists:product_variants,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'order_total' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $pincode = $request->input('pincode');
+            $state = $request->input('state');
+            $city = $request->input('city');
+            $items = $request->input('items', []);
+            $orderTotal = $request->input('order_total', 0);
+            $selectedMethodId = $request->input('shipping_method_id');
+
+            // Find shipping zone
+            $zone = null;
+            if ($pincode) {
+                $zone = ShippingZone::findByPincode($pincode);
+            } elseif ($state) {
+                $zone = ShippingZone::findByState($state);
+            } elseif ($city) {
+                $zone = ShippingZone::findByCity($city);
+            }
+
+            if (!$zone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No shipping zone found for the provided address. Please check pincode, state, or city.',
+                    'zone' => null,
+                    'methods' => []
+                ]);
+            }
+
+            // Calculate total weight from order items
+            $totalWeight = 0;
+            $maxLength = 0;
+            $maxWidth = 0;
+            $maxHeight = 0;
+            $shippingClass = 'standard';
+
+            foreach ($items as $itemData) {
+                $product = Product::find($itemData['product_id']);
+                $variant = null;
+                
+                if (!empty($itemData['variant_id'])) {
+                    $variant = ProductVariant::find($itemData['variant_id']);
+                } elseif ($product && $product->variants->count() > 0) {
+                    // Get first variant if product has variants
+                    $variant = $product->variants->first();
+                }
+
+                $quantity = $itemData['quantity'] ?? 1;
+
+                if ($variant) {
+                    // Use variant weight and dimensions
+                    $weight = ($variant->weight ?? 0) * $quantity;
+                    $totalWeight += $weight;
+                    
+                    $maxLength = max($maxLength, $variant->length ?? 0);
+                    $maxWidth = max($maxWidth, $variant->width ?? 0);
+                    $maxHeight = max($maxHeight, $variant->height ?? 0);
+                } elseif ($product) {
+                    // Fallback to product weight if no variant
+                    $weight = ($product->weight ?? 0) * $quantity;
+                    $totalWeight += $weight;
+                }
+            }
+
+            // Check for oversized (if any dimension > 150cm)
+            if ($maxLength > 150 || $maxWidth > 150 || $maxHeight > 150) {
+                $shippingClass = 'oversized';
+            }
+
+            // Get available shipping methods for this zone
+            $rates = ShippingRate::where('shipping_zone_id', $zone->id)
+                ->where('status', 'active')
+                ->with('method')
+                ->get()
+                ->filter(function($rate) use ($totalWeight, $orderTotal) {
+                    return $rate->appliesTo($totalWeight, $orderTotal);
+                });
+
+            // Group rates by method
+            $methodsData = [];
+            $methodsMap = [];
+
+            foreach ($rates as $rate) {
+                $methodId = $rate->shipping_method_id;
+                
+                if (!isset($methodsMap[$methodId])) {
+                    $method = $rate->method;
+                    if ($method && $method->status === 'active') {
+                        $cost = $rate->calculateCost($totalWeight, $orderTotal, $shippingClass);
+                        
+                        $methodsMap[$methodId] = [
+                            'id' => $method->id,
+                            'name' => $method->name,
+                            'code' => $method->code,
+                            'estimated_days' => $method->estimated_delivery, // Accessor attribute
+                            'cost' => $cost,
+                            'rate_id' => $rate->id
+                        ];
+                    }
+                } else {
+                    // If multiple rates for same method, use the one with lower cost
+                    $cost = $rate->calculateCost($totalWeight, $orderTotal, $shippingClass);
+                    if ($cost < $methodsMap[$methodId]['cost']) {
+                        $methodsMap[$methodId]['cost'] = $cost;
+                        $methodsMap[$methodId]['rate_id'] = $rate->id;
+                    }
+                }
+            }
+
+            $methodsData = array_values($methodsMap);
+
+            // Sort by cost (ascending)
+            usort($methodsData, function($a, $b) {
+                return $a['cost'] <=> $b['cost'];
+            });
+
+            return response()->json([
+                'success' => true,
+                'zone' => [
+                    'id' => $zone->id,
+                    'name' => $zone->name,
+                    'code' => $zone->code
+                ],
+                'methods' => $methodsData,
+                'calculated_data' => [
+                    'total_weight' => $totalWeight,
+                    'order_total' => $orderTotal,
+                    'shipping_class' => $shippingClass,
+                    'dimensions' => [
+                        'max_length' => $maxLength,
+                        'max_width' => $maxWidth,
+                        'max_height' => $maxHeight
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating shipping: ' . $e->getMessage()
             ], 500);
         }
     }

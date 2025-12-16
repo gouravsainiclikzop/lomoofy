@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/quill/quill.snow.css') }}"/>
     <link rel="stylesheet" href="{{ asset('assets/vendor/air-datepicker/css/datepicker.min.css') }}"/>
     <link rel="stylesheet" href="{{ asset('assets/vendor/select2/css/select2.min.css') }}"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/datatables/css/dataTables.bootstrap5.min.css') }}"/>
     <link rel="stylesheet" href="{{ asset('assets/vendor/nouislider/nouislider.min.css') }}"/>
     <link rel="stylesheet" href="{{ asset('assets/vendor/fullcalendar/main.min.css') }}"/>
@@ -138,7 +139,7 @@
     <script src="{{ asset('assets/vendor/quill/quill.min.js') }}"></script>
     <script src="{{ asset('assets/vendor/air-datepicker/js/datepicker.min.js') }}"></script>
     <script src="{{ asset('assets/vendor/air-datepicker/js/i18n/datepicker.en.js') }}"></script>
-    <script src="{{ asset('assets/vendor/select2/js/select2.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.full.min.js"></script>
     <script src="{{ asset('assets/vendor/fontawesome/js/all.min.js') }}" data-auto-replace-svg="" async=""></script>
     <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
     <script src="{{ asset('assets/vendor/datatables/js/jquery.dataTables.min.js') }}"></script>

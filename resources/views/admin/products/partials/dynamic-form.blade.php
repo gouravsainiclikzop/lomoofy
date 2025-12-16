@@ -62,7 +62,7 @@
                         </a>
                         <a href="#section-images" class="nav-link" data-section="images">
                             <i class='bx bx-image me-1'></i>
-                            <span>Product Images</span>
+                            <span>Featured Product Images</span>
                         </a>
                     </div>
                 </div>
@@ -250,7 +250,7 @@
 }
 
 .compact-form .col-12 {
-    margin-bottom: 0.5rem;
+    /* margin-bottom: 0.5rem; */
 }
 
 .compact-form .col-12:last-child {

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use App\Models\CompanySetting;
 
 class ProfileController extends Controller
 {
@@ -18,7 +19,8 @@ class ProfileController extends Controller
      */
     public function index()
     {
-        return view('admin.profile.index');
+        $companySettings = CompanySetting::getSettings();
+        return view('admin.profile.index', compact('companySettings'));
     }
 
     /**
@@ -186,6 +188,63 @@ class ProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Password updated successfully'
+        ]);
+    }
+
+    /**
+     * Update company settings.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateCompanySettings(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'company_name' => 'required|string|max:255',
+            'company_logo_text' => 'required|string|max:255',
+            'company_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'phone' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $settings = CompanySetting::getSettings();
+        $data = $request->only([
+            'company_name',
+            'company_logo_text',
+            'phone',
+            'email',
+            'address',
+        ]);
+
+        // Handle logo upload
+        if ($request->hasFile('company_logo')) {
+            // Delete old logo if exists
+            if ($settings->company_logo && Storage::disk('public')->exists($settings->company_logo)) {
+                Storage::disk('public')->delete($settings->company_logo);
+            }
+
+            // Store new logo
+            $logoPath = $request->file('company_logo')->store('company-logos', 'public');
+            $data['company_logo'] = $logoPath;
+        }
+
+        $settings->update($data);
+
+        // Include logo URL in response
+        $settings->logo_url = $settings->company_logo ? asset('storage/' . $settings->company_logo) : null;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Company settings updated successfully',
+            'settings' => $settings
         ]);
     }
 }

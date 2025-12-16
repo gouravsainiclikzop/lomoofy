@@ -47,10 +47,14 @@ class FieldManagement extends Model
             'password',
             'password_confirmation',
             'address_type',
-            'full_address',
+            'address_line1',
+            'address_line2',
+            'landmark',
+            'country',
             'state',
             'city',
             'pincode',
+            'delivery_instructions',
         ];
     }
 

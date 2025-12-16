@@ -9,8 +9,10 @@ class CustomerAddress extends Model
     protected $fillable = [
         'customer_id',
         'address_type',
-        'full_address',
+        'address_line1',
+        'address_line2',
         'landmark',
+        'country',
         'state',
         'city',
         'pincode',

@@ -71,6 +71,22 @@ class Customer extends Model
     }
 
     /**
+     * Relationship with orders
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Relationship with carts
+     */
+    public function carts()
+    {
+        return $this->hasMany(Cart::class);
+    }
+
+    /**
      * Scope to get only active customers
      */
     public function scopeActive($query)

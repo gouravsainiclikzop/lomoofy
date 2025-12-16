@@ -768,9 +768,6 @@ function initializeDataTable() {
                             <button class="btn btn-sm btn-secondary edit-field" data-id="${row.id}" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger delete-field" data-id="${row.id}" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
                         </div>
                     `;
                 }
@@ -1252,35 +1249,70 @@ function renderFormPreview() {
     const container = $('#formPreviewContainer');
     container.empty();
     
-    // Group fields by field_group
-    const fieldGroups = {};
-    formFields.forEach(field => {
+    // Separate system fields from non-system fields
+    const systemFields = formFields.filter(field => field.is_system === true);
+    const nonSystemFields = formFields.filter(field => !field.is_system || field.is_system === false);
+    
+    // Group system fields by field_group
+    const systemFieldGroups = {};
+    systemFields.forEach(field => {
         const group = field.field_group || 'other';
-        if (!fieldGroups[group]) {
-            fieldGroups[group] = [];
+        if (!systemFieldGroups[group]) {
+            systemFieldGroups[group] = [];
         }
-        fieldGroups[group].push(field);
+        systemFieldGroups[group].push(field);
+    });
+    
+    // Group non-system fields by field_group
+    const nonSystemFieldGroups = {};
+    nonSystemFields.forEach(field => {
+        const group = field.field_group || 'other';
+        if (!nonSystemFieldGroups[group]) {
+            nonSystemFieldGroups[group] = [];
+        }
+        nonSystemFieldGroups[group].push(field);
     });
     
     // Sort fields within each group by sort_order
-    Object.keys(fieldGroups).forEach(group => {
-        fieldGroups[group].sort((a, b) => a.sort_order - b.sort_order);
+    Object.keys(systemFieldGroups).forEach(group => {
+        systemFieldGroups[group].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     });
     
-    // Render groups in order
+    Object.keys(nonSystemFieldGroups).forEach(group => {
+        nonSystemFieldGroups[group].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    });
+    
+    // Predefined group order
     const groupOrder = ['basic_info', 'credentials', 'address', 'business', 'preferences', 'qol', 'internal', 'other'];
     
-    groupOrder.forEach(groupKey => {
-        if (fieldGroups[groupKey] && fieldGroups[groupKey].length > 0) {
-            renderFieldGroup(container, groupKey, fieldGroups[groupKey]);
-        }
+    // Sort system field groups: first by predefined order, then alphabetically for remaining groups
+    const systemGroupKeys = Object.keys(systemFieldGroups).sort((a, b) => {
+        const aIndex = groupOrder.indexOf(a);
+        const bIndex = groupOrder.indexOf(b);
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return a.localeCompare(b);
     });
     
-    // Render any remaining groups
-    Object.keys(fieldGroups).forEach(groupKey => {
-        if (!groupOrder.includes(groupKey)) {
-            renderFieldGroup(container, groupKey, fieldGroups[groupKey]);
-        }
+    // Sort non-system field groups: first by predefined order, then alphabetically for remaining groups
+    const nonSystemGroupKeys = Object.keys(nonSystemFieldGroups).sort((a, b) => {
+        const aIndex = groupOrder.indexOf(a);
+        const bIndex = groupOrder.indexOf(b);
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return a.localeCompare(b);
+    });
+    
+    // Render system field groups first
+    systemGroupKeys.forEach(groupKey => {
+        renderFieldGroup(container, groupKey, systemFieldGroups[groupKey]);
+    });
+    
+    // Then render non-system field groups
+    nonSystemGroupKeys.forEach(groupKey => {
+        renderFieldGroup(container, groupKey, nonSystemFieldGroups[groupKey]);
     });
     
     // Initialize sortable for each group

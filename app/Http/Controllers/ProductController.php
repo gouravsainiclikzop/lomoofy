@@ -341,6 +341,8 @@ class ProductController extends Controller
             'visibility' => 'nullable|in:published,hidden',
             'published_at' => 'nullable|date',
             'featured' => 'nullable|in:on,1,true',
+            'gst_type' => 'nullable|in:0,1',
+            'gst_percentage' => 'nullable|in:0,3,5,12,18,28',
             'category_id' => 'nullable|exists:categories,id',
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
@@ -452,6 +454,8 @@ class ProductController extends Controller
                 'brand_id' => $brandIds[0], // Keep for backward compatibility
                 'requires_shipping' => $request->has('requires_shipping'),
                 'free_shipping' => $request->has('free_shipping'),
+                'gst_type' => $request->has('gst_type') ? ($request->gst_type == '1' || $request->gst_type == 1) : true,
+                'gst_percentage' => $request->gst_percentage,
                 'meta_title' => $request->meta_title,
                 'meta_description' => $request->meta_description,
                 'meta_keywords' => $request->meta_keywords,
@@ -644,15 +648,6 @@ class ProductController extends Controller
         $attributes = ProductAttribute::visible()->ordered()->get();
         $units = Unit::active()->ordered()->get();
         
-        // Load warehouses and get default warehouse
-        $warehouses = Warehouse::where('status', 'active')->orderBy('name')->get();
-        $defaultWarehouse = Warehouse::getDefault(); // Primary warehouse
-        
-        // Determine selected warehouse: product's default or system default
-        $selectedWarehouseId = old('default_warehouse_id', 
-            $product->default_warehouse_id ?? ($defaultWarehouse ? $defaultWarehouse->id : null)
-        );
-        
         $product->load(['images', 'category.parent', 'variants', 'brands', 'unit', 'defaultWarehouse']);
 
         $otherBrandId = $otherBrand->id;
@@ -663,10 +658,7 @@ class ProductController extends Controller
             'attributes', 
             'units', 
             'product', 
-            'otherBrandId',
-            'warehouses',
-            'selectedWarehouseId',
-            'defaultWarehouse'
+            'otherBrandId'
         ));
     }
 
@@ -728,10 +720,11 @@ class ProductController extends Controller
             'visibility' => 'nullable|in:published,hidden',
             'published_at' => 'nullable|date',
             'featured' => 'nullable|in:on,1,true',
+            'gst_type' => 'nullable|in:0,1',
+            'gst_percentage' => 'nullable|in:0,3,5,12,18,28',
             'category_id' => 'nullable|exists:categories,id',
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
-            'default_warehouse_id' => 'nullable|exists:warehouses,id',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'image_alt_texts' => 'nullable|array',
@@ -844,6 +837,8 @@ class ProductController extends Controller
                 'short_description' => $request->short_description,
                 'requires_shipping' => $request->has('requires_shipping'),
                 'free_shipping' => $request->has('free_shipping'),
+                'gst_type' => $request->has('gst_type') ? ($request->gst_type == '1' || $request->gst_type == 1) : ($product->gst_type ?? true),
+                'gst_percentage' => $request->has('gst_percentage') ? $request->gst_percentage : $product->gst_percentage,
                 'meta_title' => $request->meta_title,
                 'meta_description' => $request->meta_description,
                 'meta_keywords' => $request->meta_keywords,
@@ -852,7 +847,7 @@ class ProductController extends Controller
                 'published_at' => $request->published_at,
                 'featured' => $request->has('featured'),
                 'category_id' => $request->category_ids && count($request->category_ids) > 0 ? $request->category_ids[0] : $request->category_id,
-                'default_warehouse_id' => $request->input('default_warehouse_id') ?: null,
+                // default_warehouse_id not updated from form - warehouse management moved to Inventory module
             ]);
 
             // Handle categories
@@ -1410,12 +1405,27 @@ class ProductController extends Controller
 
     /**
      * Get all product attributes (both variant and static).
+     * Returns all attributes regardless of visibility - filtering is done on frontend.
      */
     public function getAttributes()
     {
-        $attributes = ProductAttribute::visible()->ordered()
+        $attributes = ProductAttribute::ordered()
             ->with('values')
             ->get();
+
+        // Log for debugging
+        Log::info('getAttributes - Returning all attributes', [
+            'total' => $attributes->count(),
+            'attributes' => $attributes->map(function($attr) {
+                return [
+                    'id' => $attr->id,
+                    'name' => $attr->name,
+                    'is_variation' => $attr->is_variation,
+                    'is_variation_type' => gettype($attr->is_variation),
+                    'is_visible' => $attr->is_visible,
+                ];
+            })->toArray()
+        ]);
 
         return response()->json([
             'success' => true,
@@ -1516,10 +1526,11 @@ class ProductController extends Controller
                 ], 500);
             }
             
-            // Separate variant and static attributes
-            // Handle both boolean true and integer 1 as variant attributes
+            // Show ALL visible attributes in variant attributes (not just is_variation = true)
+            // This allows users to use any attribute for variants
             $variantAttributes = $allAttributes->filter(function($attr) {
-                return $attr->is_variation === true || $attr->is_variation === 1 || $attr->is_variation === '1';
+                $isVisible = $attr->is_visible !== false && $attr->is_visible !== 0 && $attr->is_visible !== '0';
+                return $isVisible; // Show all visible attributes, regardless of is_variation flag
             })->map(function($attr) {
                 return [
                     'id' => $attr->id,
@@ -1543,7 +1554,9 @@ class ProductController extends Controller
             })->values();
             
             $staticAttributes = $allAttributes->filter(function($attr) {
-                return $attr->is_variation === false || $attr->is_variation === 0 || $attr->is_variation === '0';
+                $isStatic = $attr->is_variation === false || $attr->is_variation === 0 || $attr->is_variation === '0';
+                $isVisible = $attr->is_visible !== false && $attr->is_visible !== 0 && $attr->is_visible !== '0';
+                return $isStatic && $isVisible;
             })->map(function($attr) {
                 return [
                     'id' => $attr->id,
@@ -1566,10 +1579,26 @@ class ProductController extends Controller
                 ];
             })->values();
             
+            // Log filtered results for debugging
+            Log::info('getAttributesByCategory - Filtered Results', [
+                'category_id' => $categoryId,
+                'total_attributes' => $allAttributes->count(),
+                'variant_attributes_count' => $variantAttributes->count(),
+                'static_attributes_count' => $staticAttributes->count(),
+                'variant_attribute_ids' => $variantAttributes->pluck('id')->toArray(),
+                'static_attribute_ids' => $staticAttributes->pluck('id')->toArray(),
+            ]);
+            
             return response()->json([
                 'success' => true,
                 'variant_attributes' => $variantAttributes,
-                'static_attributes' => $staticAttributes
+                'static_attributes' => $staticAttributes,
+                'debug' => [
+                    'category_id' => $categoryId,
+                    'total_attributes_found' => $allAttributes->count(),
+                    'variant_attributes_count' => $variantAttributes->count(),
+                    'static_attributes_count' => $staticAttributes->count(),
+                ]
             ]);
         } catch (\Exception $e) {
             Log::error('Error in getAttributesByCategory', [
@@ -2259,6 +2288,53 @@ class ProductController extends Controller
 
         if (!empty($storedPaths)) {
             $variant->update(['image' => $storedPaths[0]]);
+        }
+    }
+
+    /**
+     * Delete a variant image
+     */
+    public function deleteVariantImage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'image_id' => 'required|exists:product_images,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid image ID'
+            ], 422);
+        }
+
+        try {
+            $image = ProductImage::findOrFail($request->image_id);
+            
+            // Verify this is a variant image (has product_variant_id)
+            if (!$image->product_variant_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This is not a variant image'
+                ], 422);
+            }
+
+            // Delete the file from storage
+            if ($image->image_path && Storage::disk('public')->exists($image->image_path)) {
+                Storage::disk('public')->delete($image->image_path);
+            }
+
+            // Delete the database record
+            $image->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Image deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting image: ' . $e->getMessage()
+            ], 500);
         }
     }
 

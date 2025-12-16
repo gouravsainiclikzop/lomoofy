@@ -3,7 +3,7 @@
     <div class="card-header py-2">
         <div class="d-flex justify-content-between align-items-center">
             <h6 class="card-title mb-0">
-                <i class="fas fa-images me-2"></i>Product Images
+                <i class="fas fa-images me-2"></i>Featured Product Images
             </h6> 
             
             <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#imagesInfoModal">
@@ -117,7 +117,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="currentProductImagesModalLabel">
-                    <i class="fas fa-images me-2"></i>Current Product Images
+                    <i class="fas fa-images me-2"></i>Current Featured Product Images
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>

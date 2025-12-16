@@ -1000,6 +1000,7 @@ function addAttributeValue() {
                 colorControl.value = '#000000';
             }
             manageAttributeValues(currentAttributeId); // Reload values
+            updateAttributeTableCount(currentAttributeId); // Update main table count
         } else {
             showToast('error', result.message || 'Failed to add attribute value');
         }
@@ -1042,6 +1043,11 @@ function updateAttributeValue(valueId, field, value) {
     .then(result => {
         if (result.success) {
             showToast('success', 'Value updated successfully');
+            // Get the attribute ID from the value card to update the table count
+            const valueCard = document.querySelector('[data-value-id="' + valueId + '"]');
+            if (valueCard && currentAttributeId) {
+                updateAttributeTableCount(currentAttributeId);
+            }
         } else {
             showToast('error', result.message || 'Failed to update value');
         }
@@ -1066,6 +1072,7 @@ function deleteAttributeValue(valueId) {
             if (result.success) {
                 showToast('success', result.message);
                 manageAttributeValues(currentAttributeId); // Reload values
+                updateAttributeTableCount(currentAttributeId); // Update main table count
             } else {
                 showToast('error', result.message || 'Failed to delete value');
             }
@@ -1075,6 +1082,30 @@ function deleteAttributeValue(valueId) {
             showToast('error', 'Failed to delete value');
         });
     }
+}
+
+function updateAttributeTableCount(attributeId) {
+    // Fetch the updated attribute data to get the new value count
+    fetch(ATTRIBUTES_BASE_URL + '/' + attributeId)
+        .then(response => response.json())
+        .then(attribute => {
+            // Find the table row for this attribute
+            const tableRow = document.querySelector(`tr[data-attribute-id="${attributeId}"]`);
+            if (tableRow) {
+                // Find the Values column by looking for the badge with "values" text
+                const valuesCell = Array.from(tableRow.querySelectorAll('td')).find(td => {
+                    return td.textContent.includes('values');
+                });
+                if (valuesCell) {
+                    // Update the badge with the new count
+                    const count = Array.isArray(attribute.values) ? attribute.values.length : 0;
+                    valuesCell.innerHTML = `<span class="badge bg-secondary">${count} values</span>`;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating attribute table count:', error);
+        });
 }
 
 function exportAttributes() {
