@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CustomerController extends Controller
 {
@@ -62,7 +63,7 @@ class CustomerController extends Controller
                 'label' => $field->label,
                 'input_type' => $field->input_type,
                 'placeholder' => $field->placeholder,
-                'is_required' => $field->is_required || $field->is_system,
+                'is_required' => (bool) $field->is_required, // Respect field management is_required setting
                 'field_group' => $field->field_group,
                 'options' => $field->options,
                 'conditional_rules' => $field->conditional_rules,
@@ -221,6 +222,13 @@ class CustomerController extends Controller
      */
     public function store(Request $request)
     {
+        // Set default password if not provided
+        $defaultPassword = 'Password@123';
+        if (empty($request->password)) {
+            $request->merge(['password' => $defaultPassword]);
+            $request->merge(['password_confirmation' => $defaultPassword]);
+        }
+        
         // Get field definitions - include system fields even if inactive
         $fields = FieldManagement::active()->visible()->get();
         
@@ -229,15 +237,26 @@ class CustomerController extends Controller
         $fields = $fields->merge($systemFields)->unique('field_key');
         
         // Build validation rules dynamically
+        // Note: required/optional status comes from field management
+        // Format validation (email format, phone regex) is always enforced when field has value
+        // Password is now always set (either from form or default), so it's required
         $rules = [
-            'email' => 'required|email|unique:customers,email',
             'password' => 'required|string|min:8|confirmed',
             'password_confirmation' => 'required|string|min:8',
         ];
 
+        // Address fields that should be excluded from field management validation when in addresses array
+        $addressFields = ['address_type', 'address_line1', 'address_line2', 'landmark', 'country', 'state', 'city', 'pincode', 'delivery_instructions'];
+        
         $fieldRules = [];
         foreach ($fields as $field) {
             $fieldKey = $field->field_key;
+            
+            // Skip address fields - they're handled separately in addresses array
+            if (in_array($fieldKey, $addressFields)) {
+                continue;
+            }
+            
             $rule = [];
             
             // Add custom validation rules first if provided
@@ -293,7 +312,7 @@ class CustomerController extends Controller
             $fieldRules[$fieldKey] = implode('|', $rule);
         }
 
-        // Merge field rules, but preserve email unique constraint
+        // Merge field rules
         $rules = array_merge($rules, $fieldRules);
         
         // Ensure email has unique constraint even if field management overrides it
@@ -305,8 +324,94 @@ class CustomerController extends Controller
             }
             $rules['email'] = implode('|', $emailRules);
         }
+        
+        // Handle address validation for multiple addresses
+        if ($request->has('addresses') && is_array($request->addresses)) {
+            foreach ($request->addresses as $index => $addressInput) {
+                // Check if address has any meaningful data
+                $hasAddressData = false;
+                if (isset($addressInput['address_line1']) && trim($addressInput['address_line1']) !== '') {
+                    $hasAddressData = true;
+                }
+                if (isset($addressInput['address_type']) && trim($addressInput['address_type']) !== '') {
+                    $hasAddressData = true;
+                }
+                if (isset($addressInput['city']) && trim($addressInput['city']) !== '') {
+                    $hasAddressData = true;
+                }
+                if (isset($addressInput['state']) && trim($addressInput['state']) !== '') {
+                    $hasAddressData = true;
+                }
+                if (isset($addressInput['pincode']) && trim($addressInput['pincode']) !== '') {
+                    $hasAddressData = true;
+                }
+                
+                // If address has any data, validate required fields
+                if ($hasAddressData) {
+                    $rules["addresses.{$index}.address_type"] = 'nullable|string|in:home,office,other';
+                    $rules["addresses.{$index}.address_line1"] = 'required|string|max:255';
+                    $rules["addresses.{$index}.address_line2"] = 'nullable|string|max:255';
+                    $rules["addresses.{$index}.landmark"] = 'nullable|string|max:255';
+                    $rules["addresses.{$index}.country"] = 'required|string|max:255';
+                    $rules["addresses.{$index}.state"] = 'required|string|max:255';
+                    $rules["addresses.{$index}.city"] = 'required|string|max:255';
+                    $rules["addresses.{$index}.pincode"] = 'required|string|max:20';
+                    $rules["addresses.{$index}.delivery_instructions"] = 'nullable|string';
+                }
+            }
+        } elseif ($request->has('address_type') && $request->address_type) {
+            // Backward compatibility: single address validation
+            if (!isset($rules['state']) || !str_contains($rules['state'], 'required')) {
+                $rules['state'] = 'required|string';
+            }
+            if (!isset($rules['city']) || !str_contains($rules['city'], 'required')) {
+                $rules['city'] = 'required|string';
+            }
+            if (!isset($rules['pincode']) || !str_contains($rules['pincode'], 'required')) {
+                $rules['pincode'] = 'required|string';
+            }
+        } else {
+            // Address fields are optional if address_type is not provided
+            $rules['address_type'] = 'nullable|string';
+            $rules['state'] = 'nullable|string';
+            $rules['city'] = 'nullable|string';
+            $rules['pincode'] = 'nullable|string';
+            $rules['address_line1'] = 'nullable|string';
+            $rules['address_line2'] = 'nullable|string';
+            $rules['landmark'] = 'nullable|string';
+            $rules['delivery_instructions'] = 'nullable|string';
+        }
 
-        $validator = Validator::make($request->all(), $rules);
+        $messages = [
+            'phone.required' => 'Phone number is required.',
+            'phone.regex' => 'Please enter a valid phone number (10-15 digits, optional + prefix).',
+            'phone.max' => 'Phone number cannot exceed 20 characters.',
+            'alternate_phone.regex' => 'Please enter a valid alternate phone number (10-15 digits, optional + prefix).',
+            'alternate_phone.max' => 'Alternate phone number cannot exceed 20 characters.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.max' => 'Email address cannot exceed 255 characters.',
+            'email.unique' => 'This email address is already registered.',
+            'addresses.*.address_type.required' => 'Address type is required.',
+            'addresses.*.address_type.in' => 'Address type must be home, office, or other.',
+            'addresses.*.address_line1.required' => 'Address line 1 is required.',
+            'addresses.*.country.required' => 'Country is required.',
+            'addresses.*.state.required' => 'State is required.',
+            'addresses.*.city.required' => 'City is required.',
+            'addresses.*.pincode.required' => 'Pincode is required.',
+        ];
+        
+        // Add dynamic messages for field management fields
+        foreach ($fields as $field) {
+            if (!in_array($field->field_key, $addressFields)) {
+                $fieldKey = $field->field_key;
+                if ($field->is_required) {
+                    $messages["{$fieldKey}.required"] = $field->label . ' is required.';
+                }
+            }
+        }
+
+        $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
             return response()->json([
@@ -318,12 +423,16 @@ class CustomerController extends Controller
         DB::beginTransaction();
         try {
             // Prepare customer data
+            // Set default password if not provided
+            $defaultPassword = 'Password@123'; // Default password for admin-created customers
+            $password = $request->password ?? $defaultPassword;
+            
             $customerData = [
                 'full_name' => $request->full_name ?? '',
                 'phone' => $request->phone ?? null,
                 'alternate_phone' => $request->alternate_phone ?? null,
                 'email' => $request->email,
-                'password' => $request->password,
+                'password' => $password,
                 'date_of_birth' => $request->date_of_birth ?? null,
                 'gender' => $request->gender ?? null,
                 'preferred_contact_method' => $request->preferred_contact_method ?? null,
@@ -354,8 +463,82 @@ class CustomerController extends Controller
 
             $customer = Customer::create($customerData);
 
-            // Handle address
-            if ($request->has('address_type')) {
+            // Handle multiple addresses
+            if ($request->has('addresses') && is_array($request->addresses)) {
+                foreach ($request->addresses as $addressInput) {
+                    // Check if address has any meaningful data (not just empty strings)
+                    $hasAddressData = false;
+                    if (isset($addressInput['address_line1']) && trim($addressInput['address_line1']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    if (isset($addressInput['address_type']) && trim($addressInput['address_type']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    if (isset($addressInput['city']) && trim($addressInput['city']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    if (isset($addressInput['state']) && trim($addressInput['state']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    
+                    if ($hasAddressData) {
+                        // Check if this address should be set as default
+                        // Support both make_default_address (from field management) and is_default (legacy)
+                        $isDefault = false;
+                        if (isset($addressInput['make_default_address'])) {
+                            $isDefault = ($addressInput['make_default_address'] == '1' || $addressInput['make_default_address'] === true || $addressInput['make_default_address'] === 1);
+                        } elseif (isset($addressInput['is_default'])) {
+                            $isDefault = ($addressInput['is_default'] == '1' || $addressInput['is_default'] === true || $addressInput['is_default'] === 1);
+                        }
+                        
+                        $addressData = [
+                            'customer_id' => $customer->id,
+                            'address_type' => !empty($addressInput['address_type']) ? $addressInput['address_type'] : 'home',
+                            'address_line1' => !empty($addressInput['address_line1']) ? trim($addressInput['address_line1']) : '',
+                            'address_line2' => !empty($addressInput['address_line2']) ? trim($addressInput['address_line2']) : null,
+                            'landmark' => !empty($addressInput['landmark']) ? trim($addressInput['landmark']) : null,
+                            'country' => !empty($addressInput['country']) ? trim($addressInput['country']) : '',
+                            'state' => !empty($addressInput['state']) ? trim($addressInput['state']) : '',
+                            'city' => !empty($addressInput['city']) ? trim($addressInput['city']) : '',
+                            'pincode' => !empty($addressInput['pincode']) ? trim($addressInput['pincode']) : '',
+                            'delivery_instructions' => !empty($addressInput['delivery_instructions']) ? trim($addressInput['delivery_instructions']) : null,
+                            'is_default' => $isDefault,
+                        ];
+                        
+                        try {
+                            CustomerAddress::create($addressData);
+                        } catch (\Exception $e) {
+                            Log::error('Error creating customer address: ' . $e->getMessage(), [
+                                'customer_id' => $customer->id,
+                                'address_data' => $addressData,
+                                'request_data' => $addressInput
+                            ]);
+                            throw $e;
+                        }
+                    }
+                }
+                
+                // Ensure only one address is set as default
+                $defaultAddresses = CustomerAddress::where('customer_id', $customer->id)
+                    ->where('is_default', true)
+                    ->get();
+                
+                if ($defaultAddresses->count() > 1) {
+                    // Multiple addresses marked as default - keep only the first one
+                    $firstDefault = $defaultAddresses->first();
+                    CustomerAddress::where('customer_id', $customer->id)
+                        ->where('is_default', true)
+                        ->where('id', '!=', $firstDefault->id)
+                        ->update(['is_default' => false]);
+                } elseif ($defaultAddresses->count() === 0) {
+                    // No default address - set the first address as default
+                    $firstAddress = CustomerAddress::where('customer_id', $customer->id)->first();
+                    if ($firstAddress) {
+                        $firstAddress->update(['is_default' => true]);
+                    }
+                }
+            } elseif ($request->has('address_type')) {
+                // Backward compatibility: handle single address
                 $addressData = [
                     'customer_id' => $customer->id,
                     'address_type' => $request->address_type ?? 'home',
@@ -367,17 +550,23 @@ class CustomerController extends Controller
                     'city' => $request->city ?? '',
                     'pincode' => $request->pincode ?? '',
                     'delivery_instructions' => $request->delivery_instructions ?? null,
-                    'is_default' => $request->has('make_default_address') ? true : false,
+                    'is_default' => true, // Single address is always default
                 ];
                 CustomerAddress::create($addressData);
             }
 
             DB::commit();
 
+            // Include default password in response if it was used
+            $responseData = $customer->load('addresses')->toArray();
+            if (!$request->password) {
+                $responseData['default_password'] = $defaultPassword;
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Customer created successfully',
-                'data' => $customer->load('addresses')
+                'message' => 'Customer created successfully' . (!$request->password ? ' (Default password: ' . $defaultPassword . ')' : ''),
+                'data' => $responseData
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -440,12 +629,22 @@ class CustomerController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Debug: Log raw request data
+        Log::info('Customer update request received', [
+            'customer_id' => $id,
+            'has_addresses' => $request->has('addresses'),
+            'addresses_type' => gettype($request->input('addresses')),
+            'addresses_value' => $request->input('addresses'),
+            'all_request_data' => $request->all()
+        ]);
+        
         $customer = Customer::findOrFail($id);
         $fields = FieldManagement::active()->visible()->get();
 
-        $rules = [
-            'email' => 'required|email|unique:customers,email,' . $id,
-        ];
+        // Build validation rules dynamically
+        // Note: required/optional status comes from field management
+        // Format validation (email format, phone regex) is always enforced when field has value
+        $rules = [];
 
         // Password is optional on update
         if ($request->has('password') && $request->password) {
@@ -453,7 +652,7 @@ class CustomerController extends Controller
         }
 
         // Address fields that should be excluded from field management validation
-        $addressFields = ['address_type', 'address_line1', 'address_line2', 'landmark', 'country', 'state', 'city', 'pincode', 'delivery_instructions', 'make_default_address'];
+        $addressFields = ['address_type', 'address_line1', 'address_line2', 'landmark', 'country', 'state', 'city', 'pincode', 'delivery_instructions', 'is_default'];
         
         $fieldRules = [];
         foreach ($fields as $field) {
@@ -492,6 +691,27 @@ class CustomerController extends Controller
                     if (!in_array('email', $rule)) {
                         $rule[] = 'email';
                     }
+                    // Always add max length for email
+                    if (!in_array('max:255', $rule)) {
+                        $rule[] = 'max:255';
+                    }
+                    // Add unique constraint for email (only if not already present)
+                    if ($field->field_key === 'email') {
+                        $uniqueRule = 'unique:customers,email,' . $id;
+                        if (!in_array($uniqueRule, $rule) && !in_array('unique:customers,email', $rule)) {
+                            $rule[] = $uniqueRule;
+                        }
+                    }
+                    break;
+                case 'tel':
+                    // Add phone format validation for tel fields
+                    if (($field->field_key === 'phone' || $field->field_key === 'alternate_phone') && !in_array('regex:/^[\\+]?[0-9]{10,15}$/', $rule)) {
+                        $rule[] = 'regex:/^[\+]?[0-9]{10,15}$/';
+                    }
+                    // Always add max length for phone
+                    if (!in_array('max:20', $rule)) {
+                        $rule[] = 'max:20';
+                    }
                     break;
                 case 'number':
                     if (!in_array('numeric', $rule)) {
@@ -519,23 +739,50 @@ class CustomerController extends Controller
             $fieldRules[$fieldKey] = implode('|', $rule);
         }
 
-        // Merge field rules, but preserve email unique constraint
+        // Merge field rules
         $rules = array_merge($rules, $fieldRules);
         
-        // Ensure email has unique constraint even if field management overrides it
-        if (isset($fieldRules['email'])) {
-            // Merge unique constraint with field rules, excluding current customer
-            $emailRules = explode('|', $fieldRules['email']);
-            $uniqueRule = 'unique:customers,email,' . $id;
-            if (!in_array($uniqueRule, $emailRules) && !in_array('unique:customers,email', $emailRules)) {
-                $emailRules[] = $uniqueRule;
+        // Handle address validation for multiple addresses
+        if ($request->has('addresses') && is_array($request->addresses)) {
+            foreach ($request->addresses as $index => $addressInput) {
+                // Check if address has any meaningful data
+                $hasAddressData = false;
+                if (isset($addressInput['address_line1']) && trim($addressInput['address_line1']) !== '') {
+                    $hasAddressData = true;
+                }
+                if (isset($addressInput['address_type']) && trim($addressInput['address_type']) !== '') {
+                    $hasAddressData = true;
+                }
+                if (isset($addressInput['city']) && trim($addressInput['city']) !== '') {
+                    $hasAddressData = true;
+                }
+                if (isset($addressInput['state']) && trim($addressInput['state']) !== '') {
+                    $hasAddressData = true;
+                }
+                if (isset($addressInput['pincode']) && trim($addressInput['pincode']) !== '') {
+                    $hasAddressData = true;
+                }
+                // If it has an ID, it's an existing address
+                if (isset($addressInput['id']) && !empty($addressInput['id'])) {
+                    $hasAddressData = true;
+                }
+                
+                // If address has any data, validate required fields
+                if ($hasAddressData) {
+                    $rules["addresses.{$index}.address_type"] = 'nullable|string|in:home,office,other';
+                    $rules["addresses.{$index}.address_line1"] = 'required|string|max:255';
+                    $rules["addresses.{$index}.address_line2"] = 'nullable|string|max:255';
+                    $rules["addresses.{$index}.landmark"] = 'nullable|string|max:255';
+                    $rules["addresses.{$index}.country"] = 'required|string|max:255';
+                    $rules["addresses.{$index}.state"] = 'required|string|max:255';
+                    $rules["addresses.{$index}.city"] = 'required|string|max:255';
+                    $rules["addresses.{$index}.pincode"] = 'required|string|max:20';
+                    $rules["addresses.{$index}.delivery_instructions"] = 'nullable|string';
+                    $rules["addresses.{$index}.id"] = 'nullable|integer|exists:customer_addresses,id';
+                }
             }
-            $rules['email'] = implode('|', $emailRules);
-        }
-        
-        // Make address fields conditionally required (only if address_type is provided)
-        if ($request->has('address_type') && $request->address_type) {
-            // Address fields are required only if address_type is provided
+        } elseif ($request->has('address_type') && $request->address_type) {
+            // Backward compatibility: single address validation
             if (!isset($rules['state']) || !str_contains($rules['state'], 'required')) {
                 $rules['state'] = 'required|string';
             }
@@ -557,7 +804,46 @@ class CustomerController extends Controller
             $rules['delivery_instructions'] = 'nullable|string';
         }
         
-        $validator = Validator::make($request->all(), $rules);
+        $messages = [
+            'phone.required' => 'Phone number is required.',
+            'phone.regex' => 'Please enter a valid phone number (10-15 digits, optional + prefix).',
+            'phone.max' => 'Phone number cannot exceed 20 characters.',
+            'alternate_phone.regex' => 'Please enter a valid alternate phone number (10-15 digits, optional + prefix).',
+            'alternate_phone.max' => 'Alternate phone number cannot exceed 20 characters.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.max' => 'Email address cannot exceed 255 characters.',
+            'email.unique' => 'This email address is already registered.',
+            'addresses.*.address_type.required' => 'Address type is required.',
+            'addresses.*.address_type.in' => 'Address type must be home, office, or other.',
+            'addresses.*.address_line1.required' => 'Address line 1 is required.',
+            'addresses.*.country.required' => 'Country is required.',
+            'addresses.*.state.required' => 'State is required.',
+            'addresses.*.city.required' => 'City is required.',
+            'addresses.*.pincode.required' => 'Pincode is required.',
+        ];
+        
+        // Add dynamic messages for field management fields
+        foreach ($fields as $field) {
+            if (!in_array($field->field_key, $addressFields)) {
+                $fieldKey = $field->field_key;
+                if ($field->is_required) {
+                    $messages["{$fieldKey}.required"] = $field->label . ' is required.';
+                }
+            }
+        }
+        
+        // Add dynamic messages for field management fields
+        foreach ($fields as $field) {
+            if (!in_array($field->field_key, $addressFields)) {
+                $fieldKey = $field->field_key;
+                if ($field->is_required) {
+                    $messages["{$fieldKey}.required"] = $field->label . ' is required.';
+                }
+            }
+        }
+
+        $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
             return response()->json([
@@ -610,9 +896,240 @@ class CustomerController extends Controller
 
             $customer->update($customerData);
 
-            // Update or create address
-            if ($request->has('address_type')) {
+            // Handle multiple addresses
+            // Try to get addresses from request - handle both array format and manual parsing
+            $addresses = $request->input('addresses');
+            
+            // If addresses is not an array, try to parse it manually from request
+            if (!is_array($addresses)) {
+                // Try to parse as JSON string first (if sent as JSON)
+                if (is_string($addresses)) {
+                    $decoded = json_decode($addresses, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $addresses = $decoded;
+                    }
+                }
+                
+                // If still not an array, try to parse from flattened FormData keys
+                if (!is_array($addresses)) {
+                    $addresses = [];
+                    $allInput = $request->all();
+                    foreach ($allInput as $key => $value) {
+                        if (preg_match('/^addresses\[(\d+)\]\[(.+)\]$/', $key, $matches)) {
+                            $index = (int)$matches[1];
+                            $field = $matches[2];
+                            if (!isset($addresses[$index])) {
+                                $addresses[$index] = [];
+                            }
+                            $addresses[$index][$field] = $value;
+                        }
+                    }
+                }
+            }
+            
+            if (!empty($addresses) && is_array($addresses)) {
+                // Get existing address IDs from request
+                $existingAddressIds = [];
+                $addressesToUpdate = [];
+                $addressesToCreate = [];
+                
+                // Debug: Log the addresses from request
+                Log::info('Processing addresses in update', [
+                    'customer_id' => $customer->id,
+                    'addresses_count' => count($addresses),
+                    'addresses_data' => $addresses,
+                    'existing_addresses_in_db' => $customer->addresses->pluck('id')->toArray()
+                ]);
+                
+                foreach ($addresses as $index => $addressInput) {
+                    // Check if address has any meaningful data
+                    $hasAddressData = false;
+                    if (isset($addressInput['address_line1']) && trim($addressInput['address_line1']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    if (isset($addressInput['address_type']) && trim($addressInput['address_type']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    if (isset($addressInput['city']) && trim($addressInput['city']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    if (isset($addressInput['state']) && trim($addressInput['state']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    if (isset($addressInput['pincode']) && trim($addressInput['pincode']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    if (isset($addressInput['country']) && trim($addressInput['country']) !== '') {
+                        $hasAddressData = true;
+                    }
+                    // If it has an ID, it's an existing address that might need updating
+                    if (isset($addressInput['id']) && !empty($addressInput['id'])) {
+                        $hasAddressData = true;
+                    }
+                    
+                    // Debug: Log each address check
+                    Log::info('Address data check', [
+                        'index' => $index,
+                        'hasAddressData' => $hasAddressData,
+                        'addressInput' => $addressInput
+                    ]);
+                    
+                    if ($hasAddressData) {
+                        // Check if this address should be set as default
+                        // Support both make_default_address (from field management) and is_default (legacy)
+                        $isDefault = false;
+                        if (isset($addressInput['make_default_address'])) {
+                            $isDefault = ($addressInput['make_default_address'] == '1' || $addressInput['make_default_address'] === true || $addressInput['make_default_address'] === 1);
+                        } elseif (isset($addressInput['is_default'])) {
+                            $isDefault = ($addressInput['is_default'] == '1' || $addressInput['is_default'] === true || $addressInput['is_default'] === 1);
+                        }
+                        
+                        $addressData = [
+                            'address_type' => !empty($addressInput['address_type']) ? $addressInput['address_type'] : 'home',
+                            'address_line1' => !empty($addressInput['address_line1']) ? trim($addressInput['address_line1']) : '',
+                            'address_line2' => !empty($addressInput['address_line2']) ? trim($addressInput['address_line2']) : null,
+                            'landmark' => !empty($addressInput['landmark']) ? trim($addressInput['landmark']) : null,
+                            'country' => !empty($addressInput['country']) ? trim($addressInput['country']) : '',
+                            'state' => !empty($addressInput['state']) ? trim($addressInput['state']) : '',
+                            'city' => !empty($addressInput['city']) ? trim($addressInput['city']) : '',
+                            'pincode' => !empty($addressInput['pincode']) ? trim($addressInput['pincode']) : '',
+                            'delivery_instructions' => !empty($addressInput['delivery_instructions']) ? trim($addressInput['delivery_instructions']) : null,
+                            'is_default' => $isDefault,
+                        ];
+                        
+                        // Check if this is an existing address (has ID)
+                        if (isset($addressInput['id']) && !empty($addressInput['id'])) {
+                            $existingAddressIds[] = $addressInput['id'];
+                            $addressesToUpdate[$addressInput['id']] = $addressData;
+                            Log::info('Address marked for update', [
+                                'address_id' => $addressInput['id'],
+                                'address_data' => $addressData
+                            ]);
+                        } else {
+                            $addressesToCreate[] = array_merge($addressData, ['customer_id' => $customer->id]);
+                            Log::info('Address marked for create', [
+                                'address_data' => array_merge($addressData, ['customer_id' => $customer->id])
+                            ]);
+                        }
+                    }
+                }
+                
+                // Update existing addresses
+                foreach ($addressesToUpdate as $addressId => $addressData) {
+                    $address = CustomerAddress::where('id', $addressId)
+                        ->where('customer_id', $customer->id)
+                        ->first();
+                    if ($address) {
+                        try {
+                            $address->update($addressData);
+                            Log::info('Address updated successfully', [
+                                'address_id' => $addressId,
+                                'customer_id' => $customer->id
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error('Error updating customer address: ' . $e->getMessage(), [
+                                'customer_id' => $customer->id,
+                                'address_id' => $addressId,
+                                'address_data' => $addressData,
+                                'trace' => $e->getTraceAsString()
+                            ]);
+                            throw $e;
+                        }
+                    } else {
+                        Log::warning('Address not found for update', [
+                            'address_id' => $addressId,
+                            'customer_id' => $customer->id
+                        ]);
+                    }
+                }
+                
+                // Create new addresses and collect their IDs
+                $newlyCreatedAddressIds = [];
+                foreach ($addressesToCreate as $addressData) {
+                    try {
+                        $newAddress = CustomerAddress::create($addressData);
+                        $newlyCreatedAddressIds[] = $newAddress->id;
+                        Log::info('Address created successfully', [
+                            'address_id' => $newAddress->id,
+                            'customer_id' => $customer->id,
+                            'address_data' => $addressData
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Error creating customer address: ' . $e->getMessage(), [
+                            'customer_id' => $customer->id,
+                            'address_data' => $addressData,
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                        throw $e;
+                    }
+                }
+                
+                // Combine existing and newly created address IDs - these should NOT be deleted
+                $addressIdsToKeep = array_merge($existingAddressIds, $newlyCreatedAddressIds);
+                
+                Log::info('Address processing summary', [
+                    'customer_id' => $customer->id,
+                    'addresses_to_update_count' => count($addressesToUpdate),
+                    'addresses_to_create_count' => count($addressesToCreate),
+                    'existing_address_ids' => $existingAddressIds,
+                    'newly_created_address_ids' => $newlyCreatedAddressIds,
+                    'address_ids_to_keep' => $addressIdsToKeep
+                ]);
+                
+                // Delete addresses that were removed (not in the request)
+                // Only delete addresses that are not in our keep list
+                // If addressIdsToKeep is empty, it means no valid addresses were provided,
+                // so we should NOT delete existing addresses (they might be valid)
+                if (!empty($addressIdsToKeep)) {
+                    $deletedCount = CustomerAddress::where('customer_id', $customer->id)
+                        ->whereNotIn('id', $addressIdsToKeep)
+                        ->delete();
+                    Log::info('Deleted removed addresses', [
+                        'customer_id' => $customer->id,
+                        'deleted_count' => $deletedCount,
+                        'address_ids_to_keep' => $addressIdsToKeep
+                    ]);
+                } else {
+                    // If no addresses to keep but we're processing addresses,
+                    // it means all addresses in request were invalid/empty
+                    // Don't delete existing addresses in this case
+                    Log::info('No valid addresses to keep, skipping deletion', [
+                        'customer_id' => $customer->id
+                    ]);
+                }
+                
+                // Ensure only one address is set as default
+                $defaultAddresses = CustomerAddress::where('customer_id', $customer->id)
+                    ->where('is_default', true)
+                    ->get();
+                
+                if ($defaultAddresses->count() > 1) {
+                    // Multiple addresses marked as default - keep only the first one
+                    $firstDefault = $defaultAddresses->first();
+                    CustomerAddress::where('customer_id', $customer->id)
+                        ->where('is_default', true)
+                        ->where('id', '!=', $firstDefault->id)
+                        ->update(['is_default' => false]);
+                    Log::info('Multiple default addresses found, kept first one as default', [
+                        'customer_id' => $customer->id,
+                        'kept_address_id' => $firstDefault->id
+                    ]);
+                } elseif ($defaultAddresses->count() === 0) {
+                    // No default address - set the first address as default
+                    $firstAddress = CustomerAddress::where('customer_id', $customer->id)->first();
+                    if ($firstAddress) {
+                        $firstAddress->update(['is_default' => true]);
+                        Log::info('No default address found, set first address as default', [
+                            'customer_id' => $customer->id,
+                            'address_id' => $firstAddress->id
+                        ]);
+                    }
+                }
+            } elseif ($request->has('address_type')) {
+                // Backward compatibility: handle single address
                 $address = $customer->addresses->first();
+                $isDefault = isset($request->is_default) && ($request->is_default == '1' || $request->is_default === true || $request->is_default === 1);
+                
                 $addressData = [
                     'address_type' => $request->address_type ?? 'home',
                     'address_line1' => $request->address_line1 ?? '',
@@ -623,14 +1140,24 @@ class CustomerController extends Controller
                     'city' => $request->city ?? '',
                     'pincode' => $request->pincode ?? '',
                     'delivery_instructions' => $request->delivery_instructions ?? null,
-                    'is_default' => $request->has('make_default_address') ? true : false,
+                    'is_default' => $isDefault,
                 ];
                 
                 if ($address) {
                     $address->update($addressData);
+                    $addressId = $address->id;
                 } else {
                     $addressData['customer_id'] = $customer->id;
-                    CustomerAddress::create($addressData);
+                    $newAddress = CustomerAddress::create($addressData);
+                    $addressId = $newAddress->id;
+                }
+                
+                // Ensure only one address is default
+                if ($isDefault) {
+                    CustomerAddress::where('customer_id', $customer->id)
+                        ->where('is_default', true)
+                        ->where('id', '!=', $addressId)
+                        ->update(['is_default' => false]);
                 }
             }
 

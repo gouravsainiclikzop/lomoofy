@@ -23,6 +23,96 @@
     color: #6c757d;
     margin-top: 0.25rem;
 }
+.address-block {
+    border: 1px solid #dee2e6;
+}
+.address-block .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+/* Table styling to prevent wrapping */
+#customersTable {
+    width: 100% !important;
+    table-layout: auto;
+}
+#customersTable th,
+#customersTable td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+}
+#customersTable th:nth-child(1),
+#customersTable td:nth-child(1) {
+    width: 70px;
+    min-width: 70px;
+    white-space: nowrap;
+}
+#customersTable th:nth-child(2),
+#customersTable td:nth-child(2) {
+    width: 220px;
+    min-width: 220px;
+    white-space: nowrap;
+}
+#customersTable th:nth-child(3),
+#customersTable td:nth-child(3) {
+    width: 280px;
+    min-width: 280px;
+    white-space: normal;
+    word-break: break-word;
+}
+#customersTable th:nth-child(4),
+#customersTable td:nth-child(4),
+#customersTable th:nth-child(5),
+#customersTable td:nth-child(5),
+#customersTable th:nth-child(6),
+#customersTable td:nth-child(6),
+#customersTable th:nth-child(7),
+#customersTable td:nth-child(7) {
+    width: 130px;
+    min-width: 130px;
+    text-align: center;
+    white-space: nowrap;
+}
+#customersTable th:nth-child(8),
+#customersTable td:nth-child(8) {
+    width: 100px;
+    min-width: 100px;
+    text-align: center;
+    white-space: nowrap;
+}
+#customersTable th:nth-child(9),
+#customersTable td:nth-child(9) {
+    width: 160px;
+    min-width: 160px;
+    white-space: nowrap;
+}
+#customersTable th:nth-child(10),
+#customersTable td:nth-child(10) {
+    width: 90px;
+    min-width: 90px;
+    text-align: center;
+    white-space: nowrap;
+}
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.password-toggle {
+    color: #6c757d !important;
+    padding: 0.375rem 0.75rem !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.password-toggle:hover {
+    color: #495057 !important;
+}
+.password-toggle:focus {
+    outline: none;
+    box-shadow: none;
+}
+.password-toggle i {
+    font-size: 1rem;
+}
 </style>
 @endpush
 
@@ -447,6 +537,7 @@ $(document).ready(function() {
     
     // Modal events
     $('#customerModal').on('show.bs.modal', function() {
+        addressBlockCounter = 0;
         loadFormFields();
     });
     
@@ -458,6 +549,8 @@ $(document).ready(function() {
         isEditMode = false;
         editingCustomerData = null;
         $('#customerModalLabel').text('Add New Customer');
+        addressBlockCounter = 0;
+        $('#addressesContainer').empty();
     });
     
     // Add Customer Button
@@ -478,6 +571,8 @@ function initializeDataTable() {
     customersTable = $('#customersTable').DataTable({
         processing: true,
         serverSide: true,
+        scrollX: true,
+        autoWidth: false,
         ajax: {
             url: '{{ route("customers.data") }}',
             data: function(d) {
@@ -637,15 +732,36 @@ function renderFormFields() {
     groupOrder.forEach(groupKey => {
         if (fieldGroups[groupKey] && fieldGroups[groupKey].length > 0) {
             const groupTitle = getGroupTitle(groupKey);
-            const groupHtml = `
-                <div class="field-group" data-group="${groupKey}">
-                    <h6 class="field-group-title">${groupTitle}</h6>
-                    <div class="row g-3">
-                        ${renderGroupFields(fieldGroups[groupKey])}
+            
+            // Special handling for address group - create multiple address container
+            if (groupKey === 'address') {
+                const groupHtml = `
+                    <div class="field-group" data-group="${groupKey}">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="field-group-title mb-0">${groupTitle}</h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addAddressBtn">
+                                <i class="fas fa-plus"></i> Add Address
+                            </button>
+                        </div>
+                        <div id="addressesContainer">
+                            <!-- Address blocks will be added here -->
+                        </div>
                     </div>
-                </div>
-            `;
-            container.append(groupHtml);
+                `;
+                container.append(groupHtml);
+                // Add first address block
+                addAddressBlock();
+            } else {
+                const groupHtml = `
+                    <div class="field-group" data-group="${groupKey}">
+                        <h6 class="field-group-title">${groupTitle}</h6>
+                        <div class="row g-3">
+                            ${renderGroupFields(fieldGroups[groupKey])}
+                        </div>
+                    </div>
+                `;
+                container.append(groupHtml);
+            }
         }
     });
     
@@ -668,8 +784,102 @@ function renderFormFields() {
     // Initialize conditional fields
     initializeConditionalFields();
     
+    // Initialize real-time validation for phone and email
+    initializeFieldValidation();
+    
+    // Initialize password toggle functionality
+    initializePasswordToggle();
+    
     // Note: Select2 initialization for location fields is disabled
     // Country, state, city are now simple text inputs
+}
+
+function initializePasswordToggle() {
+    // Handle password toggle click
+    $(document).on('click', '.password-toggle', function() {
+        const targetId = $(this).data('target');
+        const $input = $(`#${targetId}`);
+        const $icon = $(`#${targetId}_icon`);
+        
+        if ($input.attr('type') === 'password') {
+            $input.attr('type', 'text');
+            $icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            $input.attr('type', 'password');
+            $icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
+}
+
+function initializeFieldValidation() {
+    // Phone number validation
+    $(document).on('input blur', '#field_phone, #field_alternate_phone', function() {
+        const $field = $(this);
+        const value = $field.val().trim();
+        const phoneRegex = /^[\+]?[0-9]{10,15}$/;
+        
+        if (value && !phoneRegex.test(value)) {
+            $field.addClass('is-invalid');
+            $field.siblings('.invalid-feedback').text('Please enter a valid phone number (10-15 digits, optional + prefix)');
+        } else {
+            $field.removeClass('is-invalid');
+            $field.siblings('.invalid-feedback').text('');
+        }
+    });
+    
+    // Email validation
+    $(document).on('input blur', '#field_email', function() {
+        const $field = $(this);
+        const value = $field.val().trim();
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        
+        if (value && !emailRegex.test(value)) {
+            $field.addClass('is-invalid');
+            $field.siblings('.invalid-feedback').text('Please enter a valid email address (e.g., example@domain.com)');
+        } else {
+            $field.removeClass('is-invalid');
+            $field.siblings('.invalid-feedback').text('');
+        }
+    });
+    
+    // Format phone number on input (remove non-numeric except +)
+    $(document).on('input', '#field_phone, #field_alternate_phone', function() {
+        let value = $(this).val();
+        const originalValue = value;
+        
+        // Allow only digits and + at the start
+        value = value.replace(/[^\d+]/g, '');
+        
+        // Ensure + is only at the start
+        if (value.includes('+') && value.indexOf('+') !== 0) {
+            value = value.replace(/\+/g, '');
+        }
+        
+        // If + is present, ensure it's at the start
+        if (value.startsWith('+')) {
+            // Keep + and digits only
+            value = '+' + value.substring(1).replace(/[^\d]/g, '');
+        } else {
+            // Remove all non-digits
+            value = value.replace(/[^\d]/g, '');
+        }
+        
+        // Limit to 20 characters
+        if (value.length > 20) {
+            value = value.substring(0, 20);
+        }
+        
+        // Only update if value changed (prevents cursor jumping)
+        if (value !== originalValue) {
+            const cursorPos = this.selectionStart;
+            $(this).val(value);
+            // Restore cursor position
+            this.setSelectionRange(cursorPos - (originalValue.length - value.length), cursorPos - (originalValue.length - value.length));
+        }
+        
+        // Trigger validation
+        $(this).trigger('blur');
+    });
 }
 
 function getGroupTitle(groupKey) {
@@ -685,6 +895,268 @@ function getGroupTitle(groupKey) {
     };
     return titles[groupKey] || groupKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
+
+let addressBlockCounter = 0;
+
+function addAddressBlock(addressData = null, index = null) {
+    const addressIndex = index !== null ? index : addressBlockCounter++;
+    const container = $('#addressesContainer');
+    
+    // Get address fields from fieldGroups (including make_default_address)
+    const addressFields = fieldGroups['address'] || [];
+    
+    // Create address block HTML
+    let addressBlockHtml = `
+        <div class="address-block card mb-3" data-address-index="${addressIndex}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Address ${addressIndex + 1}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-address-btn">
+                    <i class="fas fa-times"></i> Remove
+                </button>
+            </div>
+            <div class="card-body">
+                ${addressData && addressData.id ? `<input type="hidden" name="addresses[${addressIndex}][id]" value="${addressData.id}">` : ''}
+                <div class="row g-3">
+    `;
+    
+    // Render each address field with indexed names (including make_default_address)
+    addressFields.forEach(field => {
+        const fieldId = `address_${addressIndex}_${field.field_key}`;
+        const fieldName = `addresses[${addressIndex}][${field.field_key}]`;
+        
+        // Prepare address data - map is_default to make_default_address if needed
+        let fieldData = addressData || {};
+        if (field.field_key === 'make_default_address' && addressData && addressData.is_default !== undefined) {
+            // Map is_default (from database) to make_default_address (from field management)
+            fieldData = { ...addressData, make_default_address: addressData.is_default ? '1' : '' };
+        }
+        
+        addressBlockHtml += renderAddressField(field, fieldId, fieldName, fieldData);
+    });
+    
+    addressBlockHtml += `
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.append(addressBlockHtml);
+    
+    // Initialize conditional fields for this address block
+    initializeConditionalFields();
+    
+    // Update remove button visibility
+    updateRemoveButtonVisibility();
+}
+
+function renderAddressField(field, fieldId, fieldName, addressData = null) {
+    const required = field.is_required ? '<span class="text-danger">*</span>' : '';
+    const helpText = field.help_text ? `<div class="field-help-text">${field.help_text}</div>` : '';
+    const conditionalClass = field.conditional_rules ? 'conditional-field' : '';
+    const conditionalAttrs = field.conditional_rules ? `data-conditional="${JSON.stringify(field.conditional_rules)}"` : '';
+    
+    // Get value from addressData if provided
+    const fieldValue = addressData ? (addressData[field.field_key] || '') : '';
+    const isChecked = addressData && addressData[field.field_key] ? true : false;
+    
+    // Location fields (country, state, city) - render as text inputs
+    const isLocationField = ['country', 'state', 'city'].includes(field.field_key);
+    
+    let fieldHtml = '';
+    const colClass = getColClass(field.input_type);
+    
+    if (isLocationField) {
+        return `
+            <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="${fieldId}" 
+                       name="${fieldName}"
+                       value="${fieldValue}"
+                       placeholder="${field.placeholder || 'Enter ' + field.label}">
+                ${helpText}
+                <div class="invalid-feedback"></div>
+            </div>
+        `;
+    }
+    
+    switch(field.input_type) {
+        case 'text':
+        case 'email':
+        case 'tel':
+        case 'number':
+            fieldHtml = `
+                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                    <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
+                    <input type="${field.input_type}" 
+                           class="form-control" 
+                           id="${fieldId}" 
+                           name="${fieldName}" 
+                           value="${fieldValue}"
+                           placeholder="${field.placeholder || ''}">
+                    ${helpText}
+                    <div class="invalid-feedback"></div>
+                </div>
+            `;
+            break;
+        case 'checkbox':
+            // Handle checkbox fields (like make_default_address)
+            const isChecked = fieldValue == '1' || fieldValue === true || fieldValue === 1 || (addressData && addressData.is_default && field.field_key === 'make_default_address');
+            fieldHtml = `
+                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                    <div class="form-check">
+                        <input type="checkbox" 
+                               class="form-check-input" 
+                               id="${fieldId}" 
+                               name="${fieldName}" 
+                               value="1"
+                               ${isChecked ? 'checked' : ''}>
+                        <label class="form-check-label" for="${fieldId}">
+                            ${field.label} ${required}
+                        </label>
+                    </div>
+                    ${helpText}
+                    <div class="invalid-feedback"></div>
+                </div>
+            `;
+            break;
+        case 'textarea':
+            fieldHtml = `
+                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                    <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
+                    <textarea class="form-control" 
+                              id="${fieldId}" 
+                              name="${fieldName}" 
+                              rows="3"
+                              placeholder="${field.placeholder || ''}">${fieldValue}</textarea>
+                    ${helpText}
+                    <div class="invalid-feedback"></div>
+                </div>
+            `;
+            break;
+        case 'select':
+            const options = field.options || [];
+            let optionsHtml = '<option value="">Select ' + field.label + '</option>';
+            options.forEach(option => {
+                const value = typeof option === 'object' ? option.value : option;
+                const label = typeof option === 'object' ? option.label : option;
+                const selected = fieldValue == value ? 'selected' : '';
+                optionsHtml += `<option value="${value}" ${selected}>${label}</option>`;
+            });
+            
+            fieldHtml = `
+                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                    <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
+                    <select class="form-select" 
+                            id="${fieldId}" 
+                            name="${fieldName}">
+                        ${optionsHtml}
+                    </select>
+                    ${helpText}
+                    <div class="invalid-feedback"></div>
+                </div>
+            `;
+            break;
+        default:
+            fieldHtml = `
+                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                    <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="${fieldId}" 
+                           name="${fieldName}" 
+                           value="${fieldValue}"
+                           placeholder="${field.placeholder || ''}">
+                    ${helpText}
+                    <div class="invalid-feedback"></div>
+                </div>
+            `;
+    }
+    
+    return fieldHtml;
+}
+
+function updateRemoveButtonVisibility() {
+    const addressBlocks = $('.address-block');
+    addressBlocks.each(function() {
+        const $removeBtn = $(this).find('.remove-address-btn');
+        if (addressBlocks.length > 1) {
+            $removeBtn.show();
+        } else {
+            $removeBtn.hide();
+        }
+    });
+}
+
+// Handle add address button click
+$(document).on('click', '#addAddressBtn', function() {
+    // Before adding new address, verify all existing addresses are still in the form
+    if (isEditMode && editingCustomerData && editingCustomerData.addresses) {
+        const existingAddressIds = editingCustomerData.addresses.map(addr => addr.id).filter(id => id);
+        const currentAddressIds = $('.address-block').map(function() {
+            return $(this).find('input[name*="[id]"]').val();
+        }).get().filter(id => id);
+        
+        console.log('Before adding new address:');
+        console.log('Expected address IDs:', existingAddressIds);
+        console.log('Current address IDs in form:', currentAddressIds);
+        
+        // If any existing addresses are missing, re-add them
+        existingAddressIds.forEach((addrId, index) => {
+            if (!currentAddressIds.includes(String(addrId))) {
+                console.warn('Missing address ID:', addrId, '- re-adding it');
+                const addressData = editingCustomerData.addresses.find(addr => addr.id == addrId);
+                if (addressData) {
+                    addAddressBlock(addressData, index);
+                }
+            }
+        });
+    }
+    
+    addAddressBlock();
+});
+
+// Handle remove address button click
+$(document).on('click', '.remove-address-btn', function() {
+    $(this).closest('.address-block').remove();
+    updateRemoveButtonVisibility();
+    
+    // Re-index remaining address blocks
+    $('.address-block').each(function(index) {
+        $(this).attr('data-address-index', index);
+        $(this).find('.card-header h6').text(`Address ${index + 1}`);
+        
+        // Update all field names and IDs
+        $(this).find('[name^="addresses["]').each(function() {
+            const $field = $(this);
+            const oldName = $field.attr('name');
+            const newName = oldName.replace(/addresses\[\d+\]/, `addresses[${index}]`);
+            $field.attr('name', newName);
+            
+            const oldId = $field.attr('id');
+            if (oldId) {
+                const newId = oldId.replace(/address_\d+_/, `address_${index}_`);
+                $field.attr('id', newId);
+                
+                // Update label for attribute if exists
+                const $label = $field.siblings('label').first();
+                if ($label.length) {
+                    $label.attr('for', newId);
+                }
+            }
+        });
+    });
+});
+
+// Handle make_default_address checkbox - ensure only one can be checked
+// Using event delegation so it works for dynamically added address blocks
+$(document).on('change', '[name*="[make_default_address]"]', function() {
+    if ($(this).is(':checked')) {
+        // Uncheck all other make_default_address checkboxes
+        $('[name*="[make_default_address]"]').not(this).prop('checked', false);
+    }
+});
 
 function renderGroupFields(fields) {
     let html = '';
@@ -728,6 +1200,30 @@ function renderField(field) {
         case 'email':
         case 'tel':
         case 'number':
+            // Add pattern and validation attributes for phone and email
+            let pattern = '';
+            let inputMode = '';
+            let maxLength = '';
+            let validationMessage = '';
+            
+            if (field.field_key === 'phone' || field.field_key === 'alternate_phone') {
+                pattern = '^[\\+]?[0-9]{10,15}$';
+                inputMode = 'tel';
+                maxLength = '20';
+                validationMessage = 'Please enter a valid phone number (10-15 digits, optional + prefix)';
+            } else if (field.field_key === 'email') {
+                // HTML pattern attribute - move + to end of character class to avoid regex parsing issues
+                pattern = '[a-zA-Z0-9._%\\-+]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}';
+                inputMode = 'email';
+                maxLength = '255';
+                validationMessage = 'Please enter a valid email address';
+            }
+            
+            const patternAttr = pattern ? `pattern="${pattern}"` : '';
+            const inputModeAttr = inputMode ? `inputmode="${inputMode}"` : '';
+            const maxLengthAttr = maxLength ? `maxlength="${maxLength}"` : '';
+            const titleAttr = validationMessage ? `title="${validationMessage}"` : '';
+            
             fieldHtml = `
                 <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
@@ -735,6 +1231,10 @@ function renderField(field) {
                            class="form-control" 
                            id="${fieldId}" 
                            name="${field.field_key}" 
+                           ${patternAttr}
+                           ${inputModeAttr}
+                           ${maxLengthAttr}
+                           ${titleAttr}
                            placeholder="${field.placeholder || ''}">
                     ${helpText}
                     <div class="invalid-feedback"></div>
@@ -742,15 +1242,42 @@ function renderField(field) {
             `;
             break;
         case 'password':
+            // Set default password for password fields (only for new customers, not when editing)
+            const defaultPassword = 'Password@123';
+            const isPasswordField = field.field_key === 'password';
+            const isPasswordConfirmationField = field.field_key === 'password_confirmation';
+            const shouldUseDefault = (isPasswordField || isPasswordConfirmationField) && !isEditMode;
+            const passwordValue = shouldUseDefault ? defaultPassword : '';
+            const passwordPlaceholder = shouldUseDefault ? defaultPassword : (field.placeholder || '');
+            
+            // Build help text - use helpText if editing, otherwise show default password info
+            let passwordHelpText = '';
+            if (isPasswordField && !isEditMode) {
+                passwordHelpText = '<div class="field-help-text text-info"><i class="fas fa-info-circle"></i> Default password: <strong>' + defaultPassword + '</strong> (can be changed)</div>';
+            } else if (helpText) {
+                passwordHelpText = helpText;
+            }
+            
             fieldHtml = `
                 <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
-                    <input type="password" 
-                           class="form-control" 
-                           id="${fieldId}" 
-                           name="${field.field_key}" 
-                           placeholder="${field.placeholder || ''}">
-                    ${helpText}
+                    <div class="position-relative">
+                        <input type="password" 
+                               class="form-control" 
+                               id="${fieldId}" 
+                               name="${field.field_key}" 
+                               value="${passwordValue}"
+                               placeholder="${passwordPlaceholder}"
+                               style="padding-right: 2.5rem;">
+                        <button type="button" 
+                                class="btn btn-link position-absolute end-0 top-50 translate-middle-y password-toggle" 
+                                style="border: none; background: none; z-index: 10; padding: 0.375rem 0.75rem;"
+                                data-target="${fieldId}"
+                                title="Toggle password visibility">
+                            <i class="fas fa-eye" id="${fieldId}_icon"></i>
+                        </button>
+                    </div>
+                    ${passwordHelpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
@@ -961,30 +1488,21 @@ function populateForm(customer) {
         }
     });
     
-    // Populate address if exists
+    // Populate addresses if exist
     if (customer.addresses && customer.addresses.length > 0) {
-        const address = customer.addresses[0];
-        $('#field_address_type').val(address.address_type);
-        $('#field_address_line1').val(address.address_line1);
-        $('#field_address_line2').val(address.address_line2 || '');
-        $('#field_landmark').val(address.landmark);
+        // Clear existing address blocks
+        $('#addressesContainer').empty();
+        addressBlockCounter = 0;
         
-        // Handle country, state, city as simple text inputs
-        if (address.country && $('#field_country').length) {
-            $('#field_country').val(address.country);
-        }
-        
-        if (address.state && $('#field_state').length) {
-            $('#field_state').val(address.state);
-        }
-        
-        if (address.city && $('#field_city').length) {
-            $('#field_city').val(address.city);
-        }
-        
-        $('#field_pincode').val(address.pincode);
-        $('#field_delivery_instructions').val(address.delivery_instructions);
-        $('#field_make_default_address').prop('checked', address.is_default);
+        // Add address blocks for each address
+        customer.addresses.forEach((address, index) => {
+            addAddressBlock(address, index);
+        });
+    } else {
+        // Clear existing and ensure at least one address block exists
+        $('#addressesContainer').empty();
+        addressBlockCounter = 0;
+        addAddressBlock();
     }
     
     // Populate custom data
@@ -1002,9 +1520,137 @@ function populateForm(customer) {
 }
 
 function saveCustomer() {
+    // Verify all address blocks are in the form
+    const addressBlocks = $('.address-block');
+    console.log('=== Address Blocks Check ===');
+    console.log('Total address blocks in DOM:', addressBlocks.length);
+    
+    // Group address fields by index
+    const addressData = {};
+    addressBlocks.each(function() {
+        const index = $(this).attr('data-address-index');
+        const addressId = $(this).find('input[name*="[id]"]').val();
+        const addressLine1 = $(this).find('input[name*="[address_line1]"]').val();
+        console.log(`Address block ${index}: ID=${addressId || 'NEW'}, Line1=${addressLine1 || 'EMPTY'}`);
+        
+        if (!addressData[index]) {
+            addressData[index] = {
+                id: addressId || null,
+                hasData: false
+            };
+        }
+        
+        // Check if this address has meaningful data
+        if (addressLine1 && addressLine1.trim() !== '') {
+            addressData[index].hasData = true;
+        }
+        if (addressId) {
+            addressData[index].hasData = true; // Existing address should be kept even if empty
+        }
+    });
+    
+    console.log('Address data summary:', addressData);
+    
     const formData = new FormData($('#customerForm')[0]);
+    
+    // Manually collect addresses from all address blocks to ensure proper serialization
+    const addressesArray = [];
+    addressBlocks.each(function() {
+        const $block = $(this);
+        
+        // Collect all address fields from this block
+        const addressObj = {};
+        
+        // Get ID if present (existing address)
+        const addressId = $block.find('input[name*="[id]"]').val();
+        if (addressId && addressId.trim() !== '') {
+            addressObj.id = addressId;
+        }
+        
+        // Collect all other address fields - check both input and select/textarea
+        // Get all fields from the address block (including make_default_address from field management)
+        $block.find('[name*="["]').each(function() {
+            const $field = $(this);
+            const name = $field.attr('name');
+            const match = name.match(/addresses\[\d+\]\[(.+)\]/);
+            if (match && match[1]) {
+                const fieldKey = match[1];
+                // Skip the id field as it's handled separately
+                if (fieldKey !== 'id') {
+                    if ($field.attr('type') === 'checkbox') {
+                        // For checkboxes, use checked status
+                        if ($field.is(':checked')) {
+                            addressObj[fieldKey] = $field.val() || '1';
+                        }
+                    } else {
+                        // For other fields, use value
+                        const value = $field.val();
+                        if (value !== null && value !== undefined && value !== '') {
+                            addressObj[fieldKey] = value;
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Check if address has any meaningful data (ID or at least one data field)
+        const hasData = addressObj.id ||
+                       (addressObj.address_line1 && addressObj.address_line1.trim() !== '') ||
+                       (addressObj.city && addressObj.city.trim() !== '') ||
+                       (addressObj.state && addressObj.state.trim() !== '') ||
+                       (addressObj.pincode && addressObj.pincode.trim() !== '') ||
+                       (addressObj.country && addressObj.country.trim() !== '');
+        
+        if (hasData) {
+            addressesArray.push(addressObj);
+        }
+    });
+    
+    // Remove all address fields from FormData to avoid duplication
+    const keysToDelete = [];
+    for (let key of formData.keys()) {
+        if (key.startsWith('addresses[')) {
+            keysToDelete.push(key);
+        }
+    }
+    keysToDelete.forEach(key => formData.delete(key));
+    
+    // Append addresses to FormData with sequential indices (0, 1, 2, ...)
+    addressesArray.forEach((address, index) => {
+        Object.keys(address).forEach(field => {
+            formData.append(`addresses[${index}][${field}]`, address[field]);
+        });
+    });
+    
     const url = isEditMode ? `/customers/${$('#customerId').val()}` : '{{ route("customers.store") }}';
     const method = 'POST';
+    
+    // Debug: Log form data
+    console.log('=== Form Submission Debug ===');
+    console.log('Addresses array:', addressesArray);
+    console.log('Total addresses:', addressesArray.length);
+    
+    // Check address fields
+    const addressFields = $('[name^="addresses["]');
+    console.log('Address fields found in DOM:', addressFields.length);
+    
+    // Validation: If editing and we have existing addresses, ensure they're all in the form
+    if (isEditMode && editingCustomerData && editingCustomerData.addresses) {
+        const existingAddressIds = editingCustomerData.addresses.map(addr => addr.id).filter(id => id);
+        const addressesInFormIds = addressesArray
+            .map(addr => addr.id)
+            .filter(id => id && id !== 'undefined' && id !== 'null');
+        
+        console.log('Existing address IDs:', existingAddressIds);
+        console.log('Address IDs in form:', addressesInFormIds);
+        
+        const missingAddressIds = existingAddressIds.filter(id => !addressesInFormIds.includes(String(id)));
+        if (missingAddressIds.length > 0) {
+            console.warn('WARNING: Some existing addresses are missing from form:', missingAddressIds);
+            // Don't block submission, but log the warning
+            // The backend will handle this by deleting missing addresses
+        }
+    }
     
     $('#saveCustomerBtn').prop('disabled', true);
     $('#saveCustomerBtn .spinner-border').removeClass('d-none');
@@ -1022,33 +1668,50 @@ function saveCustomer() {
             if (response.success) {
                 customersTable.ajax.reload();
                 $('#customerModal').modal('hide');
-                showToast('success', isEditMode ? 'Customer updated successfully!' : 'Customer created successfully!');
+                
+                // Show success message with default password if provided
+                let successMessage = isEditMode ? 'Customer updated successfully!' : 'Customer created successfully!';
+                if (response.data && response.data.default_password) {
+                    successMessage += ` Default password: ${response.data.default_password}`;
+                } else if (!isEditMode && !$('#field_password').val()) {
+                    // If password field was empty, show default password
+                    successMessage += ' Default password: Password@123';
+                }
+                
+                showToast('success', successMessage);
             } else {
                 showErrors(response.errors || {});
             }
         },
         error: function(xhr) {
+            console.error('=== Error Response ===');
+            console.error('Status:', xhr.status);
+            console.error('Response:', xhr.responseJSON);
+            
             if (xhr.status === 422) {
                 const errors = xhr.responseJSON.errors || {};
+                console.error('Validation Errors:', errors);
                 showErrors(errors);
                 
                 // Show toastr with error summary
                 const errorMessages = [];
                 Object.keys(errors).forEach(key => {
                     if (errors[key] && errors[key].length > 0) {
-                        errorMessages.push(errors[key][0]);
+                        errorMessages.push(`${key}: ${errors[key][0]}`);
                     }
                 });
                 
                 if (errorMessages.length > 0) {
-                    const errorSummary = errorMessages.slice(0, 3).join(', ');
-                    const moreErrors = errorMessages.length > 3 ? ` and ${errorMessages.length - 3} more` : '';
+                    const errorSummary = errorMessages.slice(0, 5).join('; ');
+                    const moreErrors = errorMessages.length > 5 ? ` and ${errorMessages.length - 5} more` : '';
                     showToast('error', `Validation errors: ${errorSummary}${moreErrors}`);
                 } else {
                     showToast('error', 'Please fix the validation errors');
                 }
             } else {
-                showToast('error', 'Error saving customer');
+                const errorMsg = xhr.responseJSON?.message || 'Error saving customer';
+                console.error('Error message:', errorMsg);
+                showToast('error', errorMsg);
             }
         },
         complete: function() {

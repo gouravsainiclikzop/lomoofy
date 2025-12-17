@@ -53,7 +53,7 @@
                         <select class="form-select" id="filterCategory">
                             <option value="">All Categories</option>
                             @php
-                                $allCategories = \App\Models\Category::active()->with('parent')->get();
+                                $allCategories = \App\Models\Category::active()->with('parent')->get(); 
                                 $categoriesById = $allCategories->keyBy('id');
                                 function buildCategoryPath($category, $categoriesById) {
                                     $path = [];
@@ -178,65 +178,75 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted mb-4">
-                    Start by downloading the templates below. Populate them with your product data, then upload the completed file. 
-                </p>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h6 class="card-title d-flex align-items-center gap-2">
-                                    <i class="fas fa-table text-primary"></i> Main Templates
-                                </h6>
-                                <p class="small text-muted mb-3">Use these files to prepare your core product details.</p>
-                                <div class="d-grid gap-2">
-                                    <a class="btn btn-outline-primary btn-sm" href="{{ asset('import-templates/products-template.xlsx') }}" download>
-                                        <i class="fas fa-file-excel"></i> Download Excel Template
+                <div class="mb-4">
+                  
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-body p-3">
+                                    <h6 class="card-title mb-2">
+                                        <i class="fas fa-file-excel text-primary me-2"></i>Complete Excel Template
+                                    </h6>
+                                    <div class="d-flex justify-content-between mb-5">
+                                    <p class="card-text small mb-2">Contains all sheets: Products, Variants, and Images</p>
+                                    <a class="btn btn-sm btn-primary" href="{{ asset('import-templates/products-template.xlsx') }}" download>
+                                        <i class="fas fa-download me-1"></i> Download Excel (.xlsx)
                                     </a>
-                                    <a class="btn btn-outline-primary btn-sm" href="{{ asset('import-templates/products-template.csv') }}" download>
-                                        <i class="fas fa-file-csv"></i> Download CSV Template
+                            </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-secondary">
+                                <div class="card-body p-3">
+                                    <h6 class="card-title mb-2">
+                                        <i class="fas fa-file-csv text-secondary me-2"></i>Products Template
+                                    </h6> 
+                                    <a class="btn btn-sm btn-outline-secondary" href="{{ asset('import-templates/products-only-template.csv') }}" download>
+                                        <i class="fas fa-download me-1"></i> Download CSV
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-secondary">
+                                <div class="card-body p-3">
+                                    <h6 class="card-title mb-2">
+                                        <i class="fas fa-file-csv text-secondary me-2"></i>Variants Template
+                                    </h6> 
+                                    <a class="btn btn-sm btn-outline-secondary" href="{{ asset('import-templates/variants-only-template.csv') }}" download>
+                                        <i class="fas fa-download me-1"></i> Download CSV
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-secondary">
+                                <div class="card-body p-3">
+                                    <h6 class="card-title mb-2">
+                                        <i class="fas fa-file-csv text-secondary me-2"></i>Images Template
+                                    </h6> 
+                                    <a class="btn btn-sm btn-outline-secondary" href="{{ asset('import-templates/images-only-template.csv') }}" download>
+                                        <i class="fas fa-download me-1"></i> Download CSV
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h6 class="card-title d-flex align-items-center gap-2">
-                                    <i class="fas fa-layer-group text-primary"></i> Related Data
-                                </h6>
-                                <p class="small text-muted mb-3">Variant and image details live in separate optional sheets.</p>
-                                <div class="d-grid gap-2">
-                                    <a class="btn btn-outline-secondary btn-sm" href="{{ asset('import-templates/product-variants-template.csv') }}" download>
-                                        <i class="fas fa-random"></i> Variant CSV Template
-                                    </a>
-                                    <a class="btn btn-outline-secondary btn-sm" href="{{ asset('import-templates/product-images-template.csv') }}" download>
-                                        <i class="fas fa-image"></i> Image CSV Template
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </div> 
 
+               
 
                 <form id="productImportForm" action="{{ route('products.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
-                        <label for="productImportFile" class="form-label">Upload Completed Template</label>
+                        <label for="productImportFile" class="form-label">Upload Completed File</label>
                         <input class="form-control" type="file" id="productImportFile" name="product_import_file" accept=".xlsx,.csv" required>
                         <div class="form-text">
-                            Upload the filled `products-template.xlsx` workbook (includes Products, Variants, Images sheets) or the CSV equivalent.
+                            <strong>Recommended:</strong> Use the Excel template (.xlsx) with all sheets (Products, Variants, Images) for complete import.<br>
+                         
                         </div>
-                    </div>
-                    <div class="alert alert-info d-flex align-items-start gap-2">
-                        <i class="fas fa-info-circle mt-1"></i>
-                        <div>
-                            Ensure that referenced brands, categories, attributes, and images already exist in the system. Use slugs or IDs that match your current database to avoid validation errors during import.
-                        </div>
-                    </div>
+                    </div> 
                 </form>
 
                 <div class="alert alert-secondary d-none mt-4" id="productImportSummary"></div>
@@ -251,60 +261,6 @@
                     </span>
                 </button>
             </div>
-            
-            <div class="card mb-4">
-                    <div class="card-header bg-light">
-                        <h6 class="card-title mb-0 d-flex align-items-center gap-2">
-                            <i class="fas fa-download text-success"></i> Export Existing Data
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="small text-muted mb-3">Export your current data to CSV/Excel for editing and re-importing.</p>
-                        <div class="row g-2">
-                            <div class="col-md-6">
-                                <a href="{{ route('exports.brands', ['format' => 'csv']) }}" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-file-csv"></i> Export Brands (CSV)
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="{{ route('exports.brands', ['format' => 'xlsx']) }}" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-file-excel"></i> Export Brands (Excel)
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="{{ route('exports.categories', ['format' => 'csv']) }}" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-file-csv"></i> Export Categories (CSV)
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="{{ route('exports.categories', ['format' => 'xlsx']) }}" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-file-excel"></i> Export Categories (Excel)
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="{{ route('exports.products', ['format' => 'csv']) }}" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-file-csv"></i> Export Products (CSV)
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="{{ route('exports.products', ['format' => 'xlsx']) }}" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-file-excel"></i> Export Products (Excel)
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="{{ route('exports.variants', ['format' => 'csv']) }}" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-file-csv"></i> Export Variants (CSV)
-                                </a>
-                            </div>
-                            <div class="col-md-6">
-                                <a href="{{ route('exports.variants', ['format' => 'xlsx']) }}" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-file-excel"></i> Export Variants (Excel)
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-          
         </div>
     </div>
 </div>

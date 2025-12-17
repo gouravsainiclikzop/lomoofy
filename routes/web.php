@@ -11,6 +11,7 @@ use App\Http\Controllers\FrontendController;
 Route::get('/', [FrontendController::class, 'index'])->name('frontend.index');
 Route::get('/shop', [FrontendController::class, 'shop'])->name('frontend.shop');
 Route::get('/product', [FrontendController::class, 'product'])->name('frontend.product');
+Route::get('/api/product-quick-view', [FrontendController::class, 'getProductQuickView'])->name('frontend.product.quickview');
 Route::get('/about-us', [FrontendController::class, 'aboutUs'])->name('frontend.about-us');
 Route::get('/contact', [FrontendController::class, 'contact'])->name('frontend.contact');
 Route::get('/privacy', [FrontendController::class, 'privacy'])->name('frontend.privacy');

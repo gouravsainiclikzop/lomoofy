@@ -1,4 +1,0 @@
-Product SKU,Variant SKU,Variant Name,Attributes JSON,Price,Sale Price,Cost Price,Stock Quantity,Manage Stock (0 or 1),Stock Status,Is Active (0 or 1),Discount Type,Discount Value,Discount Active,Measurements JSON,Weight,Length,Width,Height,Diameter
-SKU-001,SKU-001-V1,Variant Option 1,"{""color"":""Black"",""storage"":""128GB""}",100.00,90.00,80.00,10,1,in_stock,1,percentage,10,1,"[]",,,,,
-
-

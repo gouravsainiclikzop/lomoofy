@@ -437,14 +437,8 @@ class FieldManagementController extends Controller
     {
         $field = FieldManagement::findOrFail($id);
         
-        // Prevent making system fields optional
-        if ($field->isSystemField() && !$request->is_required) {
-            return response()->json([
-                'success' => false,
-                'message' => 'System fields must remain required. These are core required fields.',
-            ], 403);
-        }
-        
+        // Allow toggling required status for all fields, including system fields
+        // System fields can be made optional if needed
         $field->is_required = $request->is_required;
         $field->save();
 

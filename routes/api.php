@@ -54,6 +54,15 @@ Route::prefix('cart')->group(function () {
     Route::delete('/coupon', [\App\Http\Controllers\Api\CartApiController::class, 'removeCoupon']); // Remove coupon
 })->middleware('api'); // Ensure API middleware is applied
 
+// Wishlist API Routes
+Route::prefix('wishlist')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\WishlistApiController::class, 'index']); // Get wishlist items
+    Route::get('/count', [\App\Http\Controllers\Api\WishlistApiController::class, 'count']); // Get wishlist count
+    Route::post('/', [\App\Http\Controllers\Api\WishlistApiController::class, 'store']); // Add product to wishlist
+    Route::delete('/{id}', [\App\Http\Controllers\Api\WishlistApiController::class, 'destroy']); // Remove wishlist item by ID
+    Route::delete('/product/{productId}', [\App\Http\Controllers\Api\WishlistApiController::class, 'removeByProduct']); // Remove wishlist item by product ID
+})->middleware('api');
+
 // Order API Routes
 Route::prefix('orders')->middleware('auth:sanctum')->group(function () {
     Route::get('/validate-cart', [\App\Http\Controllers\Api\OrderApiController::class, 'validateCart']);  

@@ -84,8 +84,8 @@
 						</a>
 					</li>
 					<li>
-						<a href="{{ route('frontend.wishlist') }}">
-							<i class="lni lni-heart"></i><span class="dn-counter">2</span>
+						<a href="{{ route('frontend.wishlist') }}" class="wishlist-link">
+							<i class="lni lni-heart"></i><span class="dn-counter">0</span>
 						</a>
 					</li>
 					<li>
@@ -219,7 +219,7 @@
 								</li> 
 								
 								<li class="main-menu-item"><a href="{{ route('frontend.my-orders') }}"> <i class="lni lni-dashboard"></i> My Orders</a></li>
-								<li class="main-menu-item"><a href="{{ route('frontend.wishlist') }}"> <i class="lni lni-heart"></i> Wishlist</a></li>
+								<li class="main-menu-item"><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"> <i class="lni lni-heart"></i> Wishlist</a></li>
 								<li class="main-menu-item"><a href="{{ route('frontend.profile-info') }}"> <i class="lni lni-user"></i> Profile Info</a></li>
 								<li class="main-menu-item"><a href="{{ route('frontend.addresses') }}"> <i class="lni lni-map-marker"></i> Addresses</a></li>
 								<li class="main-menu-item"><a href="{{ route('frontend.payment-methode') }}"> <i class="lni lni-mastercard"></i> Payment Methode</a></li>
@@ -227,363 +227,94 @@
 									<i class="lni lni-power-switch"></i>   Log Out</a></li>
 								
 
+					@php 
+						// Get parent categories (level 0) with their children (level 1) and grandchildren (level 2)
+						$parentCategories = App\Models\Category::whereNull('parent_id')
+							->where(function($q) {
+								$q->where('is_active', true)->orWhereNull('is_active');
+							})
+							->with(['children' => function($query) {
+								$query->where(function($q) {
+									$q->where('is_active', true)->orWhereNull('is_active');
+								})
+								->orderBy('sort_order')
+								->with(['children' => function($q) {
+									$q->where(function($query) {
+										$query->where('is_active', true)->orWhereNull('is_active');
+									})
+									->orderBy('sort_order');
+								}]);
+							}])
+							->orderBy('sort_order')
+							->get();
+					@endphp
 
-					 
-
-					<li class="mega-menu-item">
-						<a href="{{ route('frontend.shop') }}?category=men">
-							Men
-							<span class="submenu-indicator">
-								<span class="submenu-indicator-chevron"></span>
-							</span>
-						</a>
-						<!-- Mega Menu Panel -->
-						<div class="mega-menu-panel">
-							<div class="mega-menu-container">
-								<div class="mega-menu-row">
-									<!-- Column 1: T-Shirts & Shirts -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">T-Shirts</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-essential-t-shirts">Essential</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-fashion-t-shirts">Fashion</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-stripes-t-shirts">Stripes</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-pocket-t-shirts">Pocket T-Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-graphic-t-shirts">Graphic T-Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-slogan-t-shirts">Slogan T-Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-fullsleeve-t-shirts">Fullsleeve</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-vneck-t-shirts">Fullsleeve V-Necks</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Shirts</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-casual-shirts">Casual Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-formal-shirts">Formal Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-slim-fit-shirts">Slim Fit Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-regular-fit-shirts">Regular Fit Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-checked-shirts">Checked Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-striped-shirts">Striped Shirts</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 2: Bottomwear & Winter Wear -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Bottomwear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-jeans">Jeans</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-trousers">Trousers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-chinos">Chinos</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-cargos">Cargos</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-shorts">Shorts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-track-pants">Track Pants</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Winter Wear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-sweatshirt-hoodies">Sweatshirt and Hoodies</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-sweater-cardigans">Sweater and Cardigans</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-jackets-coats">Jackets and Coats</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-tracksuits">Tracksuits</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-thermal-wear">Thermal Wear</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 3: Footwear & Sports -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Footwear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-casual-shoes">Casual Shoes</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-formal-shoes">Formal Shoes</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-sports-shoes">Sports Shoes</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-sneakers">Sneakers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-sandals">Sandals</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-loafers">Loafers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-boots">Boots</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Sports And Gym Wear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-sports-t-shirts">T-Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-sports-shorts">Shorts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-sports-pants">Track Pants</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-gym-wear">Gym Wear</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 4: Innerwear & Ethnic Wear -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Innerwear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-vests">Vests</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-briefs">Briefs</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-boxers">Boxers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-thermals">Thermals</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-nightwear">Nightwear</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Ethnic Wear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-kurtas">Kurtas</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-sherwanis">Sherwanis</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-dhotis">Dhotis</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-pyjamas">Pyjamas</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 5: Accessories & Personal Care -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Accessories</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-watches">Watches</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-belts">Belts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-wallets">Wallets</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-sunglasses">Sunglasses</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-caps">Caps & Hats</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-bags">Bags & Backpacks</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-ties">Ties & Cufflinks</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Personal Care</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=men-fragrance">Fragrance</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-grooming">Grooming</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=men-skincare">Skincare</a></li>
-										</ul>
+					@foreach($parentCategories as $parentCategory)
+						@php
+							$hasChildren = $parentCategory->children && $parentCategory->children->count() > 0;
+						@endphp
+						<li class="mega-menu-item">
+							<a href="{{ route('frontend.shop') }}?category={{ $parentCategory->slug }}">
+								{{ $parentCategory->name }}
+								@if($hasChildren)
+									<span class="submenu-indicator">
+										<span class="submenu-indicator-chevron"></span>
+									</span>
+								@endif
+							</a>
+							@if($hasChildren)
+								<!-- Mega Menu Panel -->
+								<div class="mega-menu-panel">
+									<div class="mega-menu-container">
+										<div class="mega-menu-row">
+											@php
+												// Group level 1 children into columns (max 5 columns)
+												$children = $parentCategory->children;
+												$columnCount = min(5, max(1, $children->count()));
+												$itemsPerColumn = ceil($children->count() / $columnCount);
+												$columns = $children->chunk($itemsPerColumn);
+											@endphp
+											
+											@foreach($columns as $columnIndex => $columnCategories)
+												<div class="mega-menu-column">
+													@foreach($columnCategories as $childCategory)
+														@php
+															$hasGrandchildren = $childCategory->children && $childCategory->children->count() > 0;
+														@endphp
+														<div class="mega-menu-title">
+															<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}">
+																{{ $childCategory->name }}
+															</a>
+														</div>
+														<ul class="mega-menu-list">
+															@if($hasGrandchildren)
+																@foreach($childCategory->children as $grandchildCategory)
+																	<li>
+																		<a href="{{ route('frontend.shop') }}?category={{ $grandchildCategory->slug }}">
+																			{{ $grandchildCategory->name }}
+																		</a>
+																	</li>
+																@endforeach
+															@else
+																<li>
+																	<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}">
+																		View All
+																	</a>
+																</li>
+															@endif
+														</ul>
+														@if(!$loop->last && $columnCategories->count() > 1)
+															<div style="margin-top: 25px;"></div>
+														@endif
+													@endforeach
+												</div>
+											@endforeach
+										</div>
 									</div>
 								</div>
-							</div>
-						</div>
-					</li>
-
-					<!-- Level 1: Women - Mega Menu -->
-					<li class="mega-menu-item">
-						<a href="{{ route('frontend.shop') }}?category=women">
-							Women
-							<span class="submenu-indicator">
-								<span class="submenu-indicator-chevron"></span>
-							</span>
-						</a>
-						<!-- Mega Menu Panel -->
-						<div class="mega-menu-panel">
-							<div class="mega-menu-container">
-								<div class="mega-menu-row">
-									<!-- Column 1: Western Wear & Ethnic Wear -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Western Wear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-dresses">Dress</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-tops">Tops</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-tees-shirts">Tees & Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-skirts">Skirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-trousers">Trousers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-shorts">Shorts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-jeans">Jeans</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Ethnic Wear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-ethnic-suits">Ethnic Suits</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-stitched-suits">Stitched Suits</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-kurtis">Kurtis</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-sarees">Sarees</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-tunics">Tunics</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-premium-suits">Premium Suits Fabric</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 2: Winter Wear & Sports -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Winter Wear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-sweatshirt-hoodies">Sweatshirt and Hoodies</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-sweater-cardigans">Sweater and Cardigans</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-jackets-coats">Jackets and Coats</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-tracksuits-pjs">Tracksuits and PJs</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-poncho-shawls">Poncho and Shawls</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-winter-bottomwear">Winter Bottomwear</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Sports And Gym Wear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-sports-t-shirts">T-Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-track-pants-capris">Track Pants and Capris</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-sports-bras">Sports Bras</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-sports-shorts">Shorts</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 3: Jewellery, Leggings & Footwear -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Jewellery</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-jewellery-all">All Jewellery</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Leggings / Jeggings / Palazzos</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-palazzos">Palazzos</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-printed-leggings">Printed Leggings/Jeggings</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-solid-leggings">Solid Color Leggings</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Footwear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-flats">Flats</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-heels">Heels</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-flip-flops">Flip Flops</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-loafers">Loafers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-sneakers">Sneakers</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 4: Lingerie -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Lingerie</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-night-wear">Night Wear</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-brassiere">Brassiere</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-panties">Panties</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-plus-size">Plus Size</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-stockings">Stockings</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-swimwear-beachwear">Swimwear / Beachwear</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-shapewear">Shapewear</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-g-strings-thongs">G-Strings & Thongs</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-thermal-wear">Thermal Wear</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-lingerie-bags">Lingerie Bags</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-camisoles">Camisoles</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 5: Home Decor, Gifts, Bags, Accessories, Personal Care -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Home Decor</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-home-decor-all">All Home Decor</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Gifts</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-gifts-all">All Gifts</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Bags</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-bags-all">All Bags</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Accessories</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-accessories-all">All Accessories</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Personal Care</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=women-fragrance">Fragrance</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-beauty">Beauty</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-masks">Masks</a></li>
-										</ul>
-									</div>
-								</div>
-							</div>
-						</div>
-					</li>
-
-					<!-- Level 1: Kids - Mega Menu -->
-					<li class="mega-menu-item">
-						<a href="{{ route('frontend.shop') }}?category=kids">
-							Kids
-							<span class="submenu-indicator">
-								<span class="submenu-indicator-chevron"></span>
-							</span>
-						</a>
-						<!-- Mega Menu Panel -->
-						<div class="mega-menu-panel">
-							<div class="mega-menu-container">
-								<div class="mega-menu-row">
-									<!-- Column 1: Kids Clothing -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Kids Clothing</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-boys">Boys</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-girls">Girls</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-babies">Babies</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-toddlers">Toddlers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-newborn">Newborn</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-t-shirts">T-Shirts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-dresses">Dresses</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-jeans">Jeans</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-shorts">Shorts</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 2: Kids Shoes & Winter Wear -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Kids Shoes</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-casual-shoes">Casual Shoes</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-sports-shoes">Sports Shoes</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-sandals">Sandals</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-boots">Boots</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-sneakers">Sneakers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-flip-flops">Flip Flops</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Winter Wear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-jackets">Jackets</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-sweaters">Sweaters</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-thermal-wear">Thermal Wear</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-gloves">Gloves & Mittens</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-hoodies">Hoodies</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 3: Toys & Games -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Toys & Games</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-action-figures">Action Figures</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-dolls">Dolls</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-building-blocks">Building Blocks</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-board-games">Board Games</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-puzzles">Puzzles</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-remote-control">Remote Control Toys</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-educational-toys">Educational Toys</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-outdoor-toys">Outdoor Toys</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 4: Accessories & School Essentials -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Kids Accessories</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-bags">Bags & Backpacks</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-watches">Watches</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-hats">Hats & Caps</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-sunglasses">Sunglasses</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-belts">Belts</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">School Essentials</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-uniforms">Uniforms</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-stationery">Stationery</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-lunch-boxes">Lunch Boxes</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-water-bottles">Water Bottles</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-school-bags">School Bags</a></li>
-										</ul>
-									</div>
-
-									<!-- Column 5: Swimwear, Baby Care & More -->
-									<div class="mega-menu-column">
-										<div class="mega-menu-title">Swimwear</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-swimsuits">Swimsuits</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-swim-shorts">Swim Shorts</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-swim-accessories">Swim Accessories</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Baby Care</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-diapers">Diapers</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-baby-clothes">Baby Clothes</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-feeding">Feeding</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-baby-toys">Baby Toys</a></li>
-										</ul>
-										<div class="mega-menu-title" style="margin-top: 25px;">Sports & Active</div>
-										<ul class="mega-menu-list">
-											<li><a href="{{ route('frontend.shop') }}?category=kids-sports-wear">Sports Wear</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=kids-active-wear">Active Wear</a></li>
-										</ul>
-									</div>
-								</div>
-							</div>
-						</div>
-					</li>
+							@endif
+						</li>
+					@endforeach
 
 					<!-- 
 					Dynamic Category Code (Commented - Uncomment when ready to use):
@@ -688,7 +419,7 @@
 					</a>
 					<ul class="nav-dropdown nav-submenu">
 						<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
-						<li><a href="{{ route('frontend.wishlist') }}"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
+						<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
 						<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i>Profile Info</a></li>
 						<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Addresses</a></li>
 						<li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li>
@@ -696,8 +427,8 @@
 					</ul>
 				</li>
 					<li>
-						<a href="{{ route('frontend.wishlist') }}">
-							<i class="lni lni-heart"></i><span class="dn-counter">2</span>
+						<a href="{{ route('frontend.wishlist') }}" class="wishlist-link">
+							<i class="lni lni-heart"></i><span class="dn-counter">0</span>
 						</a>
 					</li>
 					<li>

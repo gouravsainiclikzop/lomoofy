@@ -1,0 +1,5 @@
+Product Name,Product Slug,Image Path or URL,Is Primary (0 or 1),Sort Order,Alt Text
+Sample T-Shirt,sample-t-shirt,products/sample-t-shirt-front.jpg,1,0,Sample T-Shirt Front View
+Sample T-Shirt,,products/sample-t-shirt-back.jpg,0,1,Sample T-Shirt Back View
+Sample T-Shirt,,products/sample-t-shirt-side.jpg,0,2,Sample T-Shirt Side View
+

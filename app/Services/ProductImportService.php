@@ -81,26 +81,31 @@ class ProductImportService
         }
 
         $products = $dataset['products'] ?? [];
-        $variants = $this->groupRowsByKey($dataset['variants'] ?? [], 'product_sku');
-        $images = $this->groupRowsByKey($dataset['images'] ?? [], 'product_sku');
+        // Group variants and images by product identifier (name or slug)
+        $variants = $this->groupVariantsByProduct($dataset['variants'] ?? [], $products);
+        $images = $this->groupImagesByProduct($dataset['images'] ?? [], $products);
 
         foreach ($products as $index => $productRow) {
             $rowNumber = $productRow['_row'] ?? ($index + 2); // header occupies first row
 
-            $sku = trim((string) ($productRow['product_sku'] ?? ''));
-            if ($sku === '') {
+            $name = trim((string) ($productRow['product_name'] ?? $productRow['name'] ?? ''));
+            if ($name === '') {
                 $result['errors'][] = [
                     'row' => $rowNumber,
                     'identifier' => null,
-                    'message' => 'Product SKU is required.',
+                    'message' => 'Product Name is required.',
                 ];
                 $result['skipped']++;
                 continue;
             }
 
+            // Use slug if provided, otherwise generate from name
+            $slugInput = $productRow['seo_slug'] ?? $productRow['product_slug'] ?? $productRow['slug'] ?? $name;
+            $productIdentifier = Str::slug((string) $slugInput);
+
             try {
-                $importOutcome = DB::transaction(function () use ($sku, $productRow, $variants, $images) {
-                    return $this->upsertProduct($sku, $productRow, $variants[$sku] ?? [], $images[$sku] ?? []);
+                $importOutcome = DB::transaction(function () use ($productIdentifier, $productRow, $variants, $images) {
+                    return $this->upsertProduct($productIdentifier, $productRow, $variants[$productIdentifier] ?? [], $images[$productIdentifier] ?? []);
                 }, 3);
 
                 if ($importOutcome === 'created') {
@@ -126,14 +131,24 @@ class ProductImportService
             }
         }
 
-        $missingVariantKeys = array_diff(array_keys($variants), array_column($products, 'product_sku'));
-        foreach ($missingVariantKeys as $missingSku) {
-            $result['warnings'][] = "Variants provided for SKU {$missingSku}, but the product sheet does not contain this SKU. The variants were ignored.";
+        // Generate product identifiers for all products
+        $productIdentifiers = [];
+        foreach ($products as $productRow) {
+            $name = trim((string) ($productRow['product_name'] ?? $productRow['name'] ?? ''));
+            if ($name !== '') {
+                $slugInput = $productRow['seo_slug'] ?? $productRow['product_slug'] ?? $productRow['slug'] ?? $name;
+                $productIdentifiers[] = Str::slug((string) $slugInput);
+            }
         }
 
-        $missingImageKeys = array_diff(array_keys($images), array_column($products, 'product_sku'));
-        foreach ($missingImageKeys as $missingSku) {
-            $result['warnings'][] = "Images provided for SKU {$missingSku}, but the product sheet does not contain this SKU. The images were ignored.";
+        $missingVariantKeys = array_diff(array_keys($variants), $productIdentifiers);
+        foreach ($missingVariantKeys as $missingIdentifier) {
+            $result['warnings'][] = "Variants provided for product identifier '{$missingIdentifier}', but the product sheet does not contain this product. The variants were ignored.";
+        }
+
+        $missingImageKeys = array_diff(array_keys($images), $productIdentifiers);
+        foreach ($missingImageKeys as $missingIdentifier) {
+            $result['warnings'][] = "Images provided for product identifier '{$missingIdentifier}', but the product sheet does not contain this product. The images were ignored.";
         }
 
         return $result;
@@ -366,31 +381,178 @@ class ProductImportService
     }
 
     /**
+     * Group variant rows by product identifier (name or slug).
+     * Supports both product_sku (legacy) and product_name/product_slug (new structure).
+     *
+     * @param  array<int,array<string,mixed>>  $variantRows
+     * @param  array<int,array<string,mixed>>  $productRows
+     * @return array<string,array<int,array<string,mixed>>>
+     */
+    private function groupVariantsByProduct(array $variantRows, array $productRows): array
+    {
+        // Create a mapping from product_sku/name to product identifier
+        $productMap = [];
+        foreach ($productRows as $productRow) {
+            $name = trim((string) ($productRow['product_name'] ?? $productRow['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            
+            $slugInput = $productRow['seo_slug'] ?? $productRow['product_slug'] ?? $productRow['slug'] ?? $name;
+            $identifier = Str::slug((string) $slugInput);
+            
+            // Map both legacy SKU and name to identifier
+            $sku = trim((string) ($productRow['product_sku'] ?? ''));
+            if ($sku !== '') {
+                $productMap[$sku] = $identifier;
+            }
+            $productMap[$name] = $identifier;
+            $productMap[Str::slug($name)] = $identifier;
+        }
+
+        $grouped = [];
+
+        foreach ($variantRows as $row) {
+            // Try to find product identifier from variant row
+            $productKey = null;
+            
+            // Try product_sku first (legacy support)
+            $sku = trim((string) ($row['product_sku'] ?? ''));
+            if ($sku !== '' && isset($productMap[$sku])) {
+                $productKey = $productMap[$sku];
+            }
+            
+            // Try product_name
+            if (!$productKey) {
+                $variantProductName = trim((string) ($row['product_name'] ?? ''));
+                if ($variantProductName !== '' && isset($productMap[$variantProductName])) {
+                    $productKey = $productMap[$variantProductName];
+                } elseif ($variantProductName !== '') {
+                    $productKey = Str::slug($variantProductName);
+                }
+            }
+            
+            // Try product_slug
+            if (!$productKey) {
+                $variantProductSlug = trim((string) ($row['product_slug'] ?? $row['slug'] ?? ''));
+                if ($variantProductSlug !== '') {
+                    $productKey = Str::slug($variantProductSlug);
+                }
+            }
+
+            if ($productKey === null || $productKey === '') {
+                continue;
+            }
+
+            if (!isset($grouped[$productKey])) {
+                $grouped[$productKey] = [];
+            }
+
+            $grouped[$productKey][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Group image rows by product identifier (name or slug).
+     * Supports both product_sku (legacy) and product_name/product_slug (new structure).
+     *
+     * @param  array<int,array<string,mixed>>  $imageRows
+     * @param  array<int,array<string,mixed>>  $productRows
+     * @return array<string,array<int,array<string,mixed>>>
+     */
+    private function groupImagesByProduct(array $imageRows, array $productRows): array
+    {
+        // Create a mapping from product_sku/name to product identifier
+        $productMap = [];
+        foreach ($productRows as $productRow) {
+            $name = trim((string) ($productRow['product_name'] ?? $productRow['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            
+            $slugInput = $productRow['seo_slug'] ?? $productRow['product_slug'] ?? $productRow['slug'] ?? $name;
+            $identifier = Str::slug((string) $slugInput);
+            
+            // Map both legacy SKU and name to identifier
+            $sku = trim((string) ($productRow['product_sku'] ?? ''));
+            if ($sku !== '') {
+                $productMap[$sku] = $identifier;
+            }
+            $productMap[$name] = $identifier;
+            $productMap[Str::slug($name)] = $identifier;
+        }
+
+        $grouped = [];
+
+        foreach ($imageRows as $row) {
+            // Try to find product identifier from image row
+            $productKey = null;
+            
+            // Try product_sku first (legacy support)
+            $sku = trim((string) ($row['product_sku'] ?? ''));
+            if ($sku !== '' && isset($productMap[$sku])) {
+                $productKey = $productMap[$sku];
+            }
+            
+            // Try product_name
+            if (!$productKey) {
+                $imageProductName = trim((string) ($row['product_name'] ?? ''));
+                if ($imageProductName !== '' && isset($productMap[$imageProductName])) {
+                    $productKey = $productMap[$imageProductName];
+                } elseif ($imageProductName !== '') {
+                    $productKey = Str::slug($imageProductName);
+                }
+            }
+            
+            // Try product_slug
+            if (!$productKey) {
+                $imageProductSlug = trim((string) ($row['product_slug'] ?? $row['slug'] ?? ''));
+                if ($imageProductSlug !== '') {
+                    $productKey = Str::slug($imageProductSlug);
+                }
+            }
+
+            if ($productKey === null || $productKey === '') {
+                continue;
+            }
+
+            if (!isset($grouped[$productKey])) {
+                $grouped[$productKey] = [];
+            }
+
+            $grouped[$productKey][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
      * Upsert a product and its related entities.
      *
+     * @param  string  $productIdentifier  Product slug/identifier
      * @param  array<string,mixed>  $productRow
      * @param  array<int,array<string,mixed>>  $variantRows
      * @param  array<int,array<string,mixed>>  $imageRows
      */
-    private function upsertProduct(string $sku, array $productRow, array $variantRows, array $imageRows): string
+    private function upsertProduct(string $productIdentifier, array $productRow, array $variantRows, array $imageRows): string
     {
-        $product = Product::with(['brands', 'categories', 'variants', 'images'])->where('sku', $sku)->first();
+        // Find product by slug (or name if slug not found)
+        $product = Product::with(['brands', 'categories', 'variants', 'images'])
+            ->where('slug', $productIdentifier)
+            ->first();
+        
         $isNew = false;
 
         if (!$product) {
             $product = new Product();
-            $product->sku = $sku;
             $isNew = true;
         }
 
-        $name = $productRow['product_name'] ?? $product->name ?? null;
+        $name = $productRow['product_name'] ?? $productRow['name'] ?? $product->name ?? null;
         if (!$name) {
             throw new \RuntimeException('Product Name is required.');
-        }
-
-        $type = strtolower((string) ($productRow['product_type'] ?? $product->type ?? 'simple'));
-        if (!in_array($type, $this->allowedProductTypes, true)) {
-            $type = 'simple';
         }
 
         $status = strtolower((string) ($productRow['status'] ?? $product->status ?? 'hidden'));
@@ -398,9 +560,8 @@ class ProductImportService
             $status = 'hidden';
         }
 
-        $price = $this->toDecimal($productRow['price'] ?? null);
-        $salePrice = $this->toDecimal($productRow['sale_price'] ?? null);
-
+        // Note: Price and sale_price are now variant-level only, removed from product
+        // Note: 'type' field was removed from products table - all products support variants
         $slugInput = $productRow['seo_slug'] ?? $productRow['product_slug'] ?? $productRow['slug'] ?? $name;
         $slugCandidate = Str::slug((string) $slugInput);
         $slug = $this->generateUniqueSlug($slugCandidate, $product->id);
@@ -410,11 +571,16 @@ class ProductImportService
             'slug' => $slug,
             'description' => $productRow['description'] ?? $product->description,
             'short_description' => $productRow['short_description'] ?? $product->short_description,
-            'type' => $type,
-            'price' => $price,
-            'sale_price' => $salePrice,
             'status' => $status,
-            'tags' => $this->normalizeTags($productRow['tag_list'] ?? null),
+            'featured' => $this->toBoolean($productRow['featured'] ?? $productRow['is_featured'] ?? null, false),
+            'tags' => $this->normalizeTags($productRow['tag_list'] ?? $productRow['tags'] ?? null),
+            'gst_type' => $this->toBoolean($productRow['gst_type'] ?? null, true),
+            'gst_percentage' => $productRow['gst_percentage'] ?? $product->gst_percentage ?? null,
+            'requires_shipping' => $this->toBoolean($productRow['requires_shipping'] ?? null, true),
+            'free_shipping' => $this->toBoolean($productRow['free_shipping'] ?? null, false),
+            'meta_title' => $productRow['meta_title'] ?? $product->meta_title ?? null,
+            'meta_description' => $productRow['meta_description'] ?? $product->meta_description ?? null,
+            'meta_keywords' => $productRow['meta_keywords'] ?? $product->meta_keywords ?? null,
         ]);
 
         $product->save();
@@ -602,9 +768,10 @@ class ProductImportService
         $sortOrder = 0;
 
         foreach ($variantRows as $row) {
-            $variantSku = trim((string) ($row['variant_sku'] ?? ''));
+            $variantSku = trim((string) ($row['variant_sku'] ?? $row['sku'] ?? ''));
             if ($variantSku === '') {
-                $variantSku = "{$product->sku}-V" . ($sortOrder + 1);
+                // Generate SKU from product slug and variant attributes or index
+                $variantSku = $product->slug . '-V' . ($sortOrder + 1);
             }
 
             $processedSkus[] = $variantSku;

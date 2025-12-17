@@ -134,8 +134,8 @@
 </div>
 
 <!-- Toast Container -->
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 10000;">
         <div class="toast-header">
             <i class="fas fa-info-circle text-primary me-2"></i>
             <strong class="me-auto">Notification</strong>
@@ -451,7 +451,7 @@
     position: sticky;
     bottom: 0;
     background-color: #fff;
-    z-index: 10;
+    z-index: 100;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
     margin-top: 2rem !important;
 }
@@ -916,7 +916,47 @@ function submitForm(button) {
             }
         },
         error: function(xhr, status, error) {
-            showToast('error', 'An error occurred while creating the product');
+            let errorMessage = 'An error occurred while ' + (isEdit ? 'updating' : 'creating') + ' the product';
+            
+            // Parse validation errors from response
+            if (xhr.responseJSON) {
+                if (xhr.responseJSON.errors) {
+                    // Build error message from validation errors
+                    const errors = xhr.responseJSON.errors;
+                    const errorMessages = [];
+                    
+                    // Collect all error messages
+                    Object.keys(errors).forEach(function(key) {
+                        if (Array.isArray(errors[key])) {
+                            errors[key].forEach(function(msg) {
+                                errorMessages.push(msg);
+                            });
+                        } else {
+                            errorMessages.push(errors[key]);
+                        }
+                    });
+                    
+                    if (errorMessages.length > 0) {
+                        // Show first few errors (limit to 3 to avoid overwhelming)
+                        const displayErrors = errorMessages.slice(0, 3);
+                        errorMessage = displayErrors.join('<br>');
+                        if (errorMessages.length > 3) {
+                            errorMessage += '<br><small>...and ' + (errorMessages.length - 3) + ' more error(s)</small>';
+                        }
+                    } else if (xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                } else if (xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+            }
+            
+            showToast('error', errorMessage);
+            
+            // Display validation errors in form fields
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                displayValidationErrors(xhr.responseJSON.errors);
+            }
         },
         complete: function() {
             $submitBtn.html(originalText);
@@ -1082,13 +1122,21 @@ function showToast(type, message) {
     const $toastBody = $toast.find('.toast-body');
     const $toastHeader = $toast.find('.toast-header');
     
-    $toastBody.text(message);
+    // Use html() instead of text() to support HTML content (like <br> tags)
+    $toastBody.html(message);
     
     if (type === 'success') {
         $toastHeader.html('<i class="fas fa-check-circle text-success me-2"></i><strong class="me-auto">Success</strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>');
     } else {
         $toastHeader.html('<i class="fas fa-times-circle text-danger me-2"></i><strong class="me-auto">Error</strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>');
     }
+    
+    // Ensure toast container has proper z-index
+    const $toastContainer = $toast.closest('.toast-container');
+    if ($toastContainer.length) {
+        $toastContainer.css('z-index', '9999');
+    }
+    $toast.css('z-index', '10000');
     
     if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
         const bsToast = new bootstrap.Toast($toast[0]);

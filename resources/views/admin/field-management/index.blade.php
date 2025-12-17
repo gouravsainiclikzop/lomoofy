@@ -229,7 +229,6 @@
                                                 <th>Input Type</th>
                                                 <th>Group</th>
                                                 <th>Required</th>
-                                                <th>Visible</th>
                                                 <th>Sort Order</th>
                                                 <th>Status</th>
                                                 <th>Type</th>
@@ -273,7 +272,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Input Type <span class="text-danger">*</span></label>
-                            <select class="form-select" id="fieldInputType" name="input_type" required>
+                            <select class="form-select" id="fieldInputType" name="input_type" required disabled readonly>
                                 <option value="">Select Type</option>
                                 <option value="text">Text</option>
                                 <option value="email">Email</option>
@@ -287,27 +286,11 @@
                                 <option value="date">Date</option>
                                 <option value="file">File</option>
                             </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Field Group</label>
-                            <select class="form-select" id="fieldGroup" name="field_group">
-                                <option value="">Select Group</option>
-                                <option value="basic_info">Basic Info</option>
-                                <option value="credentials">Credentials</option>
-                                <option value="address">Address</option>
-                                <option value="business">Business</option>
-                                <option value="preferences">Preferences</option>
-                                <option value="qol">Quality-of-Life</option>
-                                <option value="internal">Internal</option>
-                            </select>
+                            <small class="form-text text-muted">Input type cannot be changed when editing a field</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Placeholder</label>
                             <input type="text" class="form-control" id="fieldPlaceholder" name="placeholder">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Sort Order</label>
-                            <input type="number" class="form-control" id="fieldSortOrder" name="sort_order" value="0">
                         </div>
                         <div class="col-md-12">
                             <label class="form-label">
@@ -316,24 +299,6 @@
                             </label>
                             <div class="card bg-light">
                                 <div class="card-body">
-                                    <!-- Basic Requirements -->
-                                    <div class="mb-4 validation-section" id="valRequiredSection">
-                                        <h6 class="text-primary mb-3">
-                                            <i class='bx bx-check-circle'></i> Basic Requirements
-                                        </h6>
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="valRequired" name="val_required">
-                                                    <label class="form-check-label" for="valRequired">
-                                                        <strong>Field is Required</strong>
-                                                        <small class="d-block text-muted">User must fill this field before submitting</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
                                     <!-- Format Validation -->
                                     <div class="mb-4 validation-section" id="valEmailSection" style="display: none;">
                                         <hr>
@@ -479,19 +444,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Preview -->
-                                    <div class="mt-4 p-3 bg-white rounded border">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <div>
-                                                <strong class="text-muted">Generated Validation Rule:</strong>
-                                                <code id="validationPreview" class="ms-2">-</code>
-                                            </div>
-                                            <small class="text-muted">
-                                                <i class='bx bx-info-circle'></i> This is what will be saved
-                                            </small>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -503,12 +455,6 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="fieldRequired" name="is_required" value="1">
                                 <label class="form-check-label" for="fieldRequired">Required</label>
-                            </div>
-                        </div>
-                        <div class="col-md-12">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="fieldVisible" name="is_visible" value="1" checked>
-                                <label class="form-check-label" for="fieldVisible">Visible</label>
                             </div>
                         </div>
                         <div class="col-md-12">
@@ -530,11 +476,6 @@
                                     <div class="form-text mt-2">Add options for select/radio fields. Each option needs a value and label.</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-12" id="conditionalContainer" style="display: none;">
-                            <label class="form-label">Conditional Rules (JSON)</label>
-                            <textarea class="form-control" id="fieldConditionalRules" name="conditional_rules" rows="3" placeholder='{"depends_on": "field_key", "show_when": "value"}'></textarea>
-                            <div class="form-text">Enter as JSON object with "depends_on" and "show_when" keys</div>
                         </div>
                     </div>
                 </div>
@@ -605,7 +546,6 @@ $(document).ready(function() {
     } else {
         // Hide all sections by default if no input type selected
         $('.validation-section').hide();
-        $('#valRequiredSection').show();
     }
     
     // Add Option Button
@@ -618,10 +558,7 @@ $(document).ready(function() {
         $(this).closest('.option-row').remove();
     });
     
-    // Listen to validation rule changes
-    $('#valRequired, #valEmail, #valNumeric, #valAlpha, #valAlphaNum, #valUrl, #valMin, #valMax, #valMinVal, #valMaxVal').on('change input', function() {
-        updateValidationPreview();
-    });
+    // Listen to validation rule changes (validation preview removed)
     
     // Form Submission
     $('#fieldForm').on('submit', function(e) {
@@ -727,16 +664,6 @@ function initializeDataTable() {
                     return `<span class="badge ${badgeClass} ${row.is_system ? '' : 'toggle-required'}" data-id="${row.id}" data-value="${data ? 1 : 0}" style="cursor: ${cursor};" title="${title}">${text}</span>`;
                 }
             },
-            {
-                data: 'is_visible',
-                render: function(data, type, row) {
-                    const badgeClass = data ? 'bg-success' : 'bg-secondary';
-                    const text = data ? 'Yes' : 'No';
-                    const cursor = row.is_system ? 'not-allowed' : 'pointer';
-                    const title = row.is_system ? 'System field - Cannot be hidden' : 'Click to toggle';
-                    return `<span class="badge ${badgeClass} ${row.is_system ? '' : 'toggle-visible'}" data-id="${row.id}" data-value="${data ? 1 : 0}" style="cursor: ${cursor};" title="${title}">${text}</span>`;
-                }
-            },
             { data: 'sort_order' },
             {
                 data: 'is_active',
@@ -773,7 +700,7 @@ function initializeDataTable() {
                 }
             }
         ],
-        order: [[8, 'desc'], [7, 'desc'], [6, 'asc']] // Order by System (is_system) DESC, Status (is_active) DESC, then Sort Order ASC
+        order: [[7, 'desc'], [6, 'desc'], [5, 'asc']] // Order by System (is_system) DESC, Status (is_active) DESC, then Sort Order ASC
     });
 }
 
@@ -800,12 +727,10 @@ $(document).on('click', '.edit-field', function() {
                 $('#fieldKey').val(field.field_key);
                 $('#fieldLabel').val(field.label);
                 $('#fieldInputType').val(field.input_type).trigger('change');
-                $('#fieldGroup').val(field.field_group);
+                $('#fieldInputType').prop('disabled', true); // Make readonly when editing
                 $('#fieldPlaceholder').val(field.placeholder);
-                $('#fieldSortOrder').val(field.sort_order);
                 $('#fieldHelpText').val(field.help_text);
                 $('#fieldRequired').prop('checked', field.is_required);
-                $('#fieldVisible').prop('checked', field.is_visible);
                 $('#fieldActive').prop('checked', field.is_active);
                 
                 // Parse and populate validation rules
@@ -820,11 +745,6 @@ $(document).on('click', '.edit-field', function() {
                 } else {
                     $('#optionsList').empty();
                     addOptionRow();
-                }
-                
-                if (field.conditional_rules) {
-                    $('#fieldConditionalRules').val(JSON.stringify(field.conditional_rules, null, 2));
-                    $('#conditionalContainer').show();
                 }
                 
                 $('#fieldModal').modal('show');
@@ -861,41 +781,6 @@ $(document).on('click', '.toggle-status', function() {
         },
         error: function() {
             showToast('error', 'Error updating status');
-        }
-    });
-});
-
-// Toggle Visible
-$(document).on('click', '.toggle-visible', function() {
-    const id = $(this).data('id');
-    const row = fieldsTable.row($(this).closest('tr')).data();
-    
-    // Check if it's a system field and trying to hide
-    if (row && row.is_system) {
-        const currentValue = $(this).data('value');
-        if (currentValue == 1) {
-            showToast('Error', 'System fields cannot be hidden. These are core required fields.', 'danger');
-            return;
-        }
-    }
-    
-    const currentValue = $(this).data('value');
-    const newValue = currentValue == 1 ? 0 : 1;
-    
-    $.ajax({
-        url: `/field-management/${id}/toggle-visible`,
-        type: 'POST',
-        data: { is_visible: newValue },
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
-            if (response.success) {
-                fieldsTable.ajax.reload(null, false); // Reload without resetting pagination
-            }
-        },
-        error: function() {
-            showToast('error', 'Error updating visibility');
         }
     });
 });
@@ -965,70 +850,15 @@ $(document).on('click', '.delete-field', function() {
     }
 });
 
-// Update validation preview (must be global)
-function updateValidationPreview() {
-    const rules = [];
-    
-    if ($('#valRequired').is(':checked')) {
-        rules.push('required');
-    }
-    if ($('#valEmail').is(':checked')) {
-        rules.push('email');
-    }
-    if ($('#valNumeric').is(':checked')) {
-        rules.push('numeric');
-    }
-    if ($('#valAlpha').is(':checked')) {
-        rules.push('alpha');
-    }
-    if ($('#valAlphaNum').is(':checked')) {
-        rules.push('alpha_num');
-    }
-    if ($('#valUrl').is(':checked')) {
-        rules.push('url');
-    }
-    
-    const min = $('#valMin').val();
-    if (min) {
-        rules.push(`min:${min}`);
-    }
-    
-    const max = $('#valMax').val();
-    if (max) {
-        rules.push(`max:${max}`);
-    }
-    
-    const minVal = $('#valMinVal').val();
-    if (minVal) {
-        rules.push(`min_value:${minVal}`);
-    }
-    
-    const maxVal = $('#valMaxVal').val();
-    if (maxVal) {
-        rules.push(`max_value:${maxVal}`);
-    }
-    
-    const pattern = $('#valPattern').val();
-    if (pattern) {
-        rules.push(`regex:${pattern}`);
-    }
-    
-    const custom = $('#valCustom').val();
-    if (custom) {
-        rules.push(custom);
-    }
-    
-    const preview = rules.length > 0 ? rules.join('|') : '-';
-    $('#validationPreview').text(preview);
-}
+// Validation preview removed - no longer needed
 
 function parseValidationRules(rulesString) {
-    // Reset all validation fields
-    $('#valRequired, #valEmail, #valNumeric, #valAlpha, #valAlphaNum, #valUrl').prop('checked', false);
+    // Reset all validation fields (valRequired removed - use fieldRequired checkbox instead)
+    $('#valEmail, #valNumeric, #valAlpha, #valAlphaNum, #valUrl').prop('checked', false);
     $('#valMin, #valMax, #valMinVal, #valMaxVal').val('');
     
     if (!rulesString) {
-        updateValidationPreview();
+        // Validation preview removed - no longer needed
         return;
     }
     
@@ -1038,8 +868,9 @@ function parseValidationRules(rulesString) {
     rules.forEach(rule => {
         rule = rule.trim();
         
-        if (rule === 'required') {
-            $('#valRequired').prop('checked', true);
+            if (rule === 'required') {
+                // Required is now handled by fieldRequired checkbox (is_required), not validation rules
+                // $('#valRequired').prop('checked', true); // Removed - use fieldRequired instead
         } else if (rule === 'email') {
             $('#valEmail').prop('checked', true);
         } else if (rule === 'numeric') {
@@ -1061,7 +892,7 @@ function parseValidationRules(rulesString) {
         }
     });
     
-    updateValidationPreview();
+    // Validation preview removed - no longer updating
 }
 
 // Function to show/hide validation rules based on input type (must be global)
@@ -1069,48 +900,42 @@ function updateValidationRulesVisibility(inputType) {
     // Hide all validation sections first
     $('.validation-section').hide();
     
-    // Show relevant sections based on input type
+    // Show relevant sections based on input type (valRequiredSection removed)
     switch(inputType) {
         case 'email':
-            $('#valRequiredSection').show();
             $('#valEmailSection').show();
             $('#valLengthSection').show();
             break;
         case 'number':
-            $('#valRequiredSection').show();
             $('#valNumericSection').show();
             $('#valNumberRangeSection').show();
             break;
         case 'tel':
-            $('#valRequiredSection').show();
             $('#valNumericSection').show();
             $('#valLengthSection').show();
             break;
         case 'text':
         case 'textarea':
-            $('#valRequiredSection').show();
             $('#valCharacterTypeSection').show();
             $('#valLengthSection').show();
             break;
         case 'password':
-            $('#valRequiredSection').show();
             $('#valCharacterTypeSection').show();
             $('#valLengthSection').show();
             break;
         case 'url':
-            $('#valRequiredSection').show();
             $('#valUrlSection').show();
             break;
         case 'file':
-            $('#valRequiredSection').show();
+            // No specific validation sections for file
             break;
         case 'date':
-            $('#valRequiredSection').show();
+            // No specific validation sections for date
             break;
         case 'select':
         case 'radio':
         case 'checkbox':
-            $('#valRequiredSection').show();
+            // No specific validation sections for these types
             break;
         default:
             // Show all for unknown types
@@ -1121,9 +946,10 @@ function updateValidationRulesVisibility(inputType) {
 function buildValidationRules() {
     const rules = [];
     
-    if ($('#valRequired').is(':checked')) {
-        rules.push('required');
-    }
+    // Required is now handled by fieldRequired checkbox (is_required field), not in validation rules
+    // if ($('#valRequired').is(':checked')) {
+    //     rules.push('required');
+    // }
     if ($('#valEmail').is(':checked')) {
         rules.push('email');
     }
@@ -1164,17 +990,17 @@ function buildValidationRules() {
 }
 
 function saveField() {
+    // Re-enable disabled input type field for form submission
+    $('#fieldInputType').prop('disabled', false);
+    
     const formData = {
         field_key: $('#fieldKey').val(),
         label: $('#fieldLabel').val(),
         input_type: $('#fieldInputType').val(),
-        field_group: $('#fieldGroup').val(),
         placeholder: $('#fieldPlaceholder').val(),
-        sort_order: parseInt($('#fieldSortOrder').val()) || 0,
         validation_rules: buildValidationRules(),
         help_text: $('#fieldHelpText').val(),
         is_required: $('#fieldRequired').is(':checked') ? true : false,
-        is_visible: $('#fieldVisible').is(':checked') ? true : false,
         is_active: $('#fieldActive').is(':checked') ? true : false,
     };
     
@@ -1182,17 +1008,6 @@ function saveField() {
     const options = getOptionsFromForm();
     if (options) {
         formData.options = options;
-    }
-    
-    // Parse conditional rules if provided
-    const conditionalText = $('#fieldConditionalRules').val();
-    if (conditionalText) {
-        try {
-            formData.conditional_rules = JSON.parse(conditionalText);
-        } catch (e) {
-            showToast('error', 'Invalid JSON format for conditional rules');
-            return;
-        }
     }
     
     // Only allow updates, not creation
@@ -1340,7 +1155,6 @@ function renderFieldGroup(container, groupKey, fields) {
 
 function renderDraggableField(field) {
     const requiredBadge = field.is_required ? '<span class="badge bg-danger">Required</span>' : '';
-    const visibleBadge = field.is_visible ? '<span class="badge bg-success">Visible</span>' : '<span class="badge bg-secondary">Hidden</span>';
     const activeBadge = field.is_active ? '<span class="badge bg-primary">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
     const inactiveClass = !field.is_active ? 'field-inactive' : '';
     
@@ -1356,7 +1170,6 @@ function renderDraggableField(field) {
             </div>
             <div class="field-preview-badges">
                 ${activeBadge}
-                ${visibleBadge}
                 ${requiredBadge}
             </div>
         </div>
@@ -1468,7 +1281,7 @@ function updateFieldOrder(evt) {
 }
 
 // Reload preview when toggles are clicked
-$(document).on('click', '.toggle-status, .toggle-visible, .toggle-required', function() {
+$(document).on('click', '.toggle-status, .toggle-required', function() {
     setTimeout(function() {
         loadFormPreview();
     }, 500);

@@ -5,19 +5,23 @@
 @section('content')
 			<!-- ======================= Shop Style 1 ======================== -->
  
-
 			<section class="bg-cover d-none d-md-block" style="background:url({{ asset('frontend/images/banner-2.png') }}) no-repeat;">
 				<div class="container">
 					<div class="row align-items-center justify-content-center">
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="text-left py-5 mt-3 mb-3">
-								<h1 class="ft-medium mb-3">Shop</h1>
+								<h1 class="ft-medium mb-3">{{ $selectedCategory ? $selectedCategory->name : 'Shop' }}</h1>
+								@if($parentCategories->count() > 0)
 								<ul class="shop_categories_list m-0 p-0">
-									<li><a href="#">Men</a></li>
-									<li><a href="#">Speakers</a></li>
-									<li><a href="#">Women</a></li>
-									<li><a href="#">Accessories</a></li>
+									@foreach($parentCategories as $parentCategory)
+									<li>
+										<a href="{{ route('frontend.shop') }}?category={{ $parentCategory->slug }}">
+											{{ $parentCategory->name }}
+										</a>
+									</li>
+									@endforeach
 								</ul>
+								@endif
 							</div>
 						</div>
 					</div>
@@ -33,9 +37,27 @@
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<nav aria-label="breadcrumb">
 								<ol class="breadcrumb">
-									<li class="breadcrumb-item"><a href="#">Home</a></li>
-									<li class="breadcrumb-item"><a href="#">Shop</a></li>
-									<li class="breadcrumb-item active" aria-current="page">Women's</li>
+									<li class="breadcrumb-item">
+										<a href="{{ route('frontend.index') }}">Home</a>
+									</li>
+									<li class="breadcrumb-item">
+										<a href="{{ route('frontend.shop') }}">Shop</a>
+									</li>
+									@if($selectedCategory && count($breadcrumb) > 0)
+										@foreach($breadcrumb as $index => $crumb)
+											@if($index < count($breadcrumb) - 1)
+												<li class="breadcrumb-item">
+													<a href="{{ route('frontend.shop') }}?category={{ $crumb['slug'] }}">
+														{{ $crumb['name'] }}
+													</a>
+												</li>
+											@else
+												<li class="breadcrumb-item active" aria-current="page">
+													{{ $crumb['name'] }}
+												</li>
+											@endif
+										@endforeach
+									@endif
 								</ol>
 							</nav>
 						</div>
@@ -45,6 +67,7 @@
 			<!-- ============================= Filter Wrap ============================== -->
 			
 			<!-- ======================= Shop By Categories ======================== -->
+			@if($selectedCategory && $childCategories->count() > 0)
 			<section class="py-4 bg-light">
 				<div class="container">
 					<div class="row">
@@ -53,129 +76,39 @@
 							<div class="shop-by-categories">
 								<!-- Desktop Grid View -->
 								<div class="row g-3 category-grid-view">
-									<!-- Category: Dress -->
+									@foreach($childCategories as $childCategory)
 									<div class="col-xl-2 col-lg-2 col-md-4 col-sm-4 col-6">
-										<a href="{{ route('frontend.shop') }}?category=women-dresses" class="category-tab-item">
+										<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}" class="category-tab-item">
 											<div class="category-image-wrapper">
-												<img src="{{ asset('frontend/images/1.jpg') }}" alt="Dress" class="category-image">
+												@if($childCategory->image)
+													<img src="{{ asset('storage/' . $childCategory->image) }}" alt="{{ $childCategory->name }}" class="category-image">
+												@else
+													<img src="{{ asset('frontend/images/logo.webp') }}" alt="{{ $childCategory->name }}" class="category-image">
+												@endif
 											</div>
-											<div class="category-label">Dress</div>
+											<div class="category-label">{{ $childCategory->name }}</div>
 										</a>
 									</div>
-									
-									<!-- Category: Tops, Tees & Shirts -->
-									<div class="col-xl-2 col-lg-2 col-md-4 col-sm-4 col-6">
-										<a href="{{ route('frontend.shop') }}?category=women-tops" class="category-tab-item">
-											<div class="category-image-wrapper">
-												<img src="{{ asset('frontend/images/2.jpg') }}" alt="Tops, Tees & Shirts" class="category-image">
-											</div>
-											<div class="category-label">Tops, Tees & Shirts</div>
-										</a>
-									</div>
-									
-									<!-- Category: Skirts -->
-									<div class="col-xl-2 col-lg-2 col-md-4 col-sm-4 col-6">
-										<a href="{{ route('frontend.shop') }}?category=women-skirts" class="category-tab-item">
-											<div class="category-image-wrapper">
-												<img src="{{ asset('frontend/images/3.jpg') }}" alt="Skirts" class="category-image">
-											</div>
-											<div class="category-label">Skirts</div>
-										</a>
-									</div>
-									
-									<!-- Category: Trousers -->
-									<div class="col-xl-2 col-lg-2 col-md-4 col-sm-4 col-6">
-										<a href="{{ route('frontend.shop') }}?category=women-trousers" class="category-tab-item">
-											<div class="category-image-wrapper">
-												<img src="{{ asset('frontend/images/4.jpg') }}" alt="Trousers" class="category-image">
-											</div>
-											<div class="category-label">Trousers</div>
-										</a>
-									</div>
-									
-									<!-- Category: Shorts -->
-									<div class="col-xl-2 col-lg-2 col-md-4 col-sm-4 col-6">
-										<a href="{{ route('frontend.shop') }}?category=women-shorts" class="category-tab-item">
-											<div class="category-image-wrapper">
-												<img src="{{ asset('frontend/images/5.jpg') }}" alt="Shorts" class="category-image">
-											</div>
-											<div class="category-label">Shorts</div>
-										</a>
-									</div>
-									
-									<!-- Category: Jeans -->
-									<div class="col-xl-2 col-lg-2 col-md-4 col-sm-4 col-6">
-										<a href="{{ route('frontend.shop') }}?category=women-jeans" class="category-tab-item">
-											<div class="category-image-wrapper">
-												<img src="{{ asset('frontend/images/6.jpg') }}" alt="Jeans" class="category-image">
-											</div>
-											<div class="category-label">Jeans</div>
-										</a>
-									</div>
+									@endforeach
 								</div>
 								
 								<!-- Mobile Slider View -->
 								<div class="category-slider-view">
 									<div class="category-slider">
-										<!-- Category: Dress -->
+										@foreach($childCategories as $childCategory)
 										<div>
-											<a href="{{ route('frontend.shop') }}?category=women-dresses" class="category-tab-item">
+											<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}" class="category-tab-item">
 												<div class="category-image-wrapper">
-													<img src="{{ asset('frontend/images/1.jpg') }}" alt="Dress" class="category-image">
+													@if($childCategory->image)
+														<img src="{{ asset('storage/' . $childCategory->image) }}" alt="{{ $childCategory->name }}" class="category-image">
+													@else
+														<img src="{{ asset('frontend/images/1.jpg') }}" alt="{{ $childCategory->name }}" class="category-image">
+													@endif
 												</div>
-												<div class="category-label">Dress</div>
+												<div class="category-label">{{ $childCategory->name }}</div>
 											</a>
 										</div>
-										
-										<!-- Category: Tops, Tees & Shirts -->
-										<div>
-											<a href="{{ route('frontend.shop') }}?category=women-tops" class="category-tab-item">
-												<div class="category-image-wrapper">
-													<img src="{{ asset('frontend/images/2.jpg') }}" alt="Tops, Tees & Shirts" class="category-image">
-												</div>
-												<div class="category-label">Tops, Tees & Shirts</div>
-											</a>
-										</div>
-										
-										<!-- Category: Skirts -->
-										<div>
-											<a href="{{ route('frontend.shop') }}?category=women-skirts" class="category-tab-item">
-												<div class="category-image-wrapper">
-													<img src="{{ asset('frontend/images/3.jpg') }}" alt="Skirts" class="category-image">
-												</div>
-												<div class="category-label">Skirts</div>
-											</a>
-										</div>
-										
-										<!-- Category: Trousers -->
-										<div>
-											<a href="{{ route('frontend.shop') }}?category=women-trousers" class="category-tab-item">
-												<div class="category-image-wrapper">
-													<img src="{{ asset('frontend/images/4.jpg') }}" alt="Trousers" class="category-image">
-												</div>
-												<div class="category-label">Trousers</div>
-											</a>
-										</div>
-										
-										<!-- Category: Shorts -->
-										<div>
-											<a href="{{ route('frontend.shop') }}?category=women-shorts" class="category-tab-item">
-												<div class="category-image-wrapper">
-													<img src="{{ asset('frontend/images/5.jpg') }}" alt="Shorts" class="category-image">
-												</div>
-												<div class="category-label">Shorts</div>
-											</a>
-										</div>
-										
-										<!-- Category: Jeans -->
-										<div>
-											<a href="{{ route('frontend.shop') }}?category=women-jeans" class="category-tab-item">
-												<div class="category-image-wrapper">
-													<img src="{{ asset('frontend/images/6.jpg') }}" alt="Jeans" class="category-image">
-												</div>
-												<div class="category-label">Jeans</div>
-											</a>
-										</div>
+										@endforeach
 									</div>
 								</div>
 							</div>
@@ -183,6 +116,7 @@
 					</div>
 				</div>
 			</section>
+			@endif
 			<!-- ======================= Shop By Categories ======================== -->
 			
 			<!-- ======================= All Product List ======================== -->

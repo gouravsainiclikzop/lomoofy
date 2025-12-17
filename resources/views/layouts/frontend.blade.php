@@ -13,6 +13,7 @@
 	<link href="{{ asset('frontend/css/customstyle.css') }}" rel="stylesheet">
 	<link href="{{ asset('frontend/css/customresponsive.css') }}" rel="stylesheet">
 	
+	@stack('styles')
 </head>
 
 <body>
@@ -101,6 +102,7 @@
 		});
 	</script>
 	
+	@stack('scripts')
 	@yield('scripts')
 
 </body>

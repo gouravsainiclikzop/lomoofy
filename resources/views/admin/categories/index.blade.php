@@ -240,6 +240,16 @@
     .category-actions-popover .add-child-category:hover {
         background-color: #e7f3ff;
     }
+    
+    .child-category-row {
+        background-color: #f8f9fa;
+        transition: all 0.2s;
+    }
+    
+    .child-category-row:hover {
+        background-color: #e9ecef;
+    }
+    
     .popover {
         border: 1px solid rgba(0, 0, 0, 0.2);
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
@@ -572,6 +582,63 @@
     </div>
 </div>
 
+<!-- Subcategories Modal -->
+<div class="modal fade" id="subcategoriesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Subcategories of <span id="subcategoriesModalCategoryName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="subcategoriesList" class="list-group" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Subcategories will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Multiple Child Categories Modal -->
+<div class="modal fade" id="addMultipleChildCategoriesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Child Categories</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="multipleChildCategoriesAlertContainer"></div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Parent Category:</label>
+                    <span id="multipleChildCategoriesParentName" class="badge bg-primary fs-6"></span>
+                </div>
+                
+                <div id="multipleChildCategoriesRowsContainer">
+                    <!-- Rows will be added here dynamically -->
+                </div>
+                
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-outline-primary" id="addMoreChildCategoryRow">
+                        <i class="fas fa-plus"></i> Add More
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveMultipleChildCategoriesBtn">
+                    <span id="saveMultipleBtnText">Save All Categories</span>
+                    <span id="saveMultipleBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Add/Edit Category Modal -->
 <div class="modal fade" id="categoryModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -702,6 +769,18 @@ $(document).ready(function() {
             "'": '&#039;'
         };
         return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+    
+    // Function to recursively get all child categories
+    function getAllChildren(category) {
+        let allChildren = [];
+        if (category.children && category.children.length > 0) {
+            category.children.forEach(function(child) {
+                allChildren.push(child);
+                allChildren = allChildren.concat(getAllChildren(child));
+            });
+        }
+        return allChildren;
     }
 
     // Helper function to show alert in modal (for system errors only)
@@ -1025,17 +1104,25 @@ $(document).ready(function() {
         // Collapse/expand icon - show for ANY category with children (not just root)
         let collapseIcon = '';
         if (hasChildren) {
-            collapseIcon = `<button type="button" class="btn btn-sm btn-link p-0 me-2 category-toggle-btn expanded" data-category-id="${category.id}" style="text-decoration: none; min-width: 20px;">
+            collapseIcon = `<button type="button" class="btn btn-sm btn-link p-0 me-2 category-toggle-btn" data-category-id="${category.id}" style="text-decoration: none; min-width: 20px;">
                 <i class="fas fa-chevron-right"></i>
             </button>`;
         } else {
             collapseIcon = '<span class="me-2" style="display: inline-block; width: 20px;"></span>';
         }
         
+        // Count only immediate (first level) children, not all nested children
+        let totalChildrenCount = hasChildren && category.children ? category.children.length : 0;
+        let categoryCountBadge = '';
+        if (totalChildrenCount > 0) {
+            categoryCountBadge = `<span class="badge bg-info ms-2 category-count-badge" style="cursor: pointer;" data-category-id="${category.id}" data-category-name="${escapeHtml(category.name)}" title="Click to view all ${totalChildrenCount} subcategories">${totalChildrenCount}</span>`;
+        }
+        
         let nameCell = `
             <div class="category-name-cell" style="padding-left: ${indentPx}px;">
                 ${collapseIcon}
                 <a href="#" class="text-reset fw-medium">${category.name || '-'}</a>
+                ${categoryCountBadge}
             </div>
         `;
         
@@ -1074,8 +1161,8 @@ $(document).ready(function() {
             attributesCell = `<div class="d-flex flex-wrap">${attributeBadges}</div>`;
         }
         
-        // Child rows are shown by default (expanded)
-        let rowClass = level > 0 ? 'category-child-row' : '';
+        // Child rows are hidden by default (collapsed)
+        let rowClass = level > 0 ? 'category-child-row d-none' : '';
         let parentIdValue = category.parent_id ? String(category.parent_id) : '';
         
         // Check if category can have children (max depth is 4, so level 0, 1, 2, or 3 can have children)
@@ -1614,6 +1701,107 @@ $(document).ready(function() {
             }
         }
     });
+    
+    // Handle category count badge click - show all subcategories in modal
+    $(document).on('click', '.category-count-badge', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        let badge = $(this);
+        let categoryId = badge.data('category-id');
+        let categoryName = badge.data('category-name');
+        
+        // Find the category in allCategoriesData
+        function findCategoryInTree(cats, id) {
+            for (let i = 0; i < cats.length; i++) {
+                if (cats[i].id == id) {
+                    return cats[i];
+                }
+                if (cats[i].children && cats[i].children.length > 0) {
+                    let found = findCategoryInTree(cats[i].children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+        
+        let category = findCategoryInTree(allCategoriesData, categoryId);
+        
+        // If category not found in allCategoriesData, try to get children from table rows
+        let directChildren = [];
+        if (category && category.children && category.children.length > 0) {
+            directChildren = category.children;
+        } else {
+            // Fallback: Get children from table rows
+            let categoryIdStr = String(categoryId);
+            let childRows = $('#categoriesTableBody').find(`tr.category-child-row[data-parent-id="${categoryIdStr}"]`);
+            
+            childRows.each(function() {
+                let row = $(this);
+                let childId = row.data('id');
+                let childName = row.find('.category-name-cell a').text();
+                let isActive = row.find('.status-toggle').is(':checked');
+                let productCount = 0;
+                
+                // Try to get product count from the row
+                let productCountText = row.find('.products-count-badge').text();
+                if (productCountText) {
+                    let match = productCountText.match(/\d+/);
+                    if (match) {
+                        productCount = parseInt(match[0]);
+                    }
+                }
+                
+                // Check if this child has children by looking at data attribute
+                let hasChildren = row.data('has-children') == '1';
+                let childrenCount = 0;
+                
+                // Count immediate children of this child
+                if (hasChildren) {
+                    let grandchildRows = $('#categoriesTableBody').find(`tr.category-child-row[data-parent-id="${String(childId)}"]`);
+                    childrenCount = grandchildRows.length;
+                }
+                
+                directChildren.push({
+                    id: childId,
+                    name: childName,
+                    is_active: isActive,
+                    products_count: productCount,
+                    children: hasChildren ? [] : null // We don't need nested children for display
+                });
+            });
+        }
+        
+        // Set modal title
+        $('#subcategoriesModalCategoryName').text(categoryName);
+        
+        // Build list of subcategories
+        let listHtml = '';
+        if (directChildren.length === 0) {
+            listHtml = '<div class="alert alert-info">No subcategories found.</div>';
+        } else {
+            directChildren.forEach(function(child) {
+                let statusBadge = child.is_active 
+                    ? '<span class="badge bg-success ms-2">Active</span>' 
+                    : '<span class="badge bg-secondary ms-2">Inactive</span>';
+                
+                let childrenCount = (child.children && child.children.length > 0) ? child.children.length : 0;
+                
+                listHtml += `<div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${escapeHtml(child.name)}</strong>
+                            ${statusBadge} 
+                            ${childrenCount > 0 ? `<span class="badge bg-secondary ms-2">${childrenCount} subcategories</span>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+        
+        $('#subcategoriesList').html(listHtml);
+        $('#subcategoriesModal').modal('show');
+    });
 
     $(document).on('click', '.edit-category', function(e) {
         e.preventDefault();
@@ -1778,6 +1966,20 @@ $(document).ready(function() {
         if (attrSelect.hasClass('select2-hidden-accessible')) {
             attrSelect.select2('destroy');
         }
+    });
+    
+    // Clean up Select2 when multiple child categories modal is closed
+    $('#addMultipleChildCategoriesModal').on('hidden.bs.modal', function() {
+        $('.child-category-attributes').each(function() {
+            try {
+                if ($(this).hasClass('select2-hidden-accessible')) {
+                    $(this).select2('destroy');
+                }
+            } catch (e) {
+                // Ignore errors if Select2 is not initialized
+                console.log('Error destroying Select2, ignoring:', e);
+            }
+        });
     });
 
     // Save Category (Create or Update)
@@ -2133,42 +2335,368 @@ $(document).ready(function() {
         openAddChildModal(parentId, parentName);
     });
 
-    // Function to open modal for adding a child category
-    function openAddChildModal(parentId, parentName) {
-        // Reset form
-        $('#categoryForm')[0].reset();
-        $('#categoryId').val('');
-        $('#modalTitle').text('Add Child Category');
-        clearModalAlerts();
+    // Multiple child categories row counter
+    let childCategoryRowCounter = 0;
+    
+    // Function to create a new row for adding child category
+    function createChildCategoryRow(index = null, parentId = null, parentName = null) {
+        const rowIndex = index !== null ? index : childCategoryRowCounter++;
+        const rowId = `childCategoryRow_${rowIndex}`;
         
-        // Hide image previews
-        $('#imagePreview').hide();
-        $('#currentImage').hide();
-        $('#categoryImage').val('');
+        // Get parent info from modal if not provided
+        if (!parentId) {
+            parentId = $('#multipleChildCategoriesParentId').val() || '';
+        }
+        if (!parentName) {
+            parentName = $('#multipleChildCategoriesParentName').text() || '';
+        }
         
-        // Hide inherited attributes for new category
-        $('#inheritedAttributesContainer').hide();
+        const rowHtml = `
+            <div class="child-category-row mb-3 p-3 border rounded" data-row-index="${rowIndex}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0 child-category-row-number">Category 1</h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-child-category-row" data-row-index="${rowIndex}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label small">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm child-category-name" placeholder="Category name" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Parent Category</label>
+                        <input type="text" class="form-control form-control-sm" value="${escapeHtml(parentName)}" readonly>
+                        <input type="hidden" class="child-category-parent-id" value="${parentId}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Category Image</label>
+                        <input type="file" class="form-control form-control-sm child-category-image" accept="image/*">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Sort Order</label>
+                        <input type="number" class="form-control form-control-sm child-category-sort-order" value="0">
+                    </div>
+                </div>
+            </div>
+        `;
         
-        // Load parent categories and set the selected parent
-        loadParentCategories(null, null, function() {
-            // Initialize Select2 after categories are loaded
-            setTimeout(function() {
-                // Destroy existing Select2 instance if it exists
-                if ($('#parentCategory').hasClass('select2-hidden-accessible')) {
-                    $('#parentCategory').select2('destroy');
+        return rowHtml;
+    }
+    
+    // Function to open modal for adding multiple child categories
+    function openAddMultipleChildCategoriesModal(parentId, parentName) {
+        // Store parent info
+        $('#multipleChildCategoriesParentName').text(parentName);
+        if (!$('#multipleChildCategoriesParentId').length) {
+            $('<input>').attr({
+                type: 'hidden',
+                id: 'multipleChildCategoriesParentId',
+                value: parentId
+            }).appendTo('#addMultipleChildCategoriesModal .modal-body');
+        } else {
+            $('#multipleChildCategoriesParentId').val(parentId);
+        }
+        
+        // Clear and reset
+        $('#multipleChildCategoriesRowsContainer').empty();
+        childCategoryRowCounter = 0;
+        $('#multipleChildCategoriesAlertContainer').empty();
+        
+        // Add first row
+        $('#multipleChildCategoriesRowsContainer').append(createChildCategoryRow(0, parentId, parentName));
+        
+        // Update row numbers
+        updateRowNumbers();
+        
+        // Show modal
+        $('#addMultipleChildCategoriesModal').modal('show');
+    }
+    
+    // Function to load attributes and initialize Select2 for all rows
+    function loadAttributesForMultipleChildCategories(callback = null) {
+        $.ajax({
+            url: '{{ route("categories.attributes") }}',
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.data) {
+                    const attributes = response.data;
+                    
+                    // Update all attribute selects
+                    $('.child-category-attributes-container').each(function() {
+                        const container = $(this);
+                        const rowIndex = container.data('row-index');
+                        const selectId = `childCategoryAttributes_${rowIndex}`;
+                        
+                        // Check if Select2 is already initialized and destroy it safely
+                        const existingSelect = container.find('.child-category-attributes');
+                        if (existingSelect.length) {
+                            try {
+                                if (existingSelect.hasClass('select2-hidden-accessible')) {
+                                    existingSelect.select2('destroy');
+                                }
+                            } catch (e) {
+                                // Select2 might not be initialized, ignore error
+                                console.log('Select2 not initialized for row', rowIndex);
+                            }
+                        }
+                        
+                        let optionsHtml = '';
+                        attributes.forEach(function(attr) {
+                            optionsHtml += `<option value="${attr.id}">${escapeHtml(attr.name)}</option>`;
+                        });
+                        
+                        const selectHtml = `<select class="form-select form-select-sm child-category-attributes" id="${selectId}" multiple data-placeholder="Select attributes">${optionsHtml}</select>`;
+                        container.html(selectHtml);
+                        
+                        // Initialize Select2 for the new select
+                        const select = $(`#${selectId}`);
+                        if (select.length) {
+                            select.select2({
+                                theme: 'bootstrap-5',
+                                width: '100%',
+                                placeholder: 'Select attributes',
+                                dropdownParent: $('#addMultipleChildCategoriesModal'),
+                                closeOnSelect: false
+                            });
+                        }
+                    });
+                    
+                    if (callback) callback();
                 }
-                initializeParentCategorySelect2();
-                
-                // Set the parent category value
-                $('#parentCategory').val(parentId).trigger('change');
-            }, 100);
-        });
-        
-        // Load available attributes (no pre-selection for new category)
-        loadAvailableAttributes([], function() {
-            $('#categoryModal').modal('show');
+            },
+            error: function() {
+                console.error('Error loading attributes');
+                if (callback) callback();
+            }
         });
     }
+    
+    // Function to initialize Select2 for a single row's attributes
+    function initializeAttributesSelect2ForRow(rowIndex) {
+        const container = $(`.child-category-attributes-container[data-row-index="${rowIndex}"]`);
+        
+        if (!container.length) {
+            console.error('Container not found for row', rowIndex);
+            return;
+        }
+        
+        // Check if already initialized
+        const existingSelect = container.find('.child-category-attributes');
+        if (existingSelect.length && existingSelect.hasClass('select2-hidden-accessible')) {
+            // Already initialized, skip
+            return;
+        }
+        
+        $.ajax({
+            url: '{{ route("categories.attributes") }}',
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.data) {
+                    const attributes = response.data;
+                    const selectId = `childCategoryAttributes_${rowIndex}`;
+                    
+                    // Safely destroy existing Select2 if it exists
+                    if (existingSelect.length) {
+                        try {
+                            if (existingSelect.hasClass('select2-hidden-accessible')) {
+                                existingSelect.select2('destroy');
+                            }
+                        } catch (e) {
+                            // Select2 might not be initialized, ignore error
+                            console.log('Select2 not initialized, continuing...');
+                        }
+                    }
+                    
+                    let optionsHtml = '';
+                    attributes.forEach(function(attr) {
+                        optionsHtml += `<option value="${attr.id}">${escapeHtml(attr.name)}</option>`;
+                    });
+                    
+                    const selectHtml = `<select class="form-select form-select-sm child-category-attributes" id="${selectId}" multiple data-placeholder="Select attributes">${optionsHtml}</select>`;
+                    container.html(selectHtml);
+                    
+                    // Initialize Select2
+                    const newSelect = $(`#${selectId}`);
+                    if (newSelect.length) {
+                        newSelect.select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            placeholder: 'Select attributes',
+                            dropdownParent: $('#addMultipleChildCategoriesModal'),
+                            closeOnSelect: false
+                        });
+                    }
+                }
+            },
+            error: function() {
+                console.error('Error loading attributes for row');
+                // Show error message in container
+                container.html('<div class="text-danger small">Error loading attributes</div>');
+            }
+        });
+    }
+    
+    // Handle Add More button
+    $(document).on('click', '#addMoreChildCategoryRow', function() {
+        const parentId = $('#multipleChildCategoriesParentId').val();
+        const parentName = $('#multipleChildCategoriesParentName').text();
+        
+        // Store the counter value before increment (which happens in createChildCategoryRow)
+        const newRowIndex = childCategoryRowCounter;
+        const newRow = createChildCategoryRow(null, parentId, parentName);
+        
+        $('#multipleChildCategoriesRowsContainer').append(newRow);
+        
+        // Update all row numbers after adding
+        updateRowNumbers();
+    });
+    
+    // Function to update row numbers in all rows
+    function updateRowNumbers() {
+        $('.child-category-row').each(function(index) {
+            $(this).find('h6').text(`Category ${index + 1}`);
+        });
+    }
+    
+    // Handle Remove row button
+    $(document).on('click', '.remove-child-category-row', function() {
+        const rowIndex = $(this).data('row-index');
+        const row = $(`.child-category-row[data-row-index="${rowIndex}"]`);
+        
+        // Safely destroy Select2 if it exists
+        const select = row.find('.child-category-attributes');
+        if (select.length) {
+            try {
+                if (select.hasClass('select2-hidden-accessible')) {
+                    select.select2('destroy');
+                }
+            } catch (e) {
+                // Ignore errors if Select2 is not initialized
+                console.log('Error destroying Select2 on remove, ignoring:', e);
+            }
+        }
+        
+        row.remove();
+        
+        // Update row numbers
+        updateRowNumbers();
+    });
+    
+    // Function to open modal for adding a child category (now opens multiple child categories modal)
+    function openAddChildModal(parentId, parentName) {
+        openAddMultipleChildCategoriesModal(parentId, parentName);
+    }
+
+    // Save Multiple Child Categories
+    $('#saveMultipleChildCategoriesBtn').on('click', function() {
+        const rows = $('.child-category-row');
+        const parentId = $('#multipleChildCategoriesParentId').val();
+        const categoriesToSave = [];
+        
+        // Collect data from all rows
+        let hasErrors = false;
+        rows.each(function(index) {
+            const row = $(this);
+            const name = row.find('.child-category-name').val().trim();
+            const sortOrder = row.find('.child-category-sort-order').val() || 0;
+            const imageFile = row.find('.child-category-image')[0].files[0];
+            
+            // Validate required fields
+            if (!name) {
+                row.find('.child-category-name').addClass('is-invalid');
+                hasErrors = true;
+            } else {
+                row.find('.child-category-name').removeClass('is-invalid');
+            }
+            
+            if (name) {
+                categoriesToSave.push({
+                    name: name,
+                    parent_id: parentId,
+                    sort_order: sortOrder,
+                    description: '', // Empty description
+                    is_active: true, // Always active by default
+                    product_attribute_ids: [], // No attributes
+                    imageFile: imageFile
+                });
+            }
+        });
+        
+        if (hasErrors) {
+            $('#multipleChildCategoriesAlertContainer').html('<div class="alert alert-danger">Please fill in all required fields (Category Name).</div>');
+            return;
+        }
+        
+        if (categoriesToSave.length === 0) {
+            $('#multipleChildCategoriesAlertContainer').html('<div class="alert alert-warning">Please add at least one category.</div>');
+            return;
+        }
+        
+        // Show loading
+        $('#saveMultipleBtnText').addClass('d-none');
+        $('#saveMultipleBtnSpinner').removeClass('d-none');
+        $('#saveMultipleChildCategoriesBtn').prop('disabled', true);
+        
+        // Save categories one by one
+        let savedCount = 0;
+        let errorCount = 0;
+        const totalCount = categoriesToSave.length;
+        
+        function saveNextCategory(index) {
+            if (index >= categoriesToSave.length) {
+                // All categories saved
+                $('#saveMultipleBtnText').removeClass('d-none');
+                $('#saveMultipleBtnSpinner').addClass('d-none');
+                $('#saveMultipleChildCategoriesBtn').prop('disabled', false);
+                
+                if (errorCount === 0) {
+                    $('#addMultipleChildCategoriesModal').modal('hide');
+                    loadCategories();
+                    showToast('success', `Successfully added ${savedCount} category(ies)`);
+                } else {
+                    showToast('warning', `Added ${savedCount} category(ies), ${errorCount} failed`);
+                }
+                return;
+            }
+            
+            const categoryData = categoriesToSave[index];
+            const formData = new FormData();
+            formData.append('name', categoryData.name);
+            formData.append('parent_id', categoryData.parent_id);
+            formData.append('sort_order', categoryData.sort_order);
+            formData.append('description', categoryData.description);
+            formData.append('is_active', categoryData.is_active ? 1 : 0);
+            formData.append('product_attribute_ids', JSON.stringify(categoryData.product_attribute_ids));
+            
+            if (categoryData.imageFile) {
+                formData.append('image', categoryData.imageFile);
+            }
+            
+            $.ajax({
+                url: '{{ route("categories.store") }}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        savedCount++;
+                    } else {
+                        errorCount++;
+                    }
+                    saveNextCategory(index + 1);
+                },
+                error: function(xhr) {
+                    errorCount++;
+                    saveNextCategory(index + 1);
+                }
+            });
+        }
+        
+        // Start saving
+        saveNextCategory(0);
+    });
 
     // Close popovers when action is clicked (the existing edit/delete handlers will handle the actions)
     $(document).on('click', '.popover .edit-category, .popover .delete-category', function(e) {

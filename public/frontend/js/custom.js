@@ -187,16 +187,142 @@ $(function() {
 	}); 
 	
 	// Snackbar for wishlist Product
-	$('.snackbar-wishlist').click(function() { 
-		Snackbar.show({
-			text: 'Your product was added to wishlist successfully!',
-			pos: 'top-right',
-			showAction: false,
-			actionText: "Dismiss",
-			duration: 3000,
-			textColor: '#fff',
-			backgroundColor: '#151515'
-		}); 
+	$('.snackbar-wishlist').click(function(e) { 
+		e.preventDefault();
+		const $btn = $(this);
+		const productId = $btn.data('product-id');
+		
+		if (!productId) {
+			console.error('Product ID not found');
+			return;
+		}
+		
+		// Get session ID
+		let sessionId = localStorage.getItem('session_id');
+		if (!sessionId) {
+			sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+			localStorage.setItem('session_id', sessionId);
+		}
+		
+		// Check if already in wishlist (heart icon state)
+		const isInWishlist = $btn.find('i').hasClass('fas') || $btn.hasClass('wishlist-active');
+		
+		if (isInWishlist) {
+			// Remove from wishlist
+			$.ajax({
+				url: '/api/wishlist/product/' + productId,
+				method: 'DELETE',
+				data: {
+					session_id: sessionId
+				},
+				success: function(response) {
+					if (response.success) {
+						// Update icon to empty heart
+						$btn.find('i').removeClass('fas').addClass('far').css('color', '');
+						$btn.removeClass('wishlist-active');
+						
+						Snackbar.show({
+							text: 'Product removed from wishlist',
+							pos: 'top-right',
+							showAction: false,
+							duration: 3000,
+							textColor: '#fff',
+							backgroundColor: '#151515'
+						});
+						
+						// Update wishlist count
+						updateWishlistCount();
+					}
+				},
+				error: function(xhr) {
+					// Even if product not found, treat as success (idempotent)
+					if (xhr.status === 404 || (xhr.responseJSON && xhr.responseJSON.message && xhr.responseJSON.message.includes('not in wishlist'))) {
+						// Update icon to empty heart
+						$btn.find('i').removeClass('fas').addClass('far').css('color', '');
+						$btn.removeClass('wishlist-active');
+						updateWishlistCount();
+					} else {
+						console.error('Error removing from wishlist:', xhr);
+						Snackbar.show({
+							text: 'Failed to remove from wishlist',
+							pos: 'top-right',
+							showAction: false,
+							duration: 3000,
+							textColor: '#fff',
+							backgroundColor: '#dc3545'
+						});
+					}
+				}
+			});
+		} else {
+			// Add to wishlist
+			$.ajax({
+				url: '/api/wishlist',
+				method: 'POST',
+				data: {
+					product_id: productId,
+					session_id: sessionId
+				},
+				success: function(response) {
+					if (response.success) {
+						// Update icon to filled red heart
+						$btn.find('i').removeClass('far').addClass('fas').css('color', '#dc3545');
+						$btn.addClass('wishlist-active');
+						
+						Snackbar.show({
+							text: 'Product added to wishlist successfully!',
+							pos: 'top-right',
+							showAction: false,
+							duration: 3000,
+							textColor: '#fff',
+							backgroundColor: '#151515'
+						});
+						
+						// Update wishlist count
+						updateWishlistCount();
+					}
+				},
+				error: function(xhr) {
+					console.error('Error adding to wishlist:', xhr);
+					const message = xhr.responseJSON && xhr.responseJSON.message 
+						? xhr.responseJSON.message 
+						: 'Failed to add to wishlist';
+					Snackbar.show({
+						text: message,
+						pos: 'top-right',
+						showAction: false,
+						duration: 3000,
+						textColor: '#fff',
+						backgroundColor: '#dc3545'
+					});
+				}
+			});
+		}
+	});
+	
+	// Update wishlist count in header
+	function updateWishlistCount() {
+		let sessionId = localStorage.getItem('session_id');
+		if (!sessionId) {
+			sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+			localStorage.setItem('session_id', sessionId);
+		}
+		
+		$.ajax({
+			url: '/api/wishlist/count',
+			method: 'GET',
+			data: { session_id: sessionId },
+			success: function(response) {
+				if (response.success) {
+					$('.dn-counter').text(response.count || '0');
+				}
+			}
+		});
+	}
+	
+	// Initialize wishlist count on page load
+	$(document).ready(function() {
+		updateWishlistCount();
 	});
 	
 	// Bottom To Top Scroll Script
@@ -612,5 +738,20 @@ $(function() {
 			});
 		}
 	}
+	
+	// Handle wishlist link clicks - append session_id to URL
+	$(document).on('click', '.wishlist-link', function(e) {
+		e.preventDefault();
+		let sessionId = localStorage.getItem('session_id');
+		if (!sessionId) {
+			sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+			localStorage.setItem('session_id', sessionId);
+		}
+		
+		const wishlistUrl = $(this).attr('href');
+		const separator = wishlistUrl.includes('?') ? '&' : '?';
+		const newUrl = wishlistUrl + separator + 'session_id=' + sessionId;
+		window.location.href = newUrl;
+	});
 	
 });

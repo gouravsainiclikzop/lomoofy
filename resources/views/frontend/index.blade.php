@@ -19,8 +19,7 @@
 											<h5 class="theme-cl fs-sm ft-ragular mb-0">Winter Collection</h5>
 											<h1 class="mb-1 ft-bold lg-heading">New Winter<br>Collections 2021</h1>
 											<span class="trending">There's nothing like trend</span>
-										</div>
-
+										</div> 
 										<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
 									</div>
 									<!-- Slide Title / End -->
@@ -389,419 +388,154 @@
 						</div>
 					</div>
 					
-					<!-- row -->
-					<div class="row align-items-center rows-products">
-					
-						<!-- Single -->
+			<!-- row -->
+			<div class="row align-items-center rows-products">
+				@if($newArrivals->count() > 0)
+					@foreach($newArrivals as $index => $product)
 						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
 							<div class="product_grid card b-0">
-								<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+								@if($product['has_sale'])
+									<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+								@elseif($product['is_new'])
+									<div class="badge bg-info text-white position-absolute ft-regular ab-left text-upper">New</div>
+								@elseif($product['is_featured'])
+									<div class="badge bg-warning text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+								@endif
+								
 								<div class="card-body p-0">
 									<div class="shop_thumb position-relative">
-										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/1.jpg') }}" alt="..."></a>
+										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
+											@php
+												// Use product's featured/primary image by default (from product_images table)
+												$productImage = $product['image_url'];
+											@endphp
+											<img class="card-img-top product-image-{{ $index }}" src="{{ $productImage }}" alt="{{ $product['name'] }}" data-default-image="{{ $productImage }}">
+										</a>
 										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+											<div class="edlio">
+												<a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" 
+												   data-product-slug="{{ $product['slug'] }}"
+												   data-product-index="{{ $index }}"
+												   data-selected-color="">
+													<i class="fas fa-eye me-1"></i>Quick View
+												</a>
+											</div>
 										</div>
 									</div>
 								</div>
+								
 								<div class="card-footer b-0 p-0 pt-2">
 									<div class="d-flex align-items-start justify-content-between">
 										<div class="text-left">
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color1" id="white" checked="">
-												<label class="form-option-label small rounded-circle" for="white"><span class="form-option-color rounded-circle blc1"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color1" id="blue">
-												<label class="form-option-label small rounded-circle" for="blue"><span class="form-option-color rounded-circle blc2"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color1" id="yellow">
-												<label class="form-option-label small rounded-circle" for="yellow"><span class="form-option-color rounded-circle blc3"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color1" id="pink">
-												<label class="form-option-label small rounded-circle" for="pink"><span class="form-option-color rounded-circle blc4"></span></label>
-											</div>
+											@if($product['color_variants']->count() > 0)
+												@foreach($product['color_variants'] as $colorIndex => $colorVariant)
+													@php
+														// Generate color ID from color name (lowercase, no spaces)
+														$colorId = strtolower(str_replace(' ', '', $colorVariant['color'] ?? 'color' . $colorIndex));
+													@endphp
+													<div class="form-check form-option form-check-inline mb-1">
+														<input 
+															class="form-check-input color-option" 
+															type="radio" 
+															name="color{{ $index + 1 }}" 
+															id="{{ $colorId }}{{ $index + 1 }}"
+															data-price="{{ $colorVariant['display_price'] ?? $colorVariant['price'] ?? 0 }}"
+															data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
+															data-regular-price="{{ $colorVariant['price'] ?? 0 }}"
+															data-has-sale="{{ $colorVariant['has_sale'] ? '1' : '0' }}"
+															data-product-index="{{ $index }}"
+															data-variant-image="{{ $colorVariant['image'] ?? '' }}"
+															data-color-value="{{ $colorVariant['color'] ?? '' }}">
+														<label class="form-option-label small rounded-circle" for="{{ $colorId }}{{ $index + 1 }}">
+															<span class="form-option-color rounded-circle" style="background-color: {{ $colorVariant['color_code'] ?? '#ccc' }}"></span>
+														</label>
+													</div>
+												@endforeach 
+											@endif
 										</div>
 										<div class="text-right">
-											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
+											@php
+												$inWishlist = isset($product['in_wishlist']) && $product['in_wishlist'];
+												// Debug logging
+												if ($product['id'] == 14) {
+													\Log::info('Product 14 Wishlist Check', [
+														'product_id' => $product['id'],
+														'in_wishlist' => $inWishlist,
+														'product_data' => $product
+													]);
+												}
+											@endphp
+											<button class="btn auto btn_love snackbar-wishlist {{ $inWishlist ? 'wishlist-active' : '' }}" data-product-id="{{ $product['id'] }}" data-in-wishlist="{{ $inWishlist ? '1' : '0' }}">
+												<i class="{{ $inWishlist ? 'fas' : 'far' }} fa-heart{{ $inWishlist ? ' text-danger wishlist-heart-red' : '' }}" style="{{ $inWishlist ? 'color: #dc3545 !important;' : '' }}"></i>
+											</button> 
 										</div>
 									</div>
 									<div class="text-left">
-										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Set</a></h5>
-										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
+										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1">
+											<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
+										</h5>
+										<div class="elis_rty">
+											<span class="ft-medium text-dark fs-sm product-price-{{ $index }}">
+												@php
+													// Show price range from all variants using display prices (sale price if available, otherwise regular)
+													// When showing default product image, don't show strikethrough price
+													$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
+													$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
+													
+													// Determine display price range (no strikethrough for default view)
+													if ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0) {
+														$displayPrice = '$' . number_format($minDisplayPrice, 0) . ' - $' . number_format($maxDisplayPrice, 0);
+													} else {
+														$displayPrice = '$' . number_format($minDisplayPrice, 0);
+													}
+												@endphp
+												{{ $displayPrice }}
+											</span>
+										</div>
 									</div>
 								</div>
 							</div>
 						</div>
-						
-						<!-- Single -->
-						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
-							<div class="product_grid card b-0">
-								<div class="badge bg-info text-white position-absolute ft-regular ab-left text-upper">New</div>
-								<div class="card-body p-0">
-									<div class="shop_thumb position-relative">
-										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/2.jpg') }}" alt="..."></a>
-										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-										</div>
-									</div>
-								</div>
-								<div class="card-footer b-0 p-0 pt-2">
-									<div class="d-flex align-items-start justify-content-between">
-										<div class="text-left">
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color2" id="white2">
-												<label class="form-option-label small rounded-circle" for="white2"><span class="form-option-color rounded-circle blc5"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color2" id="blue2">
-												<label class="form-option-label small rounded-circle" for="blue2"><span class="form-option-color rounded-circle blc2"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color2" id="yellow2">
-												<label class="form-option-label small rounded-circle" for="yellow2"><span class="form-option-color rounded-circle blc6"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color2" id="pink2">
-												<label class="form-option-label small rounded-circle" for="pink2"><span class="form-option-color rounded-circle blc4"></span></label>
-											</div>
-										</div>
-										<div class="text-right">
-											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-										</div>
-									</div>
-									<div class="text-left">
-										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Formal Men Lowers</a></h5>
-										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-						<!-- Single -->
-						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
-							<div class="product_grid card b-0">
-								<div class="card-body p-0">
-									<div class="shop_thumb position-relative">
-										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/3.jpg') }}" alt="..."></a>
-										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-										</div>
-									</div>
-								</div>
-								<div class="card-footer b-0 p-0 pt-2">
-									<div class="d-flex align-items-start justify-content-between">
-										<div class="text-left">
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color3" id="white3" checked="">
-												<label class="form-option-label small rounded-circle" for="white3"><span class="form-option-color rounded-circle blc7"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color3" id="blue3">
-												<label class="form-option-label small rounded-circle" for="blue3"><span class="form-option-color rounded-circle blc2"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color3" id="yellow3">
-												<label class="form-option-label small rounded-circle" for="yellow3"><span class="form-option-color rounded-circle blc5"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color3" id="pink3">
-												<label class="form-option-label small rounded-circle" for="pink3"><span class="form-option-color rounded-circle blc3"></span></label>
-											</div>
-										</div>
-										<div class="text-right">
-											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-										</div>
-									</div>
-									<div class="text-left">
-										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Suit</a></h5>
-										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-						<!-- Single -->
-						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
-							<div class="product_grid card b-0">
-								<div class="badge bg-warning text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-								<div class="card-body p-0">
-									<div class="shop_thumb position-relative">
-										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/4.jpg') }}" alt="..."></a>
-										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-										</div>
-									</div>
-								</div>
-								<div class="card-footer b-0 p-0 pt-2">
-									<div class="d-flex align-items-start justify-content-between">
-										<div class="text-left">
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color4" id="white4">
-												<label class="form-option-label small rounded-circle" for="white4"><span class="form-option-color rounded-circle blc8"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color4" id="blue4">
-												<label class="form-option-label small rounded-circle" for="blue4"><span class="form-option-color rounded-circle blc2"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color4" id="yellow4">
-												<label class="form-option-label small rounded-circle" for="yellow4"><span class="form-option-color rounded-circle blc6"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color4" id="pink4">
-												<label class="form-option-label small rounded-circle" for="pink4"><span class="form-option-color rounded-circle blc5"></span></label>
-											</div>
-										</div>
-										<div class="text-right">
-											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-										</div>
-									</div>
-									<div class="text-left">
-										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Fancy Lady Dress</a></h5>
-										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-						<!-- Single -->
-						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
-							<div class="product_grid card b-0">
-								<div class="card-body p-0">
-									<div class="shop_thumb position-relative">
-										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/5.jpg') }}" alt="..."></a>
-										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-										</div>
-									</div>
-								</div>
-								<div class="card-footer b-0 p-0 pt-2">
-									<div class="d-flex align-items-start justify-content-between">
-										<div class="text-left">
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color5" id="white5">
-												<label class="form-option-label small rounded-circle" for="white5"><span class="form-option-color rounded-circle blc8"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color5" id="blue5">
-												<label class="form-option-label small rounded-circle" for="blue5"><span class="form-option-color rounded-circle blc5"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color5" id="yellow5">
-												<label class="form-option-label small rounded-circle" for="yellow5"><span class="form-option-color rounded-circle blc3"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color5" id="pink5">
-												<label class="form-option-label small rounded-circle" for="pink5"><span class="form-option-color rounded-circle blc6"></span></label>
-											</div>
-										</div>
-										<div class="text-right">
-											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-										</div>
-									</div>
-									<div class="text-left">
-										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Flix Flox Jeans</a></h5>
-										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-						<!-- Single -->
-						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
-							<div class="product_grid card b-0">
-								<div class="badge bg-danger text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-								<div class="card-body p-0">
-									<div class="shop_thumb position-relative">
-											<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/6.jpg') }}" alt="..."></a>
-										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-										</div>
-									</div>
-								</div>
-								<div class="card-footer b-0 p-0 pt-2">
-									<div class="d-flex align-items-start justify-content-between">
-										<div class="text-left">
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color6" id="white6">
-												<label class="form-option-label small rounded-circle" for="white"><span class="form-option-color rounded-circle blc1"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color6" id="blue6">
-												<label class="form-option-label small rounded-circle" for="blue6"><span class="form-option-color rounded-circle blc7"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color6" id="yellow6">
-												<label class="form-option-label small rounded-circle" for="yellow6"><span class="form-option-color rounded-circle blc3"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color6" id="pink6">
-												<label class="form-option-label small rounded-circle" for="pink6"><span class="form-option-color rounded-circle blc6"></span></label>
-											</div>
-										</div>
-										<div class="text-right">
-											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-										</div>
-									</div>
-									<div class="text-left">
-										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Fancy Salwar Suits</a></h5>
-										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-						<!-- Single -->
-						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
-							<div class="product_grid card b-0">
-								<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-								<div class="card-body p-0">
-									<div class="shop_thumb position-relative">
-										<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/7.jpg') }}" alt="..."></a>
-										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-										</div>
-									</div>
-								</div>
-								<div class="card-footer b-0 p-0 pt-2">
-									<div class="d-flex align-items-start justify-content-between">
-										<div class="text-left">
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color7" id="white7">
-												<label class="form-option-label small rounded-circle" for="white7"><span class="form-option-color rounded-circle blc2"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color7" id="blue7">
-												<label class="form-option-label small rounded-circle" for="blue7"><span class="form-option-color rounded-circle blc8"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color7" id="yellow7">
-												<label class="form-option-label small rounded-circle" for="yellow7"><span class="form-option-color rounded-circle blc3"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color7" id="pink7">
-												<label class="form-option-label small rounded-circle" for="pink7"><span class="form-option-color rounded-circle blc6"></span></label>
-											</div>
-										</div>
-										<div class="text-right">
-											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-										</div>
-									</div>
-									<div class="text-left">
-										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Printed Straight Kurta</a></h5>
-										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-						<!-- Single -->
-						<div class="col-xl-3 col-lg-4 col-md-6 col-6">
-							<div class="product_grid card b-0">
-								<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-								<div class="card-body p-0">
-									<div class="shop_thumb position-relative">
-											<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/8.jpg') }}" alt="..."></a>
-										<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-											<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-										</div>
-									</div>
-								</div>
-								<div class="card-footer b-0 p-0 pt-2">
-									<div class="d-flex align-items-start justify-content-between">
-										<div class="text-left">
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color88" id="white88">
-												<label class="form-option-label small rounded-circle" for="white88"><span class="form-option-color rounded-circle blc7"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color88" id="blue88">
-												<label class="form-option-label small rounded-circle" for="blue88"><span class="form-option-color rounded-circle blc2"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color88" id="yellow88">
-												<label class="form-option-label small rounded-circle" for="yellow88"><span class="form-option-color rounded-circle blc5"></span></label>
-											</div>
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input" type="radio" name="color88" id="pink88">
-												<label class="form-option-label small rounded-circle" for="pink88"><span class="form-option-color rounded-circle blc3"></span></label>
-											</div>
-										</div>
-										<div class="text-right">
-											<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-										</div>
-									</div>
-									<div class="text-left">
-										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Collot Full Dress</a></h5>
-										<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-					</div>
-					<!-- row -->
-					 
-					
+					@endforeach 
+				@endif
+			</div>
+					<!-- row --> 
 				</div>
 			</section>
 
 
+			@if($parentCategories->count() > 0)
 			<section class="p-0">
 				<div class="container-fluid p-0">
 					<div class="row g-0">
+						@php
+							// Calculate column class based on number of categories
+							$categoryCount = $parentCategories->count();
+							$colClass = 'col-xl-' . (12 / min($categoryCount, 3)) . ' col-lg-' . (12 / min($categoryCount, 3)) . ' col-md-' . (12 / min($categoryCount, 2)) . ' col-sm-12';
+							$defaultImages = ['a-1.png', 'a-2.png', 'a-3.png'];
+						@endphp
 					
-						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
-							<a href="{{ route('frontend.shop') }}" class="card card-overflow card-scale no-radius mb-0">
-							<div class="bg-image" style="background:url({{ asset('frontend/images/a-1.png') }})no-repeat;" data-overlay="2"></div>
+						@foreach($parentCategories as $index => $category)
+						<div class="{{ $colClass }}">
+							<a href="{{ route('frontend.shop') }}?category={{ $category->slug }}" class="card card-overflow card-scale no-radius mb-0">
+								<div class="bg-image" style="background:url({{ $category->image ? asset('storage/' . $category->image) : asset('frontend/images/' . ($defaultImages[$index] ?? 'a-1.png')) }})no-repeat;" data-overlay="2"></div>
 								<div class="ct_body">
 									<div class="ct_body_caption">	
-										<h1 class="mb-0 ft-bold text-light">Mens</h1>
+										<h1 class="mb-0 ft-bold text-light">{{ $category->name }}</h1>
 									</div>
 									<div class="ct_footer">
-										<span class="btn btn-white stretched-links">Shop Mens <i class="lni lni-arrow-right"></i>
+										<span class="btn btn-white stretched-links">Shop {{ $category->name }} <i class="lni lni-arrow-right"></i>
 										</span>
 									</div>
 								</div>
 							</a>
 						</div>
-						
-						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
-							<a href="{{ route('frontend.shop') }}" class="card card-overflow card-scale no-radius mb-0">
-							<div class="bg-image" style="background:url({{ asset('frontend/images/a-2.png') }})no-repeat;" data-overlay="2"></div>
-								<div class="ct_body">
-									<div class="ct_body_caption">	
-										<h1 class="mb-0 ft-bold text-light">Kids</h1>
-									</div>
-									<div class="ct_footer">
-										<span class="btn btn-white stretched-links">Shop Kids <i class="lni lni-arrow-right"></i>
-										</span>
-									</div>
-								</div>
-							</a>
-						</div>
-						
-						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
-							<a href="{{ route('frontend.shop') }}" class="card card-overflow card-scale no-radius mb-0">
-							<div class="bg-image" style="background:url({{ asset('frontend/images/a-3.png') }})no-repeat;" data-overlay="2"></div>
-								<div class="ct_body">
-									<div class="ct_body_caption">	
-										<h1 class="mb-0 ft-bold text-light">Womens</h1>
-									</div>
-									<div class="ct_footer">
-										<span class="btn btn-white stretched-links">Shop Womens <i class="lni lni-arrow-right"></i>
-										</span>
-									</div>
-								</div>
-							</a>
-						</div>
+						@endforeach
 						
 					</div>
 				</div>
 			</section>
+			@endif
 
 
 			
@@ -1215,3 +949,147 @@
 			</section> -->
 			<!-- ======================= Instagram Start ============================ -->
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Reset all color options to unchecked state on page load
+    // This prevents browser from restoring previous selection state
+    document.querySelectorAll('.color-option').forEach(function(radio) {
+        radio.checked = false;
+    });
+    
+    // Reset all product images to default state on page load
+    document.querySelectorAll('[class*="product-image-"]').forEach(function(img) {
+        const defaultImage = img.getAttribute('data-default-image');
+        if (defaultImage) {
+            img.src = defaultImage;
+        }
+    });
+    
+    // Handle color selection and price updates for new arrivals
+    document.querySelectorAll('.color-option').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                const productIndex = this.getAttribute('data-product-index');
+                const priceElement = document.querySelector('.product-price-' + productIndex);
+                const imageElement = document.querySelector('.product-image-' + productIndex);
+                const variantImage = this.getAttribute('data-variant-image');
+                const selectedColorValue = this.getAttribute('data-color-value');
+                
+                // Update product image if variant image is available, otherwise keep default
+                if (imageElement) {
+                    if (variantImage) {
+                        imageElement.src = variantImage;
+                    } else {
+                        // Revert to default product image if no variant image
+                        const defaultImage = imageElement.getAttribute('data-default-image');
+                        if (defaultImage) {
+                            imageElement.src = defaultImage;
+                        }
+                    }
+                }
+                
+                // Update price to show selected variant price
+                if (priceElement) {
+                    const displayPrice = parseFloat(this.getAttribute('data-price')) || 0;
+                    const regularPrice = parseFloat(this.getAttribute('data-regular-price')) || 0;
+                    const salePrice = this.getAttribute('data-sale-price');
+                    const hasSale = this.getAttribute('data-has-sale') === '1' && salePrice;
+                    
+                    // Format price display for selected variant
+                    let priceHtml = '';
+                    if (hasSale && salePrice) {
+                        priceHtml = '<span class="text-decoration-line-through text-muted me-1">$' + 
+                                   Math.round(regularPrice).toLocaleString() + '</span>' +
+                                   '$' + Math.round(displayPrice).toLocaleString();
+                    } else {
+                        priceHtml = '$' + Math.round(displayPrice).toLocaleString();
+                    }
+                    
+                    priceElement.innerHTML = priceHtml;
+                }
+
+                // Update the data-selected-color attribute on the quick view button
+                const quickViewButton = document.querySelector('.quick-view-btn[data-product-index="' + productIndex + '"]');
+                if (quickViewButton && selectedColorValue) {
+                    quickViewButton.setAttribute('data-selected-color', selectedColorValue);
+                }
+            }
+        });
+    });
+});
+
+// Debug wishlist status on page load
+$(document).ready(function() {
+    console.log('=== Wishlist Debug ===');
+    $('.snackbar-wishlist').each(function() {
+        const $btn = $(this);
+        const productId = $btn.data('product-id');
+        const inWishlist = $btn.data('in-wishlist') === '1';
+        const hasFas = $btn.find('i').hasClass('fas');
+        const hasActive = $btn.hasClass('wishlist-active');
+        
+        if (productId == 14) {
+            console.log('Product 14 Details:', {
+                productId: productId,
+                inWishlist: inWishlist,
+                hasFas: hasFas,
+                hasActive: hasActive,
+                iconClasses: $btn.find('i').attr('class'),
+                buttonClasses: $btn.attr('class'),
+                iconStyle: $btn.find('i').attr('style')
+            });
+        }
+    });
+    
+    // Also check localStorage session_id
+    const sessionId = localStorage.getItem('session_id');
+    console.log('Session ID from localStorage:', sessionId);
+    
+    // Check wishlist via API
+    if (sessionId) {
+        $.ajax({
+            url: '/api/wishlist',
+            method: 'GET',
+            data: { session_id: sessionId },
+            success: function(response) {
+                console.log('Wishlist API Response:', response);
+                if (response.success && response.data) {
+                    const productIds = response.data.map(item => item.product_id);
+                    console.log('Products in wishlist:', productIds);
+                    console.log('Is product 14 in wishlist?', productIds.includes(14));
+                    
+                    // Update hearts based on API response
+                    response.data.forEach(function(item) {
+                        const $btn = $('.snackbar-wishlist[data-product-id="' + item.product_id + '"]');
+                        if ($btn.length) {
+                            $btn.find('i').removeClass('far').addClass('fas').css('color', '#dc3545');
+                            $btn.addClass('wishlist-active').attr('data-in-wishlist', '1');
+                            console.log('Updated product ' + item.product_id + ' to show in wishlist');
+                        }
+                    });
+                }
+            }
+        });
+    }
+});
+</script>
+@endpush
+
+@push('styles')
+<style>
+    .btn_love .fa-heart.fas,
+    .btn_love .fa-heart.text-danger,
+    .wishlist-active .fa-heart,
+    .wishlist-active i.fa-heart,
+    button.wishlist-active .fa-heart,
+    .wishlist-heart-red,
+    .btn_love .wishlist-heart-red {
+        color: #dc3545 !important;
+    }
+    .btn_love i.fas.fa-heart {
+        color: #dc3545 !important;
+    }
+</style>
+@endpush

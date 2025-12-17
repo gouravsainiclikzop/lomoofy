@@ -49,8 +49,7 @@
 										<li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li>
 										<li><a href="javascript:void(0)" onclick="event.preventDefault(); document.getElementById('logoutForm').submit();"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
 									</ul>
-								</div>
-								
+								</div> 
 							</div>
 						</div>
 						
