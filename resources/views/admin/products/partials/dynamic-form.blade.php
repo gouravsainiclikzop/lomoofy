@@ -56,10 +56,6 @@
                             <i class='bx bx-purchase-tag me-1'></i>
                             <span>Categories & Tags</span>
                         </a>
-                        <a href="#section-variants" class="nav-link" id="nav-variants" data-section="variants">
-                            <i class='bx bx-layer me-1'></i>
-                            <span>Product Variants</span>
-                        </a>
                         <a href="#section-images" class="nav-link" data-section="images">
                             <i class='bx bx-image me-1'></i>
                             <span>Featured Product Images</span>
@@ -73,8 +69,7 @@
                 {{-- Section 1: Basic Information --}}
                 <section id="section-basic-info" class="form-section" data-section="basic-info">
                     <div class="section-content">
-                        @include('admin.products.partials.basic-info')
-                        @include('admin.products.partials.shipping') 
+                        @include('admin.products.partials.basic-info') 
                     </div>
                 </section>
 
@@ -85,23 +80,10 @@
                     </div>
                 </section>
 
-                {{-- Section 3: Product Variants -- Always Visible --}}
-                <section id="section-variants" class="form-section" data-section="variants">
-                    <div class="section-content">
-                        <div id="variantsContent">
-                            @include('admin.products.partials.variants')
-                        </div>
-                    </div>
-                </section>
-
-                {{-- Section 4: Product Images --}}
+                {{-- Section 3: Product Images --}}
                 <section id="section-images" class="form-section" data-section="images">
                     <div class="section-content">
                         @include('admin.products.partials.images')
-                        <div id="variantImagesNote" class="alert alert-info mt-3" style="display: none;">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Variant Product:</strong> You can assign specific images to individual variants in the Variants section above.
-                        </div>
                     </div>
                 </section>
             </div>
@@ -560,15 +542,8 @@ $(document).ready(function() {
         }
     }
     
-    const $variantsContent = $('#variantsContent');
-    if ($variantsContent.length) {
-        $variantsContent.show();
-    }
-    
     // Single-Page Navigation
     initializeSinglePageNavigation();
-    
-    // Variants section is always visible - no SKU type handling needed
     
     // Auto-generate SKU from name
     $('#productName').on('input', function() {
@@ -582,76 +557,12 @@ $(document).ready(function() {
     specFields.forEach(fieldId => {
         const $field = $('#' + fieldId);
         if ($field.length) {
-            $field.on('input', function() {
-                // If variants content is visible, update the attribute values
-                const $variantsContent = $('#variantsContent');
-                if ($variantsContent.length && $variantsContent.is(':visible')) {
-                    const attributeType = fieldId.replace('product', '').toLowerCase();
-                    const value = $(this).val().trim();
-                    
-                    if (value) {
-                        // Check if the attribute is already selected
-                        const $attributeItem = $('[data-attribute-type="' + attributeType + '"]');
-                        if ($attributeItem.length) {
-                            const $checkbox = $attributeItem.find('input[type="checkbox"]');
-                            if ($checkbox.length && !$checkbox.is(':checked')) {
-                                $checkbox.prop('checked', true);
-                                $checkbox.trigger('change');
-                            }
-                            
-                            // Update the attribute values
-                            setTimeout(() => {
-                                populateAttributeValues(attributeType, value);
-                            }, 100);
-                        }
-                    }
-                }
-            });
+            // Removed variant auto-update functionality - variants are now managed on separate page
         }
     });
     
     // Initialize form validation
     updateFormValidation();
-    
-    // Variants section is always visible - ensure it's shown
-    $('#section-variants').show();
-    $('#nav-variants').css('display', 'flex');
-    
-    // Update variant images section visibility based on whether variants exist
-    function updateVariantImagesVisibility() {
-        const $variantImagesNote = $('#variantImagesNote');
-        const $variantImagesSection = $('#variantImagesSection');
-        const $variantsTableBody = $('#variantsTableBody');
-        
-        if ($variantsTableBody.length) {
-            const hasVariants = $variantsTableBody.find('tr').length > 0;
-            
-            if ($variantImagesNote.length) {
-                $variantImagesNote.toggle(hasVariants);
-            }
-            if ($variantImagesSection.length) {
-                $variantImagesSection.toggle(hasVariants);
-                // Populate variant images container when section is shown
-                if (hasVariants && window.populateVariantImagesContainer) {
-                    setTimeout(function() {
-                        window.populateVariantImagesContainer();
-                    }, 100);
-                }
-            }
-        } else {
-            if ($variantImagesNote.length) {
-                $variantImagesNote.hide();
-            }
-            if ($variantImagesSection.length) {
-                $variantImagesSection.hide();
-            }
-        }
-    }
-    
-    // Make updateVariantImagesVisibility available globally
-    window.updateVariantImagesVisibility = updateVariantImagesVisibility;
-    
-    // Auto-select variant attributes when applicable
 });
 
 // Auto-select variant attributes based on product specifications
@@ -906,7 +817,9 @@ function submitForm(button) {
                 clearFormDraft();
                 localStorage.removeItem(VARIANT_STORAGE_KEY);
                 setTimeout(() => {
-                    window.location.href = '{{ route("products.index") }}';
+                    // Use redirect_url from response if available, otherwise default to products index
+                    const redirectUrl = data.redirect_url || '{{ route("products.index") }}';
+                    window.location.href = redirectUrl;
                 }, 1500);
             } else {
                 showToast('error', data.message || 'Error creating product');
@@ -1620,7 +1533,6 @@ function displayValidationErrors(errors) {
                 } else if (fieldName.includes('category') || fieldName.includes('brand') || fieldName.includes('tag')) {
                     errorTabs.add('section-categories');
                 } else if (fieldName.includes('variant')) {
-                    errorTabs.add('section-variants');
                 } else if (fieldName.includes('image')) {
                     errorTabs.add('section-images');
                 }

@@ -75,10 +75,19 @@
                                     </div>
                                 @endif
                             </div>
-                            <small class="text-muted small mt-2 d-block">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Select one or more attributes to create product variants.
-                            </small>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted small mb-0">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Select one or more attributes to create product variants.
+                                </small>
+                                <button type="button" 
+                                        class="btn btn-sm btn-primary" 
+                                        id="loadAttributeValuesBtn"
+                                        style="display: none;">
+                                    <i class="fas fa-sync-alt me-1"></i>
+                                    Load Values
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -96,7 +105,7 @@
                         <div class="row g-2">
                             <div id="variantAttributeSelectors" class="col-12">
                                 <!-- Dynamic attribute value selectors will be inserted here -->
-                                <p class="text-muted text-center">Please select attributes first to add variants</p>
+                                 
                             </div>
                             <div class="col-12 text-end">
                                 <button type="button" class="btn btn-primary" id="addVariantBtn">
@@ -608,6 +617,12 @@
         </div>
     </div>
 </div>
+<!-- jsDelivr -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+
+<!-- CDNJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+ 
 
 <script>
 function refreshFeatherIcons() {
@@ -708,97 +723,33 @@ function generateAttributeInput(attributeType, placeholder, attributeId) {
 const attributeValuesCache = new Map();
 const attributeValuesPromises = new Map(); // Track ongoing requests
 
-// Load existing attribute values from Master Data module
+// Function disabled - value loading functionality removed
 function loadExistingAttributeValues(attributeId, attributeType, attributeDiv, selectedAttributeValuesMap = {}) {
-    const attributeKey = String(attributeId);
-    
-    // Check cache first
-    if (attributeValuesCache.has(attributeKey)) {
-        const cachedData = attributeValuesCache.get(attributeKey);
-        populateAttributeValuesFromData(attributeId, attributeType, attributeDiv, cachedData, selectedAttributeValuesMap);
-        return;
-    }
-    
-    // Check if there's already an ongoing request for this attribute
-    if (attributeValuesPromises.has(attributeKey)) {
-        attributeValuesPromises.get(attributeKey).then(data => {
-            populateAttributeValuesFromData(attributeId, attributeType, attributeDiv, data, selectedAttributeValuesMap);
-        });
-        return;
-    }
-    
-    // Show loading indicator
-    const valuesContainer = attributeDiv.querySelector('.attribute-values');
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'text-muted small mb-2';
-    loadingDiv.innerHTML = '<span class="icon-spin me-1" data-feather="loader"></span> Loading existing values...';
-    valuesContainer.appendChild(loadingDiv);
-    refreshFeatherIcons();
-    
-    // Create and cache the promise
-    const fetchPromise = fetch(`{{ url('attributes') }}/${attributeId}/values`)
-        .then(response => response.json())
-        .then(data => {
-            // Cache the result
-            attributeValuesCache.set(attributeKey, data);
-            // Remove from promises cache
-            attributeValuesPromises.delete(attributeKey);
-            return data;
-        })
-        .catch(error => {
-            // Remove from promises cache on error
-            attributeValuesPromises.delete(attributeKey);
-            throw error;
-        });
-    
-    // Store the promise
-    attributeValuesPromises.set(attributeKey, fetchPromise);
-    
-    fetchPromise.then(data => {
-            // Remove loading indicator
-            loadingDiv.remove();
-            populateAttributeValuesFromData(attributeId, attributeType, attributeDiv, data, selectedAttributeValuesMap);
-        })
-        .catch(error => {
-            // Remove loading indicator on error
-            loadingDiv.remove();
-            console.error('Error loading existing attribute values:', error);
-            
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'text-danger small mb-2';
-            errorDiv.innerHTML = '<span data-feather="alert-triangle" class="me-1"></span>Error loading existing values.';
-            valuesContainer.appendChild(errorDiv);
-            refreshFeatherIcons();
-        });
-    refreshFeatherIcons();
+    return; // Disabled
 }
 
 // Helper function to populate attribute values from cached or fetched data
 function populateAttributeValuesFromData(attributeId, attributeType, attributeDiv, data, selectedAttributeValuesMap = {}) {
     const attributeKey = String(attributeId);
-    const valuesContainer = attributeDiv.querySelector('.attribute-values');
+    const $valuesContainer = $(attributeDiv).find('.attribute-values');
     
     if (data && data.length > 0) {
-        console.log('Loading existing values for attribute', attributeId, ':', data);
-        
         // Populate datalist for select type attributes
         if (attributeType === 'select' || attributeType === 'text') {
-            const datalist = attributeDiv.querySelector('datalist');
-            if (datalist) {
-                datalist.innerHTML = '';
+            const $datalist = $(attributeDiv).find('datalist');
+            if ($datalist.length) {
+                $datalist.empty();
                 data.forEach(value => {
-                    const option = document.createElement('option');
-                    option.value = value.value;
-                    datalist.appendChild(option);
+                    $datalist.append($('<option>').attr('value', value.value));
                 });
             }
         }
         
         // Display existing values as badges with checkboxes
         data.forEach(value => {
-            const valueTag = document.createElement('div');
-            valueTag.className = 'form-check form-check-inline mb-2 me-2';
-            valueTag.style.display = 'inline-block';
+            const $valueTag = $('<div>')
+                .addClass('form-check form-check-inline mb-2 me-2')
+                .css('display', 'inline-block');
             
             let displayValue = value.value;
             if (attributeType === 'color') {
@@ -808,7 +759,8 @@ function populateAttributeValuesFromData(attributeId, attributeType, attributeDi
             }
             
             const checkboxId = `attr_${attributeId}_value_${value.value.replace(/[^a-zA-Z0-9]/g, '_')}`;
-            valueTag.innerHTML = `
+           
+            $valueTag.html(`
                 <input class="form-check-input value-checkbox" type="checkbox" 
                        id="${checkboxId}" 
                        value="${value.value}" 
@@ -817,95 +769,99 @@ function populateAttributeValuesFromData(attributeId, attributeType, attributeDi
                 <label class="form-check-label badge bg-secondary" for="${checkboxId}">
                     ${displayValue} 
                 </label>
-            `;
+            `);
             
-            valuesContainer.appendChild(valueTag);
+            $valuesContainer.append($valueTag);
 
-            const checkbox = valueTag.querySelector('.value-checkbox');
+            const $checkbox = $valueTag.find('.value-checkbox');
             if (selectedAttributeValuesMap[attributeKey] && selectedAttributeValuesMap[attributeKey].includes(value.value)) {
-                checkbox.checked = true;
-                checkbox.dispatchEvent(new Event('change'));
+                $checkbox.prop('checked', true);
+                $checkbox.trigger('change');
             }
         });
         
         // Add click handler for removing master data values (if needed)
-        valuesContainer.addEventListener('click', function(e) {
-            if (e.target.classList.contains('btn-close') && e.target.dataset.fromMaster === 'true') {
-                e.target.closest('.form-check').remove();
+        $valuesContainer.on('click', function(e) {
+            if ($(e.target).hasClass('btn-close') && $(e.target).data('fromMaster') === true) {
+                $(e.target).closest('.form-check').remove();
             }
         });
     } else {
         // No existing values found
-        const noValuesDiv = document.createElement('div');
-        noValuesDiv.className = 'text-muted small mb-2';
-        noValuesDiv.innerHTML = '<span data-feather="info" class="me-1"></span>No existing values found. Add new values below.';
-        valuesContainer.appendChild(noValuesDiv);
+        const $noValuesDiv = $('<div>')
+            .addClass('text-muted small mb-2')
+            .html('<span data-feather="info" class="me-1"></span>No existing values found. Add new values below.');
+        $valuesContainer.append($noValuesDiv);
         refreshFeatherIcons();
     }
 }
 
 // Helper functions for checkbox-based attribute selection
 function getSelectedAttributeIds() {
-    const container = document.getElementById('availableAttributesContainer');
-    if (!container) return [];
-    const checkboxes = container.querySelectorAll('.attribute-checkbox:checked');
-    return Array.from(checkboxes).map(cb => String(cb.value));
+    const $container = $('#availableAttributesContainer');
+    if (!$container.length) return [];
+    return $container.find('.attribute-checkbox:checked').map(function() {
+        return String($(this).val());
+    }).get();
 }
 
 function setSelectedAttributeIds(attributeIds) {
-    const container = document.getElementById('availableAttributesContainer');
-    if (!container) return;
+    const $container = $('#availableAttributesContainer');
+    if (!$container.length) return;
     
     // Uncheck all first
-    container.querySelectorAll('.attribute-checkbox').forEach(cb => {
-        cb.checked = false;
-    });
+    $container.find('.attribute-checkbox').prop('checked', false);
     
     // Check selected ones
     if (Array.isArray(attributeIds) && attributeIds.length > 0) {
         attributeIds.forEach(id => {
-            const checkbox = container.querySelector(`.attribute-checkbox[value="${id}"]`);
-            if (checkbox) {
-                checkbox.checked = true;
-            }
+            $container.find(`.attribute-checkbox[value="${id}"]`).prop('checked', true);
         });
     }
 }
 
 function getAttributeInfo(attributeId) {
-    const container = document.getElementById('availableAttributesContainer');
-    if (!container) return null;
+    const $container = $('#availableAttributesContainer');
+    if (!$container.length) return null;
     
-    const checkbox = container.querySelector(`.attribute-checkbox[value="${attributeId}"]`);
-    if (!checkbox) return null;
+    const $checkbox = $container.find(`.attribute-checkbox[value="${attributeId}"]`);
+    if (!$checkbox.length) return null;
     
-    const item = checkbox.closest('.attribute-checkbox-item');
-    const label = item ? item.querySelector('label') : null;
-    const labelText = label ? label.textContent.trim() : '';
+    const $item = $checkbox.closest('.attribute-checkbox-item');
+    const $label = $item.find('label');
+    const labelText = $label.length ? $label.text().trim() : '';
     
     return {
         id: attributeId,
-        type: checkbox.getAttribute('data-attribute-type') || '',
-        description: checkbox.getAttribute('data-attribute-description') || '',
+        type: $checkbox.attr('data-attribute-type') || '',
+        description: $checkbox.attr('data-attribute-description') || '',
         name: labelText.replace(/\s*\([^)]*\)$/, '').trim()
     };
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const availableAttributesContainer = document.getElementById('availableAttributesContainer');
+// Global variables for attribute config updates (declared before DOMContentLoaded)
+let isUpdatingAttributeConfig = false;
+let updateAttributeConfigTimeout = null;
+let isInitialLoad = true;
+let hasUserInteracted = false; // Track if user has interacted with attribute checkboxes
+
+$(document).ready(function() {
+    const $availableAttributesContainer = $('#availableAttributesContainer');
     
     // Handle checkbox changes for attribute selection
-    if (availableAttributesContainer) {
+    if ($availableAttributesContainer.length) {
         // Function to handle checkbox change
-        function handleAttributeCheckboxChange(checkbox) {
-            const attributeId = String(checkbox.value);
-            const isChecked = checkbox.checked;
+        function handleAttributeCheckboxChange($checkbox) { 
+            // Mark that user has interacted
+            hasUserInteracted = true;
+            
+            const attributeId = String($checkbox.val());
+            const isChecked = $checkbox.is(':checked');
             
             // Get all selected attribute IDs
-            const allCheckboxes = availableAttributesContainer.querySelectorAll('.attribute-checkbox');
-            const newSelectedIds = Array.from(allCheckboxes)
-                .filter(cb => cb.checked)
-                .map(cb => String(cb.value));
+            const newSelectedIds = $availableAttributesContainer.find('.attribute-checkbox:checked').map(function() {
+                return String($(this).val());
+            }).get();
             
             // Check if any deselected attribute is used in variants
             if (!isChecked) {
@@ -914,13 +870,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (attributeIsUsedInVariants(deselectedId)) {
                         showToast('error', 'This attribute is used by existing variants. Remove or regenerate those variants before deselecting it.');
                         // Re-check the checkbox
-                        checkbox.checked = true;
+                        $checkbox.prop('checked', true);
                         return;
                     }
                 }
             }
             
             selectedAttributeIds = newSelectedIds;
+            
+            // Show/hide the "Load Values" button based on selected attributes
+            const $loadValuesBtn = $('#loadAttributeValuesBtn');
+            if (newSelectedIds.length > 0) {
+                $loadValuesBtn.css('display', 'inline-block');
+            } else {
+                $loadValuesBtn.css('display', 'none');
+            }
             
             // Clear cache for selected attributes to force fresh load from database
             // This ensures we always get the latest values from the server
@@ -936,38 +900,88 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            console.log('Selected attribute IDs (from checkbox handler):', selectedAttributeIds);
-            console.log('About to call updateAttributeValuesConfig...');
-            updateAttributeValuesConfig();
+            // Call updateAttributeValuesConfig which will show form (but not load values)
+            // Debounce the call to prevent rapid successive calls
+            if (updateAttributeConfigTimeout) {
+                clearTimeout(updateAttributeConfigTimeout);
+            }
+            updateAttributeConfigTimeout = setTimeout(function() {
+                updateAttributeValuesConfig();
+            }, 200);
+            
             if (!isRestoringVariantDraft) {
                 persistVariantDraft();
             }
         }
         
         // Attach event handlers to all checkboxes using event delegation
-        availableAttributesContainer.addEventListener('change', function(e) {
-            if (e.target.classList.contains('attribute-checkbox')) {
-                handleAttributeCheckboxChange(e.target);
+        $availableAttributesContainer.on('change', '.attribute-checkbox', function(e) {
+            handleAttributeCheckboxChange($(this));
+        });
+        
+        // Handle "Load Values" button click
+        $('#loadAttributeValuesBtn').on('click', function() {
+            const $btn = $(this);
+            const originalText = $btn.html();
+            $btn.prop('disabled', true);
+            $btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Loading...');
+            
+            // Get all selected attribute IDs
+            const selectedIds = getSelectedAttributeIds();
+            if (selectedIds.length === 0) {
+                if (typeof showToast === 'function') {
+                    showToast('error', 'Please select at least one attribute first.');
+                } else {
+                    alert('Please select at least one attribute first.');
+                }
+                $btn.prop('disabled', false);
+                $btn.html(originalText);
+                return;
             }
+            
+            // Load values for all selected attributes
+            let loadedCount = 0;
+            
+            selectedIds.forEach(attributeId => {
+                const attrIdStr = String(attributeId);
+                const $container = $('#variantAttributeSelectors').find(`[data-attribute-id="${attrIdStr}"] .attribute-values-checkbox-container`);
+                
+                if ($container.length && $container[0]) {
+                    const attrInfo = getAttributeInfo(attributeId);
+                    const attributeType = attrInfo ? attrInfo.type : 'text';
+                    
+                    loadAttributeValuesForMultiSelect(attributeId, attributeType, $container[0]);
+                    loadedCount++;
+                }
+            });
+            
+            // Reset button after a short delay
+            setTimeout(function() {
+                $btn.prop('disabled', false);
+                $btn.html(originalText);
+                if (loadedCount > 0 && typeof showToast === 'function') {
+                    showToast('success', `Loading values for ${loadedCount} attribute(s)...`);
+                }
+            }, 500);
         });
     }
     
     // Initialize variants table visibility
-    const variantsTableContainer = document.getElementById('variantsTableContainer');
-    const variantsTableBody = document.getElementById('variantsTableBody');
-    const bulkActions = document.getElementById('bulkActions');
+    const $variantsTableContainer = $('#variantsTableContainer');
+    const $variantsTableBody = $('#variantsTableBody');
+    const $bulkActions = $('#bulkActions');
     
     // Ensure variants table is visible by default (it was hidden before)
-    if (variantsTableContainer) {
-        variantsTableContainer.style.display = 'block';
+    if ($variantsTableContainer.length) {
+        $variantsTableContainer.css('display', 'block');
     }
     
     // Trigger initial check for variants after a short delay
     // Also call updateAttributeValuesConfig to initialize variants
     setTimeout(function() {
         // Ensure table is visible
-        if (variantsTableContainer) {
-            variantsTableContainer.style.display = 'block';
+        if ($variantsTableContainer.length) {
+            $variantsTableContainer.css('display', 'block');
         }
         
         // Check if updateAttributeValuesConfig exists and call it to initialize variants
@@ -977,24 +991,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Default variant creation removed per user request
     }, 300);
-    const variantEditModalElement = document.getElementById('variantEditModal');
-    const variantEditModal = variantEditModalElement ? new bootstrap.Modal(variantEditModalElement) : null;
-    const measurementRowsContainer = document.getElementById('variantMeasurementRows');
-    const measurementEmptyState = document.getElementById('variantMeasurementsEmptyState');
-    const addMeasurementRowBtn = document.getElementById('addMeasurementRowBtn');
-    const measurementDataElement = document.getElementById('variantMeasurementData');
+    const $variantEditModalElement = $('#variantEditModal');
+    const variantEditModal = $variantEditModalElement.length ? new bootstrap.Modal($variantEditModalElement[0]) : null;
+    const $measurementRowsContainer = $('#variantMeasurementRows');
+    const $measurementEmptyState = $('#variantMeasurementsEmptyState');
+    const $addMeasurementRowBtn = $('#addMeasurementRowBtn');
+    const $measurementDataElement = $('#variantMeasurementData');
     let measurementAttributes = [];
-    if (measurementDataElement && measurementDataElement.dataset.measurementAttributes) {
+    if ($measurementDataElement.length && $measurementDataElement.data('measurementAttributes')) {
         try {
-            const parsed = JSON.parse(measurementDataElement.dataset.measurementAttributes);
+            const parsed = JSON.parse($measurementDataElement.data('measurementAttributes'));
             measurementAttributes = Array.isArray(parsed) ? parsed : [];
-            console.log('Measurement attributes loaded:', measurementAttributes.length, measurementAttributes);
         } catch (e) {
-            console.error('Error parsing measurement attributes:', e);
             measurementAttributes = [];
         }
-    } else {
-        console.warn('Measurement data element or attributes not found');
     }
     // Units will be loaded dynamically from /units module
     let unitsData = [];
@@ -1008,9 +1018,44 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Try to load units from static data first (fallback), then load from API
-    const staticUnitsData = measurementDataElement && measurementDataElement.dataset.measurementUnits
-        ? JSON.parse(measurementDataElement.dataset.measurementUnits)
-        : [];
+    let staticUnitsData = [];
+    if ($measurementDataElement.length) {
+        try {
+            // Try jQuery's data method first (it auto-parses JSON)
+            let dataValue = $measurementDataElement.data('measurementUnits');
+            
+            // If data() returns an array, use it directly
+            if (Array.isArray(dataValue)) {
+                staticUnitsData = dataValue;
+            } else if (dataValue) {
+                // If it's a string, try to parse it
+                if (typeof dataValue === 'string') {
+                    // Decode HTML entities first if needed
+                    const decoded = $('<div>').html(dataValue).text();
+                    staticUnitsData = JSON.parse(decoded);
+                } else {
+                    // Try to convert to array
+                    staticUnitsData = Array.isArray(dataValue) ? dataValue : [];
+                }
+            } else {
+                // Fallback: get raw attribute and parse manually
+                const rawData = $measurementDataElement.attr('data-measurement-units');
+                if (rawData && rawData.trim()) {
+                    // Decode HTML entities
+                    const decoded = $('<div>').html(rawData).text();
+                    staticUnitsData = JSON.parse(decoded);
+                }
+            }
+            
+            // Ensure it's an array
+            if (!Array.isArray(staticUnitsData)) {
+                staticUnitsData = [];
+            }
+        } catch (e) {
+            console.warn('Error parsing measurement units data:', e);
+            staticUnitsData = [];
+        }
+    }
     if (staticUnitsData.length > 0) {
         unitsData = staticUnitsData.map(unit => ({
             id: unit.id,
@@ -1027,33 +1072,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         unitsLoaded = true;
     }
-    const discountTypeSelect = document.getElementById('variantDiscountType');
-    const discountValueInput = document.getElementById('variantDiscountValue');
-    const discountActiveSelect = document.getElementById('variantDiscountActive'); // Changed from toggle to select
-    const discountPrefixSpan = document.getElementById('variantDiscountPrefix');
-    const mrpInput = document.getElementById('variantPrice');
-    const variantSellPriceInput = document.getElementById('variantSalePrice');
-    const variantStatusToggle = document.getElementById('variantStatusToggle');
-    const variantManageImagesBtn = document.getElementById('variantManageImagesBtn');
-    const variantImagesPreview = document.getElementById('variantImagesPreview');
-    const bulkEditModalElement = document.getElementById('bulkEditModal');
+    const $discountTypeSelect = $('#variantDiscountType');
+    const $discountValueInput = $('#variantDiscountValue');
+    const $discountActiveSelect = $('#variantDiscountActive'); // Changed from toggle to select
+    const $discountPrefixSpan = $('#variantDiscountPrefix');
+    const $mrpInput = $('#variantPrice');
+    const $variantSellPriceInput = $('#variantSalePrice');
+    const $variantStatusToggle = $('#variantStatusToggle');
+    const $variantManageImagesBtn = $('#variantManageImagesBtn');
+    const $variantImagesPreview = $('#variantImagesPreview');
+    const $bulkEditModalElement = $('#bulkEditModal');
+    const bulkEditModalElement = $bulkEditModalElement.length ? $bulkEditModalElement[0] : null;
     const bulkEditModal = bulkEditModalElement ? new bootstrap.Modal(bulkEditModalElement) : null;
-    const bulkEditForm = bulkEditModalElement ? bulkEditModalElement.querySelector('form') : null;
-    const bulkPriceValue = document.getElementById('bulkPriceValue');
-    const bulkSalePriceValue = document.getElementById('bulkSalePriceValue');
-    const bulkStatusValue = document.getElementById('bulkStatusValue');
-    const bulkDiscountTypeValue = document.getElementById('bulkDiscountTypeValue');
-    const bulkDiscountValue = document.getElementById('bulkDiscountValue');
-    const bulkDiscountActiveValue = document.getElementById('bulkDiscountActiveValue');
-    const bulkDiscountPrefix = document.getElementById('bulkDiscountPrefix');
-    const existingVariantsElement = document.getElementById('existingVariantsPayload');
-    const existingVariantsPayload = existingVariantsElement
-        ? JSON.parse(existingVariantsElement.textContent || '[]')
+    const $bulkEditForm = $bulkEditModalElement.find('form');
+    const bulkEditForm = $bulkEditForm.length ? $bulkEditForm[0] : null;
+    const $bulkPriceValue = $('#bulkPriceValue');
+    const $bulkSalePriceValue = $('#bulkSalePriceValue');
+    const $bulkStatusValue = $('#bulkStatusValue');
+    const $bulkDiscountTypeValue = $('#bulkDiscountTypeValue');
+    const $bulkDiscountValue = $('#bulkDiscountValue');
+    const $bulkDiscountActiveValue = $('#bulkDiscountActiveValue');
+    const $bulkDiscountPrefix = $('#bulkDiscountPrefix');
+    const $existingVariantsElement = $('#existingVariantsPayload');
+    const existingVariantsPayload = $existingVariantsElement.length
+        ? JSON.parse($existingVariantsElement.text() || '[]')
         : [];
-    const productFormElement = document.getElementById('productForm');
+    const $productFormElement = $('#productForm');
     let isEditMode = false;
-    if (productFormElement) {
-        isEditMode = productFormElement.dataset.isEdit === 'true';
+    if ($productFormElement.length) {
+        isEditMode = $productFormElement.data('isEdit') === true;
     }
     const VARIANT_STORAGE_KEY = 'productVariantDraft';
     let isRestoringVariantDraft = false;
@@ -1196,24 +1243,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     updateMeasurementEmptyState();
                     
                     // Refresh unit dropdowns in existing measurement rows
-                    if (measurementRowsContainer) {
-                        const unitSelects = measurementRowsContainer.querySelectorAll('.measurement-unit');
-                        unitSelects.forEach(select => {
-                            const currentValue = select.value;
-                            select.innerHTML = buildUnitOptionsHtml(currentValue);
-                            select.value = currentValue;
+                    if ($measurementRowsContainer.length) {
+                        $measurementRowsContainer.find('.measurement-unit').each(function() {
+                            const $select = $(this);
+                            const currentValue = $select.val();
+                            $select.html(buildUnitOptionsHtml(currentValue));
+                            $select.val(currentValue);
                         });
                     }
                     
                     if (callback) callback();
                 } else {
-                    console.error('Failed to load units:', response);
                     unitsLoading = false;
                     if (callback) callback();
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error loading units:', error);
                 unitsLoading = false;
                 if (callback) callback();
             }
@@ -1270,67 +1315,67 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateMeasurementEmptyState() {
-        if (!measurementRowsContainer || !measurementEmptyState) {
+        if (!$measurementRowsContainer.length || !$measurementEmptyState.length) {
             return;
         }
 
         const hasUnits = unitsData.length > 0;
-        const rowCount = measurementRowsContainer.querySelectorAll('.measurement-row').length;
-        const measurementHelpText = document.getElementById('measurementHelpText');
+        const rowCount = $measurementRowsContainer.find('.measurement-row').length;
+        const $measurementHelpText = $('#measurementHelpText');
 
         // If no units, show message but enable button (units will load on click)
         if (!hasUnits) {
-            measurementEmptyState.classList.remove('d-none');
+            $measurementEmptyState.removeClass('d-none');
             const unitsLinkHtml = "{{ route('units.index') }}" && "{{ route('units.index') }}" !== '#'
                 ? `<a href="{{ route('units.index') }}" target="_blank">Add units</a>`
                 : 'Add units';
-            measurementEmptyState.innerHTML = `<div class="d-flex align-items-center"><span data-feather="info" class="text-primary me-2"></span><span>No measurement units available. ${unitsLinkHtml} to continue.</span></div>`;
+            $measurementEmptyState.html(`<div class="d-flex align-items-center"><span data-feather="info" class="text-primary me-2"></span><span>No measurement units available. ${unitsLinkHtml} to continue.</span></div>`);
             refreshFeatherIcons();
             // Enable button even if units aren't loaded - they'll load when clicked
-            if (addMeasurementRowBtn) {
-                addMeasurementRowBtn.disabled = false;
+            if ($addMeasurementRowBtn.length) {
+                $addMeasurementRowBtn.prop('disabled', false);
             }
             // Show help text
-            if (measurementHelpText) {
-                measurementHelpText.classList.remove('d-none');
+            if ($measurementHelpText.length) {
+                $measurementHelpText.removeClass('d-none');
             }
             return;
         }
 
         // Units exist, enable button
-        if (addMeasurementRowBtn) {
-            addMeasurementRowBtn.disabled = false;
+        if ($addMeasurementRowBtn.length) {
+            $addMeasurementRowBtn.prop('disabled', false);
         }
 
         if (rowCount === 0) {
-            measurementEmptyState.classList.remove('d-none');
-            measurementEmptyState.innerHTML = '<div class="d-flex align-items-center"><span data-feather="info" class="text-primary me-2"></span><span>No measurements added yet. Use the "Add Measurement" button to define variant-specific measurements.</span></div>';
+            $measurementEmptyState.removeClass('d-none');
+            $measurementEmptyState.html('<div class="d-flex align-items-center"><span data-feather="info" class="text-primary me-2"></span><span>No measurements added yet. Use the "Add Measurement" button to define variant-specific measurements.</span></div>');
             refreshFeatherIcons();
             // Show help text when ready to add measurements
-            if (measurementHelpText) {
-                measurementHelpText.classList.remove('d-none');
+            if ($measurementHelpText.length) {
+                $measurementHelpText.removeClass('d-none');
             }
         } else {
-            measurementEmptyState.classList.add('d-none');
+            $measurementEmptyState.addClass('d-none');
             // Hide help text when measurements exist
-            if (measurementHelpText) {
-                measurementHelpText.classList.add('d-none');
+            if ($measurementHelpText.length) {
+                $measurementHelpText.addClass('d-none');
             }
         }
     }
 
     function createMeasurementRow(measurement = {}) {
-        if (!measurementRowsContainer) {
+        if (!$measurementRowsContainer.length) {
             return;
         }
 
         measurementRowCounter += 1;
         const attributeValue = measurement.attribute_name || '';
 
-        const row = document.createElement('div');
-        row.className = 'measurement-row border rounded p-3 mb-2 bg-body-tertiary';
-        row.dataset.index = measurementRowCounter;
-        row.innerHTML = `
+        const $row = $('<div>')
+            .addClass('measurement-row border rounded p-3 mb-2 bg-body-tertiary')
+            .attr('data-index', measurementRowCounter);
+        $row.html(`
             <div class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label">Attribute <span class="text-danger">*</span></label>
@@ -1352,22 +1397,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     </button>
                 </div>
             </div>
-        `;
+        `);
 
-        const removeBtn = row.querySelector('.remove-measurement-row');
-        if (removeBtn) {
-            removeBtn.addEventListener('click', function() {
-                row.remove();
-                updateMeasurementEmptyState();
-            });
+        $row.find('.remove-measurement-row').on('click', function() {
+            $row.remove();
+            updateMeasurementEmptyState();
+        });
+
+        const $unitSelect = $row.find('.measurement-unit');
+        if ($unitSelect.length && measurement.unit_id && unitsMap[String(measurement.unit_id)]) {
+            $unitSelect.val(String(measurement.unit_id));
         }
 
-        const unitSelect = row.querySelector('.measurement-unit');
-        if (unitSelect && measurement.unit_id && unitsMap[String(measurement.unit_id)]) {
-            unitSelect.value = String(measurement.unit_id);
-        }
-
-        measurementRowsContainer.appendChild(row);
+        $measurementRowsContainer.append($row);
         updateMeasurementEmptyState();
         refreshFeatherIcons();
     }
@@ -1377,7 +1419,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        measurementRowsContainer.innerHTML = '';
+        $measurementRowsContainer.empty();
 
         // Load units if not already loaded
         if (!unitsLoaded && !unitsLoading) {
@@ -1429,24 +1471,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return [];
         }
 
-        const rows = measurementRowsContainer.querySelectorAll('.measurement-row');
+        const $rows = $measurementRowsContainer.find('.measurement-row');
         const measurements = [];
 
-        rows.forEach(row => {
-            const attributeInput = row.querySelector('.measurement-attribute');
-            const unitSelect = row.querySelector('.measurement-unit');
-            const valueInput = row.querySelector('.measurement-value');
+        $rows.each(function() {
+            const $row = $(this);
+            const $attributeInput = $row.find('.measurement-attribute');
+            const $unitSelect = $row.find('.measurement-unit');
+            const $valueInput = $row.find('.measurement-value');
 
-            if (!attributeInput || !valueInput) {
+            if (!$attributeInput.length || !$valueInput.length) {
                 return;
             }
 
-            const attributeName = (attributeInput.value || '').trim();
+            const attributeName = ($attributeInput.val() || '').trim();
             if (!attributeName) {
                 return;
             }
 
-            const rawValue = valueInput.value;
+            const rawValue = $valueInput.val();
             if (rawValue === '' || rawValue === null) {
                 return;
             }
@@ -1456,7 +1499,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const unitId = unitSelect && unitSelect.value ? parseInt(unitSelect.value, 10) : null;
+            const unitId = $unitSelect.length && $unitSelect.val() ? parseInt($unitSelect.val(), 10) : null;
             const unit = unitId ? unitsMap[String(unitId)] : null;
 
             measurements.push({
@@ -1514,29 +1557,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const legacy = mapMeasurementsToLegacyValues(measurements);
 
-        const weightInput = row.querySelector('[data-variant-weight-input]');
-        if (weightInput) {
-            weightInput.value = legacy.weight !== null ? legacy.weight : '';
+        const $weightInput = $(row).find('[data-variant-weight-input]');
+        if ($weightInput.length) {
+            $weightInput.val(legacy.weight !== null ? legacy.weight : '');
         }
 
-        const lengthInput = row.querySelector('[data-variant-length-input]');
-        if (lengthInput) {
-            lengthInput.value = legacy.length !== null ? legacy.length : '';
+        const $lengthInput = $(row).find('[data-variant-length-input]');
+        if ($lengthInput.length) {
+            $lengthInput.val(legacy.length !== null ? legacy.length : '');
         }
 
-        const widthInput = row.querySelector('[data-variant-width-input]');
-        if (widthInput) {
-            widthInput.value = legacy.width !== null ? legacy.width : '';
+        const $widthInput = $(row).find('[data-variant-width-input]');
+        if ($widthInput.length) {
+            $widthInput.val(legacy.width !== null ? legacy.width : '');
         }
 
-        const heightInput = row.querySelector('[data-variant-height-input]');
-        if (heightInput) {
-            heightInput.value = legacy.height !== null ? legacy.height : '';
+        const $heightInput = $(row).find('[data-variant-height-input]');
+        if ($heightInput.length) {
+            $heightInput.val(legacy.height !== null ? legacy.height : '');
         }
 
-        const diameterInput = row.querySelector('[data-variant-diameter-input]');
-        if (diameterInput) {
-            diameterInput.value = legacy.diameter !== null ? legacy.diameter : '';
+        const $diameterInput = $(row).find('[data-variant-diameter-input]');
+        if ($diameterInput.length) {
+            $diameterInput.val(legacy.diameter !== null ? legacy.diameter : '');
         }
     }
 
@@ -1545,15 +1588,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const displayContainer = row.querySelector('[data-variant-measurements-display]');
-        const hiddenInput = row.querySelector('[data-variant-measurements-input]');
+        const $displayContainer = $(row).find('[data-variant-measurements-display]');
+        const $hiddenInput = $(row).find('[data-variant-measurements-input]');
 
-        if (displayContainer) {
-            displayContainer.innerHTML = buildMeasurementDisplayHtml(measurements);
+        if ($displayContainer.length) {
+            $displayContainer.html(buildMeasurementDisplayHtml(measurements));
         }
 
-        if (hiddenInput) {
-            hiddenInput.value = measurements && measurements.length ? JSON.stringify(measurements) : '[]';
+        if ($hiddenInput.length) {
+            $hiddenInput.val(measurements && measurements.length ? JSON.stringify(measurements) : '[]');
         }
 
         syncLegacyHiddenInputs(row, measurements);
@@ -1583,11 +1626,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const measurements = [];
 
         mapping.forEach(item => {
-            const input = row.querySelector(item.selector);
-            if (!input || input.value === '' || input.value === null) {
+            const $input = $(row).find(item.selector);
+            if (!$input.length || $input.val() === '' || $input.val() === null) {
                 return;
             }
-            const numericValue = Number(input.value);
+            const numericValue = Number($input.val());
             if (!Number.isFinite(numericValue)) {
                 return;
             }
@@ -1614,15 +1657,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return [];
         }
 
-        const hiddenInput = row.querySelector('[data-variant-measurements-input]');
-        if (hiddenInput && hiddenInput.value) {
+        const $hiddenInput = $(row).find('[data-variant-measurements-input]');
+        if ($hiddenInput.length && $hiddenInput[0].value) {
             try {
-                const parsed = JSON.parse(hiddenInput.value);
+                const parsed = JSON.parse($hiddenInput[0].value);
                 if (Array.isArray(parsed)) {
                     return parsed;
                 }
             } catch (error) {
-                console.error('Failed to parse measurement JSON', error);
             }
         }
 
@@ -1703,21 +1745,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (callback) callback();
                 } else {
-                    console.error('Failed to load numeric attributes:', response);
                     showToast('error', 'Failed to load measurement attributes. Please create numeric attributes first.');
                     if (callback) callback();
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error loading numeric attributes:', error);
                 showToast('error', 'Error loading measurement attributes. Please check your connection and try again.');
                 if (callback) callback();
             }
         });
     }
 
-    if (addMeasurementRowBtn) {
-        addMeasurementRowBtn.addEventListener('click', function() {
+    if ($addMeasurementRowBtn.length) {
+        $addMeasurementRowBtn.on('click', function() {
             // Load units if not already loaded, then create row
             if (!unitsLoaded && !unitsLoading) {
                 loadUnitsFromModule(function() {
@@ -1777,60 +1817,56 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 variantDescriptionEditor.destroy();
             } catch (e) {
-                console.log('Error destroying description editor:', e);
             }
         }
         if (variantAdditionalInfoEditor && typeof variantAdditionalInfoEditor.destroy === 'function') {
             try {
                 variantAdditionalInfoEditor.destroy();
             } catch (e) {
-                console.log('Error destroying additional info editor:', e);
             }
         }
         
         // Initialize Description Editor
-        const descriptionTextarea = document.getElementById('variantDescription');
-        if (descriptionTextarea && typeof RichTextEditor !== 'undefined') {
+        const $descriptionTextarea = $('#variantDescription');
+        if ($descriptionTextarea.length && typeof RichTextEditor !== 'undefined') {
             try {
-                variantDescriptionEditor = new RichTextEditor(descriptionTextarea);
+                variantDescriptionEditor = new RichTextEditor($descriptionTextarea[0]);
                 window.variantDescriptionEditor = variantDescriptionEditor;
                 
                 // Update textarea on change
                 variantDescriptionEditor.attachEvent("textchanged", function() {
-                    descriptionTextarea.value = variantDescriptionEditor.getHTMLCode();
+                    $descriptionTextarea.val(variantDescriptionEditor.getHTMLCode());
                 });
             } catch (e) {
-                console.error('Error initializing variant description editor:', e);
             }
         }
         
         // Initialize Additional Information Editor
-        const additionalInfoTextarea = document.getElementById('variantAdditionalInfo');
-        if (additionalInfoTextarea && typeof RichTextEditor !== 'undefined') {
+        const $additionalInfoTextarea = $('#variantAdditionalInfo');
+        if ($additionalInfoTextarea.length && typeof RichTextEditor !== 'undefined') {
             try {
-                variantAdditionalInfoEditor = new RichTextEditor(additionalInfoTextarea);
+                variantAdditionalInfoEditor = new RichTextEditor($additionalInfoTextarea[0]);
                 window.variantAdditionalInfoEditor = variantAdditionalInfoEditor;
                 
                 // Update textarea on change
                 variantAdditionalInfoEditor.attachEvent("textchanged", function() {
-                    additionalInfoTextarea.value = variantAdditionalInfoEditor.getHTMLCode();
+                    $additionalInfoTextarea.val(variantAdditionalInfoEditor.getHTMLCode());
                 });
             } catch (e) {
-                console.error('Error initializing variant additional info editor:', e);
             }
         }
     }
     
     // Initialize editors when modal is shown
-    if (variantEditModalElement) {
-        variantEditModalElement.addEventListener('shown.bs.modal', function() {
+    if ($variantEditModalElement.length) {
+        $variantEditModalElement.on('shown.bs.modal', function() {
             // Wait a bit to ensure modal is fully rendered
             setTimeout(function() {
                 initializeVariantRichTextEditors();
             }, 100);
         });
         
-        variantEditModalElement.addEventListener('hidden.bs.modal', function() {
+        $variantEditModalElement.on('hidden.bs.modal', function() {
             activeVariantRow = null;
             syncModalImagePreview(null, []);
             // Destroy editors when modal is hidden
@@ -1838,14 +1874,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     variantDescriptionEditor.destroy();
                 } catch (e) {
-                    console.log('Error destroying description editor:', e);
                 }
             }
             if (variantAdditionalInfoEditor && typeof variantAdditionalInfoEditor.destroy === 'function') {
                 try {
                     variantAdditionalInfoEditor.destroy();
                 } catch (e) {
-                    console.log('Error destroying additional info editor:', e);
                 }
             }
             // Reset editor instances
@@ -1853,10 +1887,10 @@ document.addEventListener('DOMContentLoaded', function() {
             variantAdditionalInfoEditor = null;
             window.variantDescriptionEditor = null;
             window.variantAdditionalInfoEditor = null;
-            const descriptionTextarea = document.getElementById('variantDescription');
-            const additionalInfoTextarea = document.getElementById('variantAdditionalInfo');
-            if (descriptionTextarea) descriptionTextarea.value = '';
-            if (additionalInfoTextarea) additionalInfoTextarea.value = '';
+            const $descriptionTextarea = $('#variantDescription');
+            const $additionalInfoTextarea = $('#variantAdditionalInfo');
+            if ($descriptionTextarea.length) $descriptionTextarea.val('');
+            if ($additionalInfoTextarea.length) $additionalInfoTextarea.val('');
         });
     }
 
@@ -1880,46 +1914,46 @@ document.addEventListener('DOMContentLoaded', function() {
     let activeVariantRow = null;
     let bulkEditTargets = [];
 
-    if (discountTypeSelect) {
-        discountTypeSelect.addEventListener('change', function() {
+    if ($discountTypeSelect.length) {
+        $discountTypeSelect.on('change', function() {
             handleDiscountStateChange();
         });
     }
 
-    if (discountValueInput) {
-        discountValueInput.addEventListener('input', function() {
-            if (discountActiveSelect && discountActiveSelect.value === '0' && discountTypeSelect && discountTypeSelect.value) {
-                discountActiveSelect.value = '1';
+    if ($discountValueInput.length) {
+        $discountValueInput.on('input', function() {
+            if ($discountActiveSelect.length && $discountActiveSelect.val() === '0' && $discountTypeSelect.length && $discountTypeSelect.val()) {
+                $discountActiveSelect.val('1');
             }
             calculateVariantSellPrice();
         });
     }
 
-    if (discountActiveSelect) {
-        discountActiveSelect.addEventListener('change', function() {
+    if ($discountActiveSelect.length) {
+        $discountActiveSelect.on('change', function() {
             calculateVariantSellPrice();
         });
     }
 
-    if (mrpInput) {
-        mrpInput.addEventListener('input', calculateVariantSellPrice);
+    if ($mrpInput.length) {
+        $mrpInput.on('input', calculateVariantSellPrice);
     }
 
-    if (variantStatusToggle) {
-        variantStatusToggle.addEventListener('change', function() {
+    if ($variantStatusToggle.length) {
+        $variantStatusToggle.on('change', function() {
             updateVariantStatusToggleLabel();
         });
     }
 
-    if (variantManageImagesBtn) {
-        variantManageImagesBtn.addEventListener('click', function() {
+    if ($variantManageImagesBtn.length) {
+        $variantManageImagesBtn.on('click', function() {
             if (!activeVariantRow) {
                 showToast('error', 'Select a variant row before managing images.');
                 return;
             }
-            const rowImageInput = activeVariantRow.querySelector('.variant-image-input');
-            if (rowImageInput) {
-                rowImageInput.click();
+            const $rowImageInput = $(activeVariantRow).find('.variant-image-input');
+            if ($rowImageInput.length) {
+                $rowImageInput.trigger('click');
             } else {
                 showToast('error', 'Image uploader not available for this variant.');
             }
@@ -1942,9 +1976,12 @@ document.addEventListener('DOMContentLoaded', function() {
     window.createDefaultVariant = createDefaultVariant;
     
     // Initialize for edit mode if product exists and has variants
-    if (Array.isArray(existingVariantsPayload) && existingVariantsPayload.length > 0) {
-        loadExistingVariants(existingVariantsPayload);
-    }
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(function() {
+        if (Array.isArray(existingVariantsPayload) && existingVariantsPayload.length > 0) {
+            loadExistingVariants(existingVariantsPayload);
+        }
+    }, 200);
     // Default variant auto-creation removed per user request
 
     // Attribute selection
@@ -1958,9 +1995,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return Object.prototype.hasOwnProperty.call(normalizedAttributes, key);
         });
     }
-
-    // Checkbox handlers are already set up in DOMContentLoaded event listener above
-    // No need for additional Select2 handlers
+ 
 
     // Removed moveAttributeToSelected and moveAttributeToAvailable - attributes now stay in place with visual feedback
 
@@ -1970,7 +2005,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const requiredAttributeIds = new Set();
-        generatedVariants.forEach(variant => {
+        generatedVariants.forEach((variant, index) => {
             const normalized = normalizeAttributesPayload(variant.attributes || variant);
             Object.keys(normalized).forEach(id => {
                 requiredAttributeIds.add(String(id));
@@ -1984,29 +2019,31 @@ document.addEventListener('DOMContentLoaded', function() {
         let attributesChanged = false;
 
         requiredAttributeIds.forEach(attributeId => {
-            if (!selectedAttributeIds.includes(attributeId)) {
-                selectedAttributeIds.push(attributeId);
+            const attrIdStr = String(attributeId);
+            if (!selectedAttributeIds.includes(attrIdStr)) {
+                selectedAttributeIds.push(attrIdStr);
                 attributesChanged = true;
             }
 
             // Select checkbox
-            const container = document.getElementById('availableAttributesContainer');
-            if (container) {
-                const checkbox = container.querySelector(`.attribute-checkbox[value="${attributeId}"]`);
-                if (checkbox && !checkbox.checked) {
-                    checkbox.checked = true;
-                    // Trigger change event to update selectedAttributeIds
-                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                    attributesChanged = true;
+            const $container = $('#availableAttributesContainer');
+            if ($container.length) {
+                const $checkbox = $container.find(`.attribute-checkbox[value="${attrIdStr}"]`);
+                if ($checkbox.length) {
+                    if (!$checkbox.is(':checked')) {
+                        $checkbox.prop('checked', true);
+                        // Manually update selectedAttributeIds first
+                        if (!selectedAttributeIds.includes(attrIdStr)) {
+                            selectedAttributeIds.push(attrIdStr);
+                        }
+                        // Note: We don't trigger change event on page load to avoid loading values automatically
+                        // Values will only load when user manually clicks/unchanges the checkbox
+                        attributesChanged = true;
+                    }
                 }
             }
         });
-
-        if (attributesChanged) {
-            updateAttributeValuesConfig();
-        } else if (selectedAttributeIds.length) {
-            updateAttributeValuesConfig();
-        }
+ 
     }
 
     function preselectExistingAttributeCheckboxes() {
@@ -2051,7 +2088,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function preserveUnsatisfiedVariants() {
         // Only preserve attributes if we're in edit mode and have existing variants
         // Don't auto-select attributes for new products
-        if (!Array.isArray(generatedVariants) || !generatedVariants.length) {
+        if (typeof generatedVariants === 'undefined' || !Array.isArray(generatedVariants) || !generatedVariants.length) {
             return;
         }
 
@@ -2083,13 +2120,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!selectedAttributeIds.includes(attributeId)) {
                 selectedAttributeIds.push(attributeId);
                 // Select checkbox
-                const container = document.getElementById('availableAttributesContainer');
-                if (container) {
-                    const checkbox = container.querySelector(`.attribute-checkbox[value="${attributeId}"]`);
-                    if (checkbox && !checkbox.checked) {
-                        checkbox.checked = true;
+                const $container = $('#availableAttributesContainer');
+                if ($container.length) {
+                    const $checkbox = $container.find(`.attribute-checkbox[value="${attributeId}"]`);
+                    if ($checkbox.length && !$checkbox.is(':checked')) {
+                        $checkbox.prop('checked', true);
                         // Trigger change event to update selectedAttributeIds
-                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                        $checkbox.trigger('change');
                     }
                 }
             }
@@ -2112,49 +2149,211 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Prevent multiple simultaneous calls to updateAttributeValuesConfig
+    // Variables are declared globally above (before DOMContentLoaded)
+    
     function updateAttributeValuesConfig() {
+        // Debounce: Clear any pending calls
+        if (updateAttributeConfigTimeout) {
+            clearTimeout(updateAttributeConfigTimeout);
+        }
+        
+        // Store the initial load state before we potentially change it
+        const wasInitialLoad = isInitialLoad;
+        
+        // If already updating, queue this call (but allow initial load to proceed)
+        if (isUpdatingAttributeConfig && !isInitialLoad) {
+            updateAttributeConfigTimeout = setTimeout(function() {
+                updateAttributeValuesConfig();
+            }, 300);
+            return;
+        }
+        isUpdatingAttributeConfig = true;
+        
+        // Mark that initial load is done after first call (but preserve the state for this call)
+        // We'll use wasInitialLoad to check if this is the initial load
+        if (isInitialLoad) {
+            isInitialLoad = false;
+        }
+        
         preserveUnsatisfiedVariants();
 
-        const addVariantForm = document.getElementById('addVariantForm');
-        const variantAttributeSelectors = document.getElementById('variantAttributeSelectors');
+        const $addVariantForm = $('#addVariantForm');
+        const $variantAttributeSelectors = $('#variantAttributeSelectors');
         
-        if (!addVariantForm || !variantAttributeSelectors) {
+        if (!$addVariantForm.length || !$variantAttributeSelectors.length) {
+            isUpdatingAttributeConfig = false;
             return;
         }
 
         const shouldShowForm = selectedAttributeIds.length > 0;
         
         if (shouldShowForm) {
-            addVariantForm.style.display = 'block';
+            $addVariantForm.css('display', 'block');
             
             // Destroy existing Select2 instances before clearing
-            variantAttributeSelectors.querySelectorAll('.variant-attribute-selector').forEach(select => {
-                const $select = $(select);
+            $variantAttributeSelectors.find('.variant-attribute-selector').each(function() {
+                const $select = $(this);
                 if ($select.data('select2')) {
                     $select.select2('destroy');
                 }
             });
             
-            variantAttributeSelectors.innerHTML = '';
+            // Check which containers already exist and have values loaded
+            const existingContainers = new Map();
+            const seenAttributeIds = new Set();
+            
+            $variantAttributeSelectors.find('[data-attribute-id]').each(function() {
+                const $div = $(this);
+                const attrId = $div.attr('data-attribute-id');
+                const $container = $div.find('.attribute-values-checkbox-container');
+                
+                // Check if this container has values loaded
+                // Check for checkboxes directly or inside a row element with content
+                const $rowElement = $container.find('.row');
+                const rowHasContent = $rowElement.length && $rowElement.children().length > 0;
+                const hasValues = $container.length ? (
+                    !!$container.find('.variant-attribute-value-checkbox').length || 
+                    (rowHasContent && !$container.find('.fa-spinner').length && !$container.find('.text-muted:not(.text-danger)').length) ||
+                    !!($container.find('.text-danger').length && !$container.find('.fa-spinner').length)
+                ) : false;
+                
+                // If we've already seen this attribute ID
+                if (seenAttributeIds.has(attrId)) {
+                    // Keep the one with values, remove the one without
+                    const existing = existingContainers.get(attrId);
+                    if (existing && existing.hasValues && !hasValues) {
+                        // Existing has values, this one doesn't - remove this duplicate
+                        $div.remove();
+                        return;
+                    } else if (existing && !existing.hasValues && hasValues) {
+                        // This one has values, existing doesn't - remove the existing one
+                        if (existing.$div && existing.$div.parent().length) {
+                            existing.$div.remove();
+                        }
+                        // Update to use this one
+                        existingContainers.set(attrId, { $div, $container, hasValues });
+                    } else {
+                        // Both have values or both don't - remove the duplicate (keep first one)
+                        $div.remove();
+                        return;
+                    }
+                } else {
+                    seenAttributeIds.add(attrId);
+                    existingContainers.set(attrId, { $div, $container, hasValues });
+                }
+                
+                // DEBUG: Attribute/Value - Container detection
+                console.log('[ATTR/VAL] Found container for attribute', attrId, 'hasContainer:', $container.length > 0, 'hasValues:', hasValues);
+            });
+            
+            // DEBUG: Attribute/Value - Container mapping
+            console.log('[ATTR/VAL] Existing containers:', Array.from(existingContainers.keys()), 'Selected IDs:', selectedAttributeIds);
+            
+            // Only clear if we need to remove containers that are no longer selected
+            const selectedIdsSet = new Set(selectedAttributeIds.map(id => String(id)));
+            const needsClear = Array.from(existingContainers.keys()).some(id => !selectedIdsSet.has(id));
+            
+            if (needsClear) {
+                // Only remove containers that are no longer selected
+                existingContainers.forEach((item, attrId) => {
+                    if (!selectedIdsSet.has(attrId)) {
+                        // Remove the DOM container
+                        item.$div.remove();
+                        
+                        // Clear attribute values from data structures
+                        const attrKey = String(attrId);
+                        if (selectedAttributeValues[attrKey]) {
+                            delete selectedAttributeValues[attrKey];
+                        }
+                        if (attributeValues[attrKey]) {
+                            delete attributeValues[attrKey];
+                        }
+                        
+                        // Clear cache for this attribute
+                        if (attributeValuesCache.has(attrKey)) {
+                            attributeValuesCache.delete(attrKey);
+                        }
+                        if (attributeValuesPromises.has(attrKey)) {
+                            attributeValuesPromises.delete(attrKey);
+                        }
+                    }
+                });
+            }
 
-            // Create multi-select checkboxes for each selected attribute
+            // Create or update multi-select checkboxes for each selected attribute
             selectedAttributeIds.forEach(attributeId => {
+                const attrIdStr = String(attributeId);
+                
+                // Check if container already exists
+                let $selectorDiv = existingContainers.get(attrIdStr)?.$div;
+                const existingContainer = existingContainers.get(attrIdStr);
+                
+                // If container already exists, ensure values are loaded
+                if ($selectorDiv && $selectorDiv.length && existingContainer?.$container && existingContainer.$container.length) {
+                    const $container = existingContainer.$container;
+                    const hasCheckboxes = $container.find('.variant-attribute-value-checkbox').length > 0;
+                    const $hasRow = $container.find('.row'); // Check for checkbox grid
+                    const isLoading = $container.find('.fa-spinner').length > 0;
+                    const hasError = $container.find('.text-danger').length > 0;
+                    const hasEmptyMessage = $container.find('.text-muted').length > 0 && !hasCheckboxes && !$hasRow.length;
+                    
+                    // Check if row has actual content (not just empty)
+                    const rowHasContent = $hasRow.length && $hasRow.children().length > 0;
+                    
+                    // Values are loaded if: checkboxes exist, OR row exists with content and not loading
+                    // Don't check for isBeingPopulated - values should only load when button is clicked
+                    const valuesLoaded = hasCheckboxes || (rowHasContent && !isLoading && !hasEmptyMessage);
+                    
+                    // DEBUG: Attribute/Value - Value loading state
+                    console.log('[ATTR/VAL] Attribute', attributeId, 'hasCheckboxes:', hasCheckboxes, 'hasRow:', $hasRow.length > 0, 'rowHasContent:', rowHasContent, 'isLoading:', isLoading, 'valuesLoaded:', valuesLoaded);
+                    
+                    // Don't auto-load values - wait for user to click "Load Values" button
+                    return; // Skip creating new container since it already exists
+                }
+                
+                // Double-check that container doesn't exist (might have been created between checks)
+                const $existingDiv = $variantAttributeSelectors.find(`[data-attribute-id="${attrIdStr}"]`);
+                if ($existingDiv.length) {
+                    let $container = $existingDiv.find('.attribute-values-checkbox-container');
+                    
+                    // If inner container doesn't exist, we need to create it or recreate the whole container
+                    if (!$container.length) {
+                        // Remove the incomplete container and let it be recreated below
+                        $existingDiv.remove();
+                        // Continue to create new container
+                    } else {
+                        // Container exists, check if values need to be loaded
+                        const hasCheckboxes = $container.find('.variant-attribute-value-checkbox').length > 0;
+                        const $hasRow = $container.find('.row');
+                        const rowHasContent = $hasRow.length && $hasRow.children().length > 0;
+                        const isLoading = $container.find('.fa-spinner').length > 0;
+                        // Don't check for isBeingPopulated - values should only load when button is clicked
+                        const valuesLoaded = hasCheckboxes || (rowHasContent && !isLoading);
+                       
+                        // Don't auto-load values - wait for user to click "Load Values" button
+                        return; // Container exists and is complete, skip creation
+                    }
+                }
+                
                 // Get attribute info using helper function
                 const attrInfo = getAttributeInfo(attributeId);
-                if (!attrInfo) return;
+                if (!attrInfo) {
+                    return;
+                }
                 
                 const attributeType = attrInfo.type;
                 const attributeName = attrInfo.name;
                 
-                // Create checkbox container for this attribute
-                const selectorDiv = document.createElement('div');
-                selectorDiv.className = 'col-md-12 mb-3';
-                selectorDiv.setAttribute('data-attribute-id', attributeId);
-                selectorDiv.innerHTML = `
+                // Create new checkbox container for this attribute
+                $selectorDiv = $('<div>')
+                    .addClass('col-md-12 mb-3')
+                    .attr('data-attribute-id', attributeId);
+                $selectorDiv.html(`
                   <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="form-label mb-0">
                         <strong>${escapeHtml(attributeName)}</strong>
-                        <small class="text-muted ms-2">(Select multiple values)</small>
+                     
                     </label>
 
                     <button type="button"
@@ -2175,33 +2374,35 @@ document.addEventListener('DOMContentLoaded', function() {
                        data-attribute-id="${attributeId}" 
                        data-attribute-type="${attributeType}">
                     <div class="text-center text-muted py-3">
-                        <i class="fas fa-spinner fa-spin me-2"></i>Loading values...
+                        <i class="fas fa-info-circle me-2"></i>Click "Load Values" button to load attribute values
                     </div>
                   </div>
-                `;
+                `);
                 
-                variantAttributeSelectors.appendChild(selectorDiv);
+                // Final check before appending - make sure no duplicate was created
+                const $finalCheck = $variantAttributeSelectors.find(`[data-attribute-id="${attrIdStr}"]`);
+                if ($finalCheck.length && $finalCheck[0] !== $selectorDiv[0]) {
+                    return; // Don't append, container already exists
+                }
                 
-                // Load attribute values for this attribute (will show as checkboxes)
-                loadAttributeValuesForMultiSelect(attributeId, attributeType, selectorDiv.querySelector('.attribute-values-checkbox-container'));
+                $variantAttributeSelectors.append($selectorDiv); 
+                // Don't auto-load values - wait for user to click "Load Values" button
+                // Values will be loaded when the button is clicked
                 
                 // Attach click handler for "Add Value" button
-                const addValueBtn = selectorDiv.querySelector('.add-attribute-value-btn');
-                if (addValueBtn) {
-                    addValueBtn.addEventListener('click', function() {
-                        openAddAttributeValueModal(attributeId, attributeType, attributeName);
-                    });
-                }
+                $selectorDiv.find('.add-attribute-value-btn').on('click', function() {
+                    openAddAttributeValueModal(attributeId, attributeType, attributeName);
+                });
             });
         } else {
             // Destroy Select2 instances when hiding the form
-            variantAttributeSelectors.querySelectorAll('.variant-attribute-selector').forEach(select => {
-                const $select = $(select);
+            $variantAttributeSelectors.find('.variant-attribute-selector').each(function() {
+                const $select = $(this);
                 if ($select.data('select2')) {
                     $select.select2('destroy');
                 }
             });
-            addVariantForm.style.display = 'none';
+            $addVariantForm.css('display', 'none');
         }
 
         // Show variants table if there are existing variants OR if no attributes are selected (default variant)
@@ -2210,48 +2411,51 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (hasVariants) {
             if (variantsTableContainer) {
-                variantsTableContainer.style.display = 'block';
+                $variantsTableContainer.css('display', 'block');
             }
-            if (bulkActions) {
-                bulkActions.style.display = 'block';
+            if ($bulkActions.length) {
+                $bulkActions.css('display', 'block');
             }
         } else if (noAttributesSelected) {
             // Auto-create default variant when no attributes selected
             // Ensure table is visible first
             if (variantsTableContainer) {
-                variantsTableContainer.style.display = 'block';
+                $variantsTableContainer.css('display', 'block');
             }
             
             // Default variant creation removed per user request
             // Show table if it exists
             if (variantsTableContainer) {
-                variantsTableContainer.style.display = 'block';
+                $variantsTableContainer.css('display', 'block');
             }
         } else {
             // Hide table when attributes are selected but no variants generated yet
             if (variantsTableContainer) {
-                variantsTableContainer.style.display = 'none';
+                $variantsTableContainer.css('display', 'none');
             }
             if (bulkActions) {
-                bulkActions.style.display = 'none';
+                $bulkActions.css('display', 'none');
             }
         }
 
         if (!isRestoringVariantDraft) {
             persistVariantDraft();
         }
+        
+        // Reset the flag to allow future calls
+        isUpdatingAttributeConfig = false;
     }
     
-    // Call updateAttributeValuesConfig on page load to initialize variants
-    // Default variant creation removed per user request
-    setTimeout(function() {
-        if (typeof updateAttributeValuesConfig === 'function') {
-            updateAttributeValuesConfig();
-        }
-    }, 100);
-
+  
+    // Track which containers are already being populated to prevent duplicates
+    const containersBeingPopulated = new Set();
+    
     // Load attribute values for multi-select checkboxes
     function loadAttributeValuesForMultiSelect(attributeId, attributeType, containerElement) {
+        if (!containerElement || !attributeId) {
+            return;
+        }
+        
         const attributeKey = String(attributeId);
         
         // Check cache first
@@ -2261,43 +2465,71 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Check if there's already an ongoing request for this attribute
+        // Check if there's already a pending request for this attribute
         if (attributeValuesPromises.has(attributeKey)) {
             attributeValuesPromises.get(attributeKey).then(data => {
                 populateMultiSelectFromData(attributeId, attributeType, containerElement, data);
+            }).catch(error => {
+                console.error('Error loading attribute values:', error);
+                containerElement.innerHTML = `
+                    <div class="text-danger text-center py-2">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading values. Please try again.
+                    </div>
+                `;
             });
             return;
         }
         
-        // Create and cache the promise
-        const fetchPromise = fetch(`{{ url('attributes') }}/${attributeId}/values`)
-            .then(response => response.json())
-            .then(data => {
-                // Cache the result
-                attributeValuesCache.set(attributeKey, data);
-                // Remove from promises cache
-                attributeValuesPromises.delete(attributeKey);
-                return data;
-            })
-            .catch(error => {
-                // Remove from promises cache on error
-                attributeValuesPromises.delete(attributeKey);
-                throw error;
-            });
+        // Show loading state
+        containerElement.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-spinner fa-spin me-2"></i>Loading values...
+            </div>
+        `;
+        
+        // Make API request
+        const promise = $.ajax({
+            url: `{{ url('attributes') }}/${attributeId}/values`,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        }).then(function(data) {
+            // Cache the data
+            attributeValuesCache.set(attributeKey, data);
+            attributeValuesPromises.delete(attributeKey);
+            return data;
+        }).catch(function(xhr) {
+            attributeValuesPromises.delete(attributeKey);
+            throw xhr;
+        });
         
         // Store the promise
-        attributeValuesPromises.set(attributeKey, fetchPromise);
+        attributeValuesPromises.set(attributeKey, promise);
         
-        fetchPromise.then(data => {
+        // Handle the response
+        promise.then(function(data) {
             populateMultiSelectFromData(attributeId, attributeType, containerElement, data);
-        }).catch(error => {
-            console.error('Error loading attribute values for multi-select:', error);
-            containerElement.innerHTML = '<div class="text-danger text-center py-2">Error loading values. Please try again.</div>';
+        }).catch(function(xhr) {
+            console.error('Error loading attribute values:', xhr);
+            containerElement.innerHTML = `
+                <div class="text-danger text-center py-2">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error loading values. Please try again.
+                </div>
+            `;
         });
     }
     
     // Populate multi-select checkboxes from data
     function populateMultiSelectFromData(attributeId, attributeType, containerElement, data) {
+        if (!containerElement) {
+            return;
+        }
+        
+        // Clear loading state attribute
+        containerElement.removeAttribute('data-loading-start');
         containerElement.innerHTML = '';
         
         if (!data || data.length === 0) {
@@ -2310,6 +2542,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // DEBUG: Attribute/Value - Processing values
+        console.log('[ATTR/VAL] Processing', data.length, 'values for attribute', attributeId);
+        
         // Create checkbox grid
         const checkboxGrid = document.createElement('div');
         checkboxGrid.className = 'row g-2';
@@ -2321,7 +2556,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const colDiv = document.createElement('div');
             colDiv.className = attributeType === 'color' ? 'col-6 col-md-4 col-lg-3' : 'col-12';
             
-            const checkboxId = `attr_${attributeId}_value_${valueItem.replace(/[^a-zA-Z0-9]/g, '_')}_${value.id || Date.now()}`;
+            const checkboxId = `attr_${attributeId}_value_${valueItem.replace(/[^a-zA-Z0-9]/g, '_')}_${value.id || Date.now()}`; 
             
             let checkboxHtml = '';
             
@@ -2365,51 +2600,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         containerElement.appendChild(checkboxGrid);
+        
+        // DEBUG: Attribute/Value - Values populated
+        const checkboxesCount = $(containerElement).find('.variant-attribute-value-checkbox').length;
+        console.log('[ATTR/VAL] Successfully populated', checkboxesCount, 'checkboxes for attribute', attributeId, 'container children:', containerElement.children.length);
     }
 
-    // Load attribute values for dropdown selector and initialize Select2 (kept for backward compatibility)
+    // Function disabled - value loading functionality removed
     function loadAttributeValuesForSelector(attributeId, attributeType, selectElement) {
-        const attributeKey = String(attributeId);
-        
-        // Check cache first
-        if (attributeValuesCache.has(attributeKey)) {
-            const cachedData = attributeValuesCache.get(attributeKey);
-            populateSelectorFromData(attributeId, attributeType, selectElement, cachedData);
-            return;
-        }
-        
-        // Check if there's already an ongoing request for this attribute
-        if (attributeValuesPromises.has(attributeKey)) {
-            attributeValuesPromises.get(attributeKey).then(data => {
-                populateSelectorFromData(attributeId, attributeType, selectElement, data);
-            });
-            return;
-        }
-        
-        // Create and cache the promise
-        const fetchPromise = fetch(`{{ url('attributes') }}/${attributeId}/values`)
-            .then(response => response.json())
-            .then(data => {
-                // Cache the result
-                attributeValuesCache.set(attributeKey, data);
-                // Remove from promises cache
-                attributeValuesPromises.delete(attributeKey);
-                return data;
-            })
-            .catch(error => {
-                // Remove from promises cache on error
-                attributeValuesPromises.delete(attributeKey);
-                throw error;
-            });
-        
-        // Store the promise
-        attributeValuesPromises.set(attributeKey, fetchPromise);
-        
-        fetchPromise.then(data => {
-            populateSelectorFromData(attributeId, attributeType, selectElement, data);
-        }).catch(error => {
-            console.error('Error loading attribute values for selector:', error);
-        });
+        return; // Disabled
     }
     
     // Helper function to populate selector from cached or fetched data
@@ -2507,98 +2706,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Open modal for adding new attribute value
     function openAddAttributeValueModal(attributeId, attributeType, attributeName) {
-        console.log('Opening modal for attribute:', { attributeId, attributeType, attributeName });
         
         // Try to find modal element - check multiple ways
-        let modalElement = document.getElementById('addAttributeValueModal');
+        let $modalElement = $('#addAttributeValueModal');
         
-        // If not found, try querySelector
-        if (!modalElement) {
-            modalElement = document.querySelector('#addAttributeValueModal');
-        }
-        
-        // If still not found, try to find it in the body
-        if (!modalElement) {
-            const allModals = document.querySelectorAll('.modal');
-            console.log('Found modals:', allModals.length);
-            for (let i = 0; i < allModals.length; i++) {
-                if (allModals[i].id === 'addAttributeValueModal') {
-                    modalElement = allModals[i];
-                    break;
-                }
-            }
-        }
-        
-        if (!modalElement) {
-            console.error('Modal element not found after multiple attempts');
-            console.log('Document ready state:', document.readyState);
-            console.log('All modals in document:', document.querySelectorAll('.modal').length);
+        if (!$modalElement.length) {
             alert('Modal not found. The page may not be fully loaded. Please refresh and try again.');
             return;
         }
         
-        console.log('Modal element found:', modalElement);
-        
         // Check modal content - maybe form is in modal-body
-        const modalBody = modalElement.querySelector('.modal-body');
-        console.log('Modal body found:', !!modalBody);
-        if (modalBody) {
-            console.log('Modal body innerHTML length:', modalBody.innerHTML ? modalBody.innerHTML.length : 0);
-            console.log('Forms in modal body:', modalBody.querySelectorAll('form').length);
-        }
+        const $modalBody = $modalElement.find('.modal-body');
         
         // Now find form and other elements - search in modal-body first
-        let form = null;
-        if (modalBody) {
-            form = modalBody.querySelector('#addAttributeValueForm') || modalBody.querySelector('form');
+        let $form = $modalBody.find('#addAttributeValueForm');
+        if (!$form.length) {
+            $form = $modalBody.find('form');
         }
-        if (!form) {
-            form = modalElement.querySelector('#addAttributeValueForm') || modalElement.querySelector('form');
+        if (!$form.length) {
+            $form = $modalElement.find('#addAttributeValueForm');
         }
-        if (!form) {
-            form = document.getElementById('addAttributeValueForm');
+        if (!$form.length) {
+            $form = $modalElement.find('form');
+        }
+        if (!$form.length) {
+            $form = $('#addAttributeValueForm');
         }
         
         // Check each element individually and provide specific error messages
-        if (!form) {
-            console.error('Form element (addAttributeValueForm) not found');
-            console.log('Modal element:', modalElement);
-            console.log('Modal innerHTML length:', modalElement.innerHTML ? modalElement.innerHTML.length : 0);
-            console.log('Modal body:', modalBody);
-            if (modalBody) {
-                console.log('Modal body HTML:', modalBody.innerHTML.substring(0, 1000));
-            }
-            console.log('Forms in modal:', modalElement.querySelectorAll('form').length);
-            console.log('All forms in document:', document.querySelectorAll('form').length);
+        if (!$form.length) {
             
             // Try to create the form if modal body exists
-            if (modalBody) {
-                console.log('Creating form element in modal body...');
-                form = document.createElement('form');
-                form.id = 'addAttributeValueForm';
-                form.innerHTML = `
-                    <input type="hidden" id="modalAttributeId" name="attribute_id">
-                    <input type="hidden" id="modalAttributeType" name="attribute_type">
-                    <div class="mb-3">
-                        <label for="modalAttributeName" class="form-label">Attribute</label>
-                        <input type="text" class="form-control" id="modalAttributeName" readonly>
-                    </div>
-                    <div class="mb-3" id="modalValueInputWrapper">
-                        <!-- Dynamic input will be inserted here based on attribute type -->
-                    </div>
-                    <div class="mb-3 d-none" id="modalColorInputWrapper">
-                        <label for="modalColorCode" class="form-label">Color Code</label>
-                        <input type="hidden" class="form-control" id="modalColorCode" value="#000000">
-                        <button type="button" class="btn btn-sm w-100" id="modalColorCodeBtn" style="background-color: #000000; height: 38px; border: 1px solid #ced4da; border-radius: 0.375rem; cursor: pointer;"></button>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modalSortOrder" class="form-label">Sort Order <span class="text-muted">(optional)</span></label>
-                        <input type="number" class="form-control" id="modalSortOrder" name="sort_order" min="0" placeholder="Auto">
-                    </div>
-                `;
-                modalBody.innerHTML = ''; // Clear any existing content
-                modalBody.appendChild(form);
-                console.log('Form created and added to modal body');
+            if ($modalBody.length) {
+                $form = $('<form>')
+                    .attr('id', 'addAttributeValueForm')
+                    .html(`
+                        <input type="hidden" id="modalAttributeId" name="attribute_id">
+                        <input type="hidden" id="modalAttributeType" name="attribute_type">
+                        <div class="mb-3">
+                            <label for="modalAttributeName" class="form-label">Attribute</label>
+                            <input type="text" class="form-control" id="modalAttributeName" readonly>
+                        </div>
+                        <div class="mb-3" id="modalValueInputWrapper">
+                            <!-- Dynamic input will be inserted here based on attribute type -->
+                        </div>
+                        <div class="mb-3 d-none" id="modalColorInputWrapper">
+                            <label for="modalColorCode" class="form-label">Color Code</label>
+                            <input type="hidden" class="form-control" id="modalColorCode" value="#000000">
+                            <button type="button" class="btn btn-sm w-100" id="modalColorCodeBtn" style="background-color: #000000; height: 38px; border: 1px solid #ced4da; border-radius: 0.375rem; cursor: pointer;"></button>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalSortOrder" class="form-label">Sort Order <span class="text-muted">(optional)</span></label>
+                            <input type="number" class="form-control" id="modalSortOrder" name="sort_order" min="0" placeholder="Auto">
+                        </div>
+                    `);
+                $modalBody.empty(); // Clear any existing content
+                $modalBody.append($form);
             } else {
                 alert('Form element not found and modal body is missing. Please refresh the page and try again.');
                 return;
@@ -2606,80 +2769,83 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Get or create modal instance first (before querying wrappers)
-        let modal = bootstrap.Modal.getInstance(modalElement);
+        let modal = bootstrap.Modal.getInstance($modalElement[0]);
         if (!modal) {
-            modal = new bootstrap.Modal(modalElement);
+            modal = new bootstrap.Modal($modalElement[0]);
         }
         
         // Now query for wrappers AFTER form is confirmed to exist
         // Search within form first (most reliable), then modal, then document
-        let valueInputWrapper = form.querySelector('#modalValueInputWrapper');
-        if (!valueInputWrapper) {
-            valueInputWrapper = modalElement.querySelector('#modalValueInputWrapper');
+        let $valueInputWrapper = $form.find('#modalValueInputWrapper');
+        if (!$valueInputWrapper.length) {
+            $valueInputWrapper = $modalElement.find('#modalValueInputWrapper');
         }
-        if (!valueInputWrapper) {
-            valueInputWrapper = document.getElementById('modalValueInputWrapper');
-        }
-        
-        let colorInputWrapper = form.querySelector('#modalColorInputWrapper');
-        if (!colorInputWrapper) {
-            colorInputWrapper = modalElement.querySelector('#modalColorInputWrapper');
-        }
-        if (!colorInputWrapper) {
-            colorInputWrapper = document.getElementById('modalColorInputWrapper');
+        if (!$valueInputWrapper.length) {
+            $valueInputWrapper = $('#modalValueInputWrapper');
         }
         
-        if (!valueInputWrapper) {
-            console.error('Value input wrapper (modalValueInputWrapper) not found');
-            console.log('Form:', form);
-            console.log('Form innerHTML:', form ? form.innerHTML.substring(0, 500) : 'no form');
+        let $colorInputWrapper = $form.find('#modalColorInputWrapper');
+        if (!$colorInputWrapper.length) {
+            $colorInputWrapper = $modalElement.find('#modalColorInputWrapper');
+        }
+        if (!$colorInputWrapper.length) {
+            $colorInputWrapper = $('#modalColorInputWrapper');
+        }
+        
+        if (!$valueInputWrapper.length) {
             alert('Value input wrapper not found. Please refresh the page and try again.');
             return;
         }
         
-        if (!colorInputWrapper) {
-            console.warn('Color input wrapper (modalColorInputWrapper) not found - this is optional');
-        }
-        
-        console.log('All required elements found, proceeding...');
         
         // Set attribute info - search within form first, then document
-        const attributeIdInput = form.querySelector('#modalAttributeId') || document.getElementById('modalAttributeId');
-        const attributeTypeInput = form.querySelector('#modalAttributeType') || document.getElementById('modalAttributeType');
-        const attributeNameInput = form.querySelector('#modalAttributeName') || document.getElementById('modalAttributeName');
+        const $attributeIdInput = $form.find('#modalAttributeId');
+        if (!$attributeIdInput.length) {
+            $attributeIdInput = $('#modalAttributeId');
+        }
+        const $attributeTypeInput = $form.find('#modalAttributeType');
+        if (!$attributeTypeInput.length) {
+            $attributeTypeInput = $('#modalAttributeType');
+        }
+        const $attributeNameInput = $form.find('#modalAttributeName');
+        if (!$attributeNameInput.length) {
+            $attributeNameInput = $('#modalAttributeName');
+        }
         
-        if (attributeIdInput) attributeIdInput.value = attributeId;
-        if (attributeTypeInput) attributeTypeInput.value = attributeType;
-        if (attributeNameInput) attributeNameInput.value = attributeName;
+        if ($attributeIdInput.length) $attributeIdInput.val(attributeId);
+        if ($attributeTypeInput.length) $attributeTypeInput.val(attributeType);
+        if ($attributeNameInput.length) $attributeNameInput.val(attributeName);
         
         // Reset form - but preserve the hidden inputs we just set
-        if (form) {
+        if ($form.length) {
             // Get current values before reset
-            const currentAttributeId = attributeIdInput ? attributeIdInput.value : '';
-            const currentAttributeType = attributeTypeInput ? attributeTypeInput.value : '';
-            const currentAttributeName = attributeNameInput ? attributeNameInput.value : '';
+            const currentAttributeId = $attributeIdInput.length ? $attributeIdInput.val() : '';
+            const currentAttributeType = $attributeTypeInput.length ? $attributeTypeInput.val() : '';
+            const currentAttributeName = $attributeNameInput.length ? $attributeNameInput.val() : '';
             
-            form.reset();
+            $form[0].reset();
             
             // Restore the values after reset
-            if (attributeIdInput) attributeIdInput.value = currentAttributeId || attributeId;
-            if (attributeTypeInput) attributeTypeInput.value = currentAttributeType || attributeType;
-            if (attributeNameInput) attributeNameInput.value = currentAttributeName || attributeName;
+            if ($attributeIdInput.length) $attributeIdInput.val(currentAttributeId || attributeId);
+            if ($attributeTypeInput.length) $attributeTypeInput.val(currentAttributeType || attributeType);
+            if ($attributeNameInput.length) $attributeNameInput.val(currentAttributeName || attributeName);
         }
         
-        const colorCodeInput = form.querySelector('#modalColorCode') || document.getElementById('modalColorCode');
-        const colorCodeBtn = document.getElementById('modalColorCodeBtn');
-        if (colorCodeInput) {
-            colorCodeInput.value = '#000000';
+        const $colorCodeInput = $form.find('#modalColorCode');
+        if (!$colorCodeInput.length) {
+            $colorCodeInput = $('#modalColorCode');
         }
-        if (colorCodeBtn) {
-            colorCodeBtn.style.backgroundColor = '#000000';
+        const $colorCodeBtn = $('#modalColorCodeBtn');
+        if ($colorCodeInput.length) {
+            $colorCodeInput.val('#000000');
+        }
+        if ($colorCodeBtn.length) {
+            $colorCodeBtn.css('backgroundColor', '#000000');
             // Reinitialize Pickr if it exists, otherwise wait for modal to be shown
             if (window.variantColorPickers && window.variantColorPickers['modalColorCode']) {
                 try {
                     window.variantColorPickers['modalColorCode'].setColor('#000000');
                 } catch(e) {
-                    console.warn('Error setting color on existing picker:', e);
                 }
             }
             // Will be initialized when modal is shown (handled below)
@@ -2687,93 +2853,92 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clear and create input field based on attribute type
         // Make sure we're clearing the wrapper, not duplicating
-        if (valueInputWrapper) {
-            valueInputWrapper.innerHTML = '';
+        if ($valueInputWrapper.length) {
+            $valueInputWrapper.empty();
         }
-        const label = document.createElement('label');
-        label.className = 'form-label';
-        label.setAttribute('for', 'modalValueInput');
-        label.textContent = 'Value *';
+        const $label = $('<label>')
+            .addClass('form-label')
+            .attr('for', 'modalValueInput')
+            .text('Value *');
         
-        let input;
+        let $input;
         if (attributeType === 'boolean') {
-            input = document.createElement('select');
-            input.className = 'form-select';
-            input.id = 'modalValueInput';
-            input.name = 'value';
-            input.innerHTML = `
-                <option value="">-- Select Option --</option>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-            `;
+            $input = $('<select>')
+                .addClass('form-select')
+                .attr('id', 'modalValueInput')
+                .attr('name', 'value')
+                .html(`
+                    <option value="">-- Select Option --</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                `);
         } else if (attributeType === 'number') {
-            input = document.createElement('input');
-            input.type = 'number';
-            input.className = 'form-control';
-            input.id = 'modalValueInput';
-            input.name = 'value';
-            input.step = '0.01';
-            input.placeholder = 'Enter numeric value';
-            input.required = true;
+            $input = $('<input>')
+                .attr('type', 'number')
+                .addClass('form-control')
+                .attr('id', 'modalValueInput')
+                .attr('name', 'value')
+                .attr('step', '0.01')
+                .attr('placeholder', 'Enter numeric value')
+                .prop('required', true);
         } else if (attributeType === 'date') {
-            input = document.createElement('input');
-            input.type = 'date';
-            input.className = 'form-control';
-            input.id = 'modalValueInput';
-            input.name = 'value';
-            input.required = true;
+            $input = $('<input>')
+                .attr('type', 'date')
+                .addClass('form-control')
+                .attr('id', 'modalValueInput')
+                .attr('name', 'value')
+                .prop('required', true);
         } else if (attributeType === 'color') {
-            input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'form-control';
-            input.id = 'modalValueInput';
-            input.name = 'value';
-            input.placeholder = 'Enter color name (e.g., Red, Blue)';
-            input.required = true;
-            if (colorInputWrapper) {
-                colorInputWrapper.classList.remove('d-none');
+            $input = $('<input>')
+                .attr('type', 'text')
+                .addClass('form-control')
+                .attr('id', 'modalValueInput')
+                .attr('name', 'value')
+                .attr('placeholder', 'Enter color name (e.g., Red, Blue)')
+                .prop('required', true);
+            if ($colorInputWrapper.length) {
+                $colorInputWrapper.removeClass('d-none');
                 // Pickr will be initialized after modal is shown (handled below)
             }
         } else {
-            input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'form-control';
-            input.id = 'modalValueInput';
-            input.name = 'value';
-            input.placeholder = 'Enter value';
-            input.required = true;
+            $input = $('<input>')
+                .attr('type', 'text')
+                .addClass('form-control')
+                .attr('id', 'modalValueInput')
+                .attr('name', 'value')
+                .attr('placeholder', 'Enter value')
+                .prop('required', true);
         }
         
-        if (attributeType !== 'color' && colorInputWrapper) {
-            colorInputWrapper.classList.add('d-none');
+        if (attributeType !== 'color' && $colorInputWrapper.length) {
+            $colorInputWrapper.addClass('d-none');
         }
         
         // Verify the wrapper is still valid before appending
-        if (!valueInputWrapper || !valueInputWrapper.parentNode) {
-            console.error('Value input wrapper is no longer valid');
+        if (!$valueInputWrapper.length || !$valueInputWrapper.parent().length) {
             // Re-query if needed
-            valueInputWrapper = form.querySelector('#modalValueInputWrapper');
-            if (!valueInputWrapper) {
+            $valueInputWrapper = $form.find('#modalValueInputWrapper');
+            if (!$valueInputWrapper.length) {
                 alert('Error: Could not find value input wrapper. Please refresh the page.');
                 return;
             }
         }
         
-        valueInputWrapper.appendChild(label);
-        valueInputWrapper.appendChild(input);
+        $valueInputWrapper.append($label);
+        $valueInputWrapper.append($input);
         
         // Initialize Pickr for color type after modal is shown
-        if (attributeType === 'color' && colorInputWrapper) {
+        if (attributeType === 'color' && $colorInputWrapper.length) {
             // Wait for modal to be fully shown before initializing Pickr
             const initColorPicker = function() {
-                const btn = document.getElementById('modalColorCodeBtn');
-                const input = document.getElementById('modalColorCode');
-                if (btn && input && btn.parentNode) {
-                    initializeVariantColorPicker('modalColorCode', btn, input, '#000000');
-                    modalElement.removeEventListener('shown.bs.modal', initColorPicker);
+                const $btn = $('#modalColorCodeBtn');
+                const $input = $('#modalColorCode');
+                if ($btn.length && $input.length && $btn.parent().length) {
+                    initializeVariantColorPicker('modalColorCode', $btn[0], $input[0], '#000000');
+                    $modalElement.off('shown.bs.modal', initColorPicker);
                 }
             };
-            modalElement.addEventListener('shown.bs.modal', initColorPicker, { once: true });
+            $modalElement.one('shown.bs.modal', initColorPicker);
         }
         
         // Ensure DOM updates are processed before showing modal
@@ -2785,195 +2950,119 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Save new attribute value
     function saveNewAttributeValue() {
-        console.log('saveNewAttributeValue called');
         
-        const form = document.getElementById('addAttributeValueForm');
-        const attributeIdInput = document.getElementById('modalAttributeId');
-        const attributeTypeInput = document.getElementById('modalAttributeType');
-        const valueInput = document.getElementById('modalValueInput');
-        const colorInput = document.getElementById('modalColorCode');
-        const sortOrderInput = document.getElementById('modalSortOrder');
+        const $form = $('#addAttributeValueForm');
+        const $attributeIdInput = $('#modalAttributeId');
+        const $attributeTypeInput = $('#modalAttributeType');
+        const $valueInput = $('#modalValueInput');
+        const $colorInput = $('#modalColorCode');
+        const $sortOrderInput = $('#modalSortOrder');
         
-        console.log('Form elements:', {
-            form: !!form,
-            attributeIdInput: !!attributeIdInput,
-            attributeTypeInput: !!attributeTypeInput,
-            valueInput: !!valueInput,
-            colorInput: !!colorInput,
-            sortOrderInput: !!sortOrderInput
-        });
-        
-        if (!form || !attributeIdInput || !attributeTypeInput || !valueInput) {
-            console.error('Required form elements not found', {
-                form: form,
-                attributeIdInput: attributeIdInput,
-                attributeTypeInput: attributeTypeInput,
-                valueInput: valueInput
-            });
+        if (!$form.length || !$attributeIdInput.length || !$attributeTypeInput.length || !$valueInput.length) {
             alert('Form elements not found. Please refresh the page and try again.');
             return;
         }
         
-        const attributeId = attributeIdInput.value;
-        const attributeType = attributeTypeInput.value;
+        const attributeId = $attributeIdInput.val();
+        const attributeType = $attributeTypeInput.val();
         
-        if (!valueInput.value.trim()) {
+        if (!$valueInput.val() || !$valueInput.val().trim()) {
             alert('Please enter a value');
             return;
         }
         
         const payload = {
-            value: valueInput.value.trim(),
-            sort_order: (sortOrderInput && sortOrderInput.value) ? parseInt(sortOrderInput.value) : null,
-            color_code: (attributeType === 'color' && colorInput && colorInput.value) ? colorInput.value : null
+            value: $valueInput.val().trim(),
+            sort_order: ($sortOrderInput.length && $sortOrderInput.val()) ? parseInt($sortOrderInput.val()) : null,
+            color_code: (attributeType === 'color' && $colorInput.length && $colorInput.val()) ? $colorInput.val() : null
         };
         
         // Show loading state
-        const saveBtn = document.getElementById('saveAttributeValueBtn');
-        if (!saveBtn) {
-            console.error('Save button not found');
+        const $saveBtn = $('#saveAttributeValueBtn');
+        if (!$saveBtn.length) {
             alert('Save button not found. Please refresh the page and try again.');
             return;
         }
         
-        const originalText = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+        const originalText = $saveBtn.html();
+        $saveBtn.prop('disabled', true);
+        $saveBtn.html('<i class="fas fa-spinner fa-spin me-1"></i>Saving...');
         
-        console.log('Saving attribute value:', {
-            attributeId: attributeId,
-            attributeType: attributeType,
-            value: valueInput.value.trim(),
-            payload: payload
-        });
-        
-        fetch(`{{ url('attributes') }}/${attributeId}/values`, {
+        $.ajax({
+            url: `{{ url('attributes') }}/${attributeId}/values`,
             method: 'POST',
+            contentType: 'application/json',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
-            body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                // Close modal
-                const modalElement = document.getElementById('addAttributeValueModal');
-                const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-                
-                // Show success message
-                if (typeof showToast === 'function') {
-                    showToast('success', result.message || 'Attribute value created successfully');
-                } else {
-                    alert(result.message || 'Attribute value created successfully');
-                }
-                
-                // Clear cache for this attribute to force reload
-                const attributeKey = String(attributeId);
-                attributeValuesCache.delete(attributeKey);
-                
-                // Refresh the multi-select checkbox container for this attribute
-                const checkboxContainer = document.querySelector(`.attribute-values-checkbox-container[data-attribute-id="${attributeId}"]`);
-                if (checkboxContainer) {
-                    const attributeType = checkboxContainer.getAttribute('data-attribute-type');
-                    loadAttributeValuesForMultiSelect(attributeId, attributeType, checkboxContainer);
-                }
-                
-                // Also refresh the Select2 dropdown for this attribute (for backward compatibility)
-                const selectElement = document.querySelector(`select.variant-attribute-selector[data-attribute-id="${attributeId}"]`);
-                if (selectElement) {
-                    const $select = $(selectElement);
-                    
-                    // Add the new value to the dropdown
-                    const option = document.createElement('option');
-                    option.value = result.value.value;
-                    option.textContent = result.value.value;
-                    if (result.value.color_code) {
-                        option.setAttribute('data-color-code', result.value.color_code);
+            data: JSON.stringify(payload),
+            success: function(result) {
+                if (result.success) {
+                    // Close modal
+                    const $modalElement = $('#addAttributeValueModal');
+                    const modalInstance = bootstrap.Modal.getInstance($modalElement[0]);
+                    if (modalInstance) {
+                        modalInstance.hide();
                     }
-                    selectElement.appendChild(option);
                     
-                    // Refresh Select2 to recognize the new option
-                    if ($select.data('select2')) {
-                        $select.trigger('change.select2');
+                    // Show success message
+                    if (typeof showToast === 'function') {
+                        showToast('success', result.message || 'Attribute value created successfully');
                     } else {
-                        // If Select2 is not initialized, reload all values
-                        const attributeType = selectElement.getAttribute('data-attribute-type');
-                        loadAttributeValuesForSelector(attributeId, attributeType, selectElement);
+                        alert(result.message || 'Attribute value created successfully');
+                    }
+                    
+                    // Clear cache for this attribute to force reload
+                    const attributeKey = String(attributeId);
+                    attributeValuesCache.delete(attributeKey);
+                    
+                    // Value loading functionality removed - no longer refreshing containers
+                } else {
+                    // Show error message
+                    const errorMsg = result.message || (result.errors ? Object.values(result.errors).flat().join(', ') : 'Failed to create attribute value');
+                    if (typeof showToast === 'function') {
+                        showToast('error', errorMsg);
+                    } else {
+                        alert(errorMsg);
                     }
                 }
-            } else {
-                // Show error message
-                const errorMsg = result.message || (result.errors ? Object.values(result.errors).flat().join(', ') : 'Failed to create attribute value');
+            },
+            error: function(xhr, status, error) {
                 if (typeof showToast === 'function') {
-                    showToast('error', errorMsg);
+                    showToast('error', 'Failed to create attribute value');
                 } else {
-                    alert(errorMsg);
+                    alert('Failed to create attribute value');
                 }
+            },
+            complete: function() {
+                // Restore button state
+                $saveBtn.prop('disabled', false);
+                $saveBtn.html(originalText);
             }
-        })
-        .catch(error => {
-            console.error('Error saving attribute value:', error);
-            if (typeof showToast === 'function') {
-                showToast('error', 'Failed to create attribute value');
-            } else {
-                alert('Failed to create attribute value');
-            }
-        })
-        .finally(() => {
-            // Restore button state
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
         });
     }
 
     // Initialize save button handler - use event delegation to handle dynamically created buttons
-    document.addEventListener('DOMContentLoaded', function() {
+    $(document).ready(function() {
         // Use event delegation on document to handle save button clicks (works even if modal is created later)
-        document.addEventListener('click', function(e) {
-            // Check if the clicked element is the save button or inside it
-            const saveBtn = e.target.closest('#saveAttributeValueBtn');
-            if (saveBtn) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Save button clicked');
-                saveNewAttributeValue();
-            }
+        $(document).on('click', '#saveAttributeValueBtn', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            saveNewAttributeValue();
         });
-        
-        // Also attach directly if button exists at page load
-        const saveBtn = document.getElementById('saveAttributeValueBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Save button clicked (direct handler)');
-                saveNewAttributeValue();
-            });
-        }
     });
     
     // Also attach handler when modal is shown (in case button is created dynamically)
-    document.addEventListener('shown.bs.modal', function(e) {
-        if (e.target && e.target.id === 'addAttributeValueModal') {
-            const saveBtn = e.target.querySelector('#saveAttributeValueBtn');
-            if (saveBtn) {
-                // Remove any existing handlers to avoid duplicates
-                const newSaveBtn = saveBtn.cloneNode(true);
-                saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
-                
-                // Attach new handler
-                newSaveBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Save button clicked (modal shown handler)');
-                    saveNewAttributeValue();
-                });
-            }
+    $(document).on('shown.bs.modal', '#addAttributeValueModal', function(e) {
+        const $saveBtn = $(this).find('#saveAttributeValueBtn');
+        if ($saveBtn.length) {
+            // jQuery handles event delegation automatically, no need to clone
+            $saveBtn.off('click').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Save button clicked (modal shown handler)');
+                saveNewAttributeValue();
+            });
         }
     });
 
@@ -3069,149 +3158,112 @@ document.addEventListener('DOMContentLoaded', function() {
     function getSelectedAttributeValues() {
         const selectedValuesByAttribute = {};
         
-        // Get all checked value checkboxes
-        const checkedBoxes = document.querySelectorAll('.variant-attribute-value-checkbox:checked');
+        // Find all checked value checkboxes
+        const $checkedBoxes = $('#variantAttributeSelectors').find('.variant-attribute-value-checkbox:checked');
         
-        checkedBoxes.forEach(checkbox => {
-            const attributeId = checkbox.getAttribute('data-attribute-id');
-            const value = checkbox.value;
+        $checkedBoxes.each(function() {
+            const $checkbox = $(this);
+            const attributeId = String($checkbox.data('attribute-id'));
+            const value = $checkbox.val();
             
-            if (!selectedValuesByAttribute[attributeId]) {
-                selectedValuesByAttribute[attributeId] = [];
+            if (attributeId && value) {
+                if (!selectedValuesByAttribute[attributeId]) {
+                    selectedValuesByAttribute[attributeId] = [];
+                }
+                selectedValuesByAttribute[attributeId].push(value);
             }
-            
-            selectedValuesByAttribute[attributeId].push(value);
         });
         
         return selectedValuesByAttribute;
     }
     
-    // Add variants button handler - generates all combinations
-    const addVariantBtn = document.getElementById('addVariantBtn');
-    if (addVariantBtn) {
-        addVariantBtn.addEventListener('click', function() {
-            // Get selected values for all attributes
+    // Add variants button handler
+    const $addVariantBtn = $('#addVariantBtn');
+    if ($addVariantBtn.length) {
+        $addVariantBtn.on('click', function() {
+            // Get selected attribute values from checkboxes
             const selectedValuesByAttribute = getSelectedAttributeValues();
             
-            // Check if at least one value is selected for each attribute
-            const selectedAttributeIds = Array.from(document.querySelectorAll('.attribute-checkbox:checked')).map(cb => cb.value);
-            let hasMissingSelections = false;
-            
-            selectedAttributeIds.forEach(attributeId => {
-                if (!selectedValuesByAttribute[attributeId] || selectedValuesByAttribute[attributeId].length === 0) {
-                    hasMissingSelections = true;
-                    // Highlight the attribute container
-                    const container = document.querySelector(`[data-attribute-id="${attributeId}"] .attribute-values-checkbox-container`);
-                    if (container) {
-                        container.style.borderColor = '#dc3545';
-                        setTimeout(() => {
-                            container.style.borderColor = '#dee2e6';
-                        }, 2000);
-                    }
-                }
+            // Check if any values are selected
+            const hasSelectedValues = Object.keys(selectedValuesByAttribute).some(attrId => {
+                return selectedValuesByAttribute[attrId] && selectedValuesByAttribute[attrId].length > 0;
             });
             
-            if (hasMissingSelections) {
-                showToast('error', 'Please select at least one value for each attribute before generating variants.');
+            if (!hasSelectedValues) {
+                if (typeof showToast === 'function') {
+                    showToast('error', 'Please select at least one value for each attribute to generate variants.');
+                } else {
+                    alert('Please select at least one value for each attribute to generate variants.');
+                }
                 return;
             }
             
-            // Sync generatedVariants with DOM before checking for duplicates
-            syncGeneratedVariantsFromDOM();
+            // Check if all selected attributes have at least one value
+            const missingValues = selectedAttributeIds.filter(attrId => {
+                return !selectedValuesByAttribute[String(attrId)] || selectedValuesByAttribute[String(attrId)].length === 0;
+            });
+            
+            if (missingValues.length > 0) {
+                if (typeof showToast === 'function') {
+                    showToast('error', 'Please select at least one value for all selected attributes.');
+                } else {
+                    alert('Please select at least one value for all selected attributes.');
+                }
+                return;
+            }
             
             // Generate all combinations
             const combinations = generateAllCombinations(selectedValuesByAttribute);
             
             if (combinations.length === 0) {
-                showToast('error', 'No combinations to generate. Please select at least one value for each attribute.');
+                if (typeof showToast === 'function') {
+                    showToast('error', 'No variants can be generated from the selected values.');
+                } else {
+                    alert('No variants can be generated from the selected values.');
+                }
                 return;
             }
             
-            // Check for existing variants and filter out duplicates
-            const newVariants = [];
-            let skippedCount = 0;
-            
-            combinations.forEach(variantAttributes => {
-                // Check if this variant combination already exists
-                // Use synced generatedVariants array
-                const existingVariant = generatedVariants.find(variant => {
-                    const normalized = normalizeAttributesPayload(variant.attributes || {});
-                    const keys = Object.keys(normalized).sort();
-                    const newKeys = Object.keys(variantAttributes).sort();
-                    
-                    if (keys.length !== newKeys.length) return false;
-                    
-                    return keys.every(key => {
-                        return normalized[key] === variantAttributes[key];
-                    });
+            // Convert combinations to variant format and add to generatedVariants
+            combinations.forEach(combination => {
+                // Check if this combination already exists
+                const exists = generatedVariants.some(variant => {
+                    const variantAttrs = variant.attributes || {};
+                    return Object.keys(combination).every(attrId => {
+                        return variantAttrs[attrId] === combination[attrId];
+                    }) && Object.keys(variantAttrs).length === Object.keys(combination).length;
                 });
                 
-                if (!existingVariant) {
-                    // Generate SKU for new variant
-                    const variantValueTexts = Object.values(variantAttributes).map(value => {
-                        return String(value).toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3);
-                    });
-                    
-                    const skuSuffix = variantValueTexts.join('-');
-                    
-                    // Get parent SKU or product name for base
-                    const parentSku = document.getElementById('productSku')?.value || '';
-                    const productName = document.getElementById('productName')?.value || '';
-                    const baseSku = parentSku ? parentSku.replace('PRD-', '').split('-')[0] : 
-                                  (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10) : 'VAR');
-                    const variantIndex = generatedVariants.length + newVariants.length + 1;
-                    const autoSku = `${baseSku}-${variantIndex}-${skuSuffix}`;
-                    
-                    // Create new variant
-                    const newVariant = {
-                        attributes: variantAttributes,
-                        name: Object.values(variantAttributes).join(' - '),
-                        sku: autoSku,
+                if (!exists) {
+                    generatedVariants.push({
+                        attributes: combination,
+                        sku: '',
                         price: '',
                         sale_price: '',
-                        is_active: true,
+                        is_active: '1',
+                        stock_quantity: 0,
+                        stock_status: 'in_stock',
+                        manage_stock: false,
+                        images: [],
                         measurements: [],
-                        images: []
-                    };
-                    
-                    newVariants.push(newVariant);
-                } else {
-                    skippedCount++;
+                        highlights_details: [],
+                        description: '',
+                        additional_information: ''
+                    });
                 }
             });
             
-            if (newVariants.length === 0) {
-                showToast('info', `All ${combinations.length} variant combination(s) already exist.`);
-                return;
+            // Display the variants
+            if (typeof displayVariants === 'function') {
+                displayVariants();
             }
-            
-            // Add to generated variants
-            if (!Array.isArray(generatedVariants)) {
-                generatedVariants = [];
-            }
-            generatedVariants.push(...newVariants);
-            
-            // Display variants
-            displayVariants();
-            
-            // Sync generatedVariants with DOM after display (to ensure indices match)
-            syncGeneratedVariantsFromDOM();
-            
-            // Show variants table
-            variantsTableContainer.style.display = 'block';
-            bulkActions.style.display = 'block';
-            
-            // Clear all checkboxes
-            document.querySelectorAll('.variant-attribute-value-checkbox').forEach(checkbox => {
-                checkbox.checked = false;
-            });
             
             // Show success message
-            const message = skippedCount > 0 
-                ? `${newVariants.length} variant(s) added successfully. ${skippedCount} duplicate(s) skipped.`
-                : `${newVariants.length} variant(s) generated successfully.`;
-            showToast('success', message);
+            if (typeof showToast === 'function') {
+                showToast('success', `Generated ${combinations.length} variant(s) from selected attribute values.`);
+            }
             
+            // Persist draft
             if (!isRestoringVariantDraft) {
                 persistVariantDraft();
             }
@@ -3219,9 +3271,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // OLD: Generate variants (kept for backward compatibility but not used)
-    const generateVariantsBtn = document.getElementById('generateVariantsBtn');
-    if (generateVariantsBtn) {
-        generateVariantsBtn.addEventListener('click', function() {
+    const $generateVariantsBtn = $('#generateVariantsBtn');
+    if ($generateVariantsBtn.length) {
+        $generateVariantsBtn.on('click', function() {
         console.log('Selected attribute IDs:', selectedAttributeIds);
         console.log('Current attributeValues object:', attributeValues);
         console.log('Current selectedAttributeValues object:', selectedAttributeValues);
@@ -3315,20 +3367,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayVariants() {
-        const variantsTableBody = document.getElementById('variantsTableBody');
-        const variantsTableContainer = document.getElementById('variantsTableContainer');
-        const bulkActions = document.getElementById('bulkActions');
+        const $variantsTableBody = $('#variantsTableBody');
+        const $variantsTableContainer = $('#variantsTableContainer');
+        const $bulkActions = $('#bulkActions');
         
-        if (!variantsTableBody) return;
+        if (!$variantsTableBody.length) return;
         
-        variantsTableBody.innerHTML = '';
+        $variantsTableBody.empty();
         
         // Ensure variants table is visible when displaying variants
-        if (variantsTableContainer) {
-            variantsTableContainer.style.display = 'block';
+        if ($variantsTableContainer.length) {
+            $variantsTableContainer.css('display', 'block');
         }
-        if (bulkActions) {
-            bulkActions.style.display = 'block';
+        if ($bulkActions.length) {
+            $bulkActions.css('display', 'block');
         }
         
         // Update variant images section visibility (will be called after variants are added)
@@ -3393,8 +3445,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     ).join('-');
                     
                     // Get parent SKU or product name for base
-                    const parentSku = document.getElementById('productSku')?.value || '';
-                    const productName = document.getElementById('productName')?.value || '';
+                    const parentSku = $('#productSku').val() || '';
+                    const productName = $('#productName').val() || '';
                     const baseSku = parentSku ? parentSku.replace('PRD-', '').split('-')[0] : 
                                   (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10) : 'VAR');
                     variantSku = `${baseSku}-${index + 1}-${skuSuffix}`;
@@ -3424,8 +3476,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     ).join('-');
                     
                     // Get parent SKU or product name for base
-                    const parentSku = document.getElementById('productSku')?.value || '';
-                    const productName = document.getElementById('productName')?.value || '';
+                    const parentSku = $('#productSku').val() || '';
+                    const productName = $('#productName').val() || '';
                     const baseSku = parentSku ? parentSku.replace('PRD-', '').split('-')[0] : 
                                   (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10) : 'VAR');
                     variantSku = `${baseSku}-${index + 1}-${skuSuffix}`;
@@ -3442,8 +3494,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             variant.attributes = variantAttributes;
             
-            const row = document.createElement('tr');
-            row.innerHTML = `
+            const $row = $('<tr>');
+            $row.html(`
                 <td>
                     <div class="form-check">
                         <input class="form-check-input variant-checkbox" type="checkbox" value="${index}" id="variant_${index}">
@@ -3475,7 +3527,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input type="hidden" name="variants[${index}][diameter]" data-variant-diameter-input>
                     <input type="hidden" name="variants[${index}][id]" data-variant-id-input>
                     <input type="hidden" name="variants[${index}][attributes]" data-variant-attributes-input>
-                    <input type="hidden" name="variants[${index}][discount_type]" value="${variantDiscountType || ''}" data-variant-discount-type-input>
+                    <input type="hidden" name="variants[${index}][discount_type]" value="${variantDiscountType || ''}" data-variant-discount-type-input>        
                     <input type="hidden" name="variants[${index}][discount_value]" value="${variantDiscountValue || ''}" data-variant-discount-value-input>
                     <input type="hidden" name="variants[${index}][discount_active]" value="${variantDiscountActive || ''}" data-variant-discount-active-input>
                     <input type="hidden" name="variants[${index}][barcode]" value="${variant.barcode || ''}" data-variant-barcode-input>
@@ -3505,7 +3557,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>
                     <div class="form-check form-switch">
                         <input class="form-check-input variant-status-toggle" type="checkbox" id="variant_status_${index}" ${variantActive === '1' ? 'checked' : ''}>
-                        <label class="form-check-label" for="variant_status_${index}">${variantActive === '1' ? 'Active' : 'Inactive'}</label>
+                            <label class="form-check-label" for="variant_status_${index}">${variantActive === '1' ? 'Active' : 'Inactive'}</label>
                     </div>
                     <input type="hidden" name="variants[${index}][is_active]" value="${variantActive}" data-variant-status-input>
                 </td>
@@ -3514,7 +3566,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i data-feather="edit"></i>
                     </button>
                 </td>
-            `;
+            `);
             
             const datasetPayload = {
                 id: variant.id || null,
@@ -3538,60 +3590,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 additional_information: variant.additional_information || null,
                 barcode: variant.barcode || ''
             };
-            row.dataset.variantId = datasetPayload.id ? String(datasetPayload.id) : '';
-            row.dataset.variantIndex = String(index);
-            row.dataset.variantData = JSON.stringify(datasetPayload);
-            const idHidden = row.querySelector('[data-variant-id-input]');
-            if (idHidden) {
-                idHidden.value = datasetPayload.id ? datasetPayload.id : '';
+            $row.attr('data-variant-id', datasetPayload.id ? String(datasetPayload.id) : '');
+            $row.attr('data-variant-index', String(index));
+            $row.attr('data-variant-data', JSON.stringify(datasetPayload));
+            const $idHidden = $row.find('[data-variant-id-input]');
+            if ($idHidden.length) {
+                $idHidden.val(datasetPayload.id ? datasetPayload.id : '');
             }
-            const attributesHidden = row.querySelector('[data-variant-attributes-input]');
-            if (attributesHidden) {
-                attributesHidden.value = JSON.stringify(datasetPayload.attributes || {});
+            const $attributesHidden = $row.find('[data-variant-attributes-input]');
+            if ($attributesHidden.length) {
+                $attributesHidden.val(JSON.stringify(datasetPayload.attributes || {}));
             }
-            row.dataset.existingImages = JSON.stringify(normalizedImages);
-            variantsTableBody.appendChild(row);
+            $row.attr('data-existing-images', JSON.stringify(normalizedImages));
+            $variantsTableBody.append($row);
+            const rowElement = $row[0];
             const measurementsForRow = datasetPayload.measurements && datasetPayload.measurements.length
                 ? datasetPayload.measurements
-                : parseMeasurementsFromRow(row);
-            updateRowMeasurements(row, measurementsForRow);
-            extractVariantRowData(row);
+                : parseMeasurementsFromRow(rowElement);
+            updateRowMeasurements(rowElement, measurementsForRow);
+            extractVariantRowData(rowElement);
  
-            const imageInput = row.querySelector('.variant-image-input');
-            const previewEl = row.querySelector('[data-variant-image-preview]');
-            const existingImages = extractExistingImagesFromRow(row);
-            updateVariantImagePreview(previewEl, imageInput && imageInput.files && imageInput.files.length ? imageInput.files : null, existingImages);
+            const $imageInput = $row.find('.variant-image-input');
+            const $previewEl = $row.find('[data-variant-image-preview]');
+            const existingImages = extractExistingImagesFromRow(rowElement);
+            const imageInputElement = $imageInput[0];
+            updateVariantImagePreview($previewEl[0], imageInputElement && imageInputElement.files && imageInputElement.files.length ? imageInputElement.files : null, existingImages);
             
             // Update button class based on whether images exist
-            const viewBtn = row.querySelector('.view-variant-images-btn');
-            if (viewBtn) {
-                const hasFiles = imageInput && imageInput.files && imageInput.files.length > 0;
+            const $viewBtn = $row.find('.view-variant-images-btn');
+            if ($viewBtn.length) {
+                const hasFiles = imageInputElement && imageInputElement.files && imageInputElement.files.length > 0;
                 const hasExistingImages = Array.isArray(existingImages) && existingImages.length > 0;
                 const hasImages = hasFiles || hasExistingImages;
                 
                 if (hasImages) {
-                    viewBtn.classList.remove('btn-outline-info');
-                    viewBtn.classList.add('btn-outline-success');
+                    $viewBtn.removeClass('btn-outline-info').addClass('btn-outline-success');
                 } else {
-                    viewBtn.classList.remove('btn-outline-success');
-                    viewBtn.classList.add('btn-outline-info');
+                    $viewBtn.removeClass('btn-outline-success').addClass('btn-outline-info');
                 }
             }
         });
         
         if (generatedVariants.length) {
-            variantsTableContainer.style.display = 'block';
-            bulkActions.style.display = 'block';
+                $variantsTableContainer.css('display', 'block');
+                $bulkActions.css('display', 'block');
         } else {
             // Check if no attributes are selected - hide table if no variants
             const selectedIds = getSelectedAttributeIds();
             if (selectedIds.length === 0) {
                 // No attributes selected - hide table (default variant creation removed)
-                variantsTableContainer.style.display = 'none';
+                $variantsTableContainer.css('display', 'none');
             } else {
                 // Attributes selected but no variants - hide table until variants are created
-                variantsTableContainer.style.display = 'none';
-                bulkActions.style.display = 'none';
+                $variantsTableContainer.css('display', 'none');
+                $bulkActions.css('display', 'none');
             }
         }
         
@@ -3614,148 +3666,117 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Edit variant functionality
-    variantsTableBody.addEventListener('click', function(e) {
-        if (!variantEditModalElement || !variantEditModal) {
+    $(variantsTableBody).on('click', '.edit-variant-btn', function(e) {
+        if (!$variantEditModalElement.length || !variantEditModal) {
             console.error('Variant edit modal is not available in the DOM.');
             return;
         }
 
-        if (e.target.closest('.edit-variant-btn')) {
-            const row = e.target.closest('tr');
-            const index = e.target.closest('.edit-variant-btn').dataset.index;
-            
-            // Populate modal with current values
-            document.getElementById('variantSku').value = row.querySelector('[name*="[sku]"]').value;
-            document.getElementById('variantPrice').value = row.querySelector('[name*="[price]"]').value;
-            const salePriceField = row.querySelector('[name*="[sale_price]"]');
-            if (salePriceField && variantSellPriceInput) variantSellPriceInput.value = salePriceField.value;
-            
-            // Populate variant name
-            const variantNameLabel = row.querySelector('.form-check-label');
-            const variantNameInput = document.getElementById('variantName');
-            const variantNameHidden = row.querySelector('[data-variant-name-input]');
-            if (variantNameInput) {
-                if (variantNameHidden && variantNameHidden.value) {
-                    variantNameInput.value = variantNameHidden.value;
-                } else if (variantNameLabel) {
-                    variantNameInput.value = variantNameLabel.textContent.trim();
-                }
+        const $btn = $(this);
+        const $row = $btn.closest('tr');
+        const index = $btn.data('index');
+        
+        // Populate modal with current values
+        $('#variantSku').val($row.find('[name*="[sku]"]').val());
+        $('#variantPrice').val($row.find('[name*="[price]"]').val());
+        const $salePriceField = $row.find('[name*="[sale_price]"]');
+        if ($salePriceField.length && $variantSellPriceInput.length) $variantSellPriceInput.val($salePriceField.val());
+        
+        // Populate variant name
+        const $variantNameLabel = $row.find('.form-check-label');
+        const $variantNameInput = $('#variantName');
+        const $variantNameHidden = $row.find('[data-variant-name-input]');
+        if ($variantNameInput.length) {
+            if ($variantNameHidden.length && $variantNameHidden.val()) {
+                $variantNameInput.val($variantNameHidden.val());
+            } else if ($variantNameLabel.length) {
+                $variantNameInput.val($variantNameLabel.text().trim());
             }
-            
-            // Populate barcode
-            const barcodeHidden = row.querySelector('[data-variant-barcode-input]');
-            const barcodeInput = document.getElementById('variantBarcode');
-            if (barcodeInput && barcodeHidden) {
-                barcodeInput.value = barcodeHidden.value || '';
-            }
-            
-            const statusHiddenInput = row.querySelector('[data-variant-status-input]');
-            if (variantStatusToggle) {
-                const isActive = statusHiddenInput ? statusHiddenInput.value === '1' : true;
-                variantStatusToggle.checked = isActive;
-                updateVariantStatusToggleLabel();
-            }
-            
-            // Populate inventory fields
-            // Note: Stock Quantity and Stock Status are managed from Inventory module only
-            const lowStockThresholdInput = document.getElementById('variantLowStockThreshold');
-            
-            const stockQuantityHidden = row.querySelector('[data-variant-stock-quantity-input]');
-            const stockStatusHidden = row.querySelector('[data-variant-stock-status-input]');
-            const lowStockThresholdHidden = row.querySelector('[data-variant-low-stock-threshold-input]');
-            const manageStockHidden = row.querySelector('[data-variant-manage-stock-input]');
-            
-            // Stock quantity and status are read-only (managed from Inventory module)
-            // Keep existing values from hidden inputs for form submission
-            
-            if (lowStockThresholdInput && lowStockThresholdHidden) {
-                lowStockThresholdInput.value = lowStockThresholdHidden.value || '0';
-            }
-            
-            // Populate other fields first
-            const discountTypeHidden = row.querySelector('[data-variant-discount-type-input]');
-            const discountValueHidden = row.querySelector('[data-variant-discount-value-input]');
-            const discountActiveHidden = row.querySelector('[data-variant-discount-active-input]');
+        }
+        
+        // Populate barcode
+        const $barcodeHidden = $row.find('[data-variant-barcode-input]');
+        const $barcodeInput = $('#variantBarcode');
+        if ($barcodeInput.length && $barcodeHidden.length) {
+            $barcodeInput.val($barcodeHidden.val() || '');
+        }
+        
+        const $statusHiddenInput = $row.find('[data-variant-status-input]');
+        if ($variantStatusToggle.length) {
+            const isActive = $statusHiddenInput.length ? $statusHiddenInput.val() === '1' : true;
+            $variantStatusToggle.prop('checked', isActive);
+            updateVariantStatusToggleLabel();
+        }
+        
+        // Populate inventory fields
+        // Note: Stock Quantity and Stock Status are managed from Inventory module only
+        const $lowStockThresholdInput = $('#variantLowStockThreshold');
+        
+        const $stockQuantityHidden = $row.find('[data-variant-stock-quantity-input]');
+        const $stockStatusHidden = $row.find('[data-variant-stock-status-input]');
+        const $lowStockThresholdHidden = $row.find('[data-variant-low-stock-threshold-input]');
+        const $manageStockHidden = $row.find('[data-variant-manage-stock-input]');
+        
+        // Stock quantity and status are read-only (managed from Inventory module)
+        // Keep existing values from hidden inputs for form submission
+        
+        if ($lowStockThresholdInput.length && $lowStockThresholdHidden.length) {
+            $lowStockThresholdInput.val($lowStockThresholdHidden.val() || '0');
+        }
+        
+        // Populate other fields first
+        const $discountTypeHidden = $row.find('[data-variant-discount-type-input]');
+        const $discountValueHidden = $row.find('[data-variant-discount-value-input]');
+        const $discountActiveHidden = $row.find('[data-variant-discount-active-input]');
 
-            if (discountTypeHidden && discountTypeSelect) {
-                discountTypeSelect.value = discountTypeHidden.value || '';
+        if ($discountTypeHidden.length && $discountTypeSelect.length) {
+            $discountTypeSelect.val($discountTypeHidden.val() || '');
+        }
+        if ($discountValueHidden.length && $discountValueInput.length) {
+            $discountValueInput.val($discountValueHidden.val() || '');
+            if (!$discountTypeSelect.val()) {
+                $discountValueInput.prop('disabled', true);
+            } else {
+                $discountValueInput.prop('disabled', false);
             }
-            if (discountValueHidden && discountValueInput) {
-                discountValueInput.value = discountValueHidden.value || '';
-                if (!discountTypeSelect.value) {
-                    discountValueInput.setAttribute('disabled', 'disabled');
-                } else {
-                    discountValueInput.removeAttribute('disabled');
-                }
-            }
-            if (discountActiveHidden && discountActiveSelect) {
-                discountActiveSelect.value = discountActiveHidden.value === '1' ? '1' : '0';
-            }
+        }
+        if ($discountActiveHidden.length && $discountActiveSelect.length) {
+            $discountActiveSelect.val($discountActiveHidden.val() === '1' ? '1' : '0');
+        }
 
-            if (variantSellPriceInput) {
-                variantSellPriceInput.dataset.originalSellPrice = variantSellPriceInput.value || '';
-            }
+        if ($variantSellPriceInput.length) {
+            $variantSellPriceInput.data('originalSellPrice', $variantSellPriceInput.val() || '');
+        }
  
-            activeVariantRow = row;
-            syncModalImagePreviewFromRow(row);
-            handleDiscountStateChange();
-            calculateVariantSellPrice();
-            
-            // Load highlights & details
-            loadHighlightsDetailsFromRow(row);
-            
-            // Load description and additional information
-            const variantDataStr = row.dataset.variantData;
-            if (variantDataStr) {
-                try {
-                    const variantData = JSON.parse(variantDataStr);
-                    const descriptionTextarea = document.getElementById('variantDescription');
-                    const additionalInfoTextarea = document.getElementById('variantAdditionalInfo');
-                    
-                    if (descriptionTextarea) {
-                        descriptionTextarea.value = variantData.description || '';
-                    }
-                    
-                    if (additionalInfoTextarea) {
-                        additionalInfoTextarea.value = variantData.additional_information || '';
-                    }
-                    
-                    // Set editor content after editors are initialized (will be called after modal is shown)
-                    setTimeout(function() {
-                        if (variantDataStr) {
-                            try {
-                                const variantData = JSON.parse(variantDataStr);
-                                if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
-                                    window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
-                                }
-                                if (window.variantAdditionalInfoEditor && typeof window.variantAdditionalInfoEditor.setHTMLCode === 'function') {
-                                    window.variantAdditionalInfoEditor.setHTMLCode(variantData.additional_information || '');
-                                }
-                            } catch (e) {
-                                console.error('Error setting editor content:', e);
-                            }
-                        }
-                    }, 300);
-                } catch (e) {
-                    console.error('Error loading variant description/additional info:', e);
+        activeVariantRow = $row[0];
+        syncModalImagePreviewFromRow($row[0]);
+        handleDiscountStateChange();
+        calculateVariantSellPrice();
+        
+        // Load highlights & details
+        loadHighlightsDetailsFromRow($row[0]);
+        
+        // Load description and additional information
+        const variantDataStr = $row.data('variantData');
+        if (variantDataStr) {
+            try {
+                const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
+                const $descriptionTextarea = $('#variantDescription');
+                const $additionalInfoTextarea = $('#variantAdditionalInfo');
+                
+                if ($descriptionTextarea.length) {
+                    $descriptionTextarea.val(variantData.description || '');
                 }
-            }
-            
-            // Parse measurements from row
-            const measurementsForModal = parseMeasurementsFromRow(row);
-            
-            // Ensure units are loaded before rendering measurements and showing modal
-            if (!unitsLoaded && !unitsLoading) {
-                loadUnitsFromModule(function() {
-                    // Render measurements after units are loaded
-                    renderMeasurementsInModal(measurementsForModal);
-                    updateMeasurementEmptyState();
-                    variantEditModal.show();
-                // Set editor data after modal is shown and editors are initialized
+                
+                if ($additionalInfoTextarea.length) {
+                    $additionalInfoTextarea.val(variantData.additional_information || '');
+                }
+                
+                // Set editor content after editors are initialized (will be called after modal is shown)
                 setTimeout(function() {
                     if (variantDataStr) {
                         try {
-                            const variantData = JSON.parse(variantDataStr);
+                            const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
                             if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
                                 window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
                             }
@@ -3763,70 +3784,102 @@ document.addEventListener('DOMContentLoaded', function() {
                                 window.variantAdditionalInfoEditor.setHTMLCode(variantData.additional_information || '');
                             }
                         } catch (e) {
-                            console.error('Error setting editor data:', e);
+                            console.error('Error setting editor content:', e);
                         }
                     }
                 }, 300);
-                });
-            } else if (unitsLoaded) {
-                // Units already loaded, render measurements and show modal
+            } catch (e) {
+                console.error('Error loading variant description/additional info:', e);
+            }
+        }
+        
+        // Parse measurements from row
+        const measurementsForModal = parseMeasurementsFromRow($row[0]);
+        
+        // Ensure units are loaded before rendering measurements and showing modal
+        if (!unitsLoaded && !unitsLoading) {
+            loadUnitsFromModule(function() {
+                // Render measurements after units are loaded
                 renderMeasurementsInModal(measurementsForModal);
                 updateMeasurementEmptyState();
                 variantEditModal.show();
-                // Set editor data after modal is shown (editors are initialized on show.bs.modal)
-                setTimeout(function() {
-                    if (variantDataStr) {
-                        try {
-                            const variantData = JSON.parse(variantDataStr);
-                            if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
-                                window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
-                            }
-                            if (window.variantAdditionalInfoEditor && typeof window.variantAdditionalInfoEditor.setHTMLCode === 'function') {
-                                window.variantAdditionalInfoEditor.setHTMLCode(variantData.additional_information || '');
-                            }
-                        } catch (e) {
-                            console.error('Error setting editor data:', e);
+            // Set editor data after modal is shown and editors are initialized
+            setTimeout(function() {
+                if (variantDataStr) {
+                    try {
+                        const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
+                        if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
+                            window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
                         }
+                        if (window.variantAdditionalInfoEditor && typeof window.variantAdditionalInfoEditor.setHTMLCode === 'function') {
+                            window.variantAdditionalInfoEditor.setHTMLCode(variantData.additional_information || '');
+                        }
+                    } catch (e) {
+                        console.error('Error setting editor data:', e);
                     }
-                }, 100);
-            } else {
-                // Units are loading, wait for them
-                const checkInterval = setInterval(() => {
-                    if (!unitsLoading && unitsLoaded) {
-                        clearInterval(checkInterval);
-                        renderMeasurementsInModal(measurementsForModal);
-                        updateMeasurementEmptyState();
-                        variantEditModal.show();
+                }
+            }, 300);
+            });
+        } else if (unitsLoaded) {
+            // Units already loaded, render measurements and show modal
+            renderMeasurementsInModal(measurementsForModal);
+            updateMeasurementEmptyState();
+            variantEditModal.show();
+            // Set editor data after modal is shown (editors are initialized on show.bs.modal)
+            setTimeout(function() {
+                if (variantDataStr) {
+                    try {
+                        const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
+                        if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
+                            window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
+                        }
+                        if (window.variantAdditionalInfoEditor && typeof window.variantAdditionalInfoEditor.setHTMLCode === 'function') {
+                            window.variantAdditionalInfoEditor.setHTMLCode(variantData.additional_information || '');
+                        }
+                    } catch (e) {
+                        console.error('Error setting editor data:', e);
                     }
-                }, 100);
-            }
+                }
+            }, 100);
+        } else {
+            // Units are loading, wait for them
+            const checkInterval = setInterval(() => {
+                if (!unitsLoading && unitsLoaded) {
+                    clearInterval(checkInterval);
+                    renderMeasurementsInModal(measurementsForModal);
+                    updateMeasurementEmptyState();
+                    variantEditModal.show();
+                }
+            }, 100);
         }
     });
     
     // Load units when variant edit modal is shown (in case they weren't loaded yet)
-    if (variantEditModalElement) {
-        variantEditModalElement.addEventListener('shown.bs.modal', function() {
+    if ($variantEditModalElement.length) {
+        $variantEditModalElement.on('shown.bs.modal', function() {
             if (!unitsLoaded && !unitsLoading) {
                 loadUnitsFromModule(function() {
                     // Refresh unit dropdowns in measurement rows after units are loaded
-                    if (measurementRowsContainer) {
-                        const unitSelects = measurementRowsContainer.querySelectorAll('.measurement-unit');
-                        unitSelects.forEach(select => {
-                            const currentValue = select.value;
-                            select.innerHTML = buildUnitOptionsHtml(currentValue);
-                            select.value = currentValue;
+                    if ($measurementRowsContainer.length) {
+                        const $unitSelects = $measurementRowsContainer.find('.measurement-unit');
+                        $unitSelects.each(function() {
+                            const $select = $(this);
+                            const currentValue = $select.val();
+                            $select.html(buildUnitOptionsHtml(currentValue));
+                            $select.val(currentValue);
                         });
                     }
                     updateMeasurementEmptyState();
                 });
             } else if (unitsLoaded) {
                 // Refresh unit dropdowns in case units were updated
-                if (measurementRowsContainer) {
-                    const unitSelects = measurementRowsContainer.querySelectorAll('.measurement-unit');
-                    unitSelects.forEach(select => {
-                        const currentValue = select.value;
-                        select.innerHTML = buildUnitOptionsHtml(currentValue);
-                        select.value = currentValue;
+                if ($measurementRowsContainer.length) {
+                    const $unitSelects = $measurementRowsContainer.find('.measurement-unit');
+                    $unitSelects.each(function() {
+                        const $select = $(this);
+                        const currentValue = $select.val();
+                        $select.html(buildUnitOptionsHtml(currentValue));
+                        $select.val(currentValue);
                     });
                 }
                 updateMeasurementEmptyState();
@@ -3835,153 +3888,150 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Handle View Images button click
-    variantsTableBody.addEventListener('click', function(e) {
-        if (e.target.closest('.view-variant-images-btn')) {
-            e.preventDefault();
-            const btn = e.target.closest('.view-variant-images-btn');
-            const variantIndex = btn.getAttribute('data-variant-index');
-            const row = btn.closest('tr');
-            
-            // Get images from the row
-            const imageInput = row.querySelector('.variant-image-input');
-            const existingImages = extractExistingImagesFromRow(row);
-            const newFiles = imageInput && imageInput.files && imageInput.files.length ? Array.from(imageInput.files) : [];
-            
-            // Collect all images (existing + new)
-            const allImages = [];
-            
-            // Add existing images
-            if (Array.isArray(existingImages) && existingImages.length > 0) {
-                existingImages.forEach(img => {
-                    // Handle both old format (string path) and new format (object with id, path, url)
-                    if (typeof img === 'string') {
-                        // Old format: just a path string
-                        const normalizedPath = img.startsWith('http')
-                            ? img
-                            : `/storage/${img.replace(/^\/?storage\//, '')}`;
-                        allImages.push({
-                            src: normalizedPath,
-                            type: 'existing',
-                            path: img
-                        });
-                    } else if (img && (img.path || img.url)) {
-                        // New format: object with id, path, url
-                        allImages.push({
-                            id: img.id,
-                            src: img.url || (img.path.startsWith('http') ? img.path : `/storage/${img.path.replace(/^\/?storage\//, '')}`),
-                            path: img.path,
-                            type: 'existing'
-                        });
-                    }
-                });
-            }
-            
-            // Add new files with index for removal
-            newFiles.forEach((file, fileIndex) => {
-                allImages.push({
-                    src: URL.createObjectURL(file),
-                    type: 'new',
-                    name: file.name,
-                    fileIndex: fileIndex,
-                    file: file // Store file reference for removal
-                });
+    $(variantsTableBody).on('click', '.view-variant-images-btn', function(e) {
+        e.preventDefault();
+        const $btn = $(this);
+        const variantIndex = $btn.data('variant-index');
+        const $row = $btn.closest('tr');
+        
+        // Get images from the row
+        const $imageInput = $row.find('.variant-image-input');
+        const existingImages = extractExistingImagesFromRow($row[0]);
+        const newFiles = $imageInput.length && $imageInput[0].files && $imageInput[0].files.length ? Array.from($imageInput[0].files) : [];
+        
+        // Collect all images (existing + new)
+        const allImages = [];
+        
+        // Add existing images
+        if (Array.isArray(existingImages) && existingImages.length > 0) {
+            existingImages.forEach(img => {
+                // Handle both old format (string path) and new format (object with id, path, url)
+                if (typeof img === 'string') {
+                    // Old format: just a path string
+                    const normalizedPath = img.startsWith('http')
+                        ? img
+                        : `/storage/${img.replace(/^\/?storage\//, '')}`;
+                    allImages.push({
+                        src: normalizedPath,
+                        type: 'existing',
+                        path: img
+                    });
+                } else if (img && (img.path || img.url)) {
+                    // New format: object with id, path, url
+                    allImages.push({
+                        id: img.id,
+                        src: img.url || (img.path.startsWith('http') ? img.path : `/storage/${img.path.replace(/^\/?storage\//, '')}`),
+                        path: img.path,
+                        type: 'existing'
+                    });
+                }
             });
+        }
+        
+        // Add new files with index for removal
+        newFiles.forEach((file, fileIndex) => {
+            allImages.push({
+                src: URL.createObjectURL(file),
+                type: 'new',
+                name: file.name,
+                fileIndex: fileIndex,
+                file: file // Store file reference for removal
+            });
+        });
+        
+        // Display images in modal
+        const $container = $('#variantImagesViewContainer');
+        const $emptyMessage = $('#variantImagesViewEmpty');
+        
+        if (allImages.length === 0) {
+            $container.empty();
+            $container.css('display', 'none');
+            $emptyMessage.css('display', 'block');
+        } else {
+            $container.empty();
+            $container.css('display', 'flex');
+            $emptyMessage.css('display', 'none');
             
-            // Display images in modal
-            const container = document.getElementById('variantImagesViewContainer');
-            const emptyMessage = document.getElementById('variantImagesViewEmpty');
-            
-            if (allImages.length === 0) {
-                container.innerHTML = '';
-                container.style.display = 'none';
-                emptyMessage.style.display = 'block';
-            } else {
-                container.innerHTML = '';
-                container.style.display = 'flex';
-                emptyMessage.style.display = 'none';
+            allImages.forEach((image, index) => {
+                const $col = $('<div>').addClass('col-md-4 col-sm-6');
                 
-                allImages.forEach((image, index) => {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-4 col-sm-6';
-                    
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    
-                    const img = document.createElement('img');
-                    img.src = image.src;
-                    img.className = 'card-img-top';
-                    img.style.cssText = 'height: 200px; object-fit: cover; cursor: pointer;';
-                    img.alt = image.name || `Variant image ${index + 1}`;
-                    
-                    // Add click to view full size
-                    img.addEventListener('click', function() {
+                const $card = $('<div>').addClass('card');
+                
+                const $img = $('<img>')
+                    .attr('src', image.src)
+                    .addClass('card-img-top')
+                    .css({
+                        'height': '200px',
+                        'object-fit': 'cover',
+                        'cursor': 'pointer'
+                    })
+                    .attr('alt', image.name || `Variant image ${index + 1}`)
+                    .on('click', function() {
                         window.open(image.src, '_blank');
                     });
-                    
-                    const cardBody = document.createElement('div');
-                    cardBody.className = 'card-body p-2';
-                    
-                    let bodyContent = `
-                        <small class="text-muted d-block text-truncate" title="${image.name || 'Image'}">
-                            ${image.name || `Image ${index + 1}`}
-                        </small>
-                        <span class="badge bg-${image.type === 'existing' ? 'success' : 'info'} badge-sm mb-2">${image.type === 'existing' ? 'Existing' : 'New'}</span>
-                    `;
-                    
-                    // Add delete button for both existing and new images
-                    // For existing images: show delete if we have an ID (database image)
-                    if (image.type === 'existing') {
-                        if (image.id) {
-                            // Delete button for existing images (from database with ID)
-                            bodyContent += `
-                                <button type="button" class="btn btn-sm btn-outline-danger w-100 delete-variant-image-btn" 
-                                        data-image-id="${image.id}" 
-                                        data-variant-index="${variantIndex}"
-                                        data-image-type="existing"
-                                        title="Delete this image">
-                                    <i class="fas fa-trash-alt me-1"></i> Delete
-                                </button>
-                            `;
-                        }
-                        // If no ID (old format string), we can't delete individually - no button
-                    } else if (image.type === 'new') {
-                        // Remove button for newly selected images (from file input)
-                        if (image.fileIndex !== undefined && image.fileIndex !== null) {
-                            bodyContent += `
-                                <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-new-variant-image-btn" 
-                                        data-file-index="${image.fileIndex}" 
-                                        data-variant-index="${variantIndex}"
-                                        data-image-type="new"
-                                        title="Remove this image">
-                                    <i class="fas fa-trash-alt me-1"></i> Remove
-                                </button>
-                            `;
-                        }
+                
+                const $cardBody = $('<div>').addClass('card-body p-2');
+                
+                let bodyContent = `
+                    <small class="text-muted d-block text-truncate" title="${image.name || 'Image'}">
+                        ${image.name || `Image ${index + 1}`}
+                    </small>
+                    <span class="badge bg-${image.type === 'existing' ? 'success' : 'info'} badge-sm mb-2">${image.type === 'existing' ? 'Existing' : 'New'}</span>
+                `;
+                
+                // Add delete button for both existing and new images
+                // For existing images: show delete if we have an ID (database image)
+                if (image.type === 'existing') {
+                    if (image.id) {
+                        // Delete button for existing images (from database with ID)
+                        bodyContent += `
+                            <button type="button" class="btn btn-sm btn-outline-danger w-100 delete-variant-image-btn" 
+                                    data-image-id="${image.id}" 
+                                    data-variant-index="${variantIndex}"
+                                    data-image-type="existing"
+                                    title="Delete this image">
+                                <i class="fas fa-trash-alt me-1"></i> Delete
+                            </button>
+                        `;
                     }
-                    
-                    cardBody.innerHTML = bodyContent;
-                    
-                    card.appendChild(img);
-                    card.appendChild(cardBody);
-                    col.appendChild(card);
-                    container.appendChild(col);
-                });
-            }
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('variantImagesViewModal'));
-            modal.show();
-            
-            // Clean up object URLs when modal is closed
-            document.getElementById('variantImagesViewModal').addEventListener('hidden.bs.modal', function cleanup() {
-                allImages.forEach(image => {
-                    if (image.type === 'new' && image.src.startsWith('blob:')) {
-                        URL.revokeObjectURL(image.src);
+                    // If no ID (old format string), we can't delete individually - no button
+                } else if (image.type === 'new') {
+                    // Remove button for newly selected images (from file input)
+                    if (image.fileIndex !== undefined && image.fileIndex !== null) {
+                        bodyContent += `
+                            <button type="button" class="btn btn-sm btn-outline-danger w-100 remove-new-variant-image-btn" 
+                                    data-file-index="${image.fileIndex}" 
+                                    data-variant-index="${variantIndex}"
+                                    data-image-type="new"
+                                    title="Remove this image">
+                                <i class="fas fa-trash-alt me-1"></i> Remove
+                            </button>
+                        `;
                     }
-                });
-                document.getElementById('variantImagesViewModal').removeEventListener('hidden.bs.modal', cleanup);
-            }, { once: true });
+                }
+                
+                $cardBody.html(bodyContent);
+                
+                $card.append($img);
+                $card.append($cardBody);
+                $col.append($card);
+                $container.append($col);
+            });
         }
+        
+        // Show modal
+        const $modalElement = $('#variantImagesViewModal');
+        const modal = new bootstrap.Modal($modalElement[0]);
+        modal.show();
+        
+        // Clean up object URLs when modal is closed
+        $modalElement.one('hidden.bs.modal', function() {
+            allImages.forEach(image => {
+                if (image.type === 'new' && image.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(image.src);
+                }
+            });
+        });
     });
     
     // Handle delete variant image button click
@@ -4000,10 +4050,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Disable button and show loading
         btn.prop('disabled', true);
-        btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Deleting...');
+        btn.html("<i class=\"fas fa-spinner fa-spin me-1\"></i> Deleting...");
         
         $.ajax({
-            url: '{{ route("products.deleteVariantImage") }}',
+            url: "{{ route('products.deleteVariantImage') }}",
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
@@ -4200,7 +4250,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    variantsTableBody.addEventListener('change', function(e) {
+    $(variantsTableBody).on('change', function(e) {
         const target = e.target;
         if (target.classList.contains('variant-status-toggle')) {
             updateVariantRowStatus(target);
@@ -4244,11 +4294,294 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Save variant changes
-    const saveVariantBtn = document.getElementById('saveVariantBtn');
-    if (saveVariantBtn) {
-        saveVariantBtn.addEventListener('click', function() {
-            if (!variantEditModalElement || !variantEditModal) {
+    // Extract all variants from the table
+    function extractAllVariantsFromTable() {
+        const $rows = $(variantsTableBody).find('tr[data-variant-index]');
+        const variants = [];
+        
+        rows.forEach((row, index) => {
+            const variantData = extractVariantRowData(row);
+            if (variantData) {
+                variants.push(variantData);
+            }
+        });
+        
+        return variants;
+    }
+
+    // Handle variants form submission (for standalone variants page)
+    let formSubmissionHandlerAttached = false;
+    let isSubmittingVariants = false;
+    
+    // Make function available globally
+    window.formSubmissionHandlerAttached = false;
+    window.setupVariantsFormSubmission = function() {
+        const variantsForm = document.getElementById('variantsForm');
+        if (!variantsForm) {
+            console.log('Variants form not found');
+            return;
+        }
+        
+        if (formSubmissionHandlerAttached || window.formSubmissionHandlerAttached) {
+            console.log('Form submission handler already attached');
+            return;
+        }
+        
+        console.log('Setting up variants form submission handler');
+        formSubmissionHandlerAttached = true;
+        window.formSubmissionHandlerAttached = true;
+        
+        // Define the submission function first (before it's used)
+        window.submitVariantsFormData = function() {
+            if (isSubmittingVariants) {
+                console.log('Already submitting, preventing duplicate submission');
+                return;
+            }
+            
+            console.log('Submitting variants form data - starting');
+            isSubmittingVariants = true;
+            
+            const variantsForm = document.getElementById('variantsForm');
+            if (!variantsForm) {
+                console.error('Variants form not found');
+                isSubmittingVariants = false;
+                return;
+            }
+            
+            const formData = new FormData();
+            const rows = variantsTableBody ? variantsTableBody.querySelectorAll('tr[data-variant-index]') : [];
+            
+            console.log('Found variant rows:', rows.length);
+            
+            if (rows.length === 0) {
+                showToast('error', 'No variants to save. Please add at least one variant.');
+                return;
+            }
+            
+            // Extract variant data from each row
+            rows.forEach((row, index) => {
+                // Get all hidden inputs from the row
+                const hiddenInputs = row.querySelectorAll('input[type="hidden"]');
+                console.log(`Row ${index} has ${hiddenInputs.length} hidden inputs`);
+                
+                hiddenInputs.forEach(input => {
+                    const name = input.name || input.getAttribute('name');
+                    const dataAttr = input.getAttribute('data-variant-id-input') || 
+                                   input.getAttribute('data-variant-sku-input') ||
+                                   input.getAttribute('data-variant-price-input') ||
+                                   input.getAttribute('data-variant-attributes-input') ||
+                                   input.getAttribute('data-variant-measurements-input') ||
+                                   input.getAttribute('data-variant-highlights-details-input') ||
+                                   input.getAttribute('data-variant-description-input') ||
+                                   input.getAttribute('data-variant-additional-information-input');
+                    
+                    let fieldName = null;
+                    let value = input.value;
+                    
+                    // Try to get field name from data attribute
+                    if (dataAttr) {
+                        if (dataAttr.includes('id')) fieldName = 'id';
+                        else if (dataAttr.includes('sku')) fieldName = 'sku';
+                        else if (dataAttr.includes('price')) fieldName = 'price';
+                        else if (dataAttr.includes('attributes')) fieldName = 'attributes';
+                        else if (dataAttr.includes('measurements')) fieldName = 'measurements';
+                        else if (dataAttr.includes('highlights-details')) fieldName = 'highlights_details';
+                        else if (dataAttr.includes('description')) fieldName = 'description';
+                        else if (dataAttr.includes('additional-information')) fieldName = 'additional_information';
+                    }
+                    
+                    // If no field name from data attr, try to parse from name attribute
+                    if (!fieldName && name && name.startsWith('variants[')) {
+                        const fieldMatch = name.match(/variants\[\d+\]\[(.+)\]/);
+                        if (fieldMatch) {
+                            fieldName = fieldMatch[1];
+                        }
+                    }
+                    
+                    if (fieldName && value !== null && value !== undefined) {
+                        // Handle JSON fields
+                        if (fieldName === 'attributes' || fieldName === 'measurements' || fieldName === 'highlights_details') {
+                            if (value && value !== '[]' && value !== '{}' && value.trim() !== '') {
+                                formData.append(`variants[${index}][${fieldName}]`, value);
+                            }
+                        } else if (value !== '' && value !== null) {
+                            formData.append(`variants[${index}][${fieldName}]`, value);
+                        }
+                    }
+                });
+                
+                // Also extract from visible inputs
+                const skuInput = row.querySelector('[name*="[sku]"]');
+                const priceInput = row.querySelector('[name*="[price]"]');
+                const salePriceInput = row.querySelector('[name*="[sale_price]"]');
+                
+                if (skuInput && skuInput.value) {
+                    formData.append(`variants[${index}][sku]`, skuInput.value);
+                }
+                if (priceInput && priceInput.value) {
+                    formData.append(`variants[${index}][price]`, priceInput.value);
+                }
+                if (salePriceInput && salePriceInput.value) {
+                    formData.append(`variants[${index}][sale_price]`, salePriceInput.value);
+                }
+                
+                // Handle image files
+                const imageInput = row.querySelector('.variant-image-input');
+                if (imageInput && imageInput.files && imageInput.files.length > 0) {
+                    Array.from(imageInput.files).forEach((file, imgIndex) => {
+                        formData.append(`variants[${index}][images][${imgIndex}]`, file);
+                    });
+                }
+            });
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (csrfToken) {
+                formData.append('_token', csrfToken.getAttribute('content'));
+            } else {
+                // Try to get from form
+                const formToken = variantsForm.querySelector('input[name="_token"]');
+                if (formToken) {
+                    formData.append('_token', formToken.value);
+                }
+            }
+            
+            // Show loading state
+            const $saveBtn = $('#saveVariantsBtn');
+            const originalText = $saveBtn.length ? $saveBtn.html() : '';
+            if ($saveBtn.length) {
+                $saveBtn.prop('disabled', true);
+                $saveBtn.html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
+            }
+            
+            console.log('Submitting form to:', variantsForm.action);
+            
+            // Submit form
+            $.ajax({
+                url: variantsForm.action,
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(data) {
+                    console.log('Response data:', data);
+                    isSubmittingVariants = false;
+                    
+                    if (data && data.success) {
+                        showToast('success', data.message || 'Variants saved successfully');
+                        // Redirect after a short delay to show the success message
+                        setTimeout(() => {
+                            if (data.redirect_url) {
+                                window.location.href = data.redirect_url;
+                            } else {
+                                window.location.reload();
+                            }
+                        }, 1000);
+                    } else {
+                        showToast('error', data.message || 'Error saving variants');
+                        if (data.errors) {
+                            console.error('Validation errors:', data.errors);
+                        }
+                        if ($saveBtn.length) {
+                            $saveBtn.prop('disabled', false);
+                            $saveBtn.html(originalText);
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    isSubmittingVariants = false;
+                    
+                    let errorMessage = 'An error occurred while saving variants: ' + (error || 'Unknown error');
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMessage = response.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                    
+                    // Only show error if it's not a navigation error
+                    if (error !== 'abort') {
+                        showToast('error', errorMessage);
+                    }
+                    
+                    if ($saveBtn.length) {
+                        $saveBtn.prop('disabled', false);
+                        $saveBtn.html(originalText);
+                    }
+                }
+            });
+        };
+    }
+    
+    // Setup form submission when DOM is ready
+    function initVariantsForm() {
+        console.log('Initializing variants form submission...');
+        setupVariantsFormSubmission();
+    }
+    
+    // Use multiple strategies to ensure the handler is attached
+    function attachVariantsFormHandler() {
+        const saveBtn = document.getElementById('saveVariantsBtn');
+        const variantsForm = document.getElementById('variantsForm');
+        
+        console.log('Checking for save button and form:', {
+            saveBtn: !!saveBtn,
+            variantsForm: !!variantsForm,
+            saveBtnId: saveBtn ? saveBtn.id : 'not found',
+            formId: variantsForm ? variantsForm.id : 'not found'
+        });
+        
+        if (variantsForm) {
+            setupVariantsFormSubmission();
+        }
+        
+        // Direct button click handler as primary method
+        if (saveBtn && !saveBtn.hasAttribute('data-handler-attached')) {
+            console.log('Attaching direct click handler to save button');
+            saveBtn.setAttribute('data-handler-attached', 'true');
+            
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Save button clicked directly!');
+                
+                if (!variantsForm) {
+                    console.error('Variants form not found!');
+                    alert('Error: Form not found. Please refresh the page.');
+                    return;
+                }
+                
+                // Trigger form submit
+                const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                variantsForm.dispatchEvent(submitEvent);
+            });
+        }
+    }
+    
+    // Try multiple times to ensure elements exist
+    if (document.readyState === 'loading') {
+        $(document).ready(function() {
+            attachVariantsFormHandler();
+        });
+    } else {
+        attachVariantsFormHandler();
+    }
+    
+    // Also try after a delay to catch late-loading elements
+    setTimeout(attachVariantsFormHandler, 500);
+    setTimeout(attachVariantsFormHandler, 1000);
+
+    // Save variant changes (in modal)
+    const $saveVariantBtn = $('#saveVariantBtn');
+    if ($saveVariantBtn.length) {
+        $saveVariantBtn.on('click', function() {
+            if (!$variantEditModalElement.length || !variantEditModal) {
                 console.error('Variant edit modal is not available in the DOM.');
                 return;
             }
@@ -4415,24 +4748,25 @@ document.addEventListener('DOMContentLoaded', function() {
     let headingSuggestionsLoaded = false;
     
     // Load heading suggestions from API
-    async function loadHeadingSuggestions() {
+    function loadHeadingSuggestions() {
         if (headingSuggestionsLoaded) return;
         
-        try {
-            const response = await fetch('{{ route("variant-headings.suggestions") }}');
-            if (response.ok) {
-                const data = await response.json();
+        $.ajax({
+            url: '{{ route("variant-headings.suggestions") }}',
+            method: 'GET',
+            success: function(data) {
                 headingSuggestions = data.suggestions || [];
                 headingSuggestionsLoaded = true;
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading heading suggestions:', error);
             }
-        } catch (error) {
-            console.error('Error loading heading suggestions:', error);
-        }
+        });
     }
     
     // Initialize heading suggestions on modal open
-    if (variantEditModalElement) {
-        variantEditModalElement.addEventListener('show.bs.modal', function() {
+    if ($variantEditModalElement.length) {
+        $variantEditModalElement[0].addEventListener('show.bs.modal', function() {
             loadHeadingSuggestions();
         });
     }
@@ -4821,7 +5155,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load highlights & details when opening edit modal
     if (variantsTableBody) {
-        variantsTableBody.addEventListener('click', function(e) {
+        $(variantsTableBody).on('click', function(e) {
             if (e.target.closest('.edit-variant-btn')) {
                 const row = e.target.closest('tr');
                 setTimeout(() => {
@@ -4833,7 +5167,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Select All / Deselect All functionality
     document.getElementById('selectAllBtn').addEventListener('click', function() {
-        const checkboxes = variantsTableBody.querySelectorAll('.variant-checkbox');
+        const $checkboxes = $(variantsTableBody).find('.variant-checkbox');
         checkboxes.forEach(checkbox => {
             checkbox.checked = true;
         });
@@ -4844,7 +5178,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('deselectAllBtn').addEventListener('click', function() {
-        const checkboxes = variantsTableBody.querySelectorAll('.variant-checkbox');
+        const $checkboxes = $(variantsTableBody).find('.variant-checkbox');
         checkboxes.forEach(checkbox => {
             checkbox.checked = false;
         });
@@ -4924,19 +5258,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Sync generatedVariants array with actual DOM rows
     function syncGeneratedVariantsFromDOM() {
-        if (!variantsTableBody) {
+        const $variantsTableBody = $('#variantsTableBody');
+        if (!$variantsTableBody.length) {
             generatedVariants = [];
             return [];
         }
         
-        const rows = variantsTableBody.querySelectorAll('tr');
+        const $rows = $variantsTableBody.find('tr');
         const syncedVariants = [];
         
-        rows.forEach((row, index) => {
-            const variantDataStr = row.dataset.variantData;
+        $rows.each(function(index) {
+            const $row = $(this);
+            const variantDataStr = $row.data('variantData');
             if (variantDataStr) {
                 try {
-                    const variantData = JSON.parse(variantDataStr);
+                    const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
                     // Reconstruct variant object from row data
                     const variant = {
                         id: variantData.id || null,
@@ -4966,27 +5302,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 // If no variantData, try to extract from form fields (fallback)
-                const skuInput = row.querySelector('[name*="[sku]"]');
-                const priceInput = row.querySelector('[name*="[price]"]');
-                const attributesInput = row.querySelector('[data-variant-attributes-input]');
+                const $skuInput = $row.find('[name*="[sku]"]');
+                const $priceInput = $row.find('[name*="[price]"]');
+                const $attributesInput = $row.find('[data-variant-attributes-input]');
                 
-                if (skuInput || priceInput || attributesInput) {
+                if ($skuInput.length || $priceInput.length || $attributesInput.length) {
                     let attributes = {};
-                    if (attributesInput && attributesInput.value) {
+                    if ($attributesInput.length && $attributesInput.val()) {
                         try {
-                            attributes = JSON.parse(attributesInput.value);
+                            attributes = JSON.parse($attributesInput.val());
                         } catch (e) {
                             console.error('Error parsing attributes from input:', e);
                         }
                     }
                     
                     const variant = {
-                        id: row.dataset.variantId || null,
-                        name: row.querySelector('[data-variant-name-input]')?.value || '',
-                        sku: skuInput?.value || '',
-                        price: priceInput?.value || '',
-                        sale_price: row.querySelector('[name*="[sale_price]"]')?.value || '',
-                        is_active: row.querySelector('[data-variant-status-input]')?.value === '1',
+                        id: $row.data('variantId') || null,
+                        name: $row.find('[data-variant-name-input]').val() || '',
+                        sku: $skuInput.length ? $skuInput.val() : '',
+                        price: $priceInput.length ? $priceInput.val() : '',
+                        sale_price: $row.find('[name*="[sale_price]"]').val() || '',
+                        is_active: $row.find('[data-variant-status-input]').val() === '1',
                         attributes: attributes,
                         images: []
                     };
@@ -5000,7 +5336,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return syncedVariants;
     }
 
-    document.getElementById('bulkDeleteBtn').addEventListener('click', function() {
+    $('#bulkDeleteBtn').on('click', function() {
         const selectedRows = getSelectedVariantRows();
         if (selectedRows.length === 0) {
             alert('Please select variants to delete');
@@ -5008,8 +5344,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (confirm(`Are you sure you want to delete ${selectedRows.length} selected variants? This action cannot be undone.`)) {
-            selectedRows.forEach(row => {
-                row.remove();
+            selectedRows.forEach($row => {
+                $row.remove();
             });
             
             // Sync generatedVariants array with remaining DOM rows
@@ -5018,17 +5354,17 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('success', `${selectedRows.length} variants deleted`);
             
             // Check if any variants remain
-            const remainingRows = variantsTableBody.querySelectorAll('tr');
-            if (remainingRows.length === 0) {
+            const $remainingRows = $('#variantsTableBody').find('tr');
+            if ($remainingRows.length === 0) {
                 // Check if no attributes are selected - hide table if no variants
                 const selectedIds = getSelectedAttributeIds();
                 if (selectedIds.length === 0) {
                     // No attributes selected - hide table (default variant creation removed)
-                    variantsTableContainer.style.display = 'none';
+                    $variantsTableContainer.css('display', 'none');
                 } else {
                     // Attributes selected but all variants deleted - hide table
-                    variantsTableContainer.style.display = 'none';
-                    bulkActions.style.display = 'none';
+                    $variantsTableContainer.css('display', 'none');
+                    $bulkActions.css('display', 'none');
                 }
             }
             
@@ -5045,10 +5381,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Helper function to get selected variant rows
     function getSelectedVariantRows() {
-        const selectedCheckboxes = variantsTableBody.querySelectorAll('.variant-checkbox:checked');
+        const $selectedCheckboxes = $('#variantsTableBody').find('.variant-checkbox:checked');
         const selectedRows = [];
-        selectedCheckboxes.forEach(checkbox => {
-            selectedRows.push(checkbox.closest('tr'));
+        $selectedCheckboxes.each(function() {
+            selectedRows.push($(this).closest('tr'));
         });
         return selectedRows;
     }
@@ -5056,9 +5392,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load existing variants for edit mode
     function loadExistingVariants(payload) {
         if (!Array.isArray(payload) || payload.length === 0) {
+            console.log('loadExistingVariants: No payload or empty array');
             return;
         }
 
+        console.log('loadExistingVariants: Loading', payload.length, 'variants');
         generatedVariants = payload;
 
         // Display the variants
@@ -5067,32 +5405,40 @@ document.addEventListener('DOMContentLoaded', function() {
         syncGeneratedVariantsFromDOM();
 
         // Show the variants table and bulk actions
-        variantsTableContainer.style.display = 'block';
-        bulkActions.style.display = 'block';
+        if (variantsTableContainer) {
+            $variantsTableContainer.css('display', 'block');
+        }
+        if ($bulkActions.length) {
+            $bulkActions.css('display', 'block');
+        }
 
-        ensureAttributeSelectionFromVariants();
+        // Wait a bit for DOM to be ready, then auto-select attributes
+        setTimeout(function() {
+            console.log('loadExistingVariants: Calling ensureAttributeSelectionFromVariants');
+            ensureAttributeSelectionFromVariants();
+        }, 300);
     }
 
     // Toast notification function
     function showToast(type, message) {
         // Create toast element if it doesn't exist
-        let toast = document.getElementById('variantToast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'variantToast';
-            toast.className = 'toast position-fixed top-0 end-0 m-3';
-            toast.style.zIndex = '1100'; // Higher than productFormNav (1000) and sticky-bottom (10)
-            toast.setAttribute('role', 'alert');
-            toast.setAttribute('aria-live', 'assertive');
-            toast.setAttribute('aria-atomic', 'true');
-            document.body.appendChild(toast);
+        let $toast = $('#variantToast');
+        if (!$toast.length) {
+            $toast = $('<div>')
+                .attr('id', 'variantToast')
+                .addClass('toast position-fixed top-0 end-0 m-3')
+                .css('zIndex', '1100') // Higher than productFormNav (1000) and sticky-bottom (10)
+                .attr('role', 'alert')
+                .attr('aria-live', 'assertive')
+                .attr('aria-atomic', 'true');
+            $('body').append($toast);
         }
         
         const iconName = type === 'success' ? 'check-circle' : 'x-circle';
         const iconToneClass = type === 'success' ? 'text-success' : 'text-danger';
         const title = type === 'success' ? 'Success' : 'Error';
         
-        toast.innerHTML = `
+        $toast.html(`
             <div class="toast-header">
                 <span data-feather="${iconName}" class="me-2 ${iconToneClass}"></span>
                 <strong class="me-auto">${title}</strong>
@@ -5101,33 +5447,33 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="toast-body">
                 ${message}
             </div>
-        `;
+        `);
         
-        const bsToast = new bootstrap.Toast(toast);
+        const bsToast = new bootstrap.Toast($toast[0]);
         bsToast.show();
         refreshFeatherIcons();
     }
 
     function calculateVariantSellPrice() {
-        if (!mrpInput || !variantSellPriceInput) {
+        if (!$mrpInput.length || !$variantSellPriceInput.length) {
             return;
         }
 
-        const discountValueField = discountValueInput;
-        const discountTypeField = discountTypeSelect;
-        const discountActive = discountActiveSelect;
+        const $discountValueField = $discountValueInput;
+        const $discountTypeField = $discountTypeSelect;
+        const $discountActive = $discountActiveSelect;
 
-        let mrp = parseFloat(mrpInput.value);
+        let mrp = parseFloat($mrpInput.val());
         if (isNaN(mrp) || mrp < 0) {
             mrp = 0;
         }
 
-        let sellPrice = variantSellPriceInput.value ? parseFloat(variantSellPriceInput.value) : mrp;
+        let sellPrice = $variantSellPriceInput.val() ? parseFloat($variantSellPriceInput.val()) : mrp;
 
-        if (discountActive && discountActive.value === '1' && discountTypeField && discountTypeField.value && discountValueField) {
-            const discountValue = parseFloat(discountValueField.value);
+        if ($discountActive.length && $discountActive.val() === '1' && $discountTypeField.length && $discountTypeField.val() && $discountValueField.length) {
+            const discountValue = parseFloat($discountValueField.val());
             if (!isNaN(discountValue) && discountValue >= 0) {
-                if (discountTypeField.value === 'percentage') {
+                if ($discountTypeField.val() === 'percentage') {
                     sellPrice = Math.max(mrp - (mrp * (discountValue / 100)), 0);
                 } else {
                     sellPrice = Math.max(mrp - discountValue, 0);
@@ -5137,45 +5483,45 @@ document.addEventListener('DOMContentLoaded', function() {
             sellPrice = mrp;
         }
 
-        variantSellPriceInput.value = sellPrice ? sellPrice.toFixed(2) : '';
+        $variantSellPriceInput.val(sellPrice ? sellPrice.toFixed(2) : '');
     }
 
     function handleDiscountStateChange() {
-        if (!discountValueInput) {
+        if (!$discountValueInput.length) {
             return;
         }
 
         updateDiscountPrefix();
-        if (discountTypeSelect && discountTypeSelect.value) {
-            discountValueInput.removeAttribute('disabled');
+        if ($discountTypeSelect.length && $discountTypeSelect.val()) {
+            $discountValueInput.prop('disabled', false);
         } else {
-            discountValueInput.value = '';
-            discountValueInput.setAttribute('disabled', 'disabled');
-            if (discountActiveSelect) {
-                discountActiveSelect.value = '0';
+            $discountValueInput.val('');
+            $discountValueInput.prop('disabled', true);
+            if ($discountActiveSelect.length) {
+                $discountActiveSelect.val('0');
             }
-            if (variantSellPriceInput && variantSellPriceInput.dataset.originalSellPrice !== undefined) {
-                variantSellPriceInput.value = variantSellPriceInput.dataset.originalSellPrice;
+            if ($variantSellPriceInput.length && $variantSellPriceInput.data('originalSellPrice') !== undefined) {
+                $variantSellPriceInput.val($variantSellPriceInput.data('originalSellPrice'));
             }
         }
         calculateVariantSellPrice();
     }
 
     function updateDiscountPrefix() {
-        if (discountTypeSelect && discountTypeSelect.value === 'percentage') {
-            discountPrefixSpan.textContent = '%';
+        if ($discountTypeSelect.length && $discountTypeSelect.val() === 'percentage') {
+            $discountPrefixSpan.text('%');
         } else {
-            discountPrefixSpan.textContent = '₹';
+            $discountPrefixSpan.text('₹');
         }
     }
 
     function updateVariantStatusToggleLabel() {
-        if (!variantStatusToggle) {
+        if (!$variantStatusToggle.length) {
             return;
         }
-        const label = document.querySelector('label[for="variantStatusToggle"]');
-        if (label) {
-            label.textContent = variantStatusToggle.checked ? 'Active' : 'Inactive';
+        const $label = $('label[for="variantStatusToggle"]');
+        if ($label.length) {
+            $label.text($variantStatusToggle.is(':checked') ? 'Active' : 'Inactive');
         }
     }
 
@@ -5183,15 +5529,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!toggleElement) {
             return;
         }
-        const row = toggleElement.closest('tr');
-        if (!row) {
+        const $row = $(toggleElement).closest('tr');
+        if (!$row.length) {
             return;
         }
-        const label = row.querySelector('label[for="' + toggleElement.id + '"]');
-        if (label) {
-            label.textContent = toggleElement.checked ? 'Active' : 'Inactive';
+        const $label = $row.find('label[for="' + toggleElement.id + '"]');
+        if ($label.length) {
+            $label.text($(toggleElement).is(':checked') ? 'Active' : 'Inactive');
         }
-        const hiddenInput = row.querySelector('[data-variant-status-input]');
+        const hiddenInput = $row[0].querySelector('[data-variant-status-input]');
         if (hiddenInput) {
             hiddenInput.value = toggleElement.checked ? '1' : '0';
         }
@@ -5608,8 +5954,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function collectVariantRowData() {
-        const rows = variantsTableBody.querySelectorAll('tr');
-        return Array.from(rows)
+        const $rows = $('#variantsTableBody').find('tr');
+        return $rows.toArray()
             .map(row => extractVariantRowData(row))
             .filter(item => item !== null);
     }
@@ -5732,7 +6078,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // If loadAllAttributes is not available, load attributes directly
             $.ajax({
-                url: '{{ route("products.attributes") }}',
+                url: "{{ route('products.attributes') }}",
                 type: 'GET',
                 success: function(response) {
                     if (response.success && response.attributes) {
@@ -5832,8 +6178,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Create checkbox item
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'form-check attribute-checkbox-item';
-                itemDiv.setAttribute('data-attribute-id', attr.id);
-                
+                itemDiv.setAttribute('data-attribute-id', attr.id); 
                 const checkboxId = `attr_${attr.id}`;
                 itemDiv.innerHTML = `
                     <input class="form-check-input attribute-checkbox" 
@@ -5936,7 +6281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Removed duplicate event listener - already handled above
 
 
-    document.addEventListener('product:clearDrafts', clearVariantDraft);
+    $(document).on('product:clearDrafts', clearVariantDraft);
 
     function normalizeVariantImages(images) {
         if (!images) {
@@ -6076,13 +6421,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const variantsTableBody = document.getElementById('variantsTableBody');
         
         // Make sure table is visible
-        if (variantsTableContainer) {
-            variantsTableContainer.style.display = 'block';
+        const $variantsTableContainer = $('#variantsTableContainer');
+        if ($variantsTableContainer.length) {
+            $variantsTableContainer.css('display', 'block');
         }
         
         // Check if we need to create default variant
         const selectedIds = getSelectedAttributeIds();
-        const hasVariantsInTable = variantsTableBody && variantsTableBody.querySelectorAll('tr').length > 0;
+        const $variantsTableBody = $('#variantsTableBody');
+        const hasVariantsInTable = $variantsTableBody.length && $variantsTableBody.find('tr').length > 0;
         
         // Check generatedVariants from the scope
         let hasVariants = false;
@@ -6098,15 +6445,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // If no attributes selected and no variants, hide the table
         if (selectedIds.length === 0 && !hasVariants && !hasVariantsInTable) {
             if (variantsTableContainer) {
-                variantsTableContainer.style.display = 'none';
+                $variantsTableContainer.css('display', 'none');
             }
         }
     }, 1500);
 });
 </script>
 
-<style>
-/* Attribute Values Checkbox Styling */
+<style> 
 .attribute-values .form-check {
     margin-bottom: 0.5rem;
 }
@@ -6248,7 +6594,8 @@ window.variantColorPickers = {};
 
 function initializeVariantColorPicker(pickerId, buttonElement, hiddenInput, initialColor) {
     // Check if button element exists and is in the DOM
-    if (!buttonElement || !buttonElement.parentNode) {
+    const $buttonElement = $(buttonElement);
+    if (!$buttonElement.length || !$buttonElement.parent().length) {
         console.warn('Button element not in DOM yet, cannot initialize Pickr');
         return null;
     }
@@ -6263,12 +6610,14 @@ function initializeVariantColorPicker(pickerId, buttonElement, hiddenInput, init
     }
     
     // Set button background
-    buttonElement.style.backgroundColor = initialColor || '#000000';
-    buttonElement.style.width = '100%';
-    buttonElement.style.height = '38px';
-    buttonElement.style.border = '1px solid #ced4da';
-    buttonElement.style.borderRadius = '0.375rem';
-    buttonElement.style.cursor = 'pointer';
+    $buttonElement.css({
+        'backgroundColor': initialColor || '#000000',
+        'width': '100%',
+        'height': '38px',
+        'border': '1px solid #ced4da',
+        'borderRadius': '0.375rem',
+        'cursor': 'pointer'
+    });
     
     try {
         // Initialize Pickr
@@ -6304,10 +6653,11 @@ function initializeVariantColorPicker(pickerId, buttonElement, hiddenInput, init
         
         pickr.on('change', (color) => {
             const hexColor = color.toHEXA().toString();
-            if (hiddenInput) {
-                hiddenInput.value = hexColor;
+            const $hiddenInput = $(hiddenInput);
+            if ($hiddenInput.length) {
+                $hiddenInput.val(hexColor);
             }
-            buttonElement.style.backgroundColor = hexColor;
+            $buttonElement.css('backgroundColor', hexColor);
         });
         
         window.variantColorPickers[pickerId] = pickr;
@@ -6319,16 +6669,17 @@ function initializeVariantColorPicker(pickerId, buttonElement, hiddenInput, init
 }
 
 // Initialize Pickr for dynamically created color inputs
-document.addEventListener('DOMContentLoaded', function() {
+$(document).ready(function() {
     // Use event delegation for dynamically created color picker buttons
-    document.addEventListener('click', function(e) {
-        if (e.target && e.target.classList.contains('color-picker-btn') && !e.target.dataset.pickrInitialized) {
-            const colorInputId = e.target.dataset.colorInput;
-            const hiddenInput = document.getElementById(colorInputId);
-            if (hiddenInput && e.target.parentNode && !e.target.dataset.pickrInitialized) {
-                e.target.dataset.pickrInitialized = 'true';
-                const initialColor = hiddenInput.value || '#000000';
-                initializeVariantColorPicker(colorInputId, e.target, hiddenInput, initialColor);
+    $(document).on('click', '.color-picker-btn:not([data-pickr-initialized])', function(e) {
+        const $btn = $(this);
+        if (!$btn.data('pickrInitialized')) {
+            const colorInputId = $btn.data('colorInput');
+            const $hiddenInput = $('#' + colorInputId);
+            if ($hiddenInput.length && $btn.parent().length) {
+                $btn.data('pickrInitialized', 'true');
+                const initialColor = $hiddenInput.val() || '#000000';
+                initializeVariantColorPicker(colorInputId, $btn[0], $hiddenInput[0], initialColor);
             }
         }
     });
@@ -6338,16 +6689,18 @@ document.addEventListener('DOMContentLoaded', function() {
         mutations.forEach(function(mutation) {
             mutation.addedNodes.forEach(function(node) {
                 if (node.nodeType === 1) { // Element node
-                    const colorPickerBtns = node.querySelectorAll ? node.querySelectorAll('.color-picker-btn:not([data-pickr-initialized])') : [];
-                    colorPickerBtns.forEach(function(btn) {
+                    const $node = $(node);
+                    const $colorPickerBtns = $node.find('.color-picker-btn:not([data-pickr-initialized])');
+                    $colorPickerBtns.each(function() {
+                        const $btn = $(this);
                         // Only initialize if button is in DOM
-                        if (btn.parentNode) {
-                            const colorInputId = btn.dataset.colorInput;
-                            const hiddenInput = document.getElementById(colorInputId);
-                            if (hiddenInput) {
-                                btn.dataset.pickrInitialized = 'true';
-                                const initialColor = hiddenInput.value || '#000000';
-                                initializeVariantColorPicker(colorInputId, btn, hiddenInput, initialColor);
+                        if ($btn.parent().length) {
+                            const colorInputId = $btn.data('colorInput');
+                            const $hiddenInput = $('#' + colorInputId);
+                            if ($hiddenInput.length) {
+                                $btn.data('pickrInitialized', 'true');
+                                const initialColor = $hiddenInput.val() || '#000000';
+                                initializeVariantColorPicker(colorInputId, $btn[0], $hiddenInput[0], initialColor);
                             }
                         }
                     });
@@ -6364,31 +6717,33 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Final initialization: Ensure default variant is created and table is visible when no attributes selected
     setTimeout(function() {
-        const selectedIds = getSelectedAttributeIds();
-        const variantsTableBody = document.getElementById('variantsTableBody');
-        const variantsTableContainer = document.getElementById('variantsTableContainer');
-        const hasVariantsInTable = variantsTableBody && variantsTableBody.querySelectorAll('tr').length > 0;
-        
-        // Check if we have variants in the generatedVariants array (from the main scope)
-        let hasVariants = false;
-        try {
-            hasVariants = typeof generatedVariants !== 'undefined' && Array.isArray(generatedVariants) && generatedVariants.length > 0;
-        } catch(e) {
-            hasVariants = false;
-        }
-        
-        // Default variant creation removed per user request
-        // If no attributes selected and no variants, hide the table
-        if (selectedIds.length === 0 && !hasVariants && !hasVariantsInTable) {
-            if (variantsTableContainer) {
-                variantsTableContainer.style.display = 'none';
+        if (typeof getSelectedAttributeIds === 'function') {
+            const selectedIds = getSelectedAttributeIds();
+            const $variantsTableBody = $('#variantsTableBody');
+            const $variantsTableContainer = $('#variantsTableContainer');
+            const hasVariantsInTable = $variantsTableBody.length && $variantsTableBody.find('tr').length > 0;
+            
+            // Check if we have variants in the generatedVariants array (from the main scope)
+            let hasVariants = false;
+            try {
+                hasVariants = typeof generatedVariants !== 'undefined' && Array.isArray(generatedVariants) && generatedVariants.length > 0;
+            } catch(e) {
+                hasVariants = false;
             }
-        }
-        
-        // Ensure variants table is visible if we have variants or no attributes selected
-        if (variantsTableContainer) {
-            if (hasVariants || hasVariantsInTable || selectedIds.length === 0) {
-                variantsTableContainer.style.display = 'block';
+            
+            // Default variant creation removed per user request
+            // If no attributes selected and no variants, hide the table
+            if (selectedIds.length === 0 && !hasVariants && !hasVariantsInTable) {
+                if ($variantsTableContainer.length) {
+                    $variantsTableContainer.css('display', 'none');
+                }
+            }
+            
+            // Ensure variants table is visible if we have variants or no attributes selected
+            if ($variantsTableContainer.length) {
+                if (hasVariants || hasVariantsInTable || selectedIds.length === 0) {
+                    $variantsTableContainer.css('display', 'block');
+                }
             }
         }
     }, 1200);
@@ -6457,5 +6812,18 @@ const highlightsStyles = `
 </style>
 `;
 
-document.head.insertAdjacentHTML('beforeend', highlightsStyles);
+// Wait for jQuery to be available before using it
+(function() {
+    function appendStyles() {
+        if (typeof jQuery !== 'undefined' && typeof $ !== 'undefined') {
+            $(document).ready(function() {
+                $('head').append(highlightsStyles);
+            });
+        } else {
+            // Retry after a short delay if jQuery is not yet loaded
+            setTimeout(appendStyles, 50);
+        }
+    }
+    appendStyles();
+})();
 </script>

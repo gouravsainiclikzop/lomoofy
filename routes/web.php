@@ -154,6 +154,8 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::get('/products/search', [\App\Http\Controllers\ProductController::class, 'search'])->name('products.search');
     Route::get('/products/{product}', [\App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
     Route::get('/products/{product}/edit', [\App\Http\Controllers\ProductController::class, 'edit'])->name('products.edit');
+    Route::get('/products/{product}/variants', [\App\Http\Controllers\ProductController::class, 'manageVariants'])->name('products.variants');
+    Route::post('/products/{product}/variants/update', [\App\Http\Controllers\ProductController::class, 'updateVariants'])->name('products.variants.update');
     Route::post('/products/{product}/update', [\App\Http\Controllers\ProductController::class, 'update'])->name('products.update');
     Route::post('/products/{product}/delete', [\App\Http\Controllers\ProductController::class, 'destroy'])->name('products.destroy');
     Route::post('/products/bulk-delete', [\App\Http\Controllers\ProductController::class, 'bulkDelete'])->name('products.bulk-delete');

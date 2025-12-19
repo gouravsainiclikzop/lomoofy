@@ -121,7 +121,7 @@
 .card-header.py-2 {
     padding-top: 0.5rem !important;
     padding-bottom: 0.5rem !important;
-}
+}   
 
 .card-body.py-3 {
     padding-top: 0.75rem !important;

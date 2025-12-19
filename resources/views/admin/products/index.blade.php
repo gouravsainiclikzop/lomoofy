@@ -740,10 +740,15 @@ function initializeDataTable() {
                     if (type !== 'display') {
                         return isNaN(count) ? 0 : count;
                     }
+                    const variantUrl = `/products/${row.id}/variants`;
                     if (isNaN(count) || count === 0) {
-                        return '<span class="badge bg-secondary">No variants</span>';
+                        return `<a href="${variantUrl}" class="badge bg-secondary text-decoration-none">
+                            <i class="fas fa-layer-group me-1"></i>Add Variants
+                        </a>`;
                     }
-                    return `<span class="badge bg-primary">${count} ${count === 1 ? 'Variant' : 'Variants'}</span>`;
+                    return `<a href="${variantUrl}" class="badge bg-primary text-decoration-none">
+                        <i class="fas fa-layer-group me-1"></i>${count} ${count === 1 ? 'Variant' : 'Variants'}
+                    </a>`;
                 }
             },
             {

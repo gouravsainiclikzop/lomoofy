@@ -507,21 +507,25 @@ class ProductController extends Controller
                 $this->handleImageUploads($product, $request);
             }
 
-            // Always create variants - auto-generate default variant if none provided
-            $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
-            $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
+            // Variants are now managed on a separate page
+            // Only create a default variant if none provided (can be managed later on variants page)
+            if ($request->has('variants') && !empty($request->input('variants'))) {
+                $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
+                $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
 
-            Log::info('ProductController@store - Filtered variant payload', [
-                'product_id' => $product->id,
-                'variants' => $this->sanitizeVariantsForLog($variantsPayload),
-            ]);
+                Log::info('ProductController@store - Filtered variant payload', [
+                    'product_id' => $product->id,
+                    'variants' => $this->sanitizeVariantsForLog($variantsPayload),
+                ]);
 
-            // If no variants provided, create a default variant
-            if (empty($variantsPayload)) {
-                $variantsPayload = [$this->buildDefaultVariantPayload($request, $product)];
+                if (!empty($variantsPayload)) {
+                    $this->synchronizeVariants($product, $variantsPayload);
+                }
+            } else {
+                // Create a default variant for new products (can be managed later on variants page)
+                $defaultVariant = $this->buildDefaultVariantPayload($request, $product);
+                $this->synchronizeVariants($product, [$defaultVariant]);
             }
-
-            $this->synchronizeVariants($product, $variantsPayload);
 
             // Handle static attributes
             $this->synchronizeStaticAttributes($product, $request);
@@ -659,6 +663,78 @@ class ProductController extends Controller
             'product', 
             'otherBrandId'
         ));
+    }
+
+    /**
+     * Show the variant management page for a product.
+     */
+    public function manageVariants(Product $product)
+    {
+        $otherBrand = $this->ensureOtherBrand();
+        $attributes = ProductAttribute::visible()->ordered()->get();
+        $units = Unit::active()->ordered()->get();
+        
+        $product->load(['images', 'category.parent', 'variants.images', 'brands', 'unit', 'defaultWarehouse']);
+
+        return view('admin.products.manage-variants', compact(
+            'product',
+            'attributes',
+            'units',
+            'otherBrand'
+        ));
+    }
+
+    /**
+     * Update variants for a product (from variant management page).
+     */
+    public function updateVariants(Request $request, Product $product)
+    {
+        $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
+        $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
+
+        Log::info('ProductController@updateVariants - Filtered variant payload', [
+            'product_id' => $product->id,
+            'variants' => $this->sanitizeVariantsForLog($variantsPayload),
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            if (!empty($variantsPayload)) {
+                $this->synchronizeVariants($product, $variantsPayload);
+            }
+
+            // Handle static attributes if provided
+            if ($request->has('static_attributes')) {
+                $this->synchronizeStaticAttributes($product, $request);
+            }
+
+            $product->load(['variants.images', 'category.parent']);
+            
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Variants updated successfully',
+                'product' => $product->load(['images', 'category.parent', 'variants']),
+                'redirect_url' => route('products.variants', $product)
+            ]);
+
+        } catch (QueryException $e) {
+            DB::rollBack();
+            Log::error('Error updating variants: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating variants: ' . $e->getMessage()
+            ], 500);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating variants: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating variants: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -897,22 +973,20 @@ class ProductController extends Controller
                 $this->applyPrimaryImageSelection($product, $primaryImageIndex);
             }
 
-            // Always use variant payload - auto-generate default variant if none provided
-            $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
-            $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
+            // Variants are now managed on a separate page, so we don't process them here
+            // Only process variants if they are explicitly provided (for backward compatibility)
+            if ($request->has('variants') && !empty($request->input('variants'))) {
+                $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
+                $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
 
-            Log::info('ProductController@update - Filtered variant payload', [
-                'product_id' => $product->id,
-                'variants' => $this->sanitizeVariantsForLog($variantsPayload),
-            ]);
+                Log::info('ProductController@update - Filtered variant payload', [
+                    'product_id' => $product->id,
+                    'variants' => $this->sanitizeVariantsForLog($variantsPayload),
+                ]);
 
-            // If no variants provided and no existing variants, create a default variant
-            if (empty($variantsPayload) && $product->variants()->count() === 0) {
-                $variantsPayload = [$this->buildDefaultVariantPayload($request, $product)];
-            }
-
-            if (!empty($variantsPayload)) {
-                $this->synchronizeVariants($product, $variantsPayload);
+                if (!empty($variantsPayload)) {
+                    $this->synchronizeVariants($product, $variantsPayload);
+                }
             }
 
             // Handle static attributes
@@ -947,7 +1021,8 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Product updated successfully',
-                'product' => $product->load(['images', 'category.parent', 'variants'])
+                'product' => $product->load(['images', 'category.parent', 'variants']),
+                'redirect_url' => route('products.index')
             ]);
 
         } catch (QueryException $e) {
