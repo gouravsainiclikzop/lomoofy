@@ -10,6 +10,7 @@ use App\Http\Controllers\FrontendController;
 //assets for this are located in "public/frontend/"
 Route::get('/', [FrontendController::class, 'index'])->name('frontend.index');
 Route::get('/shop', [FrontendController::class, 'shop'])->name('frontend.shop');
+Route::get('/shop/load-more', [FrontendController::class, 'loadMoreProducts'])->name('frontend.shop.load-more');
 Route::get('/product', [FrontendController::class, 'product'])->name('frontend.product');
 Route::get('/api/product-quick-view', [FrontendController::class, 'getProductQuickView'])->name('frontend.product.quickview');
 Route::get('/about-us', [FrontendController::class, 'aboutUs'])->name('frontend.about-us');
@@ -26,7 +27,10 @@ Route::get('/checkout', [FrontendController::class, 'checkout'])->name('frontend
 Route::get('/complete-order', [FrontendController::class, 'completeOrder'])->name('frontend.complete-order'); 
  
 
-Route::get('/admin', [AuthController::class, 'showLogin'])->name('admin.login'); 
+Route::get('/admin', [AuthController::class, 'showLogin'])->name('admin.login');
+Route::get('/login', function() {
+    return redirect()->route('admin.login');
+})->name('login');
 Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.post'); 
 
 // Protected Dashboard Routes (require authentication)
@@ -54,15 +58,28 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/data', [\App\Http\Controllers\CategoryController::class, 'getData'])->name('categories.data');
     Route::get('/categories/parents', [\App\Http\Controllers\CategoryController::class, 'getParents'])->name('categories.parents');
+    Route::get('/categories/children', [\App\Http\Controllers\CategoryController::class, 'getChildren'])->name('categories.children');
     Route::get('/categories/attributes', [\App\Http\Controllers\CategoryController::class, 'getAvailableAttributes'])->name('categories.attributes');
     Route::get('/categories/edit', [\App\Http\Controllers\CategoryController::class, 'edit'])->name('categories.edit');
     Route::post('/categories/store', [\App\Http\Controllers\CategoryController::class, 'store'])->name('categories.store');
+    Route::post('/categories/bulk-store', [\App\Http\Controllers\CategoryController::class, 'bulkStore'])->name('categories.bulk-store');
     Route::post('/categories/update', [\App\Http\Controllers\CategoryController::class, 'update'])->name('categories.update');
+    Route::post('/categories/bulk-update', [\App\Http\Controllers\CategoryController::class, 'bulkUpdate'])->name('categories.bulk-update');
+    Route::post('/categories/bulk-sync', [\App\Http\Controllers\CategoryController::class, 'bulkSync'])->name('categories.bulk-sync');
     Route::post('/categories/delete', [\App\Http\Controllers\CategoryController::class, 'delete'])->name('categories.delete');
     Route::post('/categories/restore', [\App\Http\Controllers\CategoryController::class, 'restore'])->name('categories.restore');
     Route::post('/categories/bulk-delete', [\App\Http\Controllers\CategoryController::class, 'bulkDelete'])->name('categories.bulk-delete');
     Route::post('/categories/update-status', [\App\Http\Controllers\CategoryController::class, 'updateStatus'])->name('categories.updateStatus');
     Route::post('/categories/update-parent', [\App\Http\Controllers\CategoryController::class, 'updateParent'])->name('categories.updateParent');
+    
+    // Our Collections Management
+    Route::get('/our-collections', [\App\Http\Controllers\OurCollectionController::class, 'index'])->name('our-collections.index');
+    Route::get('/our-collections/data', [\App\Http\Controllers\OurCollectionController::class, 'getData'])->name('our-collections.data');
+    Route::post('/our-collections/update-sort-order', [\App\Http\Controllers\OurCollectionController::class, 'updateSortOrder'])->name('our-collections.update-sort-order');
+    Route::get('/our-collections/{id}', [\App\Http\Controllers\OurCollectionController::class, 'show'])->name('our-collections.show');
+    Route::post('/our-collections', [\App\Http\Controllers\OurCollectionController::class, 'store'])->name('our-collections.store');
+    Route::match(['post', 'put'], '/our-collections/{id}', [\App\Http\Controllers\OurCollectionController::class, 'update'])->name('our-collections.update');
+    Route::delete('/our-collections/{id}', [\App\Http\Controllers\OurCollectionController::class, 'destroy'])->name('our-collections.destroy');
     
     // Profile (GET and POST only)
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');

@@ -346,4 +346,47 @@ class Category extends Model
     {
         return $this->getDepth() < 3; 
     }
+
+    /**
+     * Get the full path name with parent categories separated by " > ".
+     * Example: "Parent Category > Child Category > Subcategory"
+     * 
+     * @return string
+     */
+    public function getFullPathName()
+    {
+        $path = [];
+        $current = $this;
+        $maxDepth = 50; // Prevent infinite loops
+        $depth = 0;
+        
+        // Build path from current category up to root
+        while ($current && $depth < $maxDepth) {
+            array_unshift($path, $current->name);
+            $current = $current->parent;
+            $depth++;
+        }
+        
+        return implode(' > ', $path);
+    }
+
+    /**
+     * Get the root (top-level) parent category.
+     * Returns the category itself if it's already a root category.
+     * 
+     * @return Category|null
+     */
+    public function getRootCategory()
+    {
+        $current = $this;
+        $maxDepth = 50; // Prevent infinite loops
+        $depth = 0;
+        
+        while ($current && $current->parent_id && $depth < $maxDepth) {
+            $current = $current->parent;
+            $depth++;
+        }
+        
+        return $current;
+    }
 }

@@ -39,6 +39,8 @@ class ProductVariant extends Model
         'diameter',
         'measurements',
         'highlights_details', // Variant highlights & details
+        'description', // Detailed description for variant
+        'additional_information', // Additional information for variant
         
         // Variant Images
         'image', // Legacy single image field

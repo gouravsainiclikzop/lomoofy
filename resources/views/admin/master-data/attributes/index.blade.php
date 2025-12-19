@@ -999,8 +999,8 @@ function addAttributeValue() {
             if (type === 'color' && colorControl) {
                 colorControl.value = '#000000';
             }
-            manageAttributeValues(currentAttributeId); // Reload values
-            updateAttributeTableCount(currentAttributeId); // Update main table count
+            // Reload values and update table count (single fetch instead of two)
+            reloadAttributeValuesAndUpdateCount();
         } else {
             showToast('error', result.message || 'Failed to add attribute value');
         }
@@ -1011,51 +1011,69 @@ function addAttributeValue() {
     });
 }
 
+// Debounce timer for updateAttributeValue
+const updateAttributeValueTimers = {};
+
 function updateAttributeValue(valueId, field, value) {
-    // Get the current value from the input field to avoid validation errors
-    const valueCard = document.querySelector('[data-value-id="' + valueId + '"]');
-    const currentValueInput = valueCard ? valueCard.querySelector('[data-value-input]') : null;
-    const currentValue = currentValueInput ? currentValueInput.value : '';
-
-    const updateData = {};
-    if (field === 'color_code') {
-        updateData.color_code = value;
-    } else if (field === 'sort_order') {
-        updateData.sort_order = value;
-    } else {
-        updateData.value = value;
+    // Debounce updates to prevent multiple rapid calls
+    const timerKey = valueId + '_' + field;
+    
+    // Clear existing timer for this value+field combination
+    if (updateAttributeValueTimers[timerKey]) {
+        clearTimeout(updateAttributeValueTimers[timerKey]);
     }
+    
+    // Set new timer - wait 500ms before actually updating
+    updateAttributeValueTimers[timerKey] = setTimeout(function() {
+        // Get the current value from the input field to avoid validation errors
+        const valueCard = document.querySelector('[data-value-id="' + valueId + '"]');
+        const currentValueInput = valueCard ? valueCard.querySelector('[data-value-input]') : null;
+        const currentValue = currentValueInput ? currentValueInput.value : '';
 
-    // Always include the current value to prevent validation errors
-    if (field !== 'value') {
-        updateData.value = currentValue;
-    }
-
-    fetch(ATTRIBUTES_BASE_URL + '/values/' + valueId + '/update', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify(updateData)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            showToast('success', 'Value updated successfully');
-            // Get the attribute ID from the value card to update the table count
-            const valueCard = document.querySelector('[data-value-id="' + valueId + '"]');
-            if (valueCard && currentAttributeId) {
-                updateAttributeTableCount(currentAttributeId);
-            }
+        const updateData = {};
+        if (field === 'color_code') {
+            updateData.color_code = value;
+        } else if (field === 'sort_order') {
+            updateData.sort_order = value;
         } else {
-            showToast('error', result.message || 'Failed to update value');
+            updateData.value = value;
         }
-    })
-    .catch(error => {
-        console.error('Error updating attribute value:', error);
-        showToast('error', 'Failed to update value');
-    });
+
+        // Always include the current value to prevent validation errors
+        if (field !== 'value') {
+            updateData.value = currentValue;
+        }
+
+        fetch(ATTRIBUTES_BASE_URL + '/values/' + valueId + '/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify(updateData)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Only show toast for non-debounced updates (like save event)
+                // For debounced updates (change event), we skip the toast to avoid spam
+                if (field !== 'color_code') {
+                    showToast('success', 'Value updated successfully');
+                }
+                // Get the attribute ID from the value card to update the table count
+                const valueCard = document.querySelector('[data-value-id="' + valueId + '"]');
+                if (valueCard && currentAttributeId) {
+                    updateAttributeTableCount(currentAttributeId);
+                }
+            } else {
+                showToast('error', result.message || 'Failed to update value');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating attribute value:', error);
+            showToast('error', 'Failed to update value');
+        });
+    }, 500); // 500ms debounce delay
 }
 
 function deleteAttributeValue(valueId) {
@@ -1071,8 +1089,9 @@ function deleteAttributeValue(valueId) {
         .then(result => {
             if (result.success) {
                 showToast('success', result.message);
-                manageAttributeValues(currentAttributeId); // Reload values
-                updateAttributeTableCount(currentAttributeId); // Update main table count
+                // Reload values - manageAttributeValues will fetch the updated attribute
+                // We'll update the table count from that response to avoid duplicate fetch
+                reloadAttributeValuesAndUpdateCount();
             } else {
                 showToast('error', result.message || 'Failed to delete value');
             }
@@ -1084,28 +1103,68 @@ function deleteAttributeValue(valueId) {
     }
 }
 
-function updateAttributeTableCount(attributeId) {
-    // Fetch the updated attribute data to get the new value count
-    fetch(ATTRIBUTES_BASE_URL + '/' + attributeId)
+// Helper function to reload values and update table count without duplicate fetch
+function reloadAttributeValuesAndUpdateCount() {
+    if (!currentAttributeId) return;
+    
+    // Single fetch that updates both the values modal and the table count
+    fetch(ATTRIBUTES_BASE_URL + '/' + currentAttributeId)
         .then(response => response.json())
         .then(attribute => {
-            // Find the table row for this attribute
-            const tableRow = document.querySelector(`tr[data-attribute-id="${attributeId}"]`);
+            // Update values in modal
+            currentAttributeType = attribute.type ? attribute.type : 'text';
+            loadAttributeValues(Array.isArray(attribute.values) ? attribute.values : []);
+            
+            // Update table count (no additional fetch needed)
+            const tableRow = document.querySelector(`tr[data-attribute-id="${currentAttributeId}"]`);
             if (tableRow) {
-                // Find the Values column by looking for the badge with "values" text
                 const valuesCell = Array.from(tableRow.querySelectorAll('td')).find(td => {
                     return td.textContent.includes('values');
                 });
                 if (valuesCell) {
-                    // Update the badge with the new count
                     const count = Array.isArray(attribute.values) ? attribute.values.length : 0;
                     valuesCell.innerHTML = `<span class="badge bg-secondary">${count} values</span>`;
                 }
             }
         })
         .catch(error => {
-            console.error('Error updating attribute table count:', error);
+            console.error('Error reloading attribute values:', error);
+            showToast('error', 'Failed to reload attribute values');
         });
+}
+
+// Debounce timer for updateAttributeTableCount
+const updateAttributeTableCountTimer = {};
+
+function updateAttributeTableCount(attributeId) {
+    // Debounce to prevent multiple rapid calls
+    if (updateAttributeTableCountTimer[attributeId]) {
+        clearTimeout(updateAttributeTableCountTimer[attributeId]);
+    }
+    
+    updateAttributeTableCountTimer[attributeId] = setTimeout(function() {
+        // Fetch the updated attribute data to get the new value count
+        fetch(ATTRIBUTES_BASE_URL + '/' + attributeId)
+            .then(response => response.json())
+            .then(attribute => {
+                // Find the table row for this attribute
+                const tableRow = document.querySelector(`tr[data-attribute-id="${attributeId}"]`);
+                if (tableRow) {
+                    // Find the Values column by looking for the badge with "values" text
+                    const valuesCell = Array.from(tableRow.querySelectorAll('td')).find(td => {
+                        return td.textContent.includes('values');
+                    });
+                    if (valuesCell) {
+                        // Update the badge with the new count
+                        const count = Array.isArray(attribute.values) ? attribute.values.length : 0;
+                        valuesCell.innerHTML = `<span class="badge bg-secondary">${count} values</span>`;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error updating attribute table count:', error);
+            });
+    }, 300); // 300ms debounce delay
 }
 
 function exportAttributes() {
@@ -1138,7 +1197,113 @@ function showToast(type, message) {
         toast.remove();
     }, 3000);
 }
+
+// Color Picker Initialization
+window.colorPickers = {};
+
+function initializeColorPicker(buttonElement, hiddenInput, initialColor, onChangeCallback) {
+    // Check if button element exists and is in the DOM
+    if (!buttonElement || !buttonElement.parentNode) {
+        console.warn('Button element not in DOM yet, cannot initialize Pickr');
+        return null;
+    }
+    
+    const pickerId = hiddenInput ? hiddenInput.id : 'picker_' + Date.now();
+    
+    // Destroy existing picker if any
+    if (window.colorPickers[pickerId]) {
+        try {
+            window.colorPickers[pickerId].destroy();
+        } catch(e) {
+            console.warn('Error destroying existing picker:', e);
+        }
+    }
+    
+    // Set button background
+    const normalizedColor = normalizeColorValue(initialColor || '#000000');
+    buttonElement.style.backgroundColor = normalizedColor;
+    buttonElement.style.width = '100%';
+    buttonElement.style.height = '38px';
+    buttonElement.style.border = '1px solid #ced4da';
+    buttonElement.style.borderRadius = '0.375rem';
+    buttonElement.style.cursor = 'pointer';
+    
+    try {
+        // Check if Pickr is available
+        if (typeof Pickr === 'undefined') {
+            console.error('Pickr library is not loaded. Please include Pickr CSS and JS files.');
+            return null;
+        }
+        
+        // Initialize Pickr
+        const pickr = Pickr.create({
+            el: buttonElement,
+            theme: 'classic',
+            default: normalizedColor,
+            swatches: [
+                'rgba(244, 67, 54, 1)', 'rgba(233, 30, 99, 1)', 'rgba(156, 39, 176, 1)',
+                'rgba(103, 58, 183, 1)', 'rgba(63, 81, 181, 1)', 'rgba(33, 150, 243, 1)',
+                'rgba(3, 169, 244, 1)', 'rgba(0, 188, 212, 1)', 'rgba(0, 150, 136, 1)',
+                'rgba(76, 175, 80, 1)', 'rgba(139, 195, 74, 1)', 'rgba(205, 220, 57, 1)',
+                'rgba(255, 235, 59, 1)', 'rgba(255, 193, 7, 1)', 'rgba(255, 152, 0, 1)',
+                'rgba(255, 87, 34, 1)', 'rgba(121, 85, 72, 1)', 'rgba(158, 158, 158, 1)',
+                'rgba(96, 125, 139, 1)', 'rgba(0, 0, 0, 1)', 'rgba(255, 255, 255, 1)'
+            ],
+            components: {
+                preview: true,
+                opacity: true,
+                hue: true,
+                interaction: {
+                    hex: true,
+                    rgba: true,
+                    hsla: true,
+                    hsva: true,
+                    cmyk: true,
+                    input: true,
+                    clear: true,
+                    save: true
+                }
+            }
+        });
+        
+        // Update UI immediately on change (for visual feedback)
+        pickr.on('change', (color) => {
+            const hexColor = color.toHEXA().toString();
+            if (hiddenInput) {
+                hiddenInput.value = hexColor;
+            }
+            buttonElement.style.backgroundColor = hexColor;
+        });
+        
+        // Only call the callback on 'save' event (when user confirms selection)
+        pickr.on('save', (color) => {
+            const hexColor = color.toHEXA().toString();
+            if (hiddenInput) {
+                hiddenInput.value = hexColor;
+            }
+            buttonElement.style.backgroundColor = hexColor;
+            
+            // Call onChange callback if provided (this will trigger update with debounce)
+            if (typeof onChangeCallback === 'function') {
+                onChangeCallback(hexColor);
+            }
+            
+            // Hide the picker after save
+            pickr.hide();
+        });
+        
+        window.colorPickers[pickerId] = pickr;
+        return pickr;
+    } catch(error) {
+        console.error('Error initializing Pickr:', error);
+        return null;
+    }
+}
 </script>
+
+<!-- Include Pickr Color Picker -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
 
 <!-- Include SortableJS -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>

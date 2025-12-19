@@ -1,3 +1,8 @@
+{{-- RichTextEditor for variant description and additional information --}}
+<link rel="stylesheet" href="{{ asset('frontend/js/richtexteditor/rte_theme_default.css') }}" />
+<script type="text/javascript" src="{{ asset('frontend/js/richtexteditor/rte.js') }}"></script>
+<script type="text/javascript" src="{{ asset('frontend/js/richtexteditor/lang/rte-lang-en.js') }}"></script>
+
 @php
     $measurementAttributes = isset($attributes)
         ? collect($attributes)->filter(function ($attribute) {
@@ -406,7 +411,7 @@
                                 </div>
                             </div>
                             <div id="variantMeasurementRows" class="measurement-rows-container"></div>
-                            <small id="measurementHelpText" class="text-muted d-block mt-2">Select measurement attributes, choose appropriate units, and provide the values for this variant. Units are loaded from the <a href="{{ route('units.index') }}" target="_blank">Units module</a>.</small>
+                            <small id="measurementHelpText" class="text-muted d-block mt-2">Enter measurement attribute names, choose appropriate units, and provide the values for this variant. Units are loaded from the <a href="{{ route('units.index') }}" target="_blank">Units module</a>.</small>
                         </div>
                         
                         <div class="col-12">
@@ -436,6 +441,28 @@
                             <small class="text-muted d-block mt-2">
                                 <i class="fas fa-info-circle me-1"></i>
                                 Add structured information with headings and bullet points. Previously used headings will appear as suggestions.
+                            </small>
+                        </div>
+                        
+                        {{-- Detailed Description Section --}}
+                        <div class="col-12">
+                            <hr>
+                            <label class="form-label form-label-sm d-block mb-2">Detailed Description</label>
+                            <textarea class="form-control" id="variantDescription" name="variant_description" placeholder="Detailed description for this variant..."></textarea>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Provide a detailed description specific to this variant.
+                            </small>
+                        </div>
+                        
+                        {{-- Additional Information Section --}}
+                        <div class="col-12">
+                            <hr>
+                            <label class="form-label form-label-sm d-block mb-2">Additional Information</label>
+                            <textarea class="form-control" id="variantAdditionalInfo" name="variant_additional_information" placeholder="Additional information for this variant..."></textarea>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Add any additional information specific to this variant.
                             </small>
                         </div>
                     </div>
@@ -475,6 +502,8 @@
                 'low_stock_threshold' => $variant->low_stock_threshold ?? 0,
                 'measurements' => $variant->measurements ?? [],
                 'highlights_details' => $variant->highlights_details ?? [],
+                'description' => $variant->description ?? null,
+                'additional_information' => $variant->additional_information ?? null,
                 'images' => $variant->images->map(function ($image) {
                     return [
                         'id' => $image->id,
@@ -893,6 +922,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             selectedAttributeIds = newSelectedIds;
             
+            // Clear cache for selected attributes to force fresh load from database
+            // This ensures we always get the latest values from the server
+            newSelectedIds.forEach(attrId => {
+                const attrKey = String(attrId);
+                // Clear cache for this attribute to get latest values
+                if (attributeValuesCache.has(attrKey)) {
+                    attributeValuesCache.delete(attrKey);
+                }
+                // Also clear any pending promises
+                if (attributeValuesPromises.has(attrKey)) {
+                    attributeValuesPromises.delete(attrKey);
+                }
+            });
+            
             console.log('Selected attribute IDs (from checkbox handler):', selectedAttributeIds);
             console.log('About to call updateAttributeValuesConfig...');
             updateAttributeValuesConfig();
@@ -1231,38 +1274,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const hasAttributes = measurementAttributes.length > 0;
         const hasUnits = unitsData.length > 0;
         const rowCount = measurementRowsContainer.querySelectorAll('.measurement-row').length;
         const measurementHelpText = document.getElementById('measurementHelpText');
 
-        console.log('updateMeasurementEmptyState:', {
-            hasAttributes,
-            hasUnits,
-            rowCount,
-            measurementAttributesCount: measurementAttributes.length,
-            unitsDataCount: unitsData.length
-        });
-
-        // If no attributes, show message but keep button enabled (will load on click)
-        if (!hasAttributes) {
-            measurementEmptyState.classList.remove('d-none');
-            const linkHtml = "{{ route('attributes.index') }}" && "{{ route('attributes.index') }}" !== '#'
-                ? `<a href="{{ route('attributes.index') }}" target="_blank">Create a numeric attribute</a>`
-                : 'Create a numeric attribute';
-            measurementEmptyState.innerHTML = `<div class="d-flex align-items-center"><span data-feather="info" class="text-primary me-2"></span><span>No measurement attributes configured. ${linkHtml} to capture variant measurements, or click "Add Measurement" to load existing numeric attributes.</span></div>`;
-            refreshFeatherIcons();
-            if (addMeasurementRowBtn) {
-                addMeasurementRowBtn.disabled = false; // Keep button enabled
-            }
-            // Show help text to guide user
-            if (measurementHelpText) {
-                measurementHelpText.classList.remove('d-none');
-            }
-            return;
-        }
-
-        // If attributes exist but no units, show message but enable button (units will load on click)
+        // If no units, show message but enable button (units will load on click)
         if (!hasUnits) {
             measurementEmptyState.classList.remove('d-none');
             const unitsLinkHtml = "{{ route('units.index') }}" && "{{ route('units.index') }}" !== '#'
@@ -1274,14 +1290,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (addMeasurementRowBtn) {
                 addMeasurementRowBtn.disabled = false;
             }
-            // Show help text when attributes exist
+            // Show help text
             if (measurementHelpText) {
                 measurementHelpText.classList.remove('d-none');
             }
             return;
         }
 
-        // Both attributes and units exist
+        // Units exist, enable button
         if (addMeasurementRowBtn) {
             addMeasurementRowBtn.disabled = false;
         }
@@ -1309,12 +1325,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         measurementRowCounter += 1;
-        const attributeOptions = ['<option value="">Select attribute</option>'];
-        measurementAttributes.forEach(attribute => {
-            const selected = measurement.attribute_id && String(attribute.id) === String(measurement.attribute_id) ? 'selected' : '';
-            const description = attribute.description ? ` (${attribute.description})` : '';
-            attributeOptions.push(`<option value="${attribute.id}" ${selected}>${escapeHtml(attribute.name)}${escapeHtml(description)}</option>`);
-        });
+        const attributeValue = measurement.attribute_name || '';
 
         const row = document.createElement('div');
         row.className = 'measurement-row border rounded p-3 mb-2 bg-body-tertiary';
@@ -1323,9 +1334,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label">Attribute <span class="text-danger">*</span></label>
-                    <select class="form-select measurement-attribute">
-                        ${attributeOptions.join('')}
-                    </select>
+                    <input type="text" class="form-control measurement-attribute" placeholder="Enter attribute name" value="${escapeHtml(attributeValue)}">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Unit</label>
@@ -1354,15 +1363,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const unitSelect = row.querySelector('.measurement-unit');
-        if (unitSelect) {
-            if (measurement.unit_id && unitsMap[String(measurement.unit_id)]) {
-                unitSelect.value = String(measurement.unit_id);
-            } else {
-                const defaultUnit = findDefaultUnitForType(getDefaultUnitTypeForAttribute(measurement.attribute_id));
-                if (defaultUnit) {
-                    unitSelect.value = String(defaultUnit.id);
-                }
-            }
+        if (unitSelect && measurement.unit_id && unitsMap[String(measurement.unit_id)]) {
+            unitSelect.value = String(measurement.unit_id);
         }
 
         measurementRowsContainer.appendChild(row);
@@ -1376,11 +1378,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         measurementRowsContainer.innerHTML = '';
-
-        if (!measurementAttributes.length) {
-            updateMeasurementEmptyState();
-            return;
-        }
 
         // Load units if not already loaded
         if (!unitsLoaded && !unitsLoading) {
@@ -1436,16 +1433,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const measurements = [];
 
         rows.forEach(row => {
-            const attributeSelect = row.querySelector('.measurement-attribute');
+            const attributeInput = row.querySelector('.measurement-attribute');
             const unitSelect = row.querySelector('.measurement-unit');
             const valueInput = row.querySelector('.measurement-value');
 
-            if (!attributeSelect || !valueInput) {
+            if (!attributeInput || !valueInput) {
                 return;
             }
 
-            const attributeId = attributeSelect.value ? parseInt(attributeSelect.value, 10) : null;
-            if (!attributeId || !measurementAttributeMap[String(attributeId)]) {
+            const attributeName = (attributeInput.value || '').trim();
+            if (!attributeName) {
                 return;
             }
 
@@ -1459,14 +1456,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const attribute = measurementAttributeMap[String(attributeId)];
             const unitId = unitSelect && unitSelect.value ? parseInt(unitSelect.value, 10) : null;
             const unit = unitId ? unitsMap[String(unitId)] : null;
 
             measurements.push({
-                attribute_id: attributeId,
-                attribute_name: attribute.name,
-                attribute_slug: attribute.slug,
+                attribute_id: null,
+                attribute_name: attributeName,
+                attribute_slug: null,
                 value: numericValue,
                 unit_id: unitId,
                 unit_name: unit ? unit.name : null,
@@ -1722,46 +1718,145 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (addMeasurementRowBtn) {
         addMeasurementRowBtn.addEventListener('click', function() {
-            // Always load attributes first (if not already loaded), then units, then create row
-            loadNumericAttributes(function() {
-                // Load units if not already loaded
-                if (!unitsLoaded && !unitsLoading) {
-                    loadUnitsFromModule(function() {
-                        if (unitsData.length > 0 && measurementAttributes.length > 0) {
-                            createMeasurementRow();
-                        } else if (measurementAttributes.length === 0) {
-                            showToast('info', 'No numeric attributes found. Please create numeric attributes first.');
-                            updateMeasurementEmptyState();
-                        } else {
-                            showToast('info', 'No units found. Please add units first.');
-                            updateMeasurementEmptyState();
-                        }
-                    });
-                } else if (unitsLoaded && unitsData.length > 0) {
-                    if (measurementAttributes.length > 0) {
+            // Load units if not already loaded, then create row
+            if (!unitsLoaded && !unitsLoading) {
+                loadUnitsFromModule(function() {
+                    if (unitsData.length > 0) {
                         createMeasurementRow();
+                        updateMeasurementEmptyState();
                     } else {
-                        showToast('info', 'No numeric attributes found. Please create numeric attributes first.');
+                        showToast('info', 'No units found. Please add units first.');
                         updateMeasurementEmptyState();
                     }
-                } else {
-                    // Units not loaded or empty
-                    loadUnitsFromModule(function() {
-                        if (unitsData.length > 0 && measurementAttributes.length > 0) {
-                            createMeasurementRow();
-                        } else {
-                            updateMeasurementEmptyState();
-                        }
-                    });
-                }
-            });
+                });
+            } else if (unitsLoaded && unitsData.length > 0) {
+                // Units already loaded, create row directly
+                createMeasurementRow();
+                updateMeasurementEmptyState();
+            } else {
+                // Units not loaded or empty, try to load them
+                loadUnitsFromModule(function() {
+                    if (unitsData.length > 0) {
+                        createMeasurementRow();
+                        updateMeasurementEmptyState();
+                    } else {
+                        showToast('info', 'No units found. Please add units first.');
+                        updateMeasurementEmptyState();
+                    }
+                });
+            }
         });
     }
 
+    // Initialize RichTextEditor for variant description and additional information
+    let variantDescriptionEditor = null;
+    let variantAdditionalInfoEditor = null;
+    
+    // Function to initialize richtexteditors
+    function initializeVariantRichTextEditors() {
+        // Configure RichTextEditor
+        if (typeof RTE_DefaultConfig !== 'undefined') {
+            RTE_DefaultConfig.url_base = "{{ asset('frontend/js/richtexteditor') }}";
+            RTE_DefaultConfig.toolbar = "full"; // Use full toolbar with all options
+            RTE_DefaultConfig.editorResizeMode = "both"; // Allow both width and height resize
+            RTE_DefaultConfig.showTagList = true; // Show tag list
+            RTE_DefaultConfig.showStatistics = true; // Show statistics
+            RTE_DefaultConfig.showPlusButton = true; // Show plus button
+            RTE_DefaultConfig.showFloatTextToolBar = true; // Show float text toolbar
+            RTE_DefaultConfig.showFloatLinkToolBar = true; // Show float link toolbar
+            RTE_DefaultConfig.showFloatImageToolBbar = true; // Show float image toolbar
+            RTE_DefaultConfig.showFloatTableToolBar = true; // Show float table toolbar
+            RTE_DefaultConfig.showFloatParagraph = true; // Show float paragraph
+            RTE_DefaultConfig.enableDragDrop = true; // Enable drag and drop
+            RTE_DefaultConfig.enableObjectResizing = true; // Enable object resizing
+            RTE_DefaultConfig.toggleBorder = true; // Enable toggle border
+        }
+        
+        // Destroy existing editors if they exist
+        if (variantDescriptionEditor && typeof variantDescriptionEditor.destroy === 'function') {
+            try {
+                variantDescriptionEditor.destroy();
+            } catch (e) {
+                console.log('Error destroying description editor:', e);
+            }
+        }
+        if (variantAdditionalInfoEditor && typeof variantAdditionalInfoEditor.destroy === 'function') {
+            try {
+                variantAdditionalInfoEditor.destroy();
+            } catch (e) {
+                console.log('Error destroying additional info editor:', e);
+            }
+        }
+        
+        // Initialize Description Editor
+        const descriptionTextarea = document.getElementById('variantDescription');
+        if (descriptionTextarea && typeof RichTextEditor !== 'undefined') {
+            try {
+                variantDescriptionEditor = new RichTextEditor(descriptionTextarea);
+                window.variantDescriptionEditor = variantDescriptionEditor;
+                
+                // Update textarea on change
+                variantDescriptionEditor.attachEvent("textchanged", function() {
+                    descriptionTextarea.value = variantDescriptionEditor.getHTMLCode();
+                });
+            } catch (e) {
+                console.error('Error initializing variant description editor:', e);
+            }
+        }
+        
+        // Initialize Additional Information Editor
+        const additionalInfoTextarea = document.getElementById('variantAdditionalInfo');
+        if (additionalInfoTextarea && typeof RichTextEditor !== 'undefined') {
+            try {
+                variantAdditionalInfoEditor = new RichTextEditor(additionalInfoTextarea);
+                window.variantAdditionalInfoEditor = variantAdditionalInfoEditor;
+                
+                // Update textarea on change
+                variantAdditionalInfoEditor.attachEvent("textchanged", function() {
+                    additionalInfoTextarea.value = variantAdditionalInfoEditor.getHTMLCode();
+                });
+            } catch (e) {
+                console.error('Error initializing variant additional info editor:', e);
+            }
+        }
+    }
+    
+    // Initialize editors when modal is shown
     if (variantEditModalElement) {
+        variantEditModalElement.addEventListener('shown.bs.modal', function() {
+            // Wait a bit to ensure modal is fully rendered
+            setTimeout(function() {
+                initializeVariantRichTextEditors();
+            }, 100);
+        });
+        
         variantEditModalElement.addEventListener('hidden.bs.modal', function() {
             activeVariantRow = null;
             syncModalImagePreview(null, []);
+            // Destroy editors when modal is hidden
+            if (variantDescriptionEditor && typeof variantDescriptionEditor.destroy === 'function') {
+                try {
+                    variantDescriptionEditor.destroy();
+                } catch (e) {
+                    console.log('Error destroying description editor:', e);
+                }
+            }
+            if (variantAdditionalInfoEditor && typeof variantAdditionalInfoEditor.destroy === 'function') {
+                try {
+                    variantAdditionalInfoEditor.destroy();
+                } catch (e) {
+                    console.log('Error destroying additional info editor:', e);
+                }
+            }
+            // Reset editor instances
+            variantDescriptionEditor = null;
+            variantAdditionalInfoEditor = null;
+            window.variantDescriptionEditor = null;
+            window.variantAdditionalInfoEditor = null;
+            const descriptionTextarea = document.getElementById('variantDescription');
+            const additionalInfoTextarea = document.getElementById('variantAdditionalInfo');
+            if (descriptionTextarea) descriptionTextarea.value = '';
+            if (additionalInfoTextarea) additionalInfoTextarea.value = '';
         });
     }
 
@@ -3390,6 +3485,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input type="hidden" name="variants[${index}][manage_stock]" value="${variant.manage_stock ? '1' : '0'}" data-variant-manage-stock-input>
                     <input type="hidden" name="variants[${index}][low_stock_threshold]" value="${variant.low_stock_threshold || 0}" data-variant-low-stock-threshold-input>
                     <input type="hidden" name="variants[${index}][highlights_details]" value="${escapeHtmlAttribute(getHighlightsDetailsValue(variant.highlights_details))}" data-variant-highlights-details-input>
+                    <input type="hidden" name="variants[${index}][description]" value="${escapeHtmlAttribute(variant.description || '')}" data-variant-description-input>
+                    <input type="hidden" name="variants[${index}][additional_information]" value="${escapeHtmlAttribute(variant.additional_information || '')}" data-variant-additional-information-input>
                 </td>
                 <td>
                     <div class="variant-image-uploader">
@@ -3437,6 +3534,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 manage_stock: variant.manage_stock || false,
                 low_stock_threshold: variant.low_stock_threshold || 0,
                 highlights_details: variant.highlights_details || null,
+                description: variant.description || null,
+                additional_information: variant.additional_information || null,
                 barcode: variant.barcode || ''
             };
             row.dataset.variantId = datasetPayload.id ? String(datasetPayload.id) : '';
@@ -3605,36 +3704,102 @@ document.addEventListener('DOMContentLoaded', function() {
             // Load highlights & details
             loadHighlightsDetailsFromRow(row);
             
+            // Load description and additional information
+            const variantDataStr = row.dataset.variantData;
+            if (variantDataStr) {
+                try {
+                    const variantData = JSON.parse(variantDataStr);
+                    const descriptionTextarea = document.getElementById('variantDescription');
+                    const additionalInfoTextarea = document.getElementById('variantAdditionalInfo');
+                    
+                    if (descriptionTextarea) {
+                        descriptionTextarea.value = variantData.description || '';
+                    }
+                    
+                    if (additionalInfoTextarea) {
+                        additionalInfoTextarea.value = variantData.additional_information || '';
+                    }
+                    
+                    // Set editor content after editors are initialized (will be called after modal is shown)
+                    setTimeout(function() {
+                        if (variantDataStr) {
+                            try {
+                                const variantData = JSON.parse(variantDataStr);
+                                if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
+                                    window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
+                                }
+                                if (window.variantAdditionalInfoEditor && typeof window.variantAdditionalInfoEditor.setHTMLCode === 'function') {
+                                    window.variantAdditionalInfoEditor.setHTMLCode(variantData.additional_information || '');
+                                }
+                            } catch (e) {
+                                console.error('Error setting editor content:', e);
+                            }
+                        }
+                    }, 300);
+                } catch (e) {
+                    console.error('Error loading variant description/additional info:', e);
+                }
+            }
+            
             // Parse measurements from row
             const measurementsForModal = parseMeasurementsFromRow(row);
             
-            // Load attributes and units before rendering measurements and showing modal
-            loadNumericAttributes(function() {
-                // Ensure units are loaded before rendering measurements and showing modal
-                if (!unitsLoaded && !unitsLoading) {
-                    loadUnitsFromModule(function() {
-                        // Render measurements after attributes and units are loaded
-                        renderMeasurementsInModal(measurementsForModal);
-                        updateMeasurementEmptyState();
-                        variantEditModal.show();
-                    });
-                } else if (unitsLoaded) {
-                    // Units already loaded, render measurements and show modal
+            // Ensure units are loaded before rendering measurements and showing modal
+            if (!unitsLoaded && !unitsLoading) {
+                loadUnitsFromModule(function() {
+                    // Render measurements after units are loaded
                     renderMeasurementsInModal(measurementsForModal);
                     updateMeasurementEmptyState();
                     variantEditModal.show();
-                } else {
-                    // Units are loading, wait for them
-                    const checkInterval = setInterval(() => {
-                        if (!unitsLoading && unitsLoaded) {
-                            clearInterval(checkInterval);
-                            renderMeasurementsInModal(measurementsForModal);
-                            updateMeasurementEmptyState();
-                            variantEditModal.show();
+                // Set editor data after modal is shown and editors are initialized
+                setTimeout(function() {
+                    if (variantDataStr) {
+                        try {
+                            const variantData = JSON.parse(variantDataStr);
+                            if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
+                                window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
+                            }
+                            if (window.variantAdditionalInfoEditor && typeof window.variantAdditionalInfoEditor.setHTMLCode === 'function') {
+                                window.variantAdditionalInfoEditor.setHTMLCode(variantData.additional_information || '');
+                            }
+                        } catch (e) {
+                            console.error('Error setting editor data:', e);
                         }
-                    }, 100);
-                }
-            });
+                    }
+                }, 300);
+                });
+            } else if (unitsLoaded) {
+                // Units already loaded, render measurements and show modal
+                renderMeasurementsInModal(measurementsForModal);
+                updateMeasurementEmptyState();
+                variantEditModal.show();
+                // Set editor data after modal is shown (editors are initialized on show.bs.modal)
+                setTimeout(function() {
+                    if (variantDataStr) {
+                        try {
+                            const variantData = JSON.parse(variantDataStr);
+                            if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
+                                window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
+                            }
+                            if (window.variantAdditionalInfoEditor && typeof window.variantAdditionalInfoEditor.setHTMLCode === 'function') {
+                                window.variantAdditionalInfoEditor.setHTMLCode(variantData.additional_information || '');
+                            }
+                        } catch (e) {
+                            console.error('Error setting editor data:', e);
+                        }
+                    }
+                }, 100);
+            } else {
+                // Units are loading, wait for them
+                const checkInterval = setInterval(() => {
+                    if (!unitsLoading && unitsLoaded) {
+                        clearInterval(checkInterval);
+                        renderMeasurementsInModal(measurementsForModal);
+                        updateMeasurementEmptyState();
+                        variantEditModal.show();
+                    }
+                }, 100);
+            }
         }
     });
     
@@ -4191,6 +4356,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // Save description and additional information
+            const descriptionTextarea = document.getElementById('variantDescription');
+            const additionalInfoTextarea = document.getElementById('variantAdditionalInfo');
+            if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.getHTMLCode === 'function' && descriptionTextarea) {
+                descriptionTextarea.value = window.variantDescriptionEditor.getHTMLCode();
+            } else if (descriptionTextarea) {
+                // Fallback: use textarea value directly if editor not available
+                descriptionTextarea.value = descriptionTextarea.value || '';
+            }
+            if (window.variantAdditionalInfoEditor && typeof window.variantAdditionalInfoEditor.getHTMLCode === 'function' && additionalInfoTextarea) {
+                additionalInfoTextarea.value = window.variantAdditionalInfoEditor.getHTMLCode();
+            } else if (additionalInfoTextarea) {
+                // Fallback: use textarea value directly if editor not available
+                additionalInfoTextarea.value = additionalInfoTextarea.value || '';
+            }
+            
+            // Update hidden inputs for description and additional information
+            const descriptionHidden = row.querySelector('[data-variant-description-input]');
+            const additionalInfoHidden = row.querySelector('[data-variant-additional-information-input]');
+            
+            if (descriptionHidden && descriptionTextarea) {
+                descriptionHidden.value = descriptionTextarea.value || '';
+            }
+            
+            if (additionalInfoHidden && additionalInfoTextarea) {
+                additionalInfoHidden.value = additionalInfoTextarea.value || '';
+            }
+            
             extractVariantRowData(row);
             syncModalImagePreviewFromRow(row);
 
@@ -4320,16 +4513,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create bullet point row
     function createBulletPointRow(headingIndex, pointIndex, pointText = '') {
         const row = document.createElement('div');
-        row.className = 'bullet-point-row mb-2 d-flex align-items-start';
+        row.className = 'bullet-point-row mb-2 d-flex align-items-center gap-2';
         row.setAttribute('data-heading-index', headingIndex);
         row.setAttribute('data-point-index', pointIndex);
         
         row.innerHTML = `
-            <div class="flex-grow-1 me-2">
+            <div class="input-group input-group-sm flex-grow-1">
                 <input type="text" 
                        class="form-control form-control-sm bullet-point-input" 
                        value="${pointText}"
                        placeholder="Enter bullet point...">
+                <button type="button" class="btn btn-outline-primary add-point-inline-btn" data-heading-index="${headingIndex}" title="Add point">
+                    <i data-feather="plus" class="me-0" style="width: 14px; height: 14px;"></i>
+                </button>
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger delete-point-btn" title="Delete point">
                 <i data-feather="trash-2" class="me-0"></i>
@@ -4367,11 +4563,8 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="card-body py-2">
                 <div class="bullet-points-container" data-heading-index="${headingIndex}">
-                    ${bulletPoints.length === 0 ? '<div class="text-muted small mb-2">No bullet points yet. Click "Add Point" to add one.</div>' : ''}
+                    ${bulletPoints.length === 0 ? '<div class="text-muted small mb-2">No bullet points yet. Click the plus icon to add one.</div>' : ''}
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-primary add-point-btn" data-heading-index="${headingIndex}">
-                    <i data-feather="plus" class="me-1"></i> Add Point
-                </button>
             </div>
         `;
         
@@ -4400,26 +4593,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Add event listeners
-        const addPointBtn = panel.querySelector('.add-point-btn');
         const deleteHeadingBtn = panel.querySelector('.delete-heading-btn');
         const headingInput = panel.querySelector('.heading-input');
         
-        addPointBtn.addEventListener('click', function() {
-            const headingIdx = parseInt(this.getAttribute('data-heading-index'));
+        // Add initial point if no points exist
+        if (bulletPoints.length === 0) {
             const container = panel.querySelector('.bullet-points-container');
-            const pointIndex = container.querySelectorAll('.bullet-point-row').length;
-            const pointRow = createBulletPointRow(headingIdx, pointIndex);
-            
-            // Remove "No bullet points" message if exists
+            const pointRow = createBulletPointRow(headingIndex, 0);
             const noPointsMsg = container.querySelector('.text-muted');
             if (noPointsMsg) noPointsMsg.remove();
-            
             container.appendChild(pointRow);
-            
-            // Focus on new input
-            const newInput = pointRow.querySelector('.bullet-point-input');
-            if (newInput) newInput.focus();
-        });
+        }
         
         deleteHeadingBtn.addEventListener('click', function() {
             if (confirm('Are you sure you want to delete this heading and all its bullet points?')) {
@@ -4428,19 +4612,53 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Handle delete point button
+        // Handle delete point button and inline add point button
         panel.addEventListener('click', function(e) {
+            // Handle inline add point button
+            if (e.target.closest('.add-point-inline-btn')) {
+                const btn = e.target.closest('.add-point-inline-btn');
+                const headingIdx = parseInt(btn.getAttribute('data-heading-index'));
+                const container = panel.querySelector('.bullet-points-container');
+                const pointIndex = container.querySelectorAll('.bullet-point-row').length;
+                const pointRow = createBulletPointRow(headingIdx, pointIndex);
+                
+                // Remove "No bullet points" message if exists
+                const noPointsMsg = container.querySelector('.text-muted');
+                if (noPointsMsg) noPointsMsg.remove();
+                
+                // Find the row that contains this button and insert after it
+                const currentRow = btn.closest('.bullet-point-row');
+                if (currentRow && currentRow.nextSibling) {
+                    currentRow.parentNode.insertBefore(pointRow, currentRow.nextSibling);
+                } else {
+                    container.appendChild(pointRow);
+                }
+                
+                // Focus on new input
+                const newInput = pointRow.querySelector('.bullet-point-input');
+                if (newInput) newInput.focus();
+                
+                // Reinitialize feather icons
+                if (window.feather) {
+                    setTimeout(() => feather.replace(), 10);
+                }
+                return;
+            }
+            
             if (e.target.closest('.delete-point-btn')) {
                 const pointRow = e.target.closest('.bullet-point-row');
                 if (pointRow) {
-                    pointRow.remove();
                     const container = panel.querySelector('.bullet-points-container');
-                    if (container.querySelectorAll('.bullet-point-row').length === 0) {
-                        const noPointsMsg = document.createElement('div');
-                        noPointsMsg.className = 'text-muted small mb-2';
-                        noPointsMsg.textContent = 'No bullet points yet. Click "Add Point" to add one.';
-                        container.insertBefore(noPointsMsg, container.firstChild);
+                    const remainingRows = container.querySelectorAll('.bullet-point-row');
+                    // Keep at least one empty input row
+                    if (remainingRows.length <= 1) {
+                        // Clear the input instead of removing the row
+                        const input = pointRow.querySelector('.bullet-point-input');
+                        if (input) input.value = '';
+                        return;
                     }
+                    pointRow.remove();
+                    reindexHeadings();
                 }
             }
         });
@@ -4459,8 +4677,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 headingInput.name = `heading_${index}`;
                 headingInput.setAttribute('data-heading-index', index);
             }
-            const addPointBtn = panel.querySelector('.add-point-btn');
-            if (addPointBtn) addPointBtn.setAttribute('data-heading-index', index);
             const container = panel.querySelector('.bullet-points-container');
             if (container) container.setAttribute('data-heading-index', index);
             const pointRows = container.querySelectorAll('.bullet-point-row');
@@ -4740,6 +4956,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         manage_stock: variantData.manage_stock || false,
                         low_stock_threshold: variantData.low_stock_threshold || 0,
                         highlights_details: variantData.highlights_details || null,
+                        description: variantData.description || null,
+                        additional_information: variantData.additional_information || null,
                         barcode: variantData.barcode || ''
                     };
                     syncedVariants.push(variant);
@@ -5273,6 +5491,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const idHidden = row.querySelector('[data-variant-id-input]');
         const attributesHidden = row.querySelector('[data-variant-attributes-input]');
         const highlightsDetailsHidden = row.querySelector('[data-variant-highlights-details-input]');
+        const descriptionHidden = row.querySelector('[data-variant-description-input]');
+        const additionalInformationHidden = row.querySelector('[data-variant-additional-information-input]');
 
         let measurements = [];
         if (measurementHidden && measurementHidden.value) {
@@ -5310,6 +5530,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // Get description and additional_information from hidden inputs or variantData
+        let description = '';
+        let additionalInformation = '';
+        
+        if (descriptionHidden && descriptionHidden.value) {
+            description = descriptionHidden.value;
+        } else if (row.dataset.variantData) {
+            try {
+                const parsed = JSON.parse(row.dataset.variantData);
+                if (parsed && typeof parsed === 'object') {
+                    description = parsed.description || '';
+                }
+            } catch (error) {
+                description = '';
+            }
+        }
+        
+        if (additionalInformationHidden && additionalInformationHidden.value) {
+            additionalInformation = additionalInformationHidden.value;
+        } else if (row.dataset.variantData) {
+            try {
+                const parsed = JSON.parse(row.dataset.variantData);
+                if (parsed && typeof parsed === 'object') {
+                    additionalInformation = parsed.additional_information || '';
+                }
+            } catch (error) {
+                additionalInformation = '';
+            }
+        }
+
         let variantId = null;
         if (idHidden && idHidden.value !== '') {
             variantId = idHidden.value;
@@ -5332,6 +5582,8 @@ document.addEventListener('DOMContentLoaded', function() {
             measurements,
             attributes,
             highlights_details: highlightsDetails,
+            description: description,
+            additional_information: additionalInformation,
             images: existingImages,
         };
 
@@ -5343,6 +5595,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (attributesHidden) {
             attributesHidden.value = JSON.stringify(result.attributes || {});
+        }
+        if (descriptionHidden) {
+            descriptionHidden.value = result.description || '';
+        }
+        if (additionalInformationHidden) {
+            additionalInformationHidden.value = result.additional_information || '';
         }
         row.dataset.existingImages = JSON.stringify(result.images || []);
 
@@ -6180,11 +6438,21 @@ const highlightsStyles = `
 }
 
 .bullet-points-container {
-    min-height: 40px;
+    min-height: 30px;
 }
 
-.add-point-btn {
-    margin-top: 0.5rem;
+.add-point-inline-btn {
+    border-left: 0;
+    padding: 0.25rem 0.5rem;
+}
+
+.add-point-inline-btn:hover {
+    z-index: 1;
+}
+
+.input-group .add-point-inline-btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 </style>
 `;

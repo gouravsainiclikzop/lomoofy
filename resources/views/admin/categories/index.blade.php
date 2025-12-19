@@ -219,8 +219,7 @@
     .filter-section {
         background: #f8f9fa;
         border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 20px;
+        padding: 16px; 
     }
     
     /* Category Actions Popover Styling */
@@ -234,9 +233,11 @@
     .category-actions-popover a:hover {
         background-color: #f8f9fa;
     }
+    .category-actions-popover .manage-children-category,
     .category-actions-popover .add-child-category {
         font-weight: 500;
     }
+    .category-actions-popover .manage-children-category:hover,
     .category-actions-popover .add-child-category:hover {
         background-color: #e7f3ff;
     }
@@ -261,23 +262,26 @@
     .stats-cards {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
+        gap: 16px; 
     }
     
     .stat-card {
         background: white;
         border: 1px solid #e0e0e0;
         border-radius: 8px;
-        padding: 16px;
-        text-align: center;
+        padding: 5px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
     }
     
     .stat-card-value {
         font-size: 28px;
         font-weight: 700;
         color: #f5c000;
-        margin: 8px 0;
+        margin: 0;
+        flex-shrink: 0;
     }
     
     .stat-card-label {
@@ -285,6 +289,9 @@
         color: #6c757d;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        margin: 0;
+        text-align: left;
+        flex: 1;
     }
     
     /* Hierarchy/Tree View Styles */
@@ -366,6 +373,14 @@
         border-radius: 6px;
         object-fit: cover;
         flex-shrink: 0;
+    }
+    
+    .category-table-image {
+        transition: opacity 0.3s ease;
+    }
+    
+    .category-table-image[loading="lazy"] {
+        background-color: #f0f0f0;
     }
     
     .category-tree-image-placeholder {
@@ -520,7 +535,7 @@
                 <div class="row g-3 align-items-center">
                     <div class="col-md-3">
                         <label class="form-label small text-muted mb-1">Status Filter</label>
-                        <select class="form-select form-select-sm" id="statusFilter">
+                        <select class="form-select  " id="statusFilter">
                             <option value="">All Status</option>
                             <option value="1">Active</option>
                             <option value="0">Inactive</option>
@@ -574,10 +589,6 @@
                 <!-- Tree structure will be loaded here -->
             </div>
             
-            <!-- AJAX Pagination -->
-            <div class="d-flex justify-content-center p-4 border-top" id="paginationContainer">
-                <!-- Pagination will be loaded here via AJAX -->
-            </div>
         </div>
     </div>
 </div>
@@ -602,36 +613,43 @@
     </div>
 </div>
 
-<!-- Add Multiple Child Categories Modal -->
-<div class="modal fade" id="addMultipleChildCategoriesModal" tabindex="-1">
+<!-- Manage Children Categories Modal -->
+<div class="modal fade" id="manageChildrenCategoriesModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add Child Categories</h5>
+                <h5 class="modal-title">Manage Children Categories</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="multipleChildCategoriesAlertContainer"></div>
+                <div id="manageChildrenCategoriesAlertContainer"></div>
                 
                 <div class="mb-3">
                     <label class="form-label fw-bold">Parent Category:</label>
-                    <span id="multipleChildCategoriesParentName" class="badge bg-primary fs-6"></span>
+                    <span id="manageChildrenCategoriesParentName" class="badge bg-primary fs-6"></span>
                 </div>
                 
-                <div id="multipleChildCategoriesRowsContainer">
-                    <!-- Rows will be added here dynamically -->
-                </div>
-                
-                <div class="text-center mt-3">
-                    <button type="button" class="btn btn-outline-primary" id="addMoreChildCategoryRow">
-                        <i class="fas fa-plus"></i> Add More
-                    </button>
+                <!-- Children Categories Section (Existing + New) -->
+                <div class="mb-3">
+                    <h6 class="mb-3">
+                        <i class="fas fa-list me-2"></i>Children Categories
+                        <small class="text-muted ms-2">(Edit existing or add new)</small>
+                    </h6>
+                    <div id="multipleChildCategoriesRowsContainer">
+                        <!-- Existing and new rows will be added here dynamically -->
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-outline-primary" id="addMoreChildCategoryRow">
+                            <i class="fas fa-plus"></i> Add New Category
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveMultipleChildCategoriesBtn">
-                    <span id="saveMultipleBtnText">Save All Categories</span>
+                    <span id="saveMultipleBtnText">Save All Changes</span>
                     <span id="saveMultipleBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
                 </button>
             </div>
@@ -754,9 +772,68 @@ $(document).ready(function() {
         }
     });
 
-    let currentPage = 1;
     let currentView = 'table'; // Only table view
     let allCategoriesData = []; // Store all categories for stats
+    
+    // Function to get next sort order for root categories (no parent)
+    function getNextRootSortOrder() {
+        if (!allCategoriesData || allCategoriesData.length === 0) {
+            return 1;
+        }
+        
+        // Get all root categories (no parent_id)
+        const rootCategories = allCategoriesData.filter(cat => !cat.parent_id);
+        
+        if (rootCategories.length === 0) {
+            return 1;
+        }
+        
+        // Find maximum sort_order
+        const maxSortOrder = Math.max(...rootCategories.map(cat => cat.sort_order || 0));
+        return maxSortOrder + 1;
+    }
+    
+    // Function to get next sort order for child categories (with parent)
+    function getNextChildSortOrder(parentId) {
+        if (!allCategoriesData || allCategoriesData.length === 0) {
+            return 1;
+        }
+        
+        // Get all children of the parent
+        const childCategories = allCategoriesData.filter(cat => cat.parent_id == parentId);
+        
+        if (childCategories.length === 0) {
+            return 1;
+        }
+        
+        // Find maximum sort_order
+        const maxSortOrder = Math.max(...childCategories.map(cat => cat.sort_order || 0));
+        return maxSortOrder + 1;
+    }
+    
+    // Function to get next sort order from existing children in modal
+    function getNextSortOrderFromModalRows(parentId) {
+        const existingRows = $(`.child-category-row[data-is-existing="1"]`);
+        let maxSortOrder = 0;
+        
+        existingRows.each(function() {
+            const sortOrder = parseInt($(this).find('.child-category-sort-order').val()) || 0;
+            if (sortOrder > maxSortOrder) {
+                maxSortOrder = sortOrder;
+            }
+        });
+        
+        // Also check allCategoriesData for this parent
+        const childCategories = allCategoriesData.filter(cat => cat.parent_id == parentId);
+        childCategories.forEach(cat => {
+            const sortOrder = cat.sort_order || 0;
+            if (sortOrder > maxSortOrder) {
+                maxSortOrder = sortOrder;
+            }
+        });
+        
+        return maxSortOrder + 1;
+    }
 
     // Helper function to escape HTML
     function escapeHtml(text) {
@@ -846,7 +923,7 @@ $(document).ready(function() {
         $('.select2-container .select2-selection.is-invalid').removeClass('is-invalid');
     }
 
-    // Load Categories with Pagination
+    // Load Categories (no pagination - all categories loaded at once)
     function loadCategories() {
         
         let search = $('#tableSearch').val();
@@ -856,7 +933,6 @@ $(document).ready(function() {
         
         if (search) params.append('search', search);
         if (status !== '') params.append('status', status);
-        if (currentPage > 1) params.append('page', currentPage);
         
         if (params.toString()) {
             url += '?' + params.toString();
@@ -870,10 +946,7 @@ $(document).ready(function() {
                 if(response.success) {
                     allCategoriesData = response.data;
                     renderCategories(response.data);
-                    updateStats(response.data, response.pagination);
-                    
-                    // Update pagination
-                    updatePagination(response.pagination);
+                    updateStats(response.data);
                 }
             },
             error: function(xhr) {
@@ -905,7 +978,7 @@ $(document).ready(function() {
             success: function(response) {
                 if(response.success) {
                     renderHierarchyView(response.data);
-                    updateStats(response.data, response.pagination);
+                    updateStats(response.data);
                 }
             },
             error: function(xhr) {
@@ -919,9 +992,6 @@ $(document).ready(function() {
     function renderHierarchyView(categories) {
         let hierarchyContainer = $('#categoriesHierarchy');
         hierarchyContainer.empty();
-        
-        // Hide and clear pagination for hierarchy view (all categories shown in tree)
-        $('#paginationContainer').hide().html('');
         
         if (categories.length === 0) {
             hierarchyContainer.html('<div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3"></i><p class="text-muted">No categories found</p></div>');
@@ -944,7 +1014,7 @@ $(document).ready(function() {
         
         let imageUrl = category.image ? '{{ asset("storage") }}/' + category.image : '';
         let imageHtml = category.image 
-            ? `<img src="${imageUrl}" alt="${category.name}" class="category-tree-image">`
+            ? `<img src="${imageUrl}" alt="${category.name}" class="category-tree-image" loading="lazy" decoding="async">`
             : `<div class="category-tree-image-placeholder"><i class="fas fa-folder"></i></div>`;
         
         let statusBadge = category.is_active 
@@ -1142,7 +1212,7 @@ $(document).ready(function() {
         
         let imageUrl = category.image ? '{{ asset("storage") }}/' + category.image : '';
         let imageCell = category.image 
-            ? `<img src="${imageUrl}" alt="${category.name}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">`
+            ? `<img src="${imageUrl}" alt="${category.name}" class="img-thumbnail category-table-image" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" loading="lazy" decoding="async">`
             : '<div class="text-center"><i class="fas fa-image text-muted"></i></div>';
         
         let productsCount = `
@@ -1171,7 +1241,7 @@ $(document).ready(function() {
         // Build popover content - conditionally show "Add Child" option
         let addChildOption = '';
         if (canHaveChildren) {
-            addChildOption = `<a href="#" class="add-child-category d-block py-2 px-3 text-decoration-none text-primary" data-id="${category.id}" data-name="${category.name}"><i class="fas fa-plus-circle me-2"></i>Add Child</a><hr class="my-1">`;
+            addChildOption = `<a href="#" class="manage-children-category d-block py-2 px-3 text-decoration-none text-primary" data-id="${category.id}" data-name="${category.name}"><i class="fas fa-sitemap me-2"></i>Manage Children</a><hr class="my-1">`;
         }
         
         let popoverContent = `<div class="category-actions-popover">${addChildOption}<a href="#" class="edit-category d-block py-2 px-3 text-decoration-none" data-id="${category.id}"><i class="fas fa-edit me-2"></i>Edit</a><hr class="my-1"><a href="#" class="delete-category d-block py-2 px-3 text-decoration-none text-danger" data-id="${category.id}"><i class="fas fa-trash me-2"></i>Delete</a></div>`;
@@ -1227,7 +1297,7 @@ $(document).ready(function() {
                 if (popoverTip && categoryId) {
                     $(popoverTip).find('.edit-category').attr('data-id', categoryId);
                     $(popoverTip).find('.delete-category').attr('data-id', categoryId);
-                    $(popoverTip).find('.add-child-category').attr('data-id', categoryId).attr('data-name', categoryName);
+                    $(popoverTip).find('.manage-children-category').attr('data-id', categoryId).attr('data-name', categoryName);
                 }
             });
         }
@@ -1259,14 +1329,14 @@ $(document).ready(function() {
     }
 
     // Update Stats
-    function updateStats(categories, pagination) {
+    function updateStats(categories) {
         // Flatten nested structure if needed
         let flatCategories = categories;
         if (categories.length > 0 && categories[0].children !== undefined) {
             flatCategories = flattenCategories(categories);
         }
         
-        let total = pagination?.total || flatCategories.length;
+        let total = flatCategories.length;
         let active = flatCategories.filter(c => c.is_active).length;
         let root = flatCategories.filter(c => !c.parent_id).length;
         let totalProducts = flatCategories.reduce((sum, c) => sum + (c.products_count || 0), 0);
@@ -1278,55 +1348,6 @@ $(document).ready(function() {
     }
 
 
-    // Update Pagination
-    function updatePagination(pagination) {
-        
-        // Show pagination container for table view
-        $('#paginationContainer').show();
-        
-        let paginationHtml = '';
-        
-        if (pagination && pagination.last_page > 1) {
-            paginationHtml = '<nav><ul class="pagination">';
-            
-            // Previous button
-            if (pagination.current_page > 1) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${pagination.current_page - 1}">Previous</a></li>`;
-            }
-            
-            // Page numbers
-            let startPage = Math.max(1, pagination.current_page - 2);
-            let endPage = Math.min(pagination.last_page, pagination.current_page + 2);
-            
-            if (startPage > 1) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
-                if (startPage > 2) {
-                    paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                }
-            }
-            
-            for (let i = startPage; i <= endPage; i++) {
-                let activeClass = i == pagination.current_page ? 'active' : '';
-                paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
-            }
-            
-            if (endPage < pagination.last_page) {
-                if (endPage < pagination.last_page - 1) {
-                    paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                }
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${pagination.last_page}">${pagination.last_page}</a></li>`;
-            }
-            
-            // Next button
-            if (pagination.has_more_pages) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${parseInt(pagination.current_page) + 1}">Next</a></li>`;
-            }
-            
-            paginationHtml += '</ul></nav>';
-        }
-        
-        $('#paginationContainer').html(paginationHtml);
-    }
 
     // Cache for parent categories to avoid duplicate requests
     const parentCategoriesCache = {};
@@ -1634,6 +1655,10 @@ $(document).ready(function() {
         $('#currentImage').hide();
         clearModalAlerts();
         
+        // Set next sort order automatically
+        const nextSortOrder = getNextRootSortOrder();
+        $('#sortOrder').val(nextSortOrder);
+        
         // Hide inherited attributes for new category
         $('#inheritedAttributesContainer').hide();
         
@@ -1646,6 +1671,18 @@ $(document).ready(function() {
                     $('#parentCategory').select2('destroy');
                 }
                 initializeParentCategorySelect2();
+                
+                // Update sort order when parent changes (for child categories)
+                $('#parentCategory').on('change', function() {
+                    const parentId = $(this).val();
+                    if (parentId) {
+                        const nextSortOrder = getNextChildSortOrder(parentId);
+                        $('#sortOrder').val(nextSortOrder);
+                    } else {
+                        const nextSortOrder = getNextRootSortOrder();
+                        $('#sortOrder').val(nextSortOrder);
+                    }
+                });
             }, 100);
         });
         
@@ -2290,8 +2327,8 @@ $(document).ready(function() {
         bulkDeleteCategories();
     });
 
-    // Handle "Add Child" click from popover
-    $(document).on('click', '.popover .add-child-category', function(e) {
+    // Handle "Manage Children" click from popover
+    $(document).on('click', '.popover .manage-children-category, .popover .add-child-category', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
@@ -2332,37 +2369,47 @@ $(document).ready(function() {
         }, 100);
         
         // Open modal with parent pre-selected
-        openAddChildModal(parentId, parentName);
+        openManageChildrenModal(parentId, parentName);
     });
 
     // Multiple child categories row counter
     let childCategoryRowCounter = 0;
     
+    // Store existing children data
+    let existingChildrenData = [];
+    
     // Function to create a new row for adding child category
-    function createChildCategoryRow(index = null, parentId = null, parentName = null) {
+    function createChildCategoryRow(index = null, parentId = null, parentName = null, isExisting = false, existingData = null) {
         const rowIndex = index !== null ? index : childCategoryRowCounter++;
         const rowId = `childCategoryRow_${rowIndex}`;
+        const isEditMode = isExisting && existingData;
         
         // Get parent info from modal if not provided
         if (!parentId) {
-            parentId = $('#multipleChildCategoriesParentId').val() || '';
+            parentId = $('#manageChildrenCategoriesParentId').val() || '';
         }
         if (!parentName) {
-            parentName = $('#multipleChildCategoriesParentName').text() || '';
+            parentName = $('#manageChildrenCategoriesParentName').text() || '';
         }
         
+        const categoryName = isEditMode ? escapeHtml(existingData.name) : '';
+        // For new categories, get next sort order; for existing, use current sort order
+        let sortOrder;
+        if (isEditMode) {
+            sortOrder = existingData.sort_order || 0;
+        } else {
+            // Get next sort order for this parent
+            sortOrder = getNextSortOrderFromModalRows(parentId);
+        }
+        const categoryId = isEditMode ? existingData.id : '';
+        const imagePreview = isEditMode && existingData.image ? `<img src="/storage/${existingData.image}" class="img-thumbnail mt-2" style="max-width: 70px; max-height: 70px;" loading="lazy" decoding="async">` : '';
+        
         const rowHtml = `
-            <div class="child-category-row mb-3 p-3 border rounded" data-row-index="${rowIndex}">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="mb-0 child-category-row-number">Category 1</h6>
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-child-category-row" data-row-index="${rowIndex}">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+            <div class="child-category-row mb-3 p-3 border rounded ${isEditMode ? 'existing-child-row' : 'new-child-row'}" data-row-index="${rowIndex}" data-category-id="${categoryId}" data-is-existing="${isExisting ? '1' : '0'}">
                 <div class="row g-2">
                     <div class="col-md-3">
                         <label class="form-label small">Category Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm child-category-name" placeholder="Category name" required>
+                        <input type="text" class="form-control form-control-sm child-category-name" placeholder="Category name" value="${categoryName}" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small">Parent Category</label>
@@ -2372,10 +2419,21 @@ $(document).ready(function() {
                     <div class="col-md-3">
                         <label class="form-label small">Category Image</label>
                         <input type="file" class="form-control form-control-sm child-category-image" accept="image/*">
+                        ${imagePreview}
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small">Sort Order</label>
-                        <input type="number" class="form-control form-control-sm child-category-sort-order" value="0">
+                        <div class="d-flex gap-2 align-items-end">
+                            <input type="number" class="form-control form-control-sm child-category-sort-order" value="${sortOrder}" style="flex: 1;">
+                            <div class="d-flex gap-1">
+                                ${isEditMode ? `<button type="button" class="btn btn-sm btn-outline-danger delete-existing-child-row" data-category-id="${categoryId}" data-row-index="${rowIndex}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>` : ''}
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-child-category-row" data-row-index="${rowIndex}" title="Remove">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2384,33 +2442,73 @@ $(document).ready(function() {
         return rowHtml;
     }
     
-    // Function to open modal for adding multiple child categories
-    function openAddMultipleChildCategoriesModal(parentId, parentName) {
+    // Function to load existing children
+    function loadExistingChildren(parentId) {
+        $.ajax({
+            url: '{{ route("categories.children") }}',
+            type: 'GET',
+            data: { parent_id: parentId },
+            success: function(response) {
+                if (response.success && response.data) {
+                    existingChildrenData = response.data;
+                    
+                    // Clear existing rows first
+                    $('#multipleChildCategoriesRowsContainer').empty();
+                    childCategoryRowCounter = 0;
+                    
+                    // Add existing children as rows by default
+                    if (response.data.length > 0) {
+                        const parentName = $('#manageChildrenCategoriesParentName').text();
+                        response.data.forEach(function(child) {
+                            const rowIndex = childCategoryRowCounter++;
+                            const row = createChildCategoryRow(rowIndex, parentId, parentName, true, child);
+                            $('#multipleChildCategoriesRowsContainer').append(row);
+                        });
+                        updateRowNumbers();
+                    }
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading children:', xhr);
+                showToast('error', 'Error loading children categories');
+            }
+        });
+    }
+    
+    // Function to open modal for managing children categories
+    function openManageChildrenModal(parentId, parentName) {
         // Store parent info
-        $('#multipleChildCategoriesParentName').text(parentName);
-        if (!$('#multipleChildCategoriesParentId').length) {
+        $('#manageChildrenCategoriesParentName').text(parentName);
+        if (!$('#manageChildrenCategoriesParentId').length) {
             $('<input>').attr({
                 type: 'hidden',
-                id: 'multipleChildCategoriesParentId',
+                id: 'manageChildrenCategoriesParentId',
                 value: parentId
-            }).appendTo('#addMultipleChildCategoriesModal .modal-body');
+            }).appendTo('#manageChildrenCategoriesModal .modal-body');
         } else {
-            $('#multipleChildCategoriesParentId').val(parentId);
+            $('#manageChildrenCategoriesParentId').val(parentId);
         }
         
         // Clear and reset
         $('#multipleChildCategoriesRowsContainer').empty();
         childCategoryRowCounter = 0;
-        $('#multipleChildCategoriesAlertContainer').empty();
+        $('#manageChildrenCategoriesAlertContainer').empty();
         
-        // Add first row
-        $('#multipleChildCategoriesRowsContainer').append(createChildCategoryRow(0, parentId, parentName));
-        
-        // Update row numbers
-        updateRowNumbers();
+        // Load existing children
+        loadExistingChildren(parentId);
         
         // Show modal
-        $('#addMultipleChildCategoriesModal').modal('show');
+        $('#manageChildrenCategoriesModal').modal('show');
+    }
+    
+    // Legacy function name for compatibility
+    function openAddMultipleChildCategoriesModal(parentId, parentName) {
+        openManageChildrenModal(parentId, parentName);
+    }
+    
+    // Function to open modal for adding a child category (now opens manage children modal)
+    function openAddChildModal(parentId, parentName) {
+        openManageChildrenModal(parentId, parentName);
     }
     
     // Function to load attributes and initialize Select2 for all rows
@@ -2456,7 +2554,7 @@ $(document).ready(function() {
                                 theme: 'bootstrap-5',
                                 width: '100%',
                                 placeholder: 'Select attributes',
-                                dropdownParent: $('#addMultipleChildCategoriesModal'),
+                                dropdownParent: $('#manageChildrenCategoriesModal'),
                                 closeOnSelect: false
                             });
                         }
@@ -2523,7 +2621,7 @@ $(document).ready(function() {
                             theme: 'bootstrap-5',
                             width: '100%',
                             placeholder: 'Select attributes',
-                            dropdownParent: $('#addMultipleChildCategoriesModal'),
+                            dropdownParent: $('#manageChildrenCategoriesModal'),
                             closeOnSelect: false
                         });
                     }
@@ -2539,8 +2637,8 @@ $(document).ready(function() {
     
     // Handle Add More button
     $(document).on('click', '#addMoreChildCategoryRow', function() {
-        const parentId = $('#multipleChildCategoriesParentId').val();
-        const parentName = $('#multipleChildCategoriesParentName').text();
+        const parentId = $('#manageChildrenCategoriesParentId').val();
+        const parentName = $('#manageChildrenCategoriesParentName').text();
         
         // Store the counter value before increment (which happens in createChildCategoryRow)
         const newRowIndex = childCategoryRowCounter;
@@ -2550,12 +2648,65 @@ $(document).ready(function() {
         
         // Update all row numbers after adding
         updateRowNumbers();
+        
+        // Set next sort order for the new row automatically
+        const nextSortOrder = getNextSortOrderFromModalRows(parentId);
+        const newRowElement = $(`.child-category-row[data-row-index="${newRowIndex}"]`);
+        newRowElement.find('.child-category-sort-order').val(nextSortOrder);
+    });
+    
+    // Handle Delete Existing Child button (from edit row)
+    $(document).on('click', '.delete-existing-child-row', function() {
+        const childId = $(this).data('category-id');
+        const rowIndex = $(this).data('row-index');
+        const row = $(`.child-category-row[data-row-index="${rowIndex}"]`);
+        const childName = row.find('.child-category-name').val();
+        
+        if (!confirm(`Are you sure you want to delete "${childName}"? This action cannot be undone.`)) {
+            return;
+        }
+        
+        // Delete via API
+        $.ajax({
+            url: '{{ route("categories.delete") }}',
+            type: 'POST',
+            data: {
+                id: childId,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    row.remove();
+                    updateRowNumbers();
+                    // Reload children list
+                    const parentId = $('#manageChildrenCategoriesParentId').val();
+                    loadExistingChildren(parentId);
+                    // Also reload main categories table
+                    loadCategories();
+                    showToast('success', 'Category deleted successfully');
+                } else {
+                    showToast('error', response.message || 'Failed to delete category');
+                }
+            },
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || 'Failed to delete category';
+                showToast('error', message);
+            }
+        });
     });
     
     // Function to update row numbers in all rows
     function updateRowNumbers() {
+        let newRowIndex = 1;
         $('.child-category-row').each(function(index) {
-            $(this).find('h6').text(`Category ${index + 1}`);
+            const row = $(this);
+            const isExisting = row.data('is-existing') == '1';
+            // if (isExisting) {
+            //     row.find('h6').text('Existing Category');
+            // } else {
+            //     row.find('h6').text(`New Category ${newRowIndex}`);
+            //     newRowIndex++;
+            // }
         });
     }
     
@@ -2591,8 +2742,9 @@ $(document).ready(function() {
     // Save Multiple Child Categories
     $('#saveMultipleChildCategoriesBtn').on('click', function() {
         const rows = $('.child-category-row');
-        const parentId = $('#multipleChildCategoriesParentId').val();
+        const parentId = $('#manageChildrenCategoriesParentId').val();
         const categoriesToSave = [];
+        const categoriesToUpdate = [];
         
         // Collect data from all rows
         let hasErrors = false;
@@ -2601,6 +2753,8 @@ $(document).ready(function() {
             const name = row.find('.child-category-name').val().trim();
             const sortOrder = row.find('.child-category-sort-order').val() || 0;
             const imageFile = row.find('.child-category-image')[0].files[0];
+            const categoryId = row.data('category-id');
+            const isExisting = row.data('is-existing') == '1';
             
             // Validate required fields
             if (!name) {
@@ -2611,25 +2765,34 @@ $(document).ready(function() {
             }
             
             if (name) {
-                categoriesToSave.push({
+                const categoryData = {
                     name: name,
-                    parent_id: parentId,
-                    sort_order: sortOrder,
+                    parent_id: parentId ? parseInt(parentId) : null,
+                    sort_order: parseInt(sortOrder) || 0,
                     description: '', // Empty description
-                    is_active: true, // Always active by default
+                    is_active: true, // Always active by default (boolean)
                     product_attribute_ids: [], // No attributes
                     imageFile: imageFile
-                });
+                };
+                
+                // Check if this is an existing category (has ID and is marked as existing)
+                if (isExisting && categoryId && categoryId !== '') {
+                    categoryData.id = parseInt(categoryId);
+                    categoriesToUpdate.push(categoryData);
+                } else {
+                    // New category - no ID or not marked as existing
+                    categoriesToSave.push(categoryData);
+                }
             }
         });
         
         if (hasErrors) {
-            $('#multipleChildCategoriesAlertContainer').html('<div class="alert alert-danger">Please fill in all required fields (Category Name).</div>');
+            $('#manageChildrenCategoriesAlertContainer').html('<div class="alert alert-danger">Please fill in all required fields (Category Name).</div>');
             return;
         }
         
-        if (categoriesToSave.length === 0) {
-            $('#multipleChildCategoriesAlertContainer').html('<div class="alert alert-warning">Please add at least one category.</div>');
+        if (categoriesToSave.length === 0 && categoriesToUpdate.length === 0) {
+            $('#manageChildrenCategoriesAlertContainer').html('<div class="alert alert-warning">No changes to save.</div>');
             return;
         }
         
@@ -2638,64 +2801,200 @@ $(document).ready(function() {
         $('#saveMultipleBtnSpinner').removeClass('d-none');
         $('#saveMultipleChildCategoriesBtn').prop('disabled', true);
         
-        // Save categories one by one
-        let savedCount = 0;
-        let errorCount = 0;
-        const totalCount = categoriesToSave.length;
-        
-        function saveNextCategory(index) {
-            if (index >= categoriesToSave.length) {
-                // All categories saved
-                $('#saveMultipleBtnText').removeClass('d-none');
-                $('#saveMultipleBtnSpinner').addClass('d-none');
-                $('#saveMultipleChildCategoriesBtn').prop('disabled', false);
-                
-                if (errorCount === 0) {
-                    $('#addMultipleChildCategoriesModal').modal('hide');
-                    loadCategories();
-                    showToast('success', `Successfully added ${savedCount} category(ies)`);
-                } else {
-                    showToast('warning', `Added ${savedCount} category(ies), ${errorCount} failed`);
-                }
+        // Function to convert file to base64
+        function fileToBase64(file, callback) {
+            if (!file) {
+                callback(null);
                 return;
             }
             
-            const categoryData = categoriesToSave[index];
-            const formData = new FormData();
-            formData.append('name', categoryData.name);
-            formData.append('parent_id', categoryData.parent_id);
-            formData.append('sort_order', categoryData.sort_order);
-            formData.append('description', categoryData.description);
-            formData.append('is_active', categoryData.is_active ? 1 : 0);
-            formData.append('product_attribute_ids', JSON.stringify(categoryData.product_attribute_ids));
-            
-            if (categoryData.imageFile) {
-                formData.append('image', categoryData.imageFile);
-            }
-            
-            $.ajax({
-                url: '{{ route("categories.store") }}',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.success) {
-                        savedCount++;
-                    } else {
-                        errorCount++;
-                    }
-                    saveNextCategory(index + 1);
-                },
-                error: function(xhr) {
-                    errorCount++;
-                    saveNextCategory(index + 1);
-                }
-            });
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                callback(e.target.result);
+            };
+            reader.onerror = function() {
+                callback(null);
+            };
+            reader.readAsDataURL(file);
         }
         
-        // Start saving
-        saveNextCategory(0);
+        // Process all categories and convert images to base64
+        // Combine all categories (new and existing) into a single array for bulk-sync
+        let processedCount = 0;
+        const totalToProcess = categoriesToSave.length + categoriesToUpdate.length;
+        const processedCategories = []; // Single array for all categories
+        let allProcessed = false;
+        
+        function processCategory(categoryData, isUpdate) {
+            // Ensure is_active is a proper boolean
+            const isActive = categoryData.is_active === true || categoryData.is_active === 1 || categoryData.is_active === '1' || categoryData.is_active === 'true';
+            
+            if (categoryData.imageFile) {
+                fileToBase64(categoryData.imageFile, function(base64) {
+                    const processedData = {
+                        name: categoryData.name,
+                        parent_id: categoryData.parent_id ? parseInt(categoryData.parent_id) : null,
+                        sort_order: parseInt(categoryData.sort_order) || 0,
+                        description: categoryData.description || '',
+                        is_active: isActive, // Ensure boolean
+                        product_attribute_ids: categoryData.product_attribute_ids || [],
+                        image_base64: base64
+                    };
+                    
+                    // Include ID only for updates (existing categories)
+                    if (isUpdate && categoryData.id) {
+                        processedData.id = parseInt(categoryData.id);
+                    }
+                    
+                    processedCategories.push(processedData);
+                    processedCount++;
+                    checkIfAllProcessed();
+                });
+            } else {
+                const processedData = {
+                    name: categoryData.name,
+                    parent_id: categoryData.parent_id ? parseInt(categoryData.parent_id) : null,
+                    sort_order: parseInt(categoryData.sort_order) || 0,
+                    description: categoryData.description || '',
+                    is_active: isActive, // Ensure boolean
+                    product_attribute_ids: categoryData.product_attribute_ids || []
+                };
+                
+                // Include ID only for updates (existing categories)
+                if (isUpdate && categoryData.id) {
+                    processedData.id = parseInt(categoryData.id);
+                }
+                
+                processedCategories.push(processedData);
+                processedCount++;
+                checkIfAllProcessed();
+            }
+        }
+        
+        function checkIfAllProcessed() {
+            if (processedCount >= totalToProcess && !allProcessed) {
+                allProcessed = true;
+                // Use setTimeout to ensure this only runs once
+                setTimeout(function() {
+                    if (allProcessed) {
+                        sendBulkRequests();
+                    }
+                }, 10);
+            }
+        }
+        
+        // Process all categories
+        if (totalToProcess === 0) {
+            $('#saveMultipleBtnText').removeClass('d-none');
+            $('#saveMultipleBtnSpinner').addClass('d-none');
+            $('#saveMultipleChildCategoriesBtn').prop('disabled', false);
+            return;
+        }
+        
+        // Process all categories (async image processing)
+        categoriesToSave.forEach(function(cat) {
+            processCategory(cat, false);
+        });
+        
+        categoriesToUpdate.forEach(function(cat) {
+            processCategory(cat, true);
+        });
+        
+        // Send bulk sync request (single request for both create and update)
+        let requestsSent = false;
+        function sendBulkRequests() {
+            // Prevent duplicate calls
+            if (requestsSent) {
+                return;
+            }
+            requestsSent = true;
+            
+            // Send single bulk-sync request (handles both create and update)
+            if (processedCategories.length > 0) {
+                $.ajax({
+                    url: '{{ route("categories.bulk-sync") }}',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    data: JSON.stringify({
+                        categories: processedCategories
+                    }),
+                    success: function(response) {
+                        handleBulkSyncResponse(response);
+                    },
+                    error: function(xhr) {
+                        handleBulkSyncError(xhr);
+                    }
+                });
+            }
+        }
+        
+        function handleBulkSyncResponse(response) {
+            $('#saveMultipleBtnText').removeClass('d-none');
+            $('#saveMultipleBtnSpinner').addClass('d-none');
+            $('#saveMultipleChildCategoriesBtn').prop('disabled', false);
+            
+            const createdCount = response.results?.created?.success?.length || 0;
+            const updatedCount = response.results?.updated?.success?.length || 0;
+            const createdFailed = response.results?.created?.failed?.length || 0;
+            const updatedFailed = response.results?.updated?.failed?.length || 0;
+            const totalFailed = createdFailed + updatedFailed;
+            
+            if (totalFailed === 0) {
+                // Reload existing children (this will also add them as rows)
+                const parentId = $('#manageChildrenCategoriesParentId').val();
+                loadExistingChildren(parentId);
+                
+                // Reload main categories table
+                loadCategories();
+                
+                // Show success message
+                if (response.message) {
+                    showToast('success', response.message);
+                } else {
+                    let message = '';
+                    if (createdCount > 0 && updatedCount > 0) {
+                        message = `Successfully created ${createdCount} and updated ${updatedCount} category(ies)`;
+                    } else if (createdCount > 0) {
+                        message = `Successfully created ${createdCount} category(ies)`;
+                    } else if (updatedCount > 0) {
+                        message = `Successfully updated ${updatedCount} category(ies)`;
+                    }
+                    showToast('success', message);
+                }
+            } else {
+                let message = response.message || `Processed ${createdCount + updatedCount} category(ies), ${totalFailed} failed`;
+                showToast('warning', message);
+                
+                // Still reload to show what was saved
+                if (createdCount > 0 || updatedCount > 0) {
+                    const parentId = $('#manageChildrenCategoriesParentId').val();
+                    loadExistingChildren(parentId);
+                    loadCategories();
+                }
+            }
+        }
+        
+        function handleBulkSyncError(xhr) {
+            $('#saveMultipleBtnText').removeClass('d-none');
+            $('#saveMultipleBtnSpinner').addClass('d-none');
+            $('#saveMultipleChildCategoriesBtn').prop('disabled', false);
+            
+            let message = 'Failed to save categories';
+            if (xhr && xhr.responseJSON) {
+                message = xhr.responseJSON.message || message;
+                if (xhr.responseJSON.errors) {
+                    const errorMessages = Object.values(xhr.responseJSON.errors).flat();
+                    if (errorMessages.length > 0) {
+                        message += ': ' + errorMessages[0];
+                    }
+                }
+            }
+            
+            showToast('error', message);
+        }
     });
 
     // Close popovers when action is clicked (the existing edit/delete handlers will handle the actions)

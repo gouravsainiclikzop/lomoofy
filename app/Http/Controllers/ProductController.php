@@ -340,7 +340,7 @@ class ProductController extends Controller
             'status' => 'required|in:published,hidden',
             'visibility' => 'nullable|in:published,hidden',
             'published_at' => 'nullable|date',
-            'featured' => 'nullable|in:on,1,true',
+            'featured' => 'nullable|in:0,1,on,true',
             'gst_type' => 'nullable|in:0,1',
             'gst_percentage' => 'nullable|in:0,3,5,12,18,28',
             'category_id' => 'nullable|exists:categories,id',
@@ -449,7 +449,6 @@ class ProductController extends Controller
             $product = Product::create([
                 'name' => $request->name,
                 'slug' => $slug,
-                'description' => $request->description,
                 'short_description' => $request->short_description,
                 'brand_id' => $brandIds[0], // Keep for backward compatibility
                 'requires_shipping' => $request->has('requires_shipping'),
@@ -462,7 +461,7 @@ class ProductController extends Controller
                 'tags' => $request->tags,
                 'status' => $request->visibility ?? $request->status,
                 'published_at' => $request->published_at,
-                'featured' => $request->has('featured'),
+                'featured' => $request->featured == '1' || $request->featured === 1,
                 'category_id' => $request->category_ids && count($request->category_ids) > 0 ? $request->category_ids[0] : $request->category_id,
             ]);
 
@@ -719,7 +718,7 @@ class ProductController extends Controller
             'status' => 'required|in:published,hidden',
             'visibility' => 'nullable|in:published,hidden',
             'published_at' => 'nullable|date',
-            'featured' => 'nullable|in:on,1,true',
+            'featured' => 'nullable|in:0,1,on,true',
             'gst_type' => 'nullable|in:0,1',
             'gst_percentage' => 'nullable|in:0,3,5,12,18,28',
             'category_id' => 'nullable|exists:categories,id',
@@ -833,7 +832,6 @@ class ProductController extends Controller
             $product->update([
                 'name' => $request->name,
                 'slug' => $slug,
-                'description' => $request->description,
                 'short_description' => $request->short_description,
                 'requires_shipping' => $request->has('requires_shipping'),
                 'free_shipping' => $request->has('free_shipping'),
@@ -845,7 +843,7 @@ class ProductController extends Controller
                 'tags' => $request->tags,
                 'status' => $request->visibility ?? $request->status,
                 'published_at' => $request->published_at,
-                'featured' => $request->has('featured'),
+                'featured' => $request->featured == '1' || $request->featured === 1,
                 'category_id' => $request->category_ids && count($request->category_ids) > 0 ? $request->category_ids[0] : $request->category_id,
                 // default_warehouse_id not updated from form - warehouse management moved to Inventory module
             ]);
@@ -1905,6 +1903,8 @@ class ProductController extends Controller
             'height' => $heightValue,
             'diameter' => $diameterValue,
             'highlights_details' => $this->normalizeHighlightsDetails($variantData['highlights_details'] ?? null),
+            'description' => $variantData['description'] ?? ($variant->description ?? null),
+            'additional_information' => $variantData['additional_information'] ?? ($variant->additional_information ?? null),
             'sort_order' => $index,
         ]);
 
@@ -2114,8 +2114,15 @@ class ProductController extends Controller
                 continue;
             }
 
-            $attributeId = isset($measurement['attribute_id']) ? (int) $measurement['attribute_id'] : null;
-            if (!$attributeId) {
+            $attributeId = isset($measurement['attribute_id']) && $measurement['attribute_id'] !== null 
+                ? (int) $measurement['attribute_id'] 
+                : null;
+            
+            // Get attribute name - use provided name or look up from attribute_id
+            $attributeName = trim($measurement['attribute_name'] ?? '');
+            
+            // If no attribute_id and no attribute_name, skip this measurement
+            if (!$attributeId && empty($attributeName)) {
                 continue;
             }
 
@@ -2124,10 +2131,24 @@ class ProductController extends Controller
                 continue;
             }
 
-            if (!array_key_exists($attributeId, $attributeCache)) {
-                $attributeCache[$attributeId] = ProductAttribute::find($attributeId);
+            // Look up attribute from database only if attribute_id is provided
+            $attribute = null;
+            $attributeSlug = $measurement['attribute_slug'] ?? null;
+            
+            if ($attributeId) {
+                if (!array_key_exists($attributeId, $attributeCache)) {
+                    $attributeCache[$attributeId] = ProductAttribute::find($attributeId);
+                }
+                $attribute = $attributeCache[$attributeId];
+                
+                // Use attribute name from database if not provided, otherwise use provided name
+                if (empty($attributeName) && $attribute) {
+                    $attributeName = $attribute->name;
+                }
+                if (!$attributeSlug && $attribute) {
+                    $attributeSlug = $attribute->slug;
+                }
             }
-            $attribute = $attributeCache[$attributeId];
 
             $unitId = isset($measurement['unit_id']) ? (int) $measurement['unit_id'] : null;
             if ($unitId && !array_key_exists($unitId, $unitCache)) {
@@ -2137,8 +2158,8 @@ class ProductController extends Controller
 
             $normalized[] = [
                 'attribute_id' => $attributeId,
-                'attribute_name' => $measurement['attribute_name'] ?? ($attribute ? $attribute->name : null),
-                'attribute_slug' => $measurement['attribute_slug'] ?? ($attribute ? $attribute->slug : null),
+                'attribute_name' => $attributeName,
+                'attribute_slug' => $attributeSlug,
                 'value' => $value,
                 'unit_id' => $unitId,
                 'unit_name' => $measurement['unit_name'] ?? ($unit ? $unit->name : null),

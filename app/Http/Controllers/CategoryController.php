@@ -39,32 +39,101 @@ class CategoryController extends Controller
             return $this->getHierarchicalData($request);
         }
         
-        $query = Category::with(['parent'])->withCount('products');
+        // Eager load parent relationships recursively to find root categories
+        $query = Category::whereNull('deleted_at')->with(['parent.parent.parent.parent'])->withCount('products');
         
-        // Search functionality
+        // Search functionality - qualify columns with table name to avoid ambiguity
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('description', 'like', '%' . $search . '%')
-                  ->orWhere('slug', 'like', '%' . $search . '%');
+                $q->where('categories.name', 'like', '%' . $search . '%')
+                  ->orWhere('categories.description', 'like', '%' . $search . '%')
+                  ->orWhere('categories.slug', 'like', '%' . $search . '%');
             });
         }
         
-        // Filter by status
+        // Filter by status - qualify column with table name to avoid ambiguity
         if ($request->has('status') && $request->status !== '') {
-            $query->where('is_active', $request->status);
+            $query->where('categories.is_active', $request->status);
         }
         
-        // Order by sort_order, then by name (supports unlimited nesting)
-        $categories = $query->with('productAttributes')->orderBy('sort_order')
-            ->orderBy('name')
-            ->paginate(20);
-
-        $data = $categories->map(function ($category) {
+        // Get all categories first to compute root parent sort_order
+        // This allows us to order by the root/main parent category's sort_order
+        $allCategories = $query->with('productAttributes')->get();
+        
+        // Add root parent sort_order to each category for sorting
+        // Only use sort_order from root categories (categories with no parent_id)
+        $categoriesWithRoot = $allCategories->map(function ($category) {
+            $rootCategory = $category->getRootCategory();
+            // Only use root category's sort_order (category with no parent_id)
+            if ($rootCategory && !$rootCategory->parent_id) {
+                $category->root_sort_order = $rootCategory->sort_order;
+            } else {
+                // If category itself is root (no parent_id), use its own sort_order
+                $category->root_sort_order = $category->sort_order ?? 999999;
+            }
+            return $category;
+        });
+        
+        // Sort by root category's sort_order only (categories with no parents), then by name
+        $sortedCategories = $categoriesWithRoot->sortBy([
+            ['root_sort_order', 'asc'],
+            ['name', 'asc'],
+        ])->values();
+        
+        // No pagination - return all categories
+        $allCategoriesForHierarchy = $sortedCategories;
+        
+        // Add has_children flag to each category
+        $allCategoriesForHierarchy = $allCategoriesForHierarchy->map(function ($category) use ($sortedCategories) {
+            // Check if this category has children
+            $children = $sortedCategories->filter(function($cat) use ($category) {
+                return $cat->parent_id == $category->id;
+            });
+            
+            $category->has_children = $children->count() > 0;
+            $category->children_count = $children->count();
+            
+            return $category;
+        });
+        
+        // Map ALL categories (not just paginated) for response
+        // This ensures parent-child relationships are preserved in the frontend
+        $allCategoriesData = $allCategoriesForHierarchy->map(function ($category) use ($allCategoriesForHierarchy) {
+            // Find the category in the full list to get children info
+            $fullCategory = $allCategoriesForHierarchy->firstWhere('id', $category->id);
+            
+            // Get children for this category
+            $children = $allCategoriesForHierarchy->filter(function($cat) use ($category) {
+                return $cat->parent_id == $category->id;
+            })->map(function($child) {
+                return [
+                    'id' => $child->id,
+                    'name' => $child->name,
+                    'slug' => $child->slug,
+                    'parent_name' => $child->parent ? $child->parent->name : null,
+                    'parent_id' => $child->parent_id,
+                    'is_active' => $child->is_active,
+                    'sort_order' => $child->sort_order,
+                    'description' => $child->description,
+                    'image' => $child->image,
+                    'products_count' => $child->products_count ?? 0,
+                    'created_at' => $child->created_at,
+                    'has_children' => $child->has_children ?? false,
+                    'product_attributes' => $child->productAttributes->map(function($attr) {
+                        return [
+                            'id' => $attr->id,
+                            'name' => $attr->name,
+                            'is_variation' => $attr->is_variation ?? false,
+                        ];
+                    }),
+                ];
+            })->values();
+            
             return [
                 'id' => $category->id,
                 'name' => $category->name,
+                'full_path_name' => $category->getFullPathName(),
                 'slug' => $category->slug,
                 'parent_name' => $category->parent ? $category->parent->name : null,
                 'parent_id' => $category->parent_id,
@@ -74,6 +143,8 @@ class CategoryController extends Controller
                 'image' => $category->image,
                 'products_count' => $category->products_count ?? 0,
                 'created_at' => $category->created_at,
+                'has_children' => $fullCategory->has_children ?? false,
+                'children' => $children->toArray(),
                 'product_attributes' => $category->productAttributes->map(function($attr) {
                     return [
                         'id' => $attr->id,
@@ -84,24 +155,19 @@ class CategoryController extends Controller
             ];
         });
 
+
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'data' => $data,
-                'pagination' => [
-                    'current_page' => $categories->currentPage(),
-                    'last_page' => $categories->lastPage(),
-                    'per_page' => $categories->perPage(),
-                    'total' => $categories->total(),
-                    'has_more_pages' => $categories->hasMorePages(),
-                    'links' => $categories->links()->render()
-                ]
+                'data' => $allCategoriesData,
+                'total' => $allCategoriesData->count()
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => $allCategoriesData,
+            'total' => $allCategoriesData->count()
         ]);
     }
 
@@ -111,7 +177,7 @@ class CategoryController extends Controller
     private function getHierarchicalData(Request $request)
     {
         // Load all categories with children recursively
-        $query = Category::with(['parent', 'productAttributes'])->withCount('products');
+        $query = Category::whereNull('deleted_at')->with(['parent', 'productAttributes'])->withCount('products');
         
         // Search functionality
         if ($request->has('search') && $request->search) {
@@ -808,6 +874,506 @@ public function edit(Request $request)
         return response()->json([
             'success' => true,
             'data' => $attributes
+        ]);
+    }
+
+    /**
+     * Bulk update categories (POST AJAX JSON).
+     * Updates multiple categories in a single request.
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'categories' => 'required|array',
+            'categories.*.id' => 'required|exists:categories,id',
+            'categories.*.name' => 'required|string|max:255',
+            'categories.*.parent_id' => 'nullable|exists:categories,id',
+            'categories.*.description' => 'nullable|string',
+            'categories.*.is_active' => 'nullable|boolean',
+            'categories.*.sort_order' => 'nullable|integer',
+            'categories.*.product_attribute_ids' => 'nullable|array',
+            'categories.*.image_base64' => 'nullable|string', // Base64 encoded image
+        ]);
+
+        $results = [
+            'success' => [],
+            'failed' => []
+        ];
+
+        foreach ($request->categories as $categoryData) {
+            try {
+                $category = Category::find($categoryData['id']);
+                
+                if (!$category) {
+                    $results['failed'][] = [
+                        'id' => $categoryData['id'],
+                        'name' => $categoryData['name'] ?? 'Unknown',
+                        'error' => 'Category not found'
+                    ];
+                    continue;
+                }
+
+                // Validate parent_id constraints
+                if (isset($categoryData['parent_id']) && $categoryData['parent_id']) {
+                    // Can't set parent to itself
+                    if ($categoryData['parent_id'] == $category->id) {
+                        $results['failed'][] = [
+                            'id' => $category->id,
+                            'name' => $categoryData['name'],
+                            'error' => 'A category cannot be its own parent.'
+                        ];
+                        continue;
+                    }
+                    
+                    // Prevent circular references
+                    $parentCategory = Category::find($categoryData['parent_id']);
+                    if ($parentCategory) {
+                        $descendants = $category->descendants()->pluck('id')->toArray();
+                        if (in_array($categoryData['parent_id'], $descendants)) {
+                            $results['failed'][] = [
+                                'id' => $category->id,
+                                'name' => $categoryData['name'],
+                                'error' => 'A category cannot be a parent of its own descendant.'
+                            ];
+                            continue;
+                        }
+                        
+                        // Check maximum depth
+                        $parentDepth = $parentCategory->getDepth();
+                        if ($parentDepth >= 3) {
+                            $results['failed'][] = [
+                                'id' => $category->id,
+                                'name' => $categoryData['name'],
+                                'error' => 'Maximum hierarchy depth is 4 levels.'
+                            ];
+                            continue;
+                        }
+                    }
+                }
+
+                // Handle image upload if base64 provided
+                $imagePath = $category->image; // Keep existing image by default
+                if (isset($categoryData['image_base64']) && !empty($categoryData['image_base64'])) {
+                    try {
+                        // Decode base64 image
+                        $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $categoryData['image_base64']));
+                        
+                        if ($imageData) {
+                            // Generate unique filename
+                            $extension = 'jpg'; // Default, could be detected from base64 header
+                            if (preg_match('#^data:image/(\w+);base64,#i', $categoryData['image_base64'], $matches)) {
+                                $extension = $matches[1];
+                            }
+                            
+                            $filename = uniqid() . '_' . time() . '.' . $extension;
+                            $filePath = 'categories/' . $filename;
+                            
+                            // Delete old image if exists
+                            if ($category->image && Storage::disk('public')->exists($category->image)) {
+                                Storage::disk('public')->delete($category->image);
+                            }
+                            
+                            // Store new image
+                            Storage::disk('public')->put($filePath, $imageData);
+                            $imagePath = $filePath;
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error processing base64 image for category ' . $category->id . ': ' . $e->getMessage());
+                        // Continue with existing image if base64 decode fails
+                    }
+                }
+
+                // Update category
+                $updateData = [
+                    'name' => $categoryData['name'],
+                    'description' => $categoryData['description'] ?? null,
+                    'parent_id' => $categoryData['parent_id'] ?? null,
+                    'image' => $imagePath,
+                    'is_active' => $categoryData['is_active'] ?? true,
+                    'sort_order' => $categoryData['sort_order'] ?? 0,
+                ];
+                
+                $category->update($updateData);
+
+                // Sync product attributes if provided
+                if (isset($categoryData['product_attribute_ids']) && is_array($categoryData['product_attribute_ids'])) {
+                    $category->productAttributes()->sync($categoryData['product_attribute_ids']);
+                }
+
+                $results['success'][] = [
+                    'id' => $category->id,
+                    'name' => $category->name
+                ];
+            } catch (\Exception $e) {
+                Log::error('Error updating category ' . ($categoryData['id'] ?? 'unknown') . ': ' . $e->getMessage());
+                $results['failed'][] = [
+                    'id' => $categoryData['id'] ?? null,
+                    'name' => $categoryData['name'] ?? 'Unknown',
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        // Clear parent categories cache
+        $this->clearParentCategoriesCache();
+
+        return response()->json([
+            'success' => count($results['failed']) === 0,
+            'message' => count($results['success']) . ' category(ies) updated successfully' . 
+                        (count($results['failed']) > 0 ? ', ' . count($results['failed']) . ' failed' : ''),
+            'results' => $results
+        ]);
+    }
+
+    /**
+     * Bulk create categories (POST AJAX JSON).
+     * Creates multiple categories in a single request.
+     */
+    public function bulkStore(Request $request)
+    {
+        $request->validate([
+            'categories' => 'required|array',
+            'categories.*.name' => 'required|string|max:255',
+            'categories.*.parent_id' => 'nullable|exists:categories,id',
+            'categories.*.description' => 'nullable|string',
+            'categories.*.is_active' => 'nullable|boolean',
+            'categories.*.sort_order' => 'nullable|integer',
+            'categories.*.product_attribute_ids' => 'nullable|array',
+            'categories.*.image_base64' => 'nullable|string', // Base64 encoded image
+        ]);
+
+        $results = [
+            'success' => [],
+            'failed' => []
+        ];
+
+        foreach ($request->categories as $categoryData) {
+            try {
+                // Validate parent depth
+                if (isset($categoryData['parent_id']) && $categoryData['parent_id']) {
+                    $parentCategory = Category::find($categoryData['parent_id']);
+                    if ($parentCategory) {
+                        $parentDepth = $parentCategory->getDepth();
+                        if ($parentDepth >= 3) {
+                            $results['failed'][] = [
+                                'name' => $categoryData['name'],
+                                'error' => 'Maximum hierarchy depth is 4 levels.'
+                            ];
+                            continue;
+                        }
+                    }
+                }
+
+                // Handle image upload if base64 provided
+                $imagePath = null;
+                if (isset($categoryData['image_base64']) && !empty($categoryData['image_base64'])) {
+                    try {
+                        // Decode base64 image
+                        $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $categoryData['image_base64']));
+                        
+                        if ($imageData) {
+                            // Generate unique filename
+                            $extension = 'jpg'; // Default
+                            if (preg_match('#^data:image/(\w+);base64,#i', $categoryData['image_base64'], $matches)) {
+                                $extension = $matches[1];
+                            }
+                            
+                            $filename = uniqid() . '_' . time() . '.' . $extension;
+                            $filePath = 'categories/' . $filename;
+                            
+                            // Store new image
+                            Storage::disk('public')->put($filePath, $imageData);
+                            $imagePath = $filePath;
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error processing base64 image for new category: ' . $e->getMessage());
+                    }
+                }
+
+                // Create category
+                $category = Category::create([
+                    'name' => $categoryData['name'],
+                    'description' => $categoryData['description'] ?? null,
+                    'parent_id' => $categoryData['parent_id'] ?? null,
+                    'image' => $imagePath,
+                    'is_active' => $categoryData['is_active'] ?? true,
+                    'sort_order' => $categoryData['sort_order'] ?? 0,
+                ]);
+
+                // Sync product attributes if provided
+                if (isset($categoryData['product_attribute_ids']) && is_array($categoryData['product_attribute_ids'])) {
+                    $category->productAttributes()->sync($categoryData['product_attribute_ids']);
+                }
+
+                $results['success'][] = [
+                    'id' => $category->id,
+                    'name' => $category->name
+                ];
+            } catch (\Exception $e) {
+                Log::error('Error creating category: ' . $e->getMessage());
+                $results['failed'][] = [
+                    'name' => $categoryData['name'] ?? 'Unknown',
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        // Clear parent categories cache
+        $this->clearParentCategoriesCache();
+
+        return response()->json([
+            'success' => count($results['failed']) === 0,
+            'message' => count($results['success']) . ' category(ies) created successfully' . 
+                        (count($results['failed']) > 0 ? ', ' . count($results['failed']) . ' failed' : ''),
+            'results' => $results
+        ]);
+    }
+
+    /**
+     * Bulk sync categories - handles both create and update in a single request.
+     * Categories with 'id' are updated, categories without 'id' are created.
+     */
+    public function bulkSync(Request $request)
+    {
+        $request->validate([
+            'categories' => 'required|array',
+            'categories.*.id' => 'nullable|exists:categories,id', // Optional for new categories
+            'categories.*.name' => 'required|string|max:255',
+            'categories.*.parent_id' => 'nullable|exists:categories,id',
+            'categories.*.description' => 'nullable|string',
+            'categories.*.is_active' => 'nullable',
+            'categories.*.sort_order' => 'nullable|integer',
+            'categories.*.product_attribute_ids' => 'nullable|array',
+            'categories.*.image_base64' => 'nullable|string',
+        ]);
+
+        // Normalize is_active values
+        $categories = collect($request->categories)->map(function($category) {
+            if (isset($category['is_active'])) {
+                $category['is_active'] = filter_var($category['is_active'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                if ($category['is_active'] === null) {
+                    $category['is_active'] = true;
+                }
+            } else {
+                $category['is_active'] = true;
+            }
+            return $category;
+        })->toArray();
+        $request->merge(['categories' => $categories]);
+
+        $results = [
+            'created' => ['success' => [], 'failed' => []],
+            'updated' => ['success' => [], 'failed' => []]
+        ];
+
+        foreach ($request->categories as $categoryData) {
+            $isUpdate = isset($categoryData['id']) && !empty($categoryData['id']);
+            
+            try {
+                // Validate parent depth
+                if (isset($categoryData['parent_id']) && $categoryData['parent_id']) {
+                    $parentCategory = Category::whereNull('deleted_at')->find($categoryData['parent_id']);
+                    if ($parentCategory) {
+                        $parentDepth = $parentCategory->getDepth();
+                        if ($parentDepth >= 3) {
+                            if ($isUpdate) {
+                                $results['updated']['failed'][] = [
+                                    'id' => $categoryData['id'],
+                                    'name' => $categoryData['name'],
+                                    'error' => 'Maximum hierarchy depth is 4 levels.'
+                                ];
+                            } else {
+                                $results['created']['failed'][] = [
+                                    'name' => $categoryData['name'],
+                                    'error' => 'Maximum hierarchy depth is 4 levels.'
+                                ];
+                            }
+                            continue;
+                        }
+                    }
+                }
+
+                // Handle image upload if base64 provided
+                $imagePath = null;
+                if (isset($categoryData['image_base64']) && !empty($categoryData['image_base64'])) {
+                    try {
+                        $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $categoryData['image_base64']));
+                        
+                        if ($imageData) {
+                            $extension = 'jpg';
+                            if (preg_match('#^data:image/(\w+);base64,#i', $categoryData['image_base64'], $matches)) {
+                                $extension = $matches[1];
+                            }
+                            
+                            $filename = uniqid() . '_' . time() . '.' . $extension;
+                            $filePath = 'categories/' . $filename;
+                            
+                            if ($isUpdate) {
+                                $category = Category::find($categoryData['id']);
+                                if ($category && $category->image && Storage::disk('public')->exists($category->image)) {
+                                    Storage::disk('public')->delete($category->image);
+                                }
+                            }
+                            
+                            Storage::disk('public')->put($filePath, $imageData);
+                            $imagePath = $filePath;
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error processing base64 image: ' . $e->getMessage());
+                    }
+                }
+
+                if ($isUpdate) {
+                    // Update existing category
+                    $category = Category::find($categoryData['id']);
+                    if (!$category) {
+                        $results['updated']['failed'][] = [
+                            'id' => $categoryData['id'],
+                            'name' => $categoryData['name'],
+                            'error' => 'Category not found'
+                        ];
+                        continue;
+                    }
+
+                    $updateData = [
+                        'name' => $categoryData['name'],
+                        'description' => $categoryData['description'] ?? null,
+                        'parent_id' => $categoryData['parent_id'] ?? null,
+                        'is_active' => $categoryData['is_active'] ?? true,
+                        'sort_order' => $categoryData['sort_order'] ?? 0,
+                    ];
+                    
+                    if ($imagePath) {
+                        $updateData['image'] = $imagePath;
+                    }
+                    
+                    $category->update($updateData);
+
+                    // Sync product attributes if provided
+                    if (isset($categoryData['product_attribute_ids']) && is_array($categoryData['product_attribute_ids'])) {
+                        $category->productAttributes()->sync($categoryData['product_attribute_ids']);
+                    }
+
+                    $results['updated']['success'][] = [
+                        'id' => $category->id,
+                        'name' => $category->name
+                    ];
+                } else {
+                    // Create new category
+                    $category = Category::create([
+                        'name' => $categoryData['name'],
+                        'description' => $categoryData['description'] ?? null,
+                        'parent_id' => $categoryData['parent_id'] ?? null,
+                        'image' => $imagePath,
+                        'is_active' => $categoryData['is_active'] ?? true,
+                        'sort_order' => $categoryData['sort_order'] ?? 0,
+                    ]);
+
+                    // Sync product attributes if provided
+                    if (isset($categoryData['product_attribute_ids']) && is_array($categoryData['product_attribute_ids'])) {
+                        $category->productAttributes()->sync($categoryData['product_attribute_ids']);
+                    }
+
+                    $results['created']['success'][] = [
+                        'id' => $category->id,
+                        'name' => $category->name
+                    ];
+                }
+            } catch (\Exception $e) {
+                Log::error('Error ' . ($isUpdate ? 'updating' : 'creating') . ' category: ' . $e->getMessage());
+                if ($isUpdate) {
+                    $results['updated']['failed'][] = [
+                        'id' => $categoryData['id'] ?? null,
+                        'name' => $categoryData['name'] ?? 'Unknown',
+                        'error' => $e->getMessage()
+                    ];
+                } else {
+                    $results['created']['failed'][] = [
+                        'name' => $categoryData['name'] ?? 'Unknown',
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+        }
+
+        // Clear parent categories cache
+        $this->clearParentCategoriesCache();
+
+        $createdCount = count($results['created']['success']);
+        $updatedCount = count($results['updated']['success']);
+        $failedCount = count($results['created']['failed']) + count($results['updated']['failed']);
+
+        $message = '';
+        if ($createdCount > 0 && $updatedCount > 0) {
+            $message = "Successfully created {$createdCount} and updated {$updatedCount} category(ies)";
+        } elseif ($createdCount > 0) {
+            $message = "Successfully created {$createdCount} category(ies)";
+        } elseif ($updatedCount > 0) {
+            $message = "Successfully updated {$updatedCount} category(ies)";
+        }
+        
+        if ($failedCount > 0) {
+            $message .= ", {$failedCount} failed";
+        }
+
+        return response()->json([
+            'success' => $failedCount === 0,
+            'message' => $message,
+            'results' => $results
+        ]);
+    }
+
+    /**
+     * Get children of a category (AJAX JSON).
+     */
+    public function getChildren(Request $request)
+    {
+        $parentId = $request->get('parent_id');
+        
+        if (!$parentId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Parent ID is required'
+            ], 400);
+        }
+
+        $parent = Category::find($parentId);
+        
+        if (!$parent) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Parent category not found'
+            ], 404);
+        }
+
+        $children = $parent->children()
+            ->with('productAttributes')
+            ->withCount('products')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($child) {
+                return [
+                    'id' => $child->id,
+                    'name' => $child->name,
+                    'slug' => $child->slug,
+                    'description' => $child->description,
+                    'image' => $child->image,
+                    'is_active' => $child->is_active,
+                    'sort_order' => $child->sort_order,
+                    'product_attribute_ids' => $child->productAttributes->pluck('id')->toArray(),
+                    'products_count' => $child->products_count ?? 0,
+                    'created_at' => $child->created_at,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $children,
+            'parent' => [
+                'id' => $parent->id,
+                'name' => $parent->name,
+            ]
         ]);
     }
 }

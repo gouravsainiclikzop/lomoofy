@@ -36,92 +36,43 @@
             {{-- Short Description - Compact --}}
             <div class="col-12 ">
                 <label for="productShortDescription" class="form-label form-label-sm">Short Description</label>
-                <div id="shortDescriptionEditor"></div>
-                <textarea class="form-control form-control-sm d-none" id="productShortDescription" name="short_description" 
+                <textarea class="form-control form-control-sm" id="productShortDescription" name="short_description" 
                           placeholder="Brief product summary...">{{ old('short_description', $product->short_description ?? '') }}</textarea>
                 <div class="invalid-feedback"></div>
             </div>
 
-            {{-- Full Description - Collapsible --}}
-            <div class="col-12">
-                <label for="productDescription" class="form-label form-label-sm mb-1">Detailed Description</label>
 
-                <div id="descriptionEditor"></div>
-
-                <textarea class="form-control d-none" 
-                        id="productDescription" 
-                        name="description"
-                        placeholder="Detailed product description...">
-                    {{ old('description', $product->description ?? '') }}
-                </textarea>
-
+            {{-- Product Status, Featured Product, GST Type, GST Percentage - Single Row --}}
+            <div class="col-3">
+                <label for="productStatus" class="form-label form-label-sm">Product Status <span class="text-danger">*</span></label>
+                <select class="form-select form-select-sm" id="productStatus" name="status" required>
+                    <option value="published" {{ old('status', $product->status ?? 'published') == 'published' ? 'selected' : '' }}>Active</option>
+                    <option value="hidden" {{ old('status', $product->status ?? 'published') == 'hidden' ? 'selected' : '' }}>Draft</option>
+                </select>
                 <div class="invalid-feedback"></div>
             </div>
 
-            {{-- Product Status and Featured --}}
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label class="form-label form-label-sm d-block mb-2">
-                        Product Status <span class="text-danger">*</span>
-                    </label>
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="status" id="statusPublished" value="published"
-                               {{ old('status', $product->status ?? 'published') == 'published' ? 'checked' : '' }}>
-                        <label class="btn btn-outline-success btn-sm" for="statusPublished">
-                            <i class="fas fa-check-circle me-1"></i>Active
-                        </label>
-                        <input type="radio" class="btn-check" name="status" id="statusDraft" value="hidden"
-                               {{ old('status', $product->status ?? 'published') == 'hidden' ? 'checked' : '' }}>
-                        <label class="btn btn-outline-secondary btn-sm" for="statusDraft">
-                            <i class="fas fa-eye-slash me-1"></i>Draft
-                        </label>
-                    </div>
-                    <div class="invalid-feedback"></div>
-                </div>
+            <div class="col-3">
+                <label for="featuredProduct" class="form-label form-label-sm">Featured Product</label>
+                <select class="form-select form-select-sm" id="featuredProduct" name="featured">
+                    <option value="0" {{ old('featured', $product->featured ?? false) ? '' : 'selected' }}>No</option>
+                    <option value="1" {{ old('featured', $product->featured ?? false) ? 'selected' : '' }}>Yes</option>
+                </select>
             </div>
 
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label class="form-label form-label-sm d-block mb-2">
-                        Featured Product
-                    </label>
-                    <div class="d-flex align-items-center">
-                        <div class="form-check form-switch me-2">
-                            <input class="form-check-input" type="checkbox" id="featuredProduct" name="featured" 
-                                   {{ old('featured', $product->featured ?? false) ? 'checked' : '' }}>
-                        </div>
-                        <small class="text-muted small mb-0">Highlight this product in featured sections</small>
-                    </div>
-                </div>
+            <div class="col-3">
+                <label for="gstType" class="form-label form-label-sm">GST Type</label>
+                @php
+                    $gstTypeValue = old('gst_type', isset($product) && $product->exists ? ($product->gst_type === false ? '0' : '1') : '1');
+                @endphp
+                <select class="form-select form-select-sm" id="gstType" name="gst_type">
+                    <option value="1" {{ $gstTypeValue == '1' || $gstTypeValue === true || $gstTypeValue === 1 ? 'selected' : '' }}>Inclusive of GST</option>
+                    <option value="0" {{ $gstTypeValue == '0' || $gstTypeValue === false || $gstTypeValue === 0 ? 'selected' : '' }}>Exclusive of GST</option>
+                </select>
+                <div class="invalid-feedback"></div>
             </div>
 
-            {{-- GST Type --}}
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label class="form-label form-label-sm d-block mb-2">
-                        GST Type
-                    </label>
-                    <div class="btn-group w-100" role="group">
-                        @php
-                            $gstTypeValue = old('gst_type', isset($product) && $product->exists ? ($product->gst_type === false ? '0' : '1') : '1');
-                        @endphp
-                        <input type="radio" class="btn-check" name="gst_type" id="gstTypeInclusive" value="1"
-                               {{ $gstTypeValue == '1' || $gstTypeValue === true || $gstTypeValue === 1 ? 'checked' : '' }}>
-                        <label class="btn btn-outline-primary btn-sm" for="gstTypeInclusive">
-                            Inclusive of GST
-                        </label>
-                        <input type="radio" class="btn-check" name="gst_type" id="gstTypeExclusive" value="0"
-                               {{ $gstTypeValue == '0' || $gstTypeValue === false || $gstTypeValue === 0 ? 'checked' : '' }}>
-                        <label class="btn btn-outline-primary btn-sm" for="gstTypeExclusive">
-                            Exclusive of GST
-                        </label>
-                    </div>
-                    <div class="invalid-feedback"></div>
-                </div>
-            </div>
-
-            {{-- GST Percentage --}}
-            <div class="col-md-6">
+            <div class="col-3">
                 <label for="gstPercentage" class="form-label form-label-sm">GST Percentage</label>
                 <select class="form-select form-select-sm" id="gstPercentage" name="gst_percentage">
                     <option value="">Select GST Percentage</option>
@@ -132,7 +83,6 @@
                     <option value="18" {{ old('gst_percentage', $product->gst_percentage ?? '') == '18' || old('gst_percentage', $product->gst_percentage ?? '') == 18 ? 'selected' : '' }}>18%</option>
                     <option value="28" {{ old('gst_percentage', $product->gst_percentage ?? '') == '28' || old('gst_percentage', $product->gst_percentage ?? '') == 28 ? 'selected' : '' }}>28%</option>
                 </select>
-                <small class="text-muted small">Select GST percentage rate</small>
                 <div class="invalid-feedback"></div>
             </div>
 
@@ -162,21 +112,9 @@
     margin-top: 0.5rem;
 }
 
-/* CKEditor styling */
-#shortDescriptionEditor .ck-editor__editable,
-#descriptionEditor .ck-editor__editable {
-    min-height: 100px;
-    font-size: 0.875rem;
-}
-
-#shortDescriptionEditor .ck-toolbar,
-#descriptionEditor .ck-toolbar {
-    font-size: 0.875rem;
-}
-
-#shortDescriptionEditor .ck-toolbar .ck-button,
-#descriptionEditor .ck-toolbar .ck-button {
-    padding: 0.25rem;
+/* RichTextEditor styling */
+#productShortDescription {
+    min-height: 150px;
 }
 
 /* Compact card styling */
@@ -199,17 +137,17 @@
 }
 </style>
 
-<!-- CKEditor 5 CDN -->
-<script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+<!-- RichTextEditor -->
+<link rel="stylesheet" href="{{ asset('frontend/js/richtexteditor/rte_theme_default.css') }}" />
+<script type="text/javascript" src="{{ asset('frontend/js/richtexteditor/rte.js') }}"></script>
+<script type="text/javascript" src="{{ asset('frontend/js/richtexteditor/lang/rte-lang-en.js') }}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const shortDescriptionTextarea = document.getElementById('productShortDescription');
-    const descriptionTextarea = document.getElementById('productDescription');
     const productNameInput = document.getElementById('productName');
     const urlSlugInput = document.getElementById('urlSlug');
     let shortDescriptionEditor = null;
-    let descriptionEditor = null;
     let slugManuallyEdited = false;
 
     const slugify = (value = '') => value
@@ -252,87 +190,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize CKEditor for Short Description
-    ClassicEditor
-        .create(document.querySelector('#shortDescriptionEditor'), {
-            toolbar: ['bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo'],
-            placeholder: 'Brief product summary...',
-            height: 120
-        })
-        .then(editor => {
-            shortDescriptionEditor = editor;
-            
-            // Set initial content
-            const initialContent = shortDescriptionTextarea.value;
-            if (initialContent) {
-                editor.setData(initialContent);
-            }
-            
-            // Update textarea on change
-            editor.model.document.on('change:data', () => {
-                shortDescriptionTextarea.value = editor.getData();
-            });
-        })
-        .catch(error => {
-            console.error('Error initializing Short Description CKEditor:', error);
-        });
-
-    // Initialize CKEditor for Description
-    ClassicEditor
-        .create(document.querySelector('#descriptionEditor'), {
-            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', '|', 'undo', 'redo'],
-            placeholder: 'Detailed product description...',
-            height: 200
-        })
-        .then(editor => {
-            descriptionEditor = editor;
-            
-            // Set initial content
-            const initialContent = descriptionTextarea.value;
-            if (initialContent) {
-                editor.setData(initialContent);
-            }
-            
-            // Update textarea on change
-            editor.model.document.on('change:data', () => {
-                descriptionTextarea.value = editor.getData();
-            });
-        })
-        .catch(error => {
-            console.error('Error initializing Description CKEditor:', error);
-        });
-
-    // Handle collapsible description
-    const descriptionCollapse = document.getElementById('descriptionCollapse');
-    const toggleButton = document.querySelector('[data-bs-target="#descriptionCollapse"]');
-    
-    if (descriptionCollapse && toggleButton) {
-        descriptionCollapse.addEventListener('show.bs.collapse', function () {
-            toggleButton.innerHTML = '<i class="fas fa-chevron-up"></i>';
-        });
+    // Initialize RichTextEditor for Short Description
+    if (shortDescriptionTextarea && typeof RichTextEditor !== 'undefined') {
+        // Configure RichTextEditor with all options enabled
+        RTE_DefaultConfig.url_base = "{{ asset('frontend/js/richtexteditor') }}";
+        RTE_DefaultConfig.toolbar = "full"; // Use full toolbar with all options
+        RTE_DefaultConfig.editorResizeMode = "both"; // Allow both width and height resize
+        RTE_DefaultConfig.showTagList = true; // Show tag list
+        RTE_DefaultConfig.showStatistics = true; // Show statistics
+        RTE_DefaultConfig.showPlusButton = true; // Show plus button
+        RTE_DefaultConfig.showFloatTextToolBar = true; // Show float text toolbar
+        RTE_DefaultConfig.showFloatLinkToolBar = true; // Show float link toolbar
+        RTE_DefaultConfig.showFloatImageToolBbar = true; // Show float image toolbar
+        RTE_DefaultConfig.showFloatTableToolBar = true; // Show float table toolbar
+        RTE_DefaultConfig.showFloatParagraph = true; // Show float paragraph
+        RTE_DefaultConfig.enableDragDrop = true; // Enable drag and drop
+        RTE_DefaultConfig.enableObjectResizing = true; // Enable object resizing
+        RTE_DefaultConfig.toggleBorder = true; // Enable toggle border
         
-        descriptionCollapse.addEventListener('hide.bs.collapse', function () {
-            toggleButton.innerHTML = '<i class="fas fa-chevron-down"></i>';
+        // Initialize the editor
+        shortDescriptionEditor = new RichTextEditor(shortDescriptionTextarea);
+        
+        // Update textarea on change
+        shortDescriptionEditor.attachEvent("textchanged", function() {
+            shortDescriptionTextarea.value = shortDescriptionEditor.getHTMLCode();
         });
     }
-    
-    // Auto-expand description if it has content
-    if (descriptionTextarea && descriptionTextarea.value.trim() !== '') {
-        descriptionCollapse.classList.add('show');
-        if (toggleButton) {
-            toggleButton.innerHTML = '<i class="fas fa-chevron-up"></i>';
-        }
-    }
 
-    // Update textareas before form submission
+    // Update textarea before form submission
     const productForm = document.getElementById('productForm') || document.querySelector('form');
     if (productForm) {
         productForm.addEventListener('submit', function(e) {
-            if (shortDescriptionEditor) {
-                shortDescriptionTextarea.value = shortDescriptionEditor.getData();
-            }
-            if (descriptionEditor) {
-                descriptionTextarea.value = descriptionEditor.getData();
+            if (shortDescriptionEditor && typeof shortDescriptionEditor.getHTMLCode === 'function') {
+                shortDescriptionTextarea.value = shortDescriptionEditor.getHTMLCode();
             }
         });
     }

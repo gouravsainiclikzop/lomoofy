@@ -15,7 +15,6 @@ class Product extends Model
         // Basic Information (product-level only)
         'name',
         'slug',
-        'description', // Detailed description
         'short_description',
         'status',
         'featured',

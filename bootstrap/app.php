@@ -19,5 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Redirect unauthenticated users to admin.login instead of login
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $exception, \Illuminate\Http\Request $request) {
+            if ($exception instanceof \Illuminate\Auth\AuthenticationException && !$request->expectsJson() && !$request->is('api/*')) {
+                return redirect()->route('admin.login');
+            }
+            
+            return $response;
+        });
     })->create();

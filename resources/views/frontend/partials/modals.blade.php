@@ -80,7 +80,7 @@
 									</div>
 									<div class="col-12 col-md-6 col-lg-3">
 										<!-- Wishlist -->
-										<button class="btn custom-height btn-default btn-block mb-2 text-dark" id="quickViewWishlist" data-product-id="" data-bs-toggle="button">
+										<button class="btn custom-height btn-default btn-block mb-2 text-dark" id="quickViewWishlist" data-product-id="" type="button">
 											<i class="lni lni-heart me-2"></i>Wishlist
 										</button>
 									</div>
@@ -451,8 +451,20 @@ $(document).ready(function() {
         // Add wishlist button click handler
         $('#quickViewWishlist').off('click').on('click', function(e) {
             e.preventDefault();
-            const productId = $(this).data('product-id');
-            if (!productId) return;
+            e.stopPropagation();
+            
+            const $btn = $(this);
+            
+            // Prevent multiple clicks while processing
+            if ($btn.data('processing')) {
+                return false;
+            }
+            
+            const productId = $btn.data('product-id');
+            if (!productId) return false;
+            
+            // Set processing flag
+            $btn.data('processing', true);
             
             // Get session ID
             let sessionId = localStorage.getItem('session_id');
@@ -461,7 +473,7 @@ $(document).ready(function() {
                 localStorage.setItem('session_id', sessionId);
             }
             
-            const $btn = $(this);
+            // Check current state before making request
             const isActive = $btn.hasClass('active');
             
             if (isActive) {
@@ -476,20 +488,30 @@ $(document).ready(function() {
                             const $icon = $btn.find('i');
                             $icon.removeClass('fas fa-heart').addClass('lni lni-heart').css('color', '');
                             $btn.removeClass('text-danger').css('color', '');
-                            if (typeof Snackbar !== 'undefined') {
-                                Snackbar.show({
-                                    text: 'Product removed from wishlist',
-                                    pos: 'top-right',
-                                    showAction: false,
-                                    duration: 3000,
-                                    textColor: '#fff',
-                                    backgroundColor: '#151515'
-                                });
+                            
+                            // Only show message if product was actually removed
+                            // If message says "Product not in wishlist", don't show any message (already in desired state)
+                            if (response.message && !response.message.includes('not in wishlist')) {
+                                if (typeof Snackbar !== 'undefined') {
+                                    Snackbar.show({
+                                        text: response.message || 'Product removed from wishlist',
+                                        pos: 'top-right',
+                                        showAction: false,
+                                        duration: 3000,
+                                        textColor: '#fff',
+                                        backgroundColor: '#151515'
+                                    });
+                                }
                             }
                             updateWishlistCount();
                         }
+                        // Clear processing flag
+                        $btn.data('processing', false);
                     },
                     error: function(xhr) {
+                        // Clear processing flag
+                        $btn.data('processing', false);
+                        
                         // Even if product not found, treat as success (idempotent)
                         if (xhr.status === 404 || (xhr.responseJSON && xhr.responseJSON.message && xhr.responseJSON.message.includes('not in wishlist'))) {
                             $btn.removeClass('active text-danger');
@@ -539,8 +561,13 @@ $(document).ready(function() {
                             }
                             updateWishlistCount();
                         }
+                        // Clear processing flag
+                        $btn.data('processing', false);
                     },
                     error: function(xhr) {
+                        // Clear processing flag
+                        $btn.data('processing', false);
+                        
                         console.error('Error adding to wishlist:', xhr);
                         const message = xhr.responseJSON && xhr.responseJSON.message 
                             ? xhr.responseJSON.message 
@@ -558,6 +585,8 @@ $(document).ready(function() {
                     }
                 });
             }
+            
+            return false;
         });
         
         // Update share links
@@ -807,6 +836,13 @@ $(document).ready(function() {
     function checkWishlistStatus(productId) {
         if (!productId) return;
         
+        // Reset button state first
+        const $btn = $('#quickViewWishlist');
+        const $icon = $btn.find('i');
+        $btn.removeClass('active text-danger');
+        $icon.removeClass('fas fa-heart').addClass('lni lni-heart').css('color', '');
+        $btn.css('color', '');
+        
         let sessionId = localStorage.getItem('session_id');
         if (!sessionId) {
             sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -823,21 +859,19 @@ $(document).ready(function() {
                         return item.product_id == productId;
                     });
                     
-                    const $btn = $('#quickViewWishlist');
-                    const $icon = $btn.find('i');
                     if (isInWishlist) {
                         $btn.addClass('active text-danger');
                         $icon.removeClass('lni lni-heart').addClass('fas fa-heart').css('color', '#dc3545');
                         $btn.css('color', '#dc3545');
-                    } else {
-                        $btn.removeClass('active text-danger');
-                        $icon.removeClass('fas fa-heart').addClass('lni lni-heart').css('color', '');
-                        $btn.css('color', '');
                     }
                 }
             },
             error: function(xhr) {
                 console.error('Error checking wishlist status:', xhr);
+                // On error, ensure button is in inactive state
+                $btn.removeClass('active text-danger');
+                $icon.removeClass('fas fa-heart').addClass('lni lni-heart').css('color', '');
+                $btn.css('color', '');
             }
         });
     }

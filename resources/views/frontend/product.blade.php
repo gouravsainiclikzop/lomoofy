@@ -11,8 +11,13 @@
 							<nav aria-label="breadcrumb">
 								<ol class="breadcrumb">
 									<li class="breadcrumb-item"><a href="{{ route('frontend.index') }}">Home</a></li>
-									<li class="breadcrumb-item"><a href="#">Library</a></li>
-									<li class="breadcrumb-item active" aria-current="page">Data</li>
+									@if($product->category)
+										<li class="breadcrumb-item"><a href="{{ route('frontend.shop') }}?category={{ $product->category->slug }}">{{ $product->category->name }}</a></li>
+										@if($product->category->parent)
+											<li class="breadcrumb-item"><a href="{{ route('frontend.shop') }}?category={{ $product->category->parent->slug }}">{{ $product->category->parent->name }}</a></li>
+										@endif
+									@endif
+									<li class="breadcrumb-item active" aria-current="page">{{ $product->name }}</li>
 								</ol>
 							</nav>
 						</div>
@@ -27,23 +32,25 @@
 					<div class="row align-items-center">
 					
 						<div class="col-xl-5 col-lg-6 col-md-12 col-sm-12">
-							<div class="sp-loading"><img src="{{ asset('frontend/images/product/15.png') }}" alt=""><br>LOADING IMAGES</div>
-							<div class="sp-wrap">
-								<a href="{{ asset('frontend/images/product/16.png') }}"><img src="{{ asset('frontend/images/product/16.png') }}" alt=""></a>
-								<a href="{{ asset('frontend/images/product/17.png') }}"><img src="{{ asset('frontend/images/product/17.png') }}" alt=""></a>
-								<a href="{{ asset('frontend/images/product/18.png') }}"><img src="{{ asset('frontend/images/product/18.png') }}" alt=""></a>
-								<a href="{{ asset('frontend/images/product/19.png') }}"><img src="{{ asset('frontend/images/product/19.png') }}" alt=""></a>
-								<a href="{{ asset('frontend/images/product/20.png') }}"><img src="{{ asset('frontend/images/product/20.png') }}" alt=""></a>
-								<a href="{{ asset('frontend/images/product/21.png') }}"><img src="{{ asset('frontend/images/product/21.png') }}" alt=""></a>
+							<div class="sp-loading"><img src="{{ $productImages->first()['url'] ?? asset('frontend/images/product/1.jpg') }}" alt=""><br>LOADING IMAGES</div>
+							<div class="sp-wrap" id="productImagesGallery">
+								@foreach($productImages as $image)
+									<a href="{{ $image['url'] }}"><img src="{{ $image['url'] }}" alt="{{ $image['alt'] }}"></a>
+								@endforeach
+								@if($productImages->isEmpty())
+									<a href="{{ asset('frontend/images/product/1.jpg') }}"><img src="{{ asset('frontend/images/product/1.jpg') }}" alt="{{ $product->name }}"></a>
+								@endif
 							</div>
 						</div>
 						
 						<div class="col-xl-7 col-lg-6 col-md-12 col-sm-12">
 							<div class="prd_details ps-xl-5">
 								
-								<div class="prt_01 mb-2"><span class="text-success bg-light-success rounded px-2 py-1">Women's Suit</span></div>
+								@if($product->category)
+								<div class="prt_01 mb-2"><span class="text-success bg-light-success rounded px-2 py-1">{{ $product->category->name }}</span></div>
+								@endif
 								<div class="prt_02 mb-3">
-									<h2 class="ft-bold mb-1">Women Striped Shirt Dress</h2>
+									<h2 class="ft-bold mb-1">{{ $product->name }}</h2>
 									<div class="text-left">
 										<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
 											<i class="fas fa-star filled"></i>
@@ -51,104 +58,85 @@
 											<i class="fas fa-star filled"></i>
 											<i class="fas fa-star filled"></i>
 											<i class="fas fa-star"></i>
-											<span class="small">(412 Reviews)</span>
+											<span class="small">(0 Reviews)</span>
 										</div>
-										<div class="elis_rty"><span class="ft-medium text-muted line-through fs-md me-2">$199</span><span class="ft-bold theme-cl fs-lg">$110</span></div>
+										<div class="elis_rty">
+											@if($hasSale && $minSalePrice)
+												<span class="ft-medium text-muted line-through fs-md me-2">${{ number_format($minPrice, 0) }}</span>
+												<span class="ft-bold theme-cl fs-lg">${{ number_format($minSalePrice, 0) }}</span>
+											@else
+												<span class="ft-bold theme-cl fs-lg">${{ number_format($minPrice, 0) }}</span>
+												@if($minPrice != $maxPrice && $maxPrice > 0)
+													<span class="ft-bold theme-cl fs-lg"> - ${{ number_format($maxPrice, 0) }}</span>
+												@endif
+											@endif
+										</div>
 									</div>
 								</div>
 								
+								@if($product->short_description) 
 								<div class="prt_03 mb-4">
-									<p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.</p>
+									<p>{!! $product->short_description !!}</p>
 								</div>
+								@endif
 								
+								@if(count($colors) > 0)
                 <div class="prt_04 mb-2">
 									<p class="d-flex align-items-center mb-0 text-dark ft-medium">Color:</p>
 									<div class="text-left">
-										<div class="form-check form-option form-check-inline mb-1">
-											<input class="form-check-input" type="radio" name="color8" id="white8">
-											<label class="form-option-label rounded-circle" for="white8"><span class="form-option-color rounded-circle blc7"></span></label>
-										</div>
-										<div class="form-check form-option form-check-inline mb-1">
-											<input class="form-check-input" type="radio" name="color8" id="blue8">
-											<label class="form-option-label rounded-circle" for="blue8"><span class="form-option-color rounded-circle blc2"></span></label>
-										</div>
-										<div class="form-check form-option form-check-inline mb-1">
-											<input class="form-check-input" type="radio" name="color8" id="yellow8">
-											<label class="form-option-label rounded-circle" for="yellow8"><span class="form-option-color rounded-circle blc5"></span></label>
-										</div>
-										<div class="form-check form-option form-check-inline mb-1">
-											<input class="form-check-input" type="radio" name="color8" id="pink8">
-											<label class="form-option-label rounded-circle" for="pink8"><span class="form-option-color rounded-circle blc3"></span></label>
-										</div>
-										<div class="form-check form-option form-check-inline mb-1">
-											<input class="form-check-input" type="radio" name="color8" id="red">
-											<label class="form-option-label rounded-circle" for="red"><span class="form-option-color rounded-circle blc4"></span></label>
-										</div>
-										<div class="form-check form-option form-check-inline mb-1">
-											<input class="form-check-input" type="radio" name="color8" id="green">
-											<label class="form-option-label rounded-circle" for="green"><span class="form-option-color rounded-circle blc6"></span></label>
-										</div>
+										@foreach($colors as $colorIndex => $colorValue)
+											@php
+												$colorId = 'color_' . strtolower(str_replace(' ', '', $colorValue)) . '_' . $colorIndex;
+												$colorVariant = $colorVariantsMap[$colorValue] ?? null;
+												$colorCode = $colorVariant['color_code'] ?? '#ccc';
+											@endphp
+											<div class="form-check form-option form-check-inline mb-1">
+												<input class="form-check-input color-option-product" type="radio" name="productColor" id="{{ $colorId }}" value="{{ $colorValue }}" 
+													data-color-value="{{ $colorValue }}"
+													data-color-code="{{ $colorCode }}"
+													@if($colorVariant)
+														data-variant-image="{{ $colorVariant['image'] }}"
+														data-price="{{ $colorVariant['display_price'] }}"
+														data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
+														data-regular-price="{{ $colorVariant['price'] }}"
+													@endif
+													{{ $colorIndex === 0 ? 'checked' : '' }}>
+												<label class="form-option-label rounded-circle" for="{{ $colorId }}">
+													<span class="form-option-color rounded-circle" style="background-color: {{ $colorCode }}"></span>
+												</label>
+											</div>
+										@endforeach
 									</div>
 								</div>
+								@endif
+								@if(count($sizes) > 0)
                 <div class="prt_04 mb-4">
 									<p class="d-flex align-items-center mb-0 text-dark ft-medium">Size:</p>
 									<div class="text-left pb-0 pt-2">
-										<div class="form-check size-option form-option form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="28" checked="">
-											<label class="form-option-label" for="28">28</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="30">
-											<label class="form-option-label" for="30">30</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="32">
-											<label class="form-option-label" for="32">32</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="34">
-											<label class="form-option-label" for="34">34</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="36">
-											<label class="form-option-label" for="36">36</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="38">
-											<label class="form-option-label" for="38">38</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="40">
-											<label class="form-option-label" for="40">40</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="42">
-											<label class="form-option-label" for="42">42</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="44">
-											<label class="form-option-label" for="44">44</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="46">
-											<label class="form-option-label" for="46">46</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="48">
-											<label class="form-option-label" for="48">48</label>
-										</div>
-										<div class="form-check form-option size-option  form-check-inline mb-2">
-											<input class="form-check-input" type="radio" name="size" id="50">
-											<label class="form-option-label" for="50">50</label>
-										</div>
+										@foreach($sizes as $sizeIndex => $sizeValue)
+											@php
+												$sizeId = 'size_' . strtolower(str_replace(' ', '', $sizeValue)) . '_' . $sizeIndex;
+											@endphp
+											<div class="form-check size-option form-option form-check-inline mb-2">
+												<input class="form-check-input size-option-product" type="radio" name="productSize" id="{{ $sizeId }}" value="{{ $sizeValue }}" {{ $sizeIndex === 0 ? 'checked' : '' }}>
+												<label class="form-option-label" for="{{ $sizeId }}">{{ $sizeValue }}</label>
+											</div>
+										@endforeach
 									</div>
 								</div>
+								@endif
 
             
 
 								<div class="prt_04 mb-4">
-									<p class="d-flex align-items-center mb-1">Category:<strong class="fs-sm text-dark ft-medium ms-1">Salwar Suit, Women's</strong></p>
-									<p class="d-flex align-items-center mb-0">SKU:<strong class="fs-sm text-dark ft-medium ms-1">Lomoofy42568</strong></p>
+									@if($product->category)
+									<p class="d-flex align-items-center mb-1">Category:<strong class="fs-sm text-dark ft-medium ms-1">
+										{{ $product->category->name }}{{ $product->category->parent ? ', ' . $product->category->parent->name : '' }}
+									</strong></p>
+									@endif
+									@if($displaySku)
+									<p class="d-flex align-items-center mb-0">SKU:<strong class="fs-sm text-dark ft-medium ms-1">{{ $displaySku }}</strong></p>
+									@endif
 								</div>
 								
 								<div class="prt_05 mb-4">
@@ -171,8 +159,10 @@
 										</div>
 										<div class="col-12 col-md-6 col-lg-3">
 											<!-- Wishlist -->
-											<button class="btn custom-height btn-default btn-block mb-2 text-dark w-100" data-bs-toggle="button">
-												<i class="lni lni-heart me-2"></i>Wishlist
+											<button class="btn custom-height btn-default btn-block mb-2 text-dark w-100 snackbar-wishlist {{ $inWishlist ? 'wishlist-active' : '' }}" 
+												data-product-id="{{ $product->id }}" 
+												data-in-wishlist="{{ $inWishlist ? '1' : '0' }}">
+												<i class="lni lni-heart me-2 {{ $inWishlist ? 'text-danger' : '' }}"></i>Wishlist
 											</button>
 										</div>
 								  </div>
@@ -187,7 +177,7 @@
                   <div class="widget-boxed-header">
                     <h4><a href="#productinfo" data-bs-toggle="collapse" aria-expanded="false" role="button" class="collapsed"><i class="ti-info me-2ti-info"></i>Product Info</a></h4>
                   </div>
-                  <div class="widget-boxed-body collapse" id="productinfo" data-parent="#productinfo" style="">
+                  <div class="widget-boxed-body collapse" id="productinfo" data-parent="#productinfo">
                     <div class="side-list no-border">
                       <!-- Single Filter Card -->
                       <div class="single_filter_card">
@@ -255,8 +245,13 @@
 								<!-- Description Content -->
 								<div class="tab-pane fade show active" id="description" role="tabpanel" aria-labelledby="description-tab">
 									<div class="description_info">
-										<p class="p-0 mb-2">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-										<p class="p-0">At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.</p>
+										@if($product->description)
+											<p class="p-0 mb-2">{!! nl2br(e($product->description)) !!}</p>
+										@elseif($product->short_description)
+											<p class="p-0 mb-2">{!! nl2br(e($product->short_description)) !!}</p>
+										@else
+											<p class="p-0 mb-2">No description available for this product.</p>
+										@endif
 									</div>
 								</div>
 								
@@ -266,25 +261,33 @@
 										<table class="table">
 											<tbody>
 												<tr>
-												  <th class="ft-medium text-dark">ID</th>
-												  <td>#1253458</td>
+												  <th class="ft-medium text-dark">Product ID</th>
+												  <td>#{{ $product->id }}</td>
 												</tr>
+												@if($displaySku)
 												<tr>
 												  <th class="ft-medium text-dark">SKU</th>
-												  <td>KUM125896</td>
+												  <td>{{ $displaySku }}</td>
 												</tr>
+												@endif
+												@if(count($colors) > 0)
 												<tr>
-												  <th class="ft-medium text-dark">Color</th>
-												  <td>Sky Blue</td>
+												  <th class="ft-medium text-dark">Available Colors</th>
+												  <td>{{ implode(', ', $colors) }}</td>
 												</tr>
+												@endif
+												@if(count($sizes) > 0)
 												<tr>
-												  <th class="ft-medium text-dark">Size</th>
-												  <td>Xl, 42</td>
+												  <th class="ft-medium text-dark">Available Sizes</th>
+												  <td>{{ implode(', ', $sizes) }}</td>
 												</tr>
+												@endif
+												@if($product->category)
 												<tr>
-												  <th class="ft-medium text-dark">Weight</th>
-												  <td>450 Gr</td>
+												  <th class="ft-medium text-dark">Category</th>
+												  <td>{{ $product->category->name }}{{ $product->category->parent ? ' > ' . $product->category->parent->name : '' }}</td>
 												</tr>
+												@endif
 											</tbody>
 										</table>
 									</div>
@@ -464,7 +467,7 @@
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="sec_title position-relative text-center">
 								<h2 class="off_title">Similar Products</h2>
-								<h3 class="ft-bold pt-3">Matching Producta</h3>
+								<h3 class="ft-bold pt-3">Matching Products</h3>
 							</div>
 						</div>
 					</div>
@@ -472,36 +475,55 @@
 					<div class="row">
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="slide_items">
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/8.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+								@if($similarProducts->count() > 0)
+									@foreach($similarProducts as $similarProduct)
+									<!-- single Item -->
+									<div class="single_itesm">
+										<div class="product_grid card b-0 mb-0">
+											@if($similarProduct['has_sale'])
+												<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+											@endif
+											<button class="snackbar-wishlist btn btn_love position-absolute ab-right" data-product-id="{{ $similarProduct['id'] }}"><i class="far fa-heart"></i></button> 
+											<div class="card-body p-0">
+												<div class="shop_thumb position-relative">
+													<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $similarProduct['slug'] }}"><img class="card-img-top" src="{{ $similarProduct['image_url'] }}" alt="{{ $similarProduct['name'] }}"></a>
+													<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+														<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" data-product-slug="{{ $similarProduct['slug'] }}"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+													</div>
 												</div>
 											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Set</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$119.00</span></div>
+											<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+												<div class="text-left">
+													<div class="text-center">
+														<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}?product={{ $similarProduct['slug'] }}">{{ $similarProduct['name'] }}</a></h5>
+														<div class="elis_rty">
+															@if($similarProduct['has_sale'] && $similarProduct['min_sale_price'])
+																<span class="text-muted ft-medium line-through me-2">${{ number_format($similarProduct['min_price'], 0) }}</span>
+																<span class="ft-medium theme-cl fs-md">${{ number_format($similarProduct['min_sale_price'], 0) }}</span>
+															@else
+																<span class="ft-medium fs-md text-dark">{{ $similarProduct['display_price'] }}</span>
+															@endif
+														</div>
+													</div>
 												</div>
 											</div>
 										</div>
 									</div>
-								</div>
+									@endforeach
+								@else
+									<div class="col-xl-12">
+										<p class="text-center text-muted">No similar products found.</p>
+									</div>
+								@endif
 								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
+							</div>
+						</div>
+					</div>
+					
+				</div>
+			</section>
+			<!-- ======================= Similar Products End ============================ -->
+			 
 										<div class="card-body p-0">
 											<div class="shop_thumb position-relative">
 												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/9.jpg') }}" alt="..."></a>

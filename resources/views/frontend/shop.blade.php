@@ -136,105 +136,60 @@
 										<div class="widget-boxed-body">
 											<div class="side-list no-border">
 												<div class="filter-card" id="shop-categories">
+													@php
+														// Use child categories if available, otherwise use parent categories
+														$categoriesToShow = ($selectedCategory && $childCategories->count() > 0) 
+															? $childCategories 
+															: $parentCategories;
+													@endphp
 													
-													<!-- Single Filter Card -->
-													<div class="single_filter_card">
-														<h5><a href="#shoes" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Shoes<i class="accordion-indicator ti-angle-down"></i></a></h5>
-														
-														<div class="collapse" id="shoes" data-parent="#shop-categories" style="">
-															<div class="card-body">
-																<div class="inner_widget_link">
-																	<ul>
-																		<li><a href="#">Pumps &amp; high Heals<span>112</span></a></li>
-																		<li><a href="#">Sandels<span>82</span></a></li>
-																		<li><a href="#">Sneakers<span>56</span></a></li>
-																		<li><a href="#">Boots<span>101</span></a></li>
-																		<li><a href="#">Casual Shoes<span>212</span></a></li>
-																		<li><a href="#">Flats Sandel<span>92</span></a></li>
-																	</ul>
-																</div>
+													@if($categoriesToShow->count() > 0)
+														@foreach($categoriesToShow as $category)
+															@php
+																$hasChildren = $category->relationLoaded('children') && $category->children && $category->children->count() > 0;
+																$categoryId = 'category-' . $category->id;
+																$isExpanded = ($selectedCategory && $selectedCategory->id == $category->id) ? 'show' : '';
+																$isCollapsed = ($selectedCategory && $selectedCategory->id == $category->id) ? '' : 'collapsed';
+															@endphp
+															
+															<!-- Single Filter Card -->
+															<div class="single_filter_card">
+																@if($hasChildren)
+																	<h5>
+																		<a href="#{{ $categoryId }}" data-bs-toggle="collapse" class="{{ $isCollapsed }}" aria-expanded="{{ $isExpanded ? 'true' : 'false' }}" role="button">
+																			{{ $category->name }}
+																			<i class="accordion-indicator ti-angle-down"></i>
+																		</a>
+																	</h5> 
+																	<div class="collapse {{ $isExpanded }}" id="{{ $categoryId }}" data-parent="#shop-categories">
+																		<div class="card-body">
+																			<div class="inner_widget_link">
+																				<ul>
+																					@foreach($category->children as $childCategory)
+																						<li>
+																							<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}">
+																								{{ $childCategory->name }}
+																							</a>
+																						</li>
+																					@endforeach
+																				</ul>
+																			</div>
+																		</div>
+																	</div>
+																@else
+																	<h5>
+																		<a href="{{ route('frontend.shop') }}?category={{ $category->slug }}">
+																			{{ $category->name }}
+																		</a>
+																	</h5>
+																@endif
 															</div>
+														@endforeach
+													@else
+														<div class="single_filter_card">
+															<p class="text-muted mb-0">No categories available</p>
 														</div>
-													</div>
-													
-													<!-- Single Filter Card -->
-													<div class="single_filter_card">
-														<h5><a href="#clothing" data-bs-toggle="collapse" class="" aria-expanded="false" role="button">Clothing<i class="accordion-indicator ti-angle-down"></i></a></h5>
-														
-														<div class="collapse show" id="clothing" data-parent="#shop-categories">
-															<div class="card-body">
-																<div class="inner_widget_link">
-																	<ul>
-																		<li><a href="#">Blazers<span>82</span></a></li>
-																		<li><a href="#">Men Suits<span>110</span></a></li>
-																		<li><a href="#">Blouses<span>103</span></a></li>
-																		<li><a href="#">Coat Pant<span>72</span></a></li>
-																		<li><a href="#">T-Shirts<span>36</span></a></li>
-																		<li><a href="#">Men Shirts<span>122</span></a></li>
-																	</ul>
-																</div>
-															</div>
-														</div>
-													</div>
-													
-													<!-- Single Filter Card -->
-													<div class="single_filter_card">
-														<h5><a href="#watches" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Watches<i class="accordion-indicator ti-angle-down"></i></a></h5>
-														
-														<div class="collapse" id="watches" data-parent="#shop-categories">
-															<div class="card-body">
-																<div class="inner_widget_link">
-																	<ul>
-																		<li><a href="#">Sport Watches<span>112</span></a></li>
-																		<li><a href="#">Casual Watches<span>112</span></a></li>
-																		<li><a href="#">Fashion Watches<span>112</span></a></li>
-																		<li><a href="#">Girls Watches<span>112</span></a></li>
-																		<li><a href="#">Smart Watches<span>112</span></a></li>
-																	</ul>
-																</div>
-															</div>
-														</div>
-													</div>
-													
-													<!-- Single Filter Card -->
-													<div class="single_filter_card">
-														<h5><a href="#bags" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Bags<i class="accordion-indicator ti-angle-down"></i></a></h5>
-														
-														<div class="collapse" id="bags" data-parent="#shop-categories">
-															<div class="card-body">
-																<div class="inner_widget_link">
-																	<ul>
-																		<li><a href="#">Casual Bags<span>212</span></a></li>
-																		<li><a href="#">Sport Bags<span>212</span></a></li>
-																		<li><a href="#">Lugges bags<span>82</span></a></li>
-																		<li><a href="#">Fashion Bags<span>212</span></a></li>
-																		<li><a href="#">Small bags<span>113</span></a></li>
-																	</ul>
-																</div>
-															</div>
-														</div>
-													</div>
-													
-													<!-- Single Filter Card -->
-													<div class="single_filter_card">
-														<h5><a href="#accessories" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Accessories<i class="accordion-indicator ti-angle-down"></i></a></h5>
-														
-														<div class="collapse" id="accessories" data-parent="#shop-categories">
-															<div class="card-body">
-																<div class="inner_widget_link">
-																	<ul>
-																		<li><a href="#">Men Wallet<span>432</span></a></li>
-																		<li><a href="#">Men Belt<span>82</span></a></li>
-																		<li><a href="#">Hats<span>541</span></a></li>
-																		<li><a href="#">Jwelery<span>312</span></a></li>
-																		<li><a href="#">Beauty<span>65</span></a></li>
-																		<li><a href="#">Cosmetic<span>242</span></a></li>
-																	</ul>
-																</div>
-															</div>
-														</div>
-													</div>
-													
+													@endif
 												</div>
 											</div>
 										</div>
@@ -248,7 +203,7 @@
 										<div class="widget-boxed-body collapse show" id="pricing" data-parent="#pricing">
 											<div class="side-list no-border mb-4">
 												<div class="rg-slider">
-													 <span class="irs irs--flat js-irs-0 irs-with-grid"><span class="irs"><span class="irs-line" tabindex="0"></span><span class="irs-min" style="visibility: visible;">0</span><span class="irs-max" style="visibility: visible;">1 000</span><span class="irs-from" style="visibility: visible; left: 6.63347%;">100</span><span class="irs-to" style="visibility: visible; left: 68.4495%;">750</span><span class="irs-single" style="visibility: hidden; left: 31.2865%;">100 — 750</span></span><span class="irs-grid" style="width: 95.2191%; left: 2.29044%;"><span class="irs-grid-pol" style="left: 0%"></span><span class="irs-grid-text js-grid-text-0" style="left: 0%; margin-left: -2.19124%;">0</span><span class="irs-grid-pol small" style="left: 20%"></span><span class="irs-grid-pol small" style="left: 15%"></span><span class="irs-grid-pol small" style="left: 10%"></span><span class="irs-grid-pol small" style="left: 5%"></span><span class="irs-grid-pol" style="left: 25%"></span><span class="irs-grid-text js-grid-text-1" style="left: 25%; visibility: visible; margin-left: -4.18327%;">250</span><span class="irs-grid-pol small" style="left: 45%"></span><span class="irs-grid-pol small" style="left: 40%"></span><span class="irs-grid-pol small" style="left: 35%"></span><span class="irs-grid-pol small" style="left: 30%"></span><span class="irs-grid-pol" style="left: 50%"></span><span class="irs-grid-text js-grid-text-2" style="left: 50%; visibility: visible; margin-left: -4.18327%;">500</span><span class="irs-grid-pol small" style="left: 70%"></span><span class="irs-grid-pol small" style="left: 65%"></span><span class="irs-grid-pol small" style="left: 60%"></span><span class="irs-grid-pol small" style="left: 55%"></span><span class="irs-grid-pol" style="left: 75%"></span><span class="irs-grid-text js-grid-text-3" style="left: 75%; visibility: visible; margin-left: -4.18327%;">750</span><span class="irs-grid-pol small" style="left: 95%"></span><span class="irs-grid-pol small" style="left: 90%"></span><span class="irs-grid-pol small" style="left: 85%"></span><span class="irs-grid-pol small" style="left: 80%"></span><span class="irs-grid-pol" style="left: 100%"></span><span class="irs-grid-text js-grid-text-4" style="left: 100%; margin-left: -5.67729%;">1 000</span></span><span class="irs-bar" style="left: 11.9124%; width: 61.8924%;"></span><span class="irs-shadow shadow-from" style="display: none;"></span><span class="irs-shadow shadow-to" style="display: none;"></span><span class="irs-handle from" style="left: 9.52191%;"><i></i><i></i><i></i></span><span class="irs-handle to type_last" style="left: 71.4143%;"><i></i><i></i><i></i></span></span><input type="text" class="js-range-slider irs-hidden-input" name="my_range" value="" tabindex="-1" readonly="">
+													<input type="text" class="js-range-slider" name="price_range" id="priceRangeSlider" value="" data-min="{{ $minPrice }}" data-max="{{ $maxPrice }}" />
 												</div>		
 											</div>
 										</div>
@@ -265,42 +220,16 @@
 												<div class="single_filter_card">
 													<div class="card-body pt-0">
 														<div class="text-left pb-0 pt-2">
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="26s">
-																<label class="form-option-label" for="26s">26</label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="28s">
-																<label class="form-option-label" for="28s">28</label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="30s" checked="">
-																<label class="form-option-label" for="30s">30</label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="32s">
-																<label class="form-option-label" for="32s">32</label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="34s">
-																<label class="form-option-label" for="34s">34</label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="36s">
-																<label class="form-option-label" for="36s">36</label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="38s">
-																<label class="form-option-label" for="38s">38</label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="40s">
-																<label class="form-option-label" for="40s">40</label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-2">
-																<input class="form-check-input" type="radio" name="sizes" id="42s">
-																<label class="form-option-label" for="42s">42</label>
-															</div>
+															@if($availableSizes->count() > 0)
+																@foreach($availableSizes as $size)
+																	<div class="form-check form-option form-check-inline mb-2">
+																		<input class="form-check-input size-filter" type="checkbox" name="sizes[]" id="size_{{ $loop->index }}" value="{{ $size }}">
+																		<label class="form-option-label" for="size_{{ $loop->index }}">{{ $size }}</label>
+																	</div>
+																@endforeach
+															@else
+																<p class="text-muted mb-0">No sizes available</p>
+															@endif
 														</div>
 													</div>
 												</div>
@@ -319,75 +248,33 @@
 												<div class="single_filter_card">
 													<div class="card-body pt-0">
 														<div class="inner_widget_link">
-															<ul class="no-ul-list">
-																<li>
-																	<input id="b1" class="checkbox-custom" name="b1" type="checkbox">
-																	<label for="b1" class="checkbox-custom-label">Sumsung<span>142</span></label>
-																</li>
-																<li>
-																	<input id="b2" class="checkbox-custom" name="b2" type="checkbox">
-																	<label for="b2" class="checkbox-custom-label">Apple<span>652</span></label>
-																</li>
-																<li>
-																	<input id="b3" class="checkbox-custom" name="b3" type="checkbox">
-																	<label for="b3" class="checkbox-custom-label">Nike<span>232</span></label>
-																</li>
-																<li>
-																	<input id="b4" class="checkbox-custom" name="b4" type="checkbox">
-																	<label for="b4" class="checkbox-custom-label">Reebok<span>192</span></label>
-																</li>
-																<li>
-																	<input id="b5" class="checkbox-custom" name="b5" type="checkbox">
-																	<label for="b5" class="checkbox-custom-label">Hawai<span>265</span></label>
-																</li>
-															</ul>
+															@if($brands->count() > 0)
+																<ul class="no-ul-list">
+																	@foreach($brands as $brand)
+																		<li>
+																			<input id="brand_{{ $brand['id'] }}" class="checkbox-custom brand-filter" name="brands[]" type="checkbox" value="{{ $brand['id'] }}">
+																			<label for="brand_{{ $brand['id'] }}" class="checkbox-custom-label">{{ $brand['name'] }}<span>{{ $brand['count'] }}</span></label>
+																		</li>
+																	@endforeach
+																</ul>
+															@else
+																<p class="text-muted mb-0">No brands available</p>
+															@endif
 														</div>
 													</div>
 												</div>
 											</div>
 										</div>
 									</div>
-									
+									 
+
 									<!-- Single Option -->
-									<div class="single_search_boxed">
-										<div class="widget-boxed-header">
-											<h4><a href="#gender" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Gender</a></h4>
-										</div>
-										<div class="widget-boxed-body collapse" id="gender" data-parent="#gender">
-											<div class="side-list no-border">
-												<!-- Single Filter Card -->
-												<div class="single_filter_card">
-													<div class="card-body pt-0">
-														<div class="inner_widget_link">
-															<ul class="no-ul-list">
-																<li>
-																	<input id="g1" class="checkbox-custom" name="g1" type="checkbox">
-																	<label for="g1" class="checkbox-custom-label">All<span>22</span></label>
-																</li>
-																<li>
-																	<input id="g2" class="checkbox-custom" name="g2" type="checkbox">
-																	<label for="g2" class="checkbox-custom-label">Male<span>472</span></label>
-																</li>
-																<li>
-																	<input id="g3" class="checkbox-custom" name="g3" type="checkbox">
-																	<label for="g3" class="checkbox-custom-label">Female<span>170</span></label>
-																</li>
-															</ul>
-														</div>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-									
-									<!-- Single Option -->
-									<div class="single_search_boxed">
+									<!-- <div class="single_search_boxed">
 										<div class="widget-boxed-header">
 											<h4><a href="#discount" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Discount</a></h4>
 										</div>
 										<div class="widget-boxed-body collapse" id="discount" data-parent="#discount">
-											<div class="side-list no-border">
-												<!-- Single Filter Card -->
+											<div class="side-list no-border"> 
 												<div class="single_filter_card">
 													<div class="card-body pt-0">
 														<div class="inner_widget_link">
@@ -415,78 +302,8 @@
 											</div>
 										</div>
 									</div>
-									
-									<!-- Single Option -->
-									<div class="single_search_boxed">
-										<div class="widget-boxed-header">
-											<h4><a href="#types" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Type</a></h4>
-										</div>
-										<div class="widget-boxed-body collapse" id="types" data-parent="#types">
-											<div class="side-list no-border">
-												<!-- Single Filter Card -->
-												<div class="single_filter_card">
-													<div class="card-body pt-0">
-														<div class="inner_widget_link">
-															<ul class="no-ul-list">
-																<li>
-																	<input id="t1" class="checkbox-custom" name="t1" type="checkbox">
-																	<label for="t1" class="checkbox-custom-label">All Type<span>422</span></label>
-																</li>
-																<li>
-																	<input id="t2" class="checkbox-custom" name="t2" type="checkbox">
-																	<label for="t2" class="checkbox-custom-label">Normal Type<span>472</span></label>
-																</li>
-																<li>
-																	<input id="t3" class="checkbox-custom" name="t3" type="checkbox">
-																	<label for="t3" class="checkbox-custom-label">Simple Type<span>170</span></label>
-																</li>
-																<li>
-																	<input id="t4" class="checkbox-custom" name="t4" type="checkbox">
-																	<label for="t4" class="checkbox-custom-label">Modern type<span>140</span></label>
-																</li>
-															</ul>
-														</div>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-									
-									<!-- Single Option -->
-									<div class="single_search_boxed">
-										<div class="widget-boxed-header">
-											<h4><a href="#occation" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Occation</a></h4>
-										</div>
-										<div class="widget-boxed-body collapse" id="occation" data-parent="#occation">
-											<div class="side-list no-border">
-												<!-- Single Filter Card -->
-												<div class="single_filter_card">
-													<div class="card-body pt-0">
-														<div class="inner_widget_link">
-															<ul class="no-ul-list">
-																<li>
-																	<input id="o1" class="checkbox-custom" name="o1" type="checkbox">
-																	<label for="o1" class="checkbox-custom-label">All Occation<span>422</span></label>
-																</li>
-																<li>
-																	<input id="o2" class="checkbox-custom" name="o2" type="checkbox">
-																	<label for="o2" class="checkbox-custom-label">Normal Occation<span>472</span></label>
-																</li>
-																<li>
-																	<input id="t33" class="checkbox-custom" name="o33" type="checkbox">
-																	<label for="t33" class="checkbox-custom-label">Winter Occation<span>170</span></label>
-																</li>
-																<li>
-																	<input id="o4" class="checkbox-custom" name="o4" type="checkbox">
-																	<label for="o4" class="checkbox-custom-label">Summer Occation<span>140</span></label>
-																</li>
-															</ul>
-														</div>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
+								  -->
+									 
 									
 									<!-- Single Option -->
 									<div class="single_search_boxed">
@@ -528,20 +345,18 @@
 												</div>
 											</div>
 										</div>
-									</div>
-								
+									</div> 
 								</div>
 							</div>
 						</div>
 						
-						<div class="col-xl-9 col-lg-8 col-md-12 col-sm-12">
-							
+						<div class="col-xl-9 col-lg-8 col-md-12 col-sm-12"> 
 							<div class="row">
 								<div class="col-xl-12 col-lg-12 col-md-12">
 									<div class="border mb-3 mfliud">
 										<div class="row align-items-center py-2 m-0">
 											<div class="col-xl-3 col-lg-4 col-md-5 col-sm-12">
-												<h6 class="mb-0">315 Items Found</h6>
+												<h6 class="mb-0">{{ $products->count() }} {{ $products->count() == 1 ? 'Item' : 'Items' }} Found</h6>
 											</div>
 											
 											<div class="col-xl-9 col-lg-8 col-md-7 col-sm-12">
@@ -557,7 +372,7 @@
 													</div>
 													<div class="single_fitres">
 														<a href="shop-style-5.html" class="simple-button active me-1"><i class="ti-layout-grid2"></i></a>
-														<a href="shop-list-sidebar.html" class="simple-button"><i class="ti-view-list"></i></a>
+														<!-- <a href="shop-list-sidebar.html" class="simple-button"><i class="ti-view-list"></i></a> -->
 													</div>
 												</div>
 											</div>
@@ -568,408 +383,124 @@
 							
 							<!-- row -->
 							<div class="row align-items-center rows-products">
-								
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/12.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+								@if($products->count() > 0)
+									@foreach($products as $index => $product)
+										<div class="col-xl-4 col-lg-4 col-md-6 col-6">
+											<div class="product_grid card b-0">
+												@if($product['has_sale'])
+													<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+												@elseif($product['is_new'])
+													<div class="badge bg-info text-white position-absolute ft-regular ab-left text-upper">New</div>
+												@elseif($product['is_featured'])
+													<div class="badge bg-warning text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+												@endif
+												
+												<div class="card-body p-0">
+													<div class="shop_thumb position-relative">
+														<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
+															@php
+																// Use product's featured/primary image by default (from product_images table)
+																$productImage = $product['image_url'];
+															@endphp
+															<img class="card-img-top product-image-{{ $index }}" src="{{ $productImage }}" alt="{{ $product['name'] }}" data-default-image="{{ $productImage }}">
+														</a>
+														<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+															<div class="edlio">
+																<a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" 
+																   data-product-slug="{{ $product['slug'] }}"
+																   data-product-index="{{ $index }}"
+																   data-selected-color="">
+																	<i class="fas fa-eye me-1"></i>Quick View
+																</a>
+															</div>
+														</div>
+													</div>
+												</div>
+												
+												<div class="card-footer b-0 p-0 pt-2">
+													<div class="d-flex align-items-start justify-content-between">
+														<div class="text-left">
+															@if($product['color_variants']->count() > 0)
+																@foreach($product['color_variants'] as $colorIndex => $colorVariant)
+																	@php
+																		// Generate color ID from color name (lowercase, no spaces)
+																		$colorId = strtolower(str_replace(' ', '', $colorVariant['color'] ?? 'color' . $colorIndex));
+																	@endphp
+																	<div class="form-check form-option form-check-inline mb-1">
+																		<input 
+																			class="form-check-input color-option" 
+																			type="radio" 
+																			name="color{{ $index + 1 }}" 
+																			id="{{ $colorId }}{{ $index + 1 }}"
+																			data-price="{{ $colorVariant['display_price'] ?? $colorVariant['price'] ?? 0 }}"
+																			data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
+																			data-regular-price="{{ $colorVariant['price'] ?? 0 }}"
+																			data-has-sale="{{ $colorVariant['has_sale'] ? '1' : '0' }}"
+																			data-product-index="{{ $index }}"
+																			data-variant-image="{{ $colorVariant['image'] ?? '' }}"
+																			data-color-value="{{ $colorVariant['color'] ?? '' }}">
+																		<label class="form-option-label small rounded-circle" for="{{ $colorId }}{{ $index + 1 }}">
+																			<span class="form-option-color rounded-circle" style="background-color: {{ $colorVariant['color_code'] ?? '#ccc' }}"></span>
+																		</label>
+																	</div>
+																@endforeach 
+															@endif
+														</div>
+														<div class="text-right">
+															@php
+																$inWishlist = isset($product['in_wishlist']) && $product['in_wishlist'];
+															@endphp
+															<button class="btn auto btn_love snackbar-wishlist {{ $inWishlist ? 'wishlist-active' : '' }}" data-product-id="{{ $product['id'] }}" data-in-wishlist="{{ $inWishlist ? '1' : '0' }}">
+																<i class="{{ $inWishlist ? 'fas' : 'far' }} fa-heart{{ $inWishlist ? ' text-danger wishlist-heart-red' : '' }}" style="{{ $inWishlist ? 'color: #dc3545 !important;' : '' }}"></i>
+															</button> 
+														</div>
+													</div>
+													<div class="text-left">
+														<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1">
+															<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
+														</h5>
+														<div class="elis_rty">
+															<span class="ft-medium text-dark fs-sm product-price-{{ $index }}">
+																@php
+																	// Show price range from all variants using display prices (sale price if available, otherwise regular)
+																	// When showing default product image, don't show strikethrough price
+																	$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
+																	$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
+																	
+																	// Determine display price range (no strikethrough for default view)
+																	if ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0) {
+																		$displayPrice = '$' . number_format($minDisplayPrice, 0) . ' - $' . number_format($maxDisplayPrice, 0);
+																	} else {
+																		$displayPrice = '$' . number_format($minDisplayPrice, 0);
+																	}
+																@endphp
+																{{ $displayPrice }}
+															</span>
+														</div>
+													</div>
 												</div>
 											</div>
 										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color2" id="white2">
-														<label class="form-option-label small rounded-circle" for="white2"><span class="form-option-color rounded-circle blc5"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color2" id="blue2">
-														<label class="form-option-label small rounded-circle" for="blue2"><span class="form-option-color rounded-circle blc2"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color2" id="yellow2">
-														<label class="form-option-label small rounded-circle" for="yellow2"><span class="form-option-color rounded-circle blc6"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color2" id="pink2">
-														<label class="form-option-label small rounded-circle" for="pink2"><span class="form-option-color rounded-circle blc4"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Formal Men Lowers</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/13.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color3" id="white3" checked="">
-														<label class="form-option-label small rounded-circle" for="white3"><span class="form-option-color rounded-circle blc7"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color3" id="blue3">
-														<label class="form-option-label small rounded-circle" for="blue3"><span class="form-option-color rounded-circle blc2"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color3" id="yellow3">
-														<label class="form-option-label small rounded-circle" for="yellow3"><span class="form-option-color rounded-circle blc5"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color3" id="pink3">
-														<label class="form-option-label small rounded-circle" for="pink3"><span class="form-option-color rounded-circle blc3"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Half Running Suit</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/14.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color4" id="white4">
-														<label class="form-option-label small rounded-circle" for="white4"><span class="form-option-color rounded-circle blc8"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color4" id="blue4">
-														<label class="form-option-label small rounded-circle" for="blue4"><span class="form-option-color rounded-circle blc2"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color4" id="yellow4">
-														<label class="form-option-label small rounded-circle" for="yellow4"><span class="form-option-color rounded-circle blc6"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color4" id="pink4">
-														<label class="form-option-label small rounded-circle" for="pink4"><span class="form-option-color rounded-circle blc5"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Half Fancy Lady Dress</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
+									@endforeach 
+								@else
+									<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+										<div class="text-center py-5">
+											<p class="text-muted">No products found.</p>
 										</div>
 									</div>
-								</div>
-							
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/1.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color1" id="white" checked="">
-														<label class="form-option-label small rounded-circle" for="white"><span class="form-option-color rounded-circle blc1"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color1" id="blue">
-														<label class="form-option-label small rounded-circle" for="blue"><span class="form-option-color rounded-circle blc2"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color1" id="yellow">
-														<label class="form-option-label small rounded-circle" for="yellow"><span class="form-option-color rounded-circle blc3"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color1" id="pink">
-														<label class="form-option-label small rounded-circle" for="pink"><span class="form-option-color rounded-circle blc4"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Half Running Set</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-													<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/2.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color22" id="white22">
-														<label class="form-option-label small rounded-circle" for="white22"><span class="form-option-color rounded-circle blc5"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color22" id="blue22">
-														<label class="form-option-label small rounded-circle" for="blue22"><span class="form-option-color rounded-circle blc2"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color22" id="yellow22">
-														<label class="form-option-label small rounded-circle" for="yellow22"><span class="form-option-color rounded-circle blc6"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color22" id="pink22">
-														<label class="form-option-label small rounded-circle" for="pink2"><span class="form-option-color rounded-circle blc4"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Formal Men Lowers</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/3.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color33" id="white33" checked="">
-														<label class="form-option-label small rounded-circle" for="white33"><span class="form-option-color rounded-circle blc7"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color33" id="blue33">
-														<label class="form-option-label small rounded-circle" for="blue33"><span class="form-option-color rounded-circle blc2"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color33" id="yellow33">
-														<label class="form-option-label small rounded-circle" for="yellow33"><span class="form-option-color rounded-circle blc5"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color33" id="pink33">
-														<label class="form-option-label small rounded-circle" for="pink33"><span class="form-option-color rounded-circle blc3"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Half Running Suit</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/4.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color44" id="white44">
-														<label class="form-option-label small rounded-circle" for="white44"><span class="form-option-color rounded-circle blc8"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color44" id="blue44">
-														<label class="form-option-label small rounded-circle" for="blue44"><span class="form-option-color rounded-circle blc2"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color44" id="yellow44">
-														<label class="form-option-label small rounded-circle" for="yellow44"><span class="form-option-color rounded-circle blc6"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color44" id="pink44">
-														<label class="form-option-label small rounded-circle" for="pink44"><span class="form-option-color rounded-circle blc5"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Half Fancy Lady Dress</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-													<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/5.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color55" id="white55">
-														<label class="form-option-label small rounded-circle" for="white55"><span class="form-option-color rounded-circle blc8"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color55" id="blue55">
-														<label class="form-option-label small rounded-circle" for="blue55"><span class="form-option-color rounded-circle blc5"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color55" id="yellow55">
-														<label class="form-option-label small rounded-circle" for="yellow55"><span class="form-option-color rounded-circle blc3"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color55" id="pink55">
-														<label class="form-option-label small rounded-circle" for="pink55"><span class="form-option-color rounded-circle blc6"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Flix Flox Jeans</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- Single -->
-								<div class="col-xl-4 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="shop-single-v1.html"><img class="card-img-top" src="{{ asset('frontend/images/product/6.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-0 pt-2 bg-white">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color66" id="white66">
-														<label class="form-option-label small rounded-circle" for="white66"><span class="form-option-color rounded-circle blc1"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color66" id="blue66">
-														<label class="form-option-label small rounded-circle" for="blue66"><span class="form-option-color rounded-circle blc7"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color6" id="yellow66">
-														<label class="form-option-label small rounded-circle" for="yellow66"><span class="form-option-color rounded-circle blc3"></span></label>
-													</div>
-													<div class="form-check form-option form-check-inline mb-1">
-														<input class="form-check-input" type="radio" name="color66" id="pink66">
-														<label class="form-option-label small rounded-circle" for="pink66"><span class="form-option-color rounded-circle blc6"></span></label>
-													</div>
-												</div>
-												<div class="text-right">
-													<button class="btn auto btn_love snackbar-wishlist"><i class="far fa-heart"></i></button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="shop-single-v1.html">Fancy Salwar Suits</a></h5>
-												<div class="elis_rty"><span class="ft-medium text-dark fs-sm">$99 - $129</span></div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
+								@endif
 							</div>
 							<!-- row -->
 							
+							@if(isset($hasMoreProducts) && $hasMoreProducts)
 							<div class="row">
 								<div class="col-xl-12 col-lg-12 col-md-12 text-center">
-									<a href="#" class="btn stretched-links borders m-auto"><i class="lni lni-reload me-2"></i>Load More</a>
+									<button type="button" id="loadMoreProducts" class="btn stretched-links borders m-auto" data-page="1" data-category="{{ $selectedCategory ? $selectedCategory->slug : '' }}" data-search="{{ request('search', '') }}">
+										<i class="lni lni-reload me-2"></i>Load More
+									</button>
 								</div>
 							</div>
+							@endif
 						</div>
 						
 					</div>
@@ -977,3 +508,215 @@
 			</section>
 			<!-- ======================= All Product List ======================== -->
 @endsection
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    let currentPage = 1;
+    let isLoading = false;
+    
+    // Initialize Price Range Slider with dynamic values
+    // Wait a bit to ensure custom.js has loaded, then override its initialization
+    setTimeout(function() {
+        const $priceSlider = $('#priceRangeSlider');
+        if ($priceSlider.length && typeof $.fn.ionRangeSlider !== 'undefined') {
+            const minPrice = parseInt($priceSlider.data('min')) || 0;
+            const maxPrice = parseInt($priceSlider.data('max')) || 1000;
+            
+            // Destroy any existing slider instance
+            if ($priceSlider.data('ionRangeSlider')) {
+                $priceSlider.data('ionRangeSlider').destroy();
+            }
+            
+            // Initialize with dynamic values
+            $priceSlider.ionRangeSlider({
+                type: "double",
+                min: minPrice,
+                max: maxPrice,
+                from: minPrice,
+                to: maxPrice,
+                step: 1,
+                grid: true,
+                grid_num: 4,
+                prefix: "$",
+                prettify_enabled: true,
+                prettify_separator: ",",
+                onFinish: function(data) {
+                    // Handle price filter change
+                    filterProductsByPrice(data.from, data.to);
+                }
+            });
+        }
+    }, 100);
+    
+    // Filter products by price range
+    function filterProductsByPrice(min, max) {
+        // This will be called when price range changes
+        // You can implement filtering logic here or reload products
+        console.log('Price filter:', min, '-', max);
+        // TODO: Implement price filtering to reload products with price filter
+    }
+    
+    // Get session ID
+    function getSessionId() {
+        let sessionId = localStorage.getItem('session_id');
+        if (!sessionId) {
+            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('session_id', sessionId);
+        }
+        return sessionId;
+    }
+    
+    // Load More Products
+    $('#loadMoreProducts').on('click', function(e) {
+        e.preventDefault();
+        
+        if (isLoading) return;
+        
+        isLoading = true;
+        const $btn = $(this);
+        const originalText = $btn.html();
+        $btn.prop('disabled', true).html('<i class="lni lni-reload me-2 fa-spin"></i>Loading...');
+        
+        currentPage++;
+        const category = $btn.data('category') || '';
+        const search = $btn.data('search') || '';
+        const sessionId = getSessionId();
+        
+        $.ajax({
+            url: '{{ route("frontend.shop.load-more") }}',
+            method: 'GET',
+            data: {
+                page: currentPage,
+                category: category,
+                search: search,
+                session_id: sessionId
+            },
+            success: function(response) {
+                if (response.success && response.products && response.products.length > 0) {
+                    // Get the current product index
+                    const currentProductCount = $('.rows-products .col-xl-4').length;
+                    
+                    // Append new products
+                    response.products.forEach(function(product, index) {
+                        const productIndex = currentProductCount + index;
+                        const productHtml = generateProductHtml(product, productIndex);
+                        $('.rows-products').append(productHtml);
+                    });
+                    
+                    // Update button state
+                    if (!response.hasMore) {
+                        $btn.closest('.row').fadeOut(300, function() {
+                            $(this).remove();
+                        });
+                    } else {
+                        $btn.prop('disabled', false).html(originalText);
+                    }
+                } else {
+                    $btn.closest('.row').fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }
+                isLoading = false;
+            },
+            error: function(xhr) {
+                console.error('Error loading more products:', xhr);
+                $btn.prop('disabled', false).html(originalText);
+                isLoading = false;
+            }
+        });
+    });
+    
+    // Generate product HTML (same structure as in blade template)
+    function generateProductHtml(product, index) {
+        let badgeHtml = '';
+        if (product.has_sale) {
+            badgeHtml = '<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>';
+        } else if (product.is_new) {
+            badgeHtml = '<div class="badge bg-info text-white position-absolute ft-regular ab-left text-upper">New</div>';
+        } else if (product.is_featured) {
+            badgeHtml = '<div class="badge bg-warning text-white position-absolute ft-regular ab-left text-upper">Hot</div>';
+        }
+        
+        let colorVariantsHtml = '';
+        if (product.color_variants && product.color_variants.length > 0) {
+            product.color_variants.forEach(function(colorVariant, colorIndex) {
+                const colorId = (colorVariant.color || 'color' + colorIndex).toLowerCase().replace(/\s+/g, '') + (index + 1);
+                colorVariantsHtml += `
+                    <div class="form-check form-option form-check-inline mb-1">
+                        <input class="form-check-input color-option" type="radio" name="color${index + 1}" id="${colorId}"
+                            data-price="${colorVariant.display_price || colorVariant.price || 0}"
+                            data-sale-price="${colorVariant.sale_price || ''}"
+                            data-regular-price="${colorVariant.price || 0}"
+                            data-has-sale="${colorVariant.has_sale ? '1' : '0'}"
+                            data-product-index="${index}"
+                            data-variant-image="${colorVariant.image || ''}"
+                            data-color-value="${colorVariant.color || ''}">
+                        <label class="form-option-label small rounded-circle" for="${colorId}">
+                            <span class="form-option-color rounded-circle" style="background-color: ${colorVariant.color_code || '#ccc'}"></span>
+                        </label>
+                    </div>
+                `;
+            });
+        }
+        
+        const wishlistClass = product.in_wishlist ? 'wishlist-active' : '';
+        const wishlistIcon = product.in_wishlist ? 'fas' : 'far';
+        const wishlistStyle = product.in_wishlist ? 'style="color: #dc3545 !important;"' : '';
+        const wishlistData = product.in_wishlist ? 'data-in-wishlist="1"' : 'data-in-wishlist="0"';
+        
+        let priceDisplay = '';
+        if (product.min_display_price != product.max_display_price && product.max_display_price > 0) {
+            priceDisplay = '$' + Math.round(product.min_display_price) + ' - $' + Math.round(product.max_display_price);
+        } else {
+            priceDisplay = '$' + Math.round(product.min_display_price);
+        }
+        
+        return `
+            <div class="col-xl-4 col-lg-4 col-md-6 col-6">
+                <div class="product_grid card b-0">
+                    ${badgeHtml}
+                    <div class="card-body p-0">
+                        <div class="shop_thumb position-relative">
+                            <a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product=${product.slug}">
+                                <img class="card-img-top product-image-${index}" src="${product.image_url}" alt="${product.name}" data-default-image="${product.image_url}">
+                            </a>
+                            <div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+                                <div class="edlio">
+                                    <a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" 
+                                       data-product-slug="${product.slug}"
+                                       data-product-index="${index}"
+                                       data-selected-color="">
+                                        <i class="fas fa-eye me-1"></i>Quick View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer b-0 p-0 pt-2">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div class="text-left">
+                                ${colorVariantsHtml}
+                            </div>
+                            <div class="text-right">
+                                <button class="btn auto btn_love snackbar-wishlist ${wishlistClass}" data-product-id="${product.id}" ${wishlistData}>
+                                    <i class="${wishlistIcon} fa-heart${product.in_wishlist ? ' text-danger wishlist-heart-red' : ''}" ${wishlistStyle}></i>
+                                </button> 
+                            </div>
+                        </div>
+                        <div class="text-left">
+                            <h5 class="fw-nornal fs-md mb-0 lh-1 mb-1">
+                                <a href="{{ route('frontend.product') }}?product=${product.slug}">${product.name}</a>
+                            </h5>
+                            <div class="elis_rty">
+                                <span class="ft-medium text-dark fs-sm product-price-${index}">${priceDisplay}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+});
+</script>
+@endpush
