@@ -56,11 +56,11 @@ class FilterService
         $brands = collect();
         
         foreach ($products as $product) {
-            foreach ($product->brands as $brand) {
+            if ($product->brand) {
                 $brands->push([
-                    'id' => $brand->id,
-                    'name' => $brand->name,
-                    'slug' => $brand->slug,
+                    'id' => $product->brand->id,
+                    'name' => $product->brand->name,
+                    'slug' => $product->brand->slug,
                 ]);
             }
         }

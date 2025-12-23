@@ -94,4 +94,36 @@ class Cart extends Model
               ->orWhere('expires_at', '>', Carbon::now());
         });
     }
+
+    /**
+     * Recalculate cart totals
+     */
+    public function recalculateTotals()
+    {
+        $this->load('items', 'coupon');
+        
+        $subtotal = $this->items->sum('total_price');
+        $this->subtotal = $subtotal;
+        
+        // Calculate discount from coupon if exists
+        $discountAmount = 0;
+        if ($this->coupon && $this->coupon->is_active) {
+            // TODO: Implement coupon discount calculation
+            // For now, set to 0
+            $discountAmount = 0;
+        }
+        $this->discount_amount = $discountAmount;
+        
+        // Calculate tax (example: 10% tax)
+        $taxRate = 0.10; // 10%
+        $this->tax_amount = ($subtotal - $discountAmount) * $taxRate;
+        
+        // Shipping (can be calculated based on rules)
+        $this->shipping_amount = 0; // TODO: Calculate shipping
+        
+        // Total
+        $this->total_amount = $subtotal - $discountAmount + $this->tax_amount + $this->shipping_amount;
+        
+        $this->save();
+    }
 }

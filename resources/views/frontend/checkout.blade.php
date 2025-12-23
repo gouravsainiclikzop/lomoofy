@@ -39,58 +39,62 @@
 							<form>
 								<h5 class="mb-4 ft-medium">Billing Details</h5>
 								<div class="row mb-2 g-3">
+									@php
+										// Split customer name into first and last name
+										$nameParts = explode(' ', $customer->full_name ?? '', 2);
+										$firstName = $nameParts[0] ?? '';
+										$lastName = $nameParts[1] ?? '';
+									@endphp
 									
 									<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">First Name *</label>
-											<input type="text" class="form-control" placeholder="First Name" />
+											<input type="text" class="form-control" name="first_name" placeholder="First Name" value="{{ $firstName }}" required />
 										</div>
 									</div>
 									
 									<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">Last Name *</label>
-											<input type="text" class="form-control" placeholder="Last Name" />
+											<input type="text" class="form-control" name="last_name" placeholder="Last Name" value="{{ $lastName }}" required />
 										</div>
 									</div>
 									
 									<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">Email *</label>
-											<input type="email" class="form-control" placeholder="Email" />
+											<input type="email" class="form-control" name="email" placeholder="Email" value="{{ $customer->email ?? '' }}" required />
 										</div>
 									</div>
 									
 									<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">Company</label>
-											<input type="text" class="form-control" placeholder="Company Name (optional)" />
+											<input type="text" class="form-control" name="company" placeholder="Company Name (optional)" />
 										</div>
 									</div>
 									
 									<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">Address 1 *</label>
-											<input type="text" class="form-control" placeholder="Address 1" />
+											<input type="text" class="form-control" name="address_line1" placeholder="Address 1" value="{{ $defaultAddress->address_line1 ?? '' }}" required />
 										</div>
 									</div>
 									
 									<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">Address 2</label>
-											<input type="text" class="form-control" placeholder="Address 2" />
+											<input type="text" class="form-control" name="address_line2" placeholder="Address 2" value="{{ $defaultAddress->address_line2 ?? '' }}" />
 										</div>
 									</div>
 									
 									<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">Country *</label>
-											<select class="custom-select">
-											  <option value="1" selected="">India</option>
-											  <option value="2">United State</option>
-											  <option value="3">United Kingdom</option>
-											  <option value="4">China</option>
-											  <option value="5">Pakistan</option>
+											<select class="custom-select" name="country" required>
+											  <option value="India" {{ ($defaultAddress->country ?? 'India') == 'India' ? 'selected' : '' }}>India</option>
+											  <option value="United States" {{ ($defaultAddress->country ?? '') == 'United States' ? 'selected' : '' }}>United States</option>
+											  <option value="United Kingdom" {{ ($defaultAddress->country ?? '') == 'United Kingdom' ? 'selected' : '' }}>United Kingdom</option>
 											</select>
 										</div>
 									</div>
@@ -98,28 +102,35 @@
 									<div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">City / Town *</label>
-											<input type="text" class="form-control" placeholder="City / Town" />
+											<input type="text" class="form-control" name="city" placeholder="City / Town" value="{{ $defaultAddress->city ?? '' }}" required />
+										</div>
+									</div>
+									
+									<div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
+										<div class="form-group">
+											<label class="text-dark mb-2">State *</label>
+											<input type="text" class="form-control" name="state" placeholder="State" value="{{ $defaultAddress->state ?? '' }}" required />
 										</div>
 									</div>
 									
 									<div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">ZIP / Postcode *</label>
-											<input type="text" class="form-control" placeholder="Zip / Postcode" />
+											<input type="text" class="form-control" name="pincode" placeholder="Zip / Postcode" value="{{ $defaultAddress->pincode ?? '' }}" required />
 										</div>
 									</div>
 									
-									<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+									<div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">Mobile Number *</label>
-											<input type="text" class="form-control" placeholder="Mobile Number" />
+											<input type="text" class="form-control" name="phone" placeholder="Mobile Number" value="{{ $customer->phone ?? '' }}" required />
 										</div>
 									</div>
 									
 									<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
 										<div class="form-group">
 											<label class="text-dark mb-2">Additional Information</label>
-											<textarea class="form-control ht-50"></textarea>
+											<textarea class="form-control ht-50" name="delivery_instructions" placeholder="Delivery instructions (optional)">{{ $defaultAddress->delivery_instructions ?? '' }}</textarea>
 										</div>
 									</div>
 									
@@ -326,43 +337,89 @@
 						<!-- Sidebar -->
 						<div class="col-12 col-lg-4 col-md-12">
 							<div class="d-block mb-3">
-								<h5 class="mb-4">Order Items (3)</h5>
+								<h5 class="mb-4">Order Items ({{ $cart->items->count() }})</h5>
 								<ul class="list-group list-group-sm list-group-flush-y list-group-flush-x mb-4">
-									
-									<li class="list-group-item">
-										<div class="row align-items-center">
-											<div class="col-3">
-												<!-- Image -->
-									<a href="{{ route('frontend.product') }}"><img src="{{ asset('frontend/images/product/7-a.jpg') }}" alt="..." class="img-fluid"></a>
-											</div>
-											<div class="col d-flex align-items-center">
-												<div class="cart_single_caption ps-2">
-													<h4 class="product_title fs-md ft-medium mb-1 lh-1">Women Striped Shirt Dress</h4>
-													<p class="mb-1 lh-1"><span class="text-dark">Size: 40</span></p>
-													<p class="mb-3 lh-1"><span class="text-dark">Color: Blue</span></p>
-													<h4 class="fs-md ft-medium mb-3 lh-1">$129</h4>
+									@foreach($cart->items as $item)
+										@php
+											$product = $item->product;
+											$variant = $item->variant;
+											
+											// Get product image
+											$imageUrl = asset('frontend/images/product/1.jpg'); // Default
+											if ($variant && $variant->images && $variant->images->count() > 0) {
+												$imageUrl = asset('storage/' . $variant->images->first()->image_path);
+											} elseif ($product && $product->primaryImage) {
+												$imageUrl = asset('storage/' . $product->primaryImage->image_path);
+											} elseif ($product && $product->images && $product->images->count() > 0) {
+												$imageUrl = asset('storage/' . $product->images->first()->image_path);
+											}
+											
+											// Get variant attributes for display
+											$variantAttrs = [];
+											if ($variant && $variant->attributes) {
+												$variantAttrs = is_string($variant->attributes) ? json_decode($variant->attributes, true) : $variant->attributes;
+											}
+											
+											// Get color and size from variant attributes
+											$colorValue = '';
+											$sizeValue = '';
+											$colorAttribute = null;
+											$sizeAttribute = null;
+											
+											if ($product && $product->category) {
+												$colorAttribute = $product->category->getAllProductAttributes()->where('type', 'color')->first();
+												$sizeAttribute = $product->category->getAllProductAttributes()->where('type', 'size')->first();
+											}
+											if (!$colorAttribute) {
+												$colorAttribute = \App\Models\ProductAttribute::where('type', 'color')->first();
+											}
+											if (!$sizeAttribute) {
+												$sizeAttribute = \App\Models\ProductAttribute::where('type', 'size')->first();
+											}
+											
+											foreach($variantAttrs as $key => $value) {
+												if ($colorAttribute && $key == $colorAttribute->id) {
+													$colorValue = $value;
+												}
+												if ($sizeAttribute && $key == $sizeAttribute->id) {
+													$sizeValue = $value;
+												}
+											}
+											
+											// Build variant display string
+											$variantDisplay = [];
+											if ($sizeValue) {
+												$variantDisplay[] = 'Size: ' . $sizeValue;
+											}
+											if ($colorValue) {
+												$variantDisplay[] = 'Color: ' . $colorValue;
+											}
+											if ($item->variant_name && empty($variantDisplay)) {
+												$variantDisplay[] = $item->variant_name;
+											}
+										@endphp
+										<li class="list-group-item">
+											<div class="row align-items-center">
+												<div class="col-3">
+													<a href="{{ route('frontend.product', ['product' => $product->slug ?? '']) }}">
+														<img src="{{ $imageUrl }}" alt="{{ $item->product_name }}" class="img-fluid">
+													</a>
+												</div>
+												<div class="col d-flex align-items-center">
+													<div class="cart_single_caption ps-2">
+														<h4 class="product_title fs-md ft-medium mb-1 lh-1">{{ $item->product_name }}</h4>
+														@if(!empty($variantDisplay))
+															@foreach($variantDisplay as $display)
+																<p class="mb-1 lh-1"><span class="text-dark">{{ $display }}</span></p>
+															@endforeach
+														@endif
+														<p class="mb-1 lh-1"><span class="text-muted small">Qty: {{ $item->quantity }}</span></p>
+														<h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->total_price, 2) }}</h4>
+													</div>
 												</div>
 											</div>
-										</div>
-									</li>
-									
-									<li class="list-group-item">
-										<div class="row align-items-center">
-											<div class="col-3">
-												<!-- Image -->
-									<a href="{{ route('frontend.product') }}"><img src="{{ asset('frontend/images/product/7.jpg') }}" alt="..." class="img-fluid"></a>
-											</div>
-											<div class="col d-flex align-items-center">
-												<div class="cart_single_caption ps-2">
-													<h4 class="product_title fs-md ft-medium mb-1 lh-1">Girls Solid A-Line Dress</h4>
-													<p class="mb-1 lh-1"><span class="text-dark">Size: 36</span></p>
-													<p class="mb-3 lh-1"><span class="text-dark">Color: Red</span></p>
-													<h4 class="fs-md ft-medium mb-3 lh-1">$129</h4>
-												</div>
-											</div>
-										</div>
-									</li>
-									
+										</li>
+									@endforeach
 								</ul>
 							</div>
 							
@@ -370,13 +427,21 @@
 							  <div class="card-body">
 								<ul class="list-group list-group-sm list-group-flush-y list-group-flush-x">
 								  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-									<span>Subtotal</span> <span class="ms-auto text-dark ft-medium">$98.12</span>
+									<span>Subtotal</span> <span class="ms-auto text-dark ft-medium">${{ number_format($cart->subtotal ?? 0, 2) }}</span>
+								  </li>
+								  @if(($cart->discount_amount ?? 0) > 0)
+								  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
+									<span>Discount</span> <span class="ms-auto text-dark ft-medium text-success">-${{ number_format($cart->discount_amount, 2) }}</span>
+								  </li>
+								  @endif
+								  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
+									<span>Tax</span> <span class="ms-auto text-dark ft-medium">${{ number_format($cart->tax_amount ?? 0, 2) }}</span>
 								  </li>
 								  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-									<span>Tax</span> <span class="ms-auto text-dark ft-medium">$10.10</span>
+									<span>Shipping</span> <span class="ms-auto text-dark ft-medium">${{ number_format($cart->shipping_amount ?? 0, 2) }}</span>
 								  </li>
 								  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-									<span>Total</span> <span class="ms-auto text-dark ft-medium">$108.22</span>
+									<span>Total</span> <span class="ms-auto text-dark ft-medium">${{ number_format($cart->total_amount ?? 0, 2) }}</span>
 								  </li>
 								  <li class="list-group-item fs-sm text-center">
 									Shipping cost calculated at Checkout *

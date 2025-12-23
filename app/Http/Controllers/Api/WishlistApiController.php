@@ -4,18 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Wishlist;
-use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class WishlistApiController extends Controller
 {
     /**
-     * Get session ID or customer ID
+     * Get wishlist items
+     * GET /api/wishlist
      */
-    private function getSessionOrCustomerId(Request $request)
+    public function index(Request $request)
     {
-        $customer = $request->user();
+        $customer = Auth::guard('customer')->user();
         $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
         
         $sessionId = $request->input('session_id') 
@@ -23,68 +24,59 @@ class WishlistApiController extends Controller
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
-        return [$customerId, $sessionId];
-    }
-
-    /**
-     * Get wishlist items
-     * GET /api/wishlist
-     */
-    public function index(Request $request)
-    {
-        [$customerId, $sessionId] = $this->getSessionOrCustomerId($request);
-        
-        $query = Wishlist::with(['product.primaryImage', 'product.images', 'product.variants']);
+        $wishlistQuery = Wishlist::with(['product']);
         
         if ($customerId) {
-            $query->where('customer_id', $customerId);
+            $wishlistQuery->where('customer_id', $customerId);
         } else {
-            $query->where('session_id', $sessionId);
+            $wishlistQuery->where('session_id', $sessionId);
         }
         
-        $wishlists = $query->get();
+        $items = $wishlistQuery->get();
         
         return response()->json([
             'success' => true,
-            'data' => $wishlists->map(function($wishlist) {
-                $product = $wishlist->product;
-                $activeVariants = $product->variants->where('is_active', true);
-                
-                // Get price range
-                $prices = $activeVariants->pluck('price')->filter();
-                $salePrices = $activeVariants->pluck('sale_price')->filter();
-                
-                $minPrice = $prices->min() ?? 0;
-                $maxPrice = $prices->max() ?? 0;
-                $minSalePrice = $salePrices->min();
-                $maxSalePrice = $salePrices->max();
-                
-                $hasSale = $minSalePrice && $minSalePrice < $minPrice;
-                
-                // Get product image
-                $imageUrl = $product->primaryImage 
-                    ? asset('storage/' . $product->primaryImage->image_path)
-                    : ($product->images->first() 
-                        ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('frontend/images/product/1.jpg'));
-                
+            'data' => $items->map(function($item) {
                 return [
-                    'id' => $wishlist->id,
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'product_slug' => $product->slug,
-                    'image_url' => $imageUrl,
-                    'min_price' => $minPrice,
-                    'max_price' => $maxPrice,
-                    'min_sale_price' => $minSalePrice,
-                    'max_sale_price' => $maxSalePrice,
-                    'has_sale' => $hasSale,
-                    'price_display' => $minPrice != $maxPrice 
-                        ? '$' . number_format($minPrice, 0) . ' - $' . number_format($maxPrice, 0)
-                        : '$' . number_format($minPrice, 0),
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'product' => $item->product ? [
+                        'id' => $item->product->id,
+                        'name' => $item->product->name,
+                        'slug' => $item->product->slug,
+                    ] : null,
                 ];
             }),
-            'count' => $wishlists->count(),
+        ]);
+    }
+
+    /**
+     * Get wishlist count
+     * GET /api/wishlist/count
+     */
+    public function count(Request $request)
+    {
+        $customer = Auth::guard('customer')->user();
+        $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
+        
+        $sessionId = $request->input('session_id') 
+                  ?? $request->query('session_id') 
+                  ?? $request->header('X-Session-ID') 
+                  ?? session()->getId();
+        
+        $wishlistQuery = Wishlist::query();
+        
+        if ($customerId) {
+            $wishlistQuery->where('customer_id', $customerId);
+        } else {
+            $wishlistQuery->where('session_id', $sessionId);
+        }
+        
+        $count = $wishlistQuery->count();
+        
+        return response()->json([
+            'success' => true,
+            'count' => $count,
         ]);
     }
 
@@ -94,21 +86,19 @@ class WishlistApiController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'product_id' => 'required|exists:products,id',
+            'session_id' => 'nullable|string',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        [$customerId, $sessionId] = $this->getSessionOrCustomerId($request);
         
-        // Check if product already in wishlist
+        $customer = Auth::guard('customer')->user();
+        $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
+        
+        $sessionId = $request->input('session_id') 
+                  ?? $request->header('X-Session-ID') 
+                  ?? session()->getId();
+        
+        // Check if already in wishlist
         $existing = Wishlist::where('product_id', $request->product_id)
             ->where(function($query) use ($customerId, $sessionId) {
                 if ($customerId) {
@@ -121,12 +111,12 @@ class WishlistApiController extends Controller
         
         if ($existing) {
             return response()->json([
-                'success' => false,
+                'success' => true,
                 'message' => 'Product already in wishlist',
-            ], 400);
+            ]);
         }
         
-        $wishlist = Wishlist::create([
+        Wishlist::create([
             'customer_id' => $customerId,
             'session_id' => $customerId ? null : $sessionId,
             'product_id' => $request->product_id,
@@ -134,33 +124,22 @@ class WishlistApiController extends Controller
         
         return response()->json([
             'success' => true,
-            'message' => 'Product added to wishlist successfully',
-            'data' => $wishlist,
+            'message' => 'Product added to wishlist',
         ]);
     }
 
     /**
-     * Remove product from wishlist
+     * Remove wishlist item by ID
      * DELETE /api/wishlist/{id}
      */
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
-        [$customerId, $sessionId] = $this->getSessionOrCustomerId($request);
-        
-        $wishlist = Wishlist::where('id', $id)
-            ->where(function($query) use ($customerId, $sessionId) {
-                if ($customerId) {
-                    $query->where('customer_id', $customerId);
-                } else {
-                    $query->where('session_id', $sessionId);
-                }
-            })
-            ->first();
+        $wishlist = Wishlist::find($id);
         
         if (!$wishlist) {
             return response()->json([
                 'success' => false,
-                'message' => 'Wishlist item not found',
+                'error' => ['message' => 'Wishlist item not found'],
             ], 404);
         }
         
@@ -168,17 +147,22 @@ class WishlistApiController extends Controller
         
         return response()->json([
             'success' => true,
-            'message' => 'Product removed from wishlist successfully',
+            'message' => 'Item removed from wishlist',
         ]);
     }
 
     /**
-     * Remove product from wishlist by product_id
+     * Remove wishlist item by product ID
      * DELETE /api/wishlist/product/{productId}
      */
     public function removeByProduct(Request $request, $productId)
     {
-        [$customerId, $sessionId] = $this->getSessionOrCustomerId($request);
+        $customer = Auth::guard('customer')->user();
+        $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
+        
+        $sessionId = $request->input('session_id') 
+                  ?? $request->header('X-Session-ID') 
+                  ?? session()->getId();
         
         $wishlist = Wishlist::where('product_id', $productId)
             ->where(function($query) use ($customerId, $sessionId) {
@@ -191,40 +175,17 @@ class WishlistApiController extends Controller
             ->first();
         
         if (!$wishlist) {
-            // Product not in wishlist - return success anyway (idempotent operation)
             return response()->json([
-                'success' => true,
-                'message' => 'Product not in wishlist',
-            ]);
+                'success' => false,
+                'error' => ['message' => 'Product not in wishlist'],
+            ], 404);
         }
         
         $wishlist->delete();
         
         return response()->json([
             'success' => true,
-            'message' => 'Product removed from wishlist successfully',
-        ]);
-    }
-
-    /**
-     * Get wishlist count
-     * GET /api/wishlist/count
-     */
-    public function count(Request $request)
-    {
-        [$customerId, $sessionId] = $this->getSessionOrCustomerId($request);
-        
-        $count = Wishlist::where(function($query) use ($customerId, $sessionId) {
-            if ($customerId) {
-                $query->where('customer_id', $customerId);
-            } else {
-                $query->where('session_id', $sessionId);
-            }
-        })->count();
-        
-        return response()->json([
-            'success' => true,
-            'count' => $count,
+            'message' => 'Product removed from wishlist',
         ]);
     }
 }

@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\Hash;
-use Laravel\Sanctum\HasApiTokens;
 
-class Customer extends Model
+class Customer extends Authenticatable
 {
-    use SoftDeletes, HasApiTokens;
+    use SoftDeletes;
 
     protected $fillable = [
         'full_name',
@@ -45,12 +45,25 @@ class Customer extends Model
     ];
 
     /**
-     * Hash password when setting
+     * Hash password when setting (only if not already hashed)
      */
     public function setPasswordAttribute($value)
     {
         if ($value) {
-            $this->attributes['password'] = Hash::make($value);
+            // Check if password is already hashed
+            // Bcrypt hashes are 60 characters and start with $2y$ or $2a$ or $2b$
+            $isAlreadyHashed = (
+                strlen($value) === 60 && 
+                (strpos($value, '$2y$') === 0 || strpos($value, '$2a$') === 0 || strpos($value, '$2b$') === 0)
+            );
+            
+            if ($isAlreadyHashed) {
+                // Password is already hashed, use it as-is (don't re-hash)
+                $this->attributes['password'] = $value;
+            } else {
+                // Password is plain text, hash it
+                $this->attributes['password'] = Hash::make($value);
+            }
         }
     }
 

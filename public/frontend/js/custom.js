@@ -205,7 +205,7 @@ $(function() {
 		}
 		
 		// Check if already in wishlist (heart icon state)
-		const isInWishlist = $btn.find('i').hasClass('fas') || $btn.hasClass('wishlist-active');
+		const isInWishlist = $btn.find('i').hasClass('fas') || $btn.hasClass('wishlist-active') || $btn.data('in-wishlist') == '1';
 		
 		if (isInWishlist) {
 			// Remove from wishlist
@@ -218,8 +218,10 @@ $(function() {
 				success: function(response) {
 					if (response.success) {
 						// Update icon to empty heart
-						$btn.find('i').removeClass('fas').addClass('far').css('color', '');
-						$btn.removeClass('wishlist-active');
+						const $icon = $btn.find('i');
+						$icon.removeClass('fas fa-heart').addClass('lni lni-heart').removeClass('text-danger').removeAttr('style');
+						$btn.removeClass('wishlist-active text-danger').removeAttr('style');
+						$btn.attr('data-in-wishlist', '0');
 						
 						Snackbar.show({
 							text: 'Product removed from wishlist',
@@ -238,8 +240,10 @@ $(function() {
 					// Even if product not found, treat as success (idempotent)
 					if (xhr.status === 404 || (xhr.responseJSON && xhr.responseJSON.message && xhr.responseJSON.message.includes('not in wishlist'))) {
 						// Update icon to empty heart
-						$btn.find('i').removeClass('fas').addClass('far').css('color', '');
-						$btn.removeClass('wishlist-active');
+						const $icon = $btn.find('i');
+						$icon.removeClass('fas fa-heart').addClass('lni lni-heart').removeClass('text-danger').removeAttr('style');
+						$btn.removeClass('wishlist-active text-danger').removeAttr('style');
+						$btn.attr('data-in-wishlist', '0');
 						updateWishlistCount();
 					} else {
 						console.error('Error removing from wishlist:', xhr);
@@ -266,8 +270,10 @@ $(function() {
 				success: function(response) {
 					if (response.success) {
 						// Update icon to filled red heart
-						$btn.find('i').removeClass('far').addClass('fas').css('color', '#dc3545');
-						$btn.addClass('wishlist-active');
+						const $icon = $btn.find('i');
+						$icon.removeClass('lni lni-heart far').addClass('fas fa-heart text-danger').css('color', '#dc3545');
+						$btn.addClass('wishlist-active text-danger').css('color', '#dc3545');
+						$btn.attr('data-in-wishlist', '1');
 						
 						Snackbar.show({
 							text: 'Product added to wishlist successfully!',
@@ -320,9 +326,41 @@ $(function() {
 		});
 	}
 	
+	// Update cart count in header - make it globally available
+	window.updateCartCount = function() {
+		let sessionId = localStorage.getItem('session_id');
+		if (!sessionId) {
+			sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+			localStorage.setItem('session_id', sessionId);
+		}
+		
+		$.ajax({
+			url: '/api/cart/count',
+			method: 'GET',
+			headers: {
+				'X-Session-ID': sessionId
+			},
+			data: { session_id: sessionId },
+			success: function(response) {
+				if (response.success) {
+					// Update all cart counters in header
+					$('a[href*="shoping-cart"] .dn-counter').text(response.count || '0');
+					$('.navigation a[href*="shoping-cart"] .dn-counter').text(response.count || '0');
+				}
+			},
+			error: function(xhr) {
+				console.error('Error updating cart count:', xhr);
+			}
+		});
+	}
+	
+	// Alias for backward compatibility
+	var updateCartCount = window.updateCartCount;
+	
 	// Initialize wishlist count on page load
 	$(document).ready(function() {
 		updateWishlistCount();
+		updateCartCount();
 	});
 	
 	// Bottom To Top Scroll Script

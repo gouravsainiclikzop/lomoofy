@@ -4,83 +4,63 @@
 
 @section('content')
 <!-- ============================ Hero Banner  Start================================== -->
+			@if($homeSliders->count() > 0)
 			<div class="home-slider margin-bottom-0">
-
+				@foreach($homeSliders as $slider)
 				<!-- Slide -->
+				<div data-background-image="{{ $slider['image'] }}" class="item">
+					<div class="container">
+						<div class="row">
+							<div class="col-md-12">
+								<div class="home-slider-container">
+
+									<!-- Slide Title -->
+									<div class="home-slider-desc">
+										<div class="home-slider-title mb-4">
+											@if($slider['tagline'])
+												<h5 class="theme-cl fs-sm ft-ragular mb-0">{{ $slider['tagline'] }}</h5>
+											@endif
+											@if($slider['title'])
+												<h1 class="mb-1 ft-bold lg-heading">{!! $slider['title'] !!}</h1>
+											@endif
+										</div>
+										@if($slider['category'])
+											<a href="{{ route('frontend.shop') }}?category={{ $slider['category']['slug'] }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
+										@else
+											<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
+										@endif
+									</div>
+									<!-- Slide Title / End -->
+
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				@endforeach
+			</div>
+			@else
+			<!-- Fallback slider if no sliders are configured -->
+			<div class="home-slider margin-bottom-0">
 				<div data-background-image="{{ asset('frontend/images/banner-2.png') }}" class="item">
 					<div class="container">
 						<div class="row">
 							<div class="col-md-12">
 								<div class="home-slider-container">
-
-									<!-- Slide Title -->
 									<div class="home-slider-desc">
 										<div class="home-slider-title mb-4">
-											<h5 class="theme-cl fs-sm ft-ragular mb-0">Winter Collection</h5>
-											<h1 class="mb-1 ft-bold lg-heading">New Winter<br>Collections 2021</h1>
-											<span class="trending">There's nothing like trend</span>
-										</div> 
-										<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
-									</div>
-									<!-- Slide Title / End -->
-
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-				
-				<!-- Slide -->
-				<div data-background-image="{{ asset('frontend/images/banner-5.png') }}" class="item">
-					<div class="container">
-						<div class="row">
-							<div class="col-md-12">
-								<div class="home-slider-container">
-
-									<!-- Slide Title -->
-									<div class="home-slider-desc">
-										<div class="home-slider-title mb-4">
-											<h5 class="theme-cl fs-sm ft-ragular mb-0">Winter Collection</h5>
-											<h1 class="mb-1 ft-bold lg-heading">New Winter<br>Collections 2021</h1>
-											<span class="trending">There's nothing like trend</span>
+											<h5 class="theme-cl fs-sm ft-ragular mb-0">Welcome</h5>
+											<h1 class="mb-1 ft-bold lg-heading">Shop Now</h1>
 										</div>
-
 										<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
 									</div>
-									<!-- Slide Title / End -->
-
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-
-				<!-- Slide -->
-				<div data-background-image="{{ asset('frontend/images/banner-3.png') }}" class="item">
-					<div class="container">
-						<div class="row">
-							<div class="col-md-12">
-								<div class="home-slider-container">
-
-									<!-- Slide Title -->
-									<div class="home-slider-desc">
-										<div class="home-slider-title mb-4">
-											<h5 class="theme-cl fs-sm ft-ragular mb-0">Winter Collection</h5>
-											<h1 class="mb-1 ft-bold lg-heading">New Winter<br>Collections 2021</h1>
-											<span class="trending">There's nothing like trend</span>
-										</div>
-
-										<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
-									</div>
-									<!-- Slide Title / End -->
-
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-
 			</div>
+			@endif
 			<!-- ============================ Hero Banner End ================================== -->
 			
 
@@ -229,171 +209,62 @@
 					<div class="row">
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="slide_items">
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/8.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+								@if($bestSellers->count() > 0)
+									@foreach($bestSellers as $product)
+									<!-- single Item -->
+									<div class="single_itesm">
+										<div class="product_grid card b-0 mb-0">
+											@if($product['badge'] === 'sale')
+												<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+											@elseif($product['badge'] === 'new')
+												<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
+											@elseif($product['badge'] === 'hot')
+												<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+											@endif
+											<button class="snackbar-wishlist btn btn_love position-absolute ab-right {{ $product['in_wishlist'] ? 'wishlist-active' : '' }}" 
+												data-product-id="{{ $product['id'] }}" 
+												data-in-wishlist="{{ $product['in_wishlist'] ? '1' : '0' }}">
+												<i class="far fa-heart {{ $product['in_wishlist'] ? 'text-danger' : '' }}"></i>
+											</button> 
+											<div class="card-body p-0">
+												<div class="shop_thumb position-relative">
+													<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
+														<img class="card-img-top" src="{{ $product['image_url'] }}" alt="{{ $product['name'] }}">
+													</a>
+													<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+														<div class="edlio">
+															<a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" data-product-slug="{{ $product['slug'] }}">
+																<i class="fas fa-eye me-1"></i>Quick View
+															</a>
+														</div>
+													</div>
 												</div>
 											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Set</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$119.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/9.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Formal Men Lowers</a></h5>
-													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$129.00</span><span class="ft-medium theme-cl fs-md">$79.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/10.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Suit</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$80.00</span></div>
+											<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+												<div class="text-left">
+													<div class="text-center">
+														<h5 class="fw-normal fs-md mb-0 lh-1 mb-1">
+															<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
+														</h5>
+														<div class="elis_rty">
+															@if($product['has_sale'] && $product['min_sale_price'])
+																<span class="text-muted ft-medium line-through me-2">₹{{ number_format($product['min_price'], 0) }}</span>
+																<span class="ft-medium theme-cl fs-md">₹{{ number_format($product['min_sale_price'], 0) }}</span>
+															@else
+																<span class="ft-medium fs-md text-dark">{{ $product['price_display'] }}</span>
+															@endif
+														</div>
+													</div>
 												</div>
 											</div>
 										</div>
 									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-sold text-white position-absolute ft-regular ab-left text-upper">Sold Out</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/11.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Fancy Lady Dress</a></h5>
-													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$149.00</span><span class="ft-medium theme-cl fs-md">$110.00</span></div>
-												</div>
-											</div>
-										</div>
+									@endforeach
+								@else
+									<div class="col-xl-12">
+										<p class="text-center text-muted">No best seller products found.</p>
 									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/12.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Flix Flox Jeans</a></h5>
-													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$90.00</span><span class="ft-medium theme-cl fs-md">$49.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/13.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Fancy Salwar Suits</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$114.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/14.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Collot Full Dress</a></h5>
-													<div class="elis_rty"><span class="ft-medium theme-cl fs-md text-dark">$120.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
+								@endif
 							</div>
 						</div>
 					</div>
@@ -402,16 +273,25 @@
 			</section>
 
 
-			<section class="bg-cover" style="background:url({{ asset('frontend/images/bg-2.jpg') }}) no-repeat;" data-overlay="1">
+			@if($ourCollection && ($ourCollection->heading || $ourCollection->description))
+			<section class="bg-cover" style="background:url({{ $ourCollection->background_image ? asset('storage/' . $ourCollection->background_image) : asset('frontend/images/bg-2.jpg') }}) no-repeat;" data-overlay="1">
 				<div class="container">
 					<div class="row justify-content-center">
 						<div class="col-xl-8 col-lg-9 col-md-12 col-sm-12">
 							
 							<div class="deals_wrap text-center"> 
-								<h2 class="ft-bold text-light">Only Summer Collections</h2>
-								<p class="text-light">At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.</p>
+								@if($ourCollection->heading)
+									<h2 class="ft-bold text-light">{{ $ourCollection->heading }}</h2>
+								@endif
+								@if($ourCollection->description)
+									<p class="text-light">{{ $ourCollection->description }}</p>
+								@endif
 								<div class="mt-5">
-									<a href="{{ route('frontend.shop') }}" class="btn btn-white stretched-links">Start Shopping <i class="lni lni-arrow-right"></i></a>
+									@if($ourCollection->category)
+										<a href="{{ route('frontend.shop') }}?category={{ $ourCollection->category->slug }}" class="btn btn-white stretched-links">Start Shopping <i class="lni lni-arrow-right"></i></a>
+									@else
+										<a href="{{ route('frontend.shop') }}" class="btn btn-white stretched-links">Start Shopping <i class="lni lni-arrow-right"></i></a>
+									@endif
 								</div>
 							</div>
 							
@@ -419,6 +299,7 @@
 					</div>
 				</div>
 			</section>
+			@endif
 
 
 			<section class="middle gray">
@@ -529,10 +410,10 @@
 													
 													// Determine display price range (no strikethrough for default view)
 													if ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0) {
-														$displayPrice = '$' . number_format($minDisplayPrice, 0) . ' - $' . number_format($maxDisplayPrice, 0);
-													} else {
-														$displayPrice = '$' . number_format($minDisplayPrice, 0);
-													}
+													$displayPrice = '₹' . number_format($minDisplayPrice, 0) . ' - ₹' . number_format($maxDisplayPrice, 0);
+												} else {
+													$displayPrice = '₹' . number_format($minDisplayPrice, 0);
+												}
 												@endphp
 												{{ $displayPrice }}
 											</span>
@@ -600,172 +481,62 @@
 					<div class="row">
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="slide_items">
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/1.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
+								@if($recentlyViewed->count() > 0)
+									@foreach($recentlyViewed as $product)
+									<!-- single Item -->
+									<div class="single_itesm">
+										<div class="product_grid card b-0 mb-0">
+											@if($product['badge'] === 'sale')
+												<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
+											@elseif($product['badge'] === 'new')
+												<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
+											@elseif($product['badge'] === 'hot')
+												<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
+											@endif
+											<button class="snackbar-wishlist btn btn_love position-absolute ab-right {{ $product['in_wishlist'] ? 'wishlist-active' : '' }}" 
+												data-product-id="{{ $product['id'] }}" 
+												data-in-wishlist="{{ $product['in_wishlist'] ? '1' : '0' }}">
+												<i class="far fa-heart {{ $product['in_wishlist'] ? 'text-danger' : '' }}"></i>
+											</button> 
+											<div class="card-body p-0">
+												<div class="shop_thumb position-relative">
+													<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
+														<img class="card-img-top" src="{{ $product['image_url'] }}" alt="{{ $product['name'] }}">
+													</a>
+													<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
+														<div class="edlio">
+															<a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" data-product-slug="{{ $product['slug'] }}">
+																<i class="fas fa-eye me-1"></i>Quick View
+															</a>
+														</div>
+													</div>
 												</div>
 											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Stylish Leather Jacket</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$199.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/2.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Designer T-Shirt</a></h5>
-													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$89.00</span><span class="ft-medium theme-cl fs-md">$59.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/3.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Classic Denim Jeans</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$99.00</span></div>
+											<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
+												<div class="text-left">
+													<div class="text-center">
+														<h5 class="fw-normal fs-md mb-0 lh-1 mb-1">
+															<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
+														</h5>
+														<div class="elis_rty">
+															@if($product['has_sale'] && $product['min_sale_price'])
+																<span class="text-muted ft-medium line-through me-2">₹{{ number_format($product['min_price'], 0) }}</span>
+																<span class="ft-medium theme-cl fs-md">₹{{ number_format($product['min_sale_price'], 0) }}</span>
+															@else
+																<span class="ft-medium fs-md text-dark">{{ $product['price_display'] }}</span>
+															@endif
+														</div>
+													</div>
 												</div>
 											</div>
 										</div>
 									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/4.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Elegant Summer Dress</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$149.00</span></div>
-												</div>
-											</div>
-										</div>
+									@endforeach
+								@else
+									<div class="col-xl-12">
+										<p class="text-center text-muted">No recently viewed products.</p>
 									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/5.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Sporty Sneakers</a></h5>
-													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$129.00</span><span class="ft-medium theme-cl fs-md">$89.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/6.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Casual Polo Shirt</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$69.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/7.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Winter Wool Sweater</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$159.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
+								@endif
 							</div>
 						</div>
 					</div>
@@ -776,8 +547,7 @@
  
 			<!-- ======================= Customer Review ======================== -->
 			<section class="gray">
-				<div class="container">
-					
+				<div class="container"> 
 					<div class="row justify-content-center">
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="sec_title position-relative text-center">
@@ -790,59 +560,32 @@
 					<div class="row justify-content-center">
 						<div class="col-xl-9 col-lg-10 col-md-12 col-sm-12">
 							<div class="reviews-slide px-3">
-								 
-								<div class="single_review">
-									<div class="sng_rev_thumb"><figure><img src="{{ asset('frontend/images/team-1.jpg') }}" class="img-fluid circle" alt=""></figure></div>
-									<div class="sng_rev_caption text-center">
-										<div class="rev_desc mb-4">
-											<p class="fs-md">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
+								@if($testimonials->count() > 0)
+									@foreach($testimonials as $testimonial)
+									<div class="single_review">
+										<div class="sng_rev_thumb">
+											<figure>
+												<img src="{{ $testimonial['image'] }}" class="img-fluid circle" alt="{{ $testimonial['name'] }}">
+											</figure>
 										</div>
-										<div class="rev_author">
-											<h4 class="mb-0">Mark Jevenue</h4>
-											<span class="fs-sm">CEO of Addle</span>
-										</div>
-									</div>
-								</div>
-								 
-								<div class="single_review">
-									<div class="sng_rev_thumb"><figure><img src="{{ asset('frontend/images/team-2.jpg') }}" class="img-fluid circle" alt=""></figure></div>
-									<div class="sng_rev_caption text-center">
-										<div class="rev_desc mb-4">
-											<p class="fs-md">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
-										</div>
-										<div class="rev_author">
-											<h4 class="mb-0">Henna Bajaj</h4>
-											<span class="fs-sm">Aqua Founder</span>
+										<div class="sng_rev_caption text-center">
+											<div class="rev_desc mb-4">
+												<p class="fs-md">{{ $testimonial['description'] }}</p>
+											</div>
+											<div class="rev_author">
+												<h4 class="mb-0">{{ $testimonial['name'] }}</h4>
+												@if($testimonial['title'])
+													<span class="fs-sm">{{ $testimonial['title'] }}</span>
+												@endif
+											</div>
 										</div>
 									</div>
-								</div>
-								 
-								<div class="single_review">
-									<div class="sng_rev_thumb"><figure><img src="{{ asset('frontend/images/team-3.jpg') }}" class="img-fluid circle" alt=""></figure></div>
-									<div class="sng_rev_caption text-center">
-										<div class="rev_desc mb-4">
-											<p class="fs-md">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
-										</div>
-										<div class="rev_author">
-											<h4 class="mb-0">John Cenna</h4>
-											<span class="fs-sm">CEO of Plike</span>
-										</div>
+									@endforeach
+								@else
+									<div class="col-xl-12">
+										<p class="text-center text-muted">No testimonials available.</p>
 									</div>
-								</div>
-								 
-								<div class="single_review">
-									<div class="sng_rev_thumb"><figure><img src="{{ asset('frontend/images/team-4.jpg') }}" class="img-fluid circle" alt=""></figure></div>
-									<div class="sng_rev_caption text-center">
-										<div class="rev_desc mb-4">
-											<p class="fs-md">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.</p>
-										</div>
-										<div class="rev_author">
-											<h4 class="mb-0">Madhu Sharma</h4>
-											<span class="fs-sm">Team Manager</span>
-										</div>
-									</div>
-								</div>
-								
+								@endif
 							</div>
 						</div>
 					</div>
@@ -1045,11 +788,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Format price display for selected variant
                     let priceHtml = '';
                     if (hasSale && salePrice) {
-                        priceHtml = '<span class="text-decoration-line-through text-muted me-1">$' + 
+                        priceHtml = '<span class="text-decoration-line-through text-muted me-1">₹' + 
                                    Math.round(regularPrice).toLocaleString() + '</span>' +
-                                   '$' + Math.round(displayPrice).toLocaleString();
+                                   '₹' + Math.round(displayPrice).toLocaleString();
                     } else {
-                        priceHtml = '$' + Math.round(displayPrice).toLocaleString();
+                        priceHtml = '₹' + Math.round(displayPrice).toLocaleString();
                     }
                     
                     priceElement.innerHTML = priceHtml;

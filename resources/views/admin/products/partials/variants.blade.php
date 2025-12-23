@@ -309,18 +309,16 @@
                 </button>
             </div>
         </div>
-    </div>
+</div>
 </div>
 
-{{-- Variant Edit Modal --}}
-<div class="modal fade" id="variantEditModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title">Edit Variant</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
+{{-- Variant Edit Offcanvas --}}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="variantEditModal" aria-labelledby="variantEditModalLabel" style="width: 80%;">
+    <div class="offcanvas-header">
+        <h6 class="offcanvas-title" id="variantEditModalLabel">Edit Variant</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
                 <form id="variantEditForm">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -476,12 +474,12 @@
                         </div>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveVariantBtn">Save Changes</button>
-            </div>
-        </div>
+                <div class="mt-4 pt-3 border-top">
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="saveVariantBtn">Save Changes</button>
+                    </div>
+                </div>
     </div>
 </div>
 
@@ -561,7 +559,7 @@
                 <h6 class="modal-title">Bulk Edit Variants</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form>
+            <form id="bulkEditForm">
                 <div class="modal-body">
                     <div class="row g-2">
                         <div class="col-md-6">
@@ -774,7 +772,9 @@ function populateAttributeValuesFromData(attributeId, attributeType, attributeDi
             $valuesContainer.append($valueTag);
 
             const $checkbox = $valueTag.find('.value-checkbox');
-            if (selectedAttributeValuesMap[attributeKey] && selectedAttributeValuesMap[attributeKey].includes(value.value)) {
+            // Disabled: Don't auto-check value checkboxes during draft restoration - let user manually select
+            // Only auto-check if NOT restoring from draft
+            if (!isRestoringVariantDraft && selectedAttributeValuesMap[attributeKey] && selectedAttributeValuesMap[attributeKey].includes(value.value)) {
                 $checkbox.prop('checked', true);
                 $checkbox.trigger('change');
             }
@@ -863,18 +863,9 @@ $(document).ready(function() {
                 return String($(this).val());
             }).get();
             
-            // Check if any deselected attribute is used in variants
-            if (!isChecked) {
-                const deselectedIds = selectedAttributeIds.filter(id => !newSelectedIds.includes(id));
-                for (const deselectedId of deselectedIds) {
-                    if (attributeIsUsedInVariants(deselectedId)) {
-                        showToast('error', 'This attribute is used by existing variants. Remove or regenerate those variants before deselecting it.');
-                        // Re-check the checkbox
-                        $checkbox.prop('checked', true);
-                        return;
-                    }
-                }
-            }
+            // Allow users to uncheck attributes freely - no restrictions
+            // Removed: Check if any deselected attribute is used in variants
+            // Users can now uncheck any attribute regardless of variant usage
             
             selectedAttributeIds = newSelectedIds;
             
@@ -984,15 +975,30 @@ $(document).ready(function() {
             $variantsTableContainer.css('display', 'block');
         }
         
-        // Check if updateAttributeValuesConfig exists and call it to initialize variants
-        if (typeof updateAttributeValuesConfig === 'function') {
-            updateAttributeValuesConfig();
+        // Don't call updateAttributeValuesConfig on initialization - let user manually select attributes
+        // This prevents automatic preservation of attribute values
+        // if (typeof updateAttributeValuesConfig === 'function') {
+        //     updateAttributeValuesConfig();
+        // }
+        
+        // Clear all attribute data at initialization to ensure clean state
+        selectedAttributeIds = [];
+        attributeValues = {};
+        selectedAttributeValues = {};
+        
+        // Uncheck all attribute checkboxes
+        const $availableAttributesContainer = $('#availableAttributesContainer');
+        if ($availableAttributesContainer.length) {
+            $availableAttributesContainer.find('.attribute-checkbox').prop('checked', false);
         }
+        
+        // Uncheck all attribute value checkboxes
+        $('#variantAttributeSelectors').find('.value-checkbox, .variant-attribute-value-checkbox').prop('checked', false);
         
         // Default variant creation removed per user request
     }, 300);
     const $variantEditModalElement = $('#variantEditModal');
-    const variantEditModal = $variantEditModalElement.length ? new bootstrap.Modal($variantEditModalElement[0]) : null;
+    const variantEditModal = $variantEditModalElement.length ? new bootstrap.Offcanvas($variantEditModalElement[0]) : null;
     const $measurementRowsContainer = $('#variantMeasurementRows');
     const $measurementEmptyState = $('#variantMeasurementsEmptyState');
     const $addMeasurementRowBtn = $('#addMeasurementRowBtn');
@@ -1415,7 +1421,7 @@ $(document).ready(function() {
     }
 
     function renderMeasurementsInModal(measurements = []) {
-        if (!measurementRowsContainer) {
+        if (!$measurementRowsContainer || !$measurementRowsContainer.length) {
             return;
         }
 
@@ -1467,7 +1473,7 @@ $(document).ready(function() {
     }
 
     function collectMeasurementsFromModal() {
-        if (!measurementRowsContainer) {
+        if (!$measurementRowsContainer || !$measurementRowsContainer.length) {
             return [];
         }
 
@@ -1812,22 +1818,52 @@ $(document).ready(function() {
             RTE_DefaultConfig.toggleBorder = true; // Enable toggle border
         }
         
-        // Destroy existing editors if they exist
-        if (variantDescriptionEditor && typeof variantDescriptionEditor.destroy === 'function') {
+        // Destroy existing editors if they exist - more thorough cleanup
+        if (variantDescriptionEditor) {
             try {
-                variantDescriptionEditor.destroy();
+                if (typeof variantDescriptionEditor.destroy === 'function') {
+                    variantDescriptionEditor.destroy();
+                }
             } catch (e) {
+                console.warn('Error destroying description editor:', e);
             }
+            variantDescriptionEditor = null;
+            window.variantDescriptionEditor = null;
         }
-        if (variantAdditionalInfoEditor && typeof variantAdditionalInfoEditor.destroy === 'function') {
+        if (variantAdditionalInfoEditor) {
             try {
-                variantAdditionalInfoEditor.destroy();
+                if (typeof variantAdditionalInfoEditor.destroy === 'function') {
+                    variantAdditionalInfoEditor.destroy();
+                }
             } catch (e) {
+                console.warn('Error destroying additional info editor:', e);
             }
+            variantAdditionalInfoEditor = null;
+            window.variantAdditionalInfoEditor = null;
         }
         
-        // Initialize Description Editor
+        // Clear any existing editor containers/divs that might have been created
         const $descriptionTextarea = $('#variantDescription');
+        const $additionalInfoTextarea = $('#variantAdditionalInfo');
+        
+        // Remove any existing editor containers/DOM elements before re-initializing
+        if ($descriptionTextarea.length) {
+            // Remove all sibling divs (editor containers created by RichTextEditor)
+            $descriptionTextarea.siblings('div').remove();
+            // Also check parent's direct children for editor containers
+            const descriptionParent = $descriptionTextarea.parent();
+            descriptionParent.find('> div').not($descriptionTextarea).remove();
+        }
+        
+        if ($additionalInfoTextarea.length) {
+            // Remove all sibling divs (editor containers created by RichTextEditor)
+            $additionalInfoTextarea.siblings('div').remove();
+            // Also check parent's direct children for editor containers
+            const additionalInfoParent = $additionalInfoTextarea.parent();
+            additionalInfoParent.find('> div').not($additionalInfoTextarea).remove();
+        }
+        
+        // Initialize Description Editor (always initialize after cleanup to ensure clean state)
         if ($descriptionTextarea.length && typeof RichTextEditor !== 'undefined') {
             try {
                 variantDescriptionEditor = new RichTextEditor($descriptionTextarea[0]);
@@ -1838,11 +1874,11 @@ $(document).ready(function() {
                     $descriptionTextarea.val(variantDescriptionEditor.getHTMLCode());
                 });
             } catch (e) {
+                console.error('Error initializing description editor:', e);
             }
         }
         
-        // Initialize Additional Information Editor
-        const $additionalInfoTextarea = $('#variantAdditionalInfo');
+        // Initialize Additional Information Editor (always initialize after cleanup to ensure clean state)
         if ($additionalInfoTextarea.length && typeof RichTextEditor !== 'undefined') {
             try {
                 variantAdditionalInfoEditor = new RichTextEditor($additionalInfoTextarea[0]);
@@ -1853,44 +1889,80 @@ $(document).ready(function() {
                     $additionalInfoTextarea.val(variantAdditionalInfoEditor.getHTMLCode());
                 });
             } catch (e) {
+                console.error('Error initializing additional info editor:', e);
             }
         }
     }
     
-    // Initialize editors when modal is shown
+    // Initialize editors when offcanvas is shown
     if ($variantEditModalElement.length) {
-        $variantEditModalElement.on('shown.bs.modal', function() {
-            // Wait a bit to ensure modal is fully rendered
+        $variantEditModalElement.on('shown.bs.offcanvas', function() {
+            // Wait a bit to ensure offcanvas is fully rendered
             setTimeout(function() {
                 initializeVariantRichTextEditors();
             }, 100);
         });
         
-        $variantEditModalElement.on('hidden.bs.modal', function() {
+        $variantEditModalElement.on('hidden.bs.offcanvas', function() {
             activeVariantRow = null;
             syncModalImagePreview(null, []);
-            // Destroy editors when modal is hidden
-            if (variantDescriptionEditor && typeof variantDescriptionEditor.destroy === 'function') {
+            
+            // Destroy editors when offcanvas is hidden - more thorough cleanup
+            if (variantDescriptionEditor) {
                 try {
-                    variantDescriptionEditor.destroy();
+                    if (typeof variantDescriptionEditor.destroy === 'function') {
+                        variantDescriptionEditor.destroy();
+                    }
                 } catch (e) {
+                    console.warn('Error destroying description editor on close:', e);
                 }
+                variantDescriptionEditor = null;
+                window.variantDescriptionEditor = null;
             }
-            if (variantAdditionalInfoEditor && typeof variantAdditionalInfoEditor.destroy === 'function') {
+            
+            if (variantAdditionalInfoEditor) {
                 try {
-                    variantAdditionalInfoEditor.destroy();
+                    if (typeof variantAdditionalInfoEditor.destroy === 'function') {
+                        variantAdditionalInfoEditor.destroy();
+                    }
                 } catch (e) {
+                    console.warn('Error destroying additional info editor on close:', e);
                 }
+                variantAdditionalInfoEditor = null;
+                window.variantAdditionalInfoEditor = null;
             }
-            // Reset editor instances
-            variantDescriptionEditor = null;
-            variantAdditionalInfoEditor = null;
-            window.variantDescriptionEditor = null;
-            window.variantAdditionalInfoEditor = null;
+            
+            // Clear textarea values and remove any editor containers/DOM elements
             const $descriptionTextarea = $('#variantDescription');
             const $additionalInfoTextarea = $('#variantAdditionalInfo');
-            if ($descriptionTextarea.length) $descriptionTextarea.val('');
-            if ($additionalInfoTextarea.length) $additionalInfoTextarea.val('');
+            
+            if ($descriptionTextarea.length) {
+                $descriptionTextarea.val('');
+                // Remove any editor-related DOM elements that might have been created
+                const descriptionParent = $descriptionTextarea.parent();
+                // Remove all divs that are siblings of the textarea (likely editor containers)
+                descriptionParent.find('> div').not($descriptionTextarea).each(function() {
+                    $(this).remove();
+                });
+                // Also check for editor containers at the same level
+                $descriptionTextarea.siblings('div').each(function() {
+                    $(this).remove();
+                });
+            }
+            
+            if ($additionalInfoTextarea.length) {
+                $additionalInfoTextarea.val('');
+                // Remove any editor-related DOM elements that might have been created
+                const additionalInfoParent = $additionalInfoTextarea.parent();
+                // Remove all divs that are siblings of the textarea (likely editor containers)
+                additionalInfoParent.find('> div').not($additionalInfoTextarea).each(function() {
+                    $(this).remove();
+                });
+                // Also check for editor containers at the same level
+                $additionalInfoTextarea.siblings('div').each(function() {
+                    $(this).remove();
+                });
+            }
         });
     }
 
@@ -2018,31 +2090,32 @@ $(document).ready(function() {
 
         let attributesChanged = false;
 
-        requiredAttributeIds.forEach(attributeId => {
-            const attrIdStr = String(attributeId);
-            if (!selectedAttributeIds.includes(attrIdStr)) {
-                selectedAttributeIds.push(attrIdStr);
-                attributesChanged = true;
-            }
+        // Disabled: Don't auto-check attributes based on existing variants
+        // requiredAttributeIds.forEach(attributeId => {
+        //     const attrIdStr = String(attributeId);
+        //     if (!selectedAttributeIds.includes(attrIdStr)) {
+        //         selectedAttributeIds.push(attrIdStr);
+        //         attributesChanged = true;
+        //     }
 
-            // Select checkbox
-            const $container = $('#availableAttributesContainer');
-            if ($container.length) {
-                const $checkbox = $container.find(`.attribute-checkbox[value="${attrIdStr}"]`);
-                if ($checkbox.length) {
-                    if (!$checkbox.is(':checked')) {
-                        $checkbox.prop('checked', true);
-                        // Manually update selectedAttributeIds first
-                        if (!selectedAttributeIds.includes(attrIdStr)) {
-                            selectedAttributeIds.push(attrIdStr);
-                        }
-                        // Note: We don't trigger change event on page load to avoid loading values automatically
-                        // Values will only load when user manually clicks/unchanges the checkbox
-                        attributesChanged = true;
-                    }
-                }
-            }
-        });
+        //     // Select checkbox
+        //     const $container = $('#availableAttributesContainer');
+        //     if ($container.length) {
+        //         const $checkbox = $container.find(`.attribute-checkbox[value="${attrIdStr}"]`);
+        //         if ($checkbox.length) {
+        //             if (!$checkbox.is(':checked')) {
+        //                 $checkbox.prop('checked', true);
+        //                 // Manually update selectedAttributeIds first
+        //                 if (!selectedAttributeIds.includes(attrIdStr)) {
+        //                     selectedAttributeIds.push(attrIdStr);
+        //                 }
+        //                 // Note: We don't trigger change event on page load to avoid loading values automatically
+        //                 // Values will only load when user manually clicks/unchanges the checkbox
+        //                 attributesChanged = true;
+        //             }
+        //         }
+        //     }
+        // });
  
     }
 
@@ -2072,13 +2145,14 @@ $(document).ready(function() {
 
         let attributesChanged = false;
 
-        selectedValues.forEach(attributeId => {
-            const id = String(attributeId);
-            if (!selectedAttributeIds.includes(id)) {
-                selectedAttributeIds.push(id);
-                attributesChanged = true;
-            }
-        });
+        // Disabled: Don't auto-add to selectedAttributeIds - let user manually select
+        // selectedValues.forEach(attributeId => {
+        //     const id = String(attributeId);
+        //     if (!selectedAttributeIds.includes(id)) {
+        //         selectedAttributeIds.push(id);
+        //         attributesChanged = true;
+        //     }
+        // });
 
         if (attributesChanged || selectedAttributeIds.length) {
             updateAttributeValuesConfig();
@@ -2086,73 +2160,21 @@ $(document).ready(function() {
     }
 
     function preserveUnsatisfiedVariants() {
-        // Only preserve attributes if we're in edit mode and have existing variants
-        // Don't auto-select attributes for new products
-        if (typeof generatedVariants === 'undefined' || !Array.isArray(generatedVariants) || !generatedVariants.length) {
-            return;
-        }
-
-        // Only preserve if we're loading existing variants (edit mode)
-        const isEditMode = Array.isArray(existingVariantsPayload) && existingVariantsPayload.length > 0;
-        if (!isEditMode) {
-            return;
-        }
-
-        const requiredAttributeMap = new Map();
-
-        generatedVariants.forEach(variant => {
-            const normalizedAttributes = normalizeAttributesPayload(variant.attributes || variant);
-            Object.entries(normalizedAttributes).forEach(([attributeId, value]) => {
-                if (attributeId === undefined || attributeId === null) {
-                    return;
-                }
-                const key = String(attributeId);
-                if (!requiredAttributeMap.has(key)) {
-                    requiredAttributeMap.set(key, new Set());
-                }
-                if (value !== undefined && value !== null && String(value).trim() !== '') {
-                    requiredAttributeMap.get(key).add(String(value));
-                }
-            });
-        });
-
-        requiredAttributeMap.forEach((valueSet, attributeId) => {
-            if (!selectedAttributeIds.includes(attributeId)) {
-                selectedAttributeIds.push(attributeId);
-                // Select checkbox
-                const $container = $('#availableAttributesContainer');
-                if ($container.length) {
-                    const $checkbox = $container.find(`.attribute-checkbox[value="${attributeId}"]`);
-                    if ($checkbox.length && !$checkbox.is(':checked')) {
-                        $checkbox.prop('checked', true);
-                        // Trigger change event to update selectedAttributeIds
-                        $checkbox.trigger('change');
-                    }
-                }
-            }
-
-            if (!Array.isArray(attributeValues[attributeId])) {
-                attributeValues[attributeId] = [];
-            }
-            if (!Array.isArray(selectedAttributeValues[attributeId])) {
-                selectedAttributeValues[attributeId] = [];
-            }
-
-            valueSet.forEach(value => {
-                if (!attributeValues[attributeId].includes(value)) {
-                    attributeValues[attributeId].push(value);
-                }
-                if (!selectedAttributeValues[attributeId].includes(value)) {
-                    selectedAttributeValues[attributeId].push(value);
-                }
-            });
-        });
+        // DISABLED: Don't preserve anything automatically - let user manually select everything
+        // All automatic preservation has been disabled per user request
+        // This function is kept for potential future use but does nothing
+        return;
     }
 
     // Prevent multiple simultaneous calls to updateAttributeValuesConfig
     // Variables are declared globally above (before DOMContentLoaded)
     
     function updateAttributeValuesConfig() {
+        // Don't update attribute config during draft restoration - let user manually select
+        if (isRestoringVariantDraft) {
+            return;
+        }
+        
         // Debounce: Clear any pending calls
         if (updateAttributeConfigTimeout) {
             clearTimeout(updateAttributeConfigTimeout);
@@ -2250,91 +2272,115 @@ $(document).ready(function() {
             // DEBUG: Attribute/Value - Container mapping
             console.log('[ATTR/VAL] Existing containers:', Array.from(existingContainers.keys()), 'Selected IDs:', selectedAttributeIds);
             
-            // Only clear if we need to remove containers that are no longer selected
+            // Remove containers for unchecked attributes completely from the form
             const selectedIdsSet = new Set(selectedAttributeIds.map(id => String(id)));
-            const needsClear = Array.from(existingContainers.keys()).some(id => !selectedIdsSet.has(id));
             
-            if (needsClear) {
-                // Only remove containers that are no longer selected
-                existingContainers.forEach((item, attrId) => {
-                    if (!selectedIdsSet.has(attrId)) {
-                        // Remove the DOM container
+            // Remove containers for attributes that are no longer selected
+            const containersToRemove = [];
+            existingContainers.forEach((item, attrId) => {
+                if (!selectedIdsSet.has(attrId)) {
+                    // Remove the container completely from the DOM
+                    if (item.$div && item.$div.length) {
                         item.$div.remove();
-                        
-                        // Clear attribute values from data structures
-                        const attrKey = String(attrId);
-                        if (selectedAttributeValues[attrKey]) {
-                            delete selectedAttributeValues[attrKey];
-                        }
-                        if (attributeValues[attrKey]) {
-                            delete attributeValues[attrKey];
-                        }
-                        
-                        // Clear cache for this attribute
-                        if (attributeValuesCache.has(attrKey)) {
-                            attributeValuesCache.delete(attrKey);
-                        }
-                        if (attributeValuesPromises.has(attrKey)) {
-                            attributeValuesPromises.delete(attrKey);
-                        }
                     }
-                });
-            }
+                    
+                    // Clear attribute values from data structures
+                    const attrKey = String(attrId);
+                    if (selectedAttributeValues[attrKey]) {
+                        delete selectedAttributeValues[attrKey];
+                    }
+                    if (attributeValues[attrKey]) {
+                        delete attributeValues[attrKey];
+                    }
+                    
+                    // Keep cache so values can be reloaded quickly if attribute is re-selected
+                    // But clear pending promises
+                    if (attributeValuesPromises.has(attrKey)) {
+                        attributeValuesPromises.delete(attrKey);
+                    }
+                    
+                    // Mark for removal from map
+                    containersToRemove.push(attrId);
+                }
+            });
+            
+            // Remove unchecked attribute containers from the map
+            containersToRemove.forEach(attrId => {
+                existingContainers.delete(attrId);
+            });
 
             // Create or update multi-select checkboxes for each selected attribute
             selectedAttributeIds.forEach(attributeId => {
                 const attrIdStr = String(attributeId);
                 
-                // Check if container already exists
-                let $selectorDiv = existingContainers.get(attrIdStr)?.$div;
-                const existingContainer = existingContainers.get(attrIdStr);
-                
-                // If container already exists, ensure values are loaded
-                if ($selectorDiv && $selectorDiv.length && existingContainer?.$container && existingContainer.$container.length) {
-                    const $container = existingContainer.$container;
-                    const hasCheckboxes = $container.find('.variant-attribute-value-checkbox').length > 0;
-                    const $hasRow = $container.find('.row'); // Check for checkbox grid
-                    const isLoading = $container.find('.fa-spinner').length > 0;
-                    const hasError = $container.find('.text-danger').length > 0;
-                    const hasEmptyMessage = $container.find('.text-muted').length > 0 && !hasCheckboxes && !$hasRow.length;
-                    
-                    // Check if row has actual content (not just empty)
-                    const rowHasContent = $hasRow.length && $hasRow.children().length > 0;
-                    
-                    // Values are loaded if: checkboxes exist, OR row exists with content and not loading
-                    // Don't check for isBeingPopulated - values should only load when button is clicked
-                    const valuesLoaded = hasCheckboxes || (rowHasContent && !isLoading && !hasEmptyMessage);
-                    
-                    // DEBUG: Attribute/Value - Value loading state
-                    console.log('[ATTR/VAL] Attribute', attributeId, 'hasCheckboxes:', hasCheckboxes, 'hasRow:', $hasRow.length > 0, 'rowHasContent:', rowHasContent, 'isLoading:', isLoading, 'valuesLoaded:', valuesLoaded);
-                    
-                    // Don't auto-load values - wait for user to click "Load Values" button
-                    return; // Skip creating new container since it already exists
-                }
-                
-                // Double-check that container doesn't exist (might have been created between checks)
+                // First, check if container exists in DOM (more reliable than map)
                 const $existingDiv = $variantAttributeSelectors.find(`[data-attribute-id="${attrIdStr}"]`);
+                
                 if ($existingDiv.length) {
+                    // Container div exists in DOM - check if inner container exists
                     let $container = $existingDiv.find('.attribute-values-checkbox-container');
                     
-                    // If inner container doesn't exist, we need to create it or recreate the whole container
-                    if (!$container.length) {
-                        // Remove the incomplete container and let it be recreated below
-                        $existingDiv.remove();
-                        // Continue to create new container
+                    if ($container.length) {
+                        // Both outer div and inner container exist - preserve it completely
+                        // Don't modify anything, just return
+                        return;
                     } else {
-                        // Container exists, check if values need to be loaded
-                        const hasCheckboxes = $container.find('.variant-attribute-value-checkbox').length > 0;
-                        const $hasRow = $container.find('.row');
-                        const rowHasContent = $hasRow.length && $hasRow.children().length > 0;
-                        const isLoading = $container.find('.fa-spinner').length > 0;
-                        // Don't check for isBeingPopulated - values should only load when button is clicked
-                        const valuesLoaded = hasCheckboxes || (rowHasContent && !isLoading);
-                       
-                        // Don't auto-load values - wait for user to click "Load Values" button
-                        return; // Container exists and is complete, skip creation
+                        // Outer div exists but inner container is missing - need to recreate inner container
+                        // Get attribute info first
+                        const attrInfo = getAttributeInfo(attributeId);
+                        if (!attrInfo) {
+                            return;
+                        }
+                        const attributeType = attrInfo.type;
+                        const attributeName = attrInfo.name;
+                        
+                        // Check if "Add Value" button exists, if not add it
+                        let $addValueBtn = $existingDiv.find('.add-attribute-value-btn');
+                        if (!$addValueBtn.length) {
+                            $addValueBtn = $('<button>')
+                                .attr('type', 'button')
+                                .addClass('btn btn-sm add-attribute-value-btn')
+                                .attr('data-attribute-id', attributeId)
+                                .attr('data-attribute-type', attributeType)
+                                .attr('data-attribute-name', attributeName)
+                                .attr('title', `Add new value for ${attributeName}`)
+                                .css({
+                                    'background': '#f5c000',
+                                    'color': '#ffffff',
+                                    'border': 'none',
+                                    'padding': '4px 10px',
+                                    'border-radius': '4px',
+                                    'display': 'flex',
+                                    'align-items': 'center'
+                                })
+                                .html(`
+                                    <i class="bx bx-plus-circle me-1" style="color:#ffffff; margin-right:.25rem;"></i>
+                                    Add Value
+                                `);
+                            $existingDiv.find('.d-flex').append($addValueBtn);
+                        }
+                        
+                        // Recreate the inner container
+                        const $innerContainer = $('<div>')
+                            .addClass('attribute-values-checkbox-container')
+                            .attr('data-attribute-id', attributeId)
+                            .attr('data-attribute-type', attributeType)
+                            .html(`
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-info-circle me-2"></i>Click "Load Values" button to load attribute values
+                                </div>
+                            `);
+                        $existingDiv.append($innerContainer);
+                        
+                        // Attach click handler for "Add Value" button
+                        $addValueBtn.off('click').on('click', function() {
+                            openAddAttributeValueModal(attributeId, attributeType, attributeName);
+                        });
+                        
+                        return;
                     }
                 }
+                
                 
                 // Get attribute info using helper function
                 const attrInfo = getAttributeInfo(attributeId);
@@ -3432,6 +3478,11 @@ $(document).ready(function() {
                 if (containsObjectPlaceholder) {
                     variant.name = variantName;
                 }
+                // Prepend product name to variant name if not already included
+                const productName = $('#productName').val() || '';
+                if (productName && !variantName.includes(productName)) {
+                    variantName = `${productName} - ${variantName}`;
+                }
                 // Generate SKU if not already set or is empty
                 if (variant.sku && variant.sku.trim() !== '') {
                     variantSku = variant.sku;
@@ -3461,11 +3512,20 @@ $(document).ready(function() {
                 variantImages = normalizedImages;
                 variantAttributes = normalizedAttributes;
             } else {
-                const normalizedCombination = normalizeAttributesPayload(variant);
-                const variantValues = Object.keys(normalizedCombination)
+                // Only use attributes for variant name, not other variant properties
+                const normalizedCombination = normalizeAttributesPayload(variant.attributes || {});
+                // Filter to only include actual attribute IDs (not other properties)
+                const attributeKeys = Object.keys(normalizedCombination).filter(key => {
+                    // Only include keys that are in selectedAttributeIds (actual attribute IDs)
+                    return selectedAttributeIds.includes(String(key));
+                });
+                const variantValues = attributeKeys
                     .sort((a, b) => Number(a) - Number(b))
                     .map(key => normalizedCombination[key]);
-                variantName = variantValues.join(' - ');
+                const attributeName = variantValues.length > 0 ? variantValues.join(' - ') : 'Variant';
+                // Prepend product name to variant name
+                const productName = $('#productName').val() || '';
+                variantName = productName ? `${productName} - ${attributeName}` : attributeName;
                 
                 // Generate SKU if not already set
                 if (variant.sku && variant.sku.trim() !== '') {
@@ -3668,7 +3728,7 @@ $(document).ready(function() {
     // Edit variant functionality
     $(variantsTableBody).on('click', '.edit-variant-btn', function(e) {
         if (!$variantEditModalElement.length || !variantEditModal) {
-            console.error('Variant edit modal is not available in the DOM.');
+            console.error('Variant edit offcanvas is not available in the DOM.');
             return;
         }
 
@@ -3825,7 +3885,7 @@ $(document).ready(function() {
             renderMeasurementsInModal(measurementsForModal);
             updateMeasurementEmptyState();
             variantEditModal.show();
-            // Set editor data after modal is shown (editors are initialized on show.bs.modal)
+            // Set editor data after offcanvas is shown (editors are initialized on show.bs.offcanvas)
             setTimeout(function() {
                 if (variantDataStr) {
                     try {
@@ -3854,9 +3914,9 @@ $(document).ready(function() {
         }
     });
     
-    // Load units when variant edit modal is shown (in case they weren't loaded yet)
+    // Load units when variant edit offcanvas is shown (in case they weren't loaded yet)
     if ($variantEditModalElement.length) {
-        $variantEditModalElement.on('shown.bs.modal', function() {
+        $variantEditModalElement.on('shown.bs.offcanvas', function() {
             if (!unitsLoaded && !unitsLoading) {
                 loadUnitsFromModule(function() {
                     // Refresh unit dropdowns in measurement rows after units are loaded
@@ -4577,12 +4637,12 @@ $(document).ready(function() {
     setTimeout(attachVariantsFormHandler, 500);
     setTimeout(attachVariantsFormHandler, 1000);
 
-    // Save variant changes (in modal)
+    // Save variant changes (in offcanvas)
     const $saveVariantBtn = $('#saveVariantBtn');
     if ($saveVariantBtn.length) {
         $saveVariantBtn.on('click', function() {
             if (!$variantEditModalElement.length || !variantEditModal) {
-                console.error('Variant edit modal is not available in the DOM.');
+                console.error('Variant edit offcanvas is not available in the DOM.');
                 return;
             }
 
@@ -4601,8 +4661,8 @@ $(document).ready(function() {
 
             if (skuInput) skuInput.value = document.getElementById('variantSku').value;
             if (priceInput) priceInput.value = document.getElementById('variantPrice').value;
-            if (salePriceField && variantSellPriceInput) {
-                salePriceField.value = variantSellPriceInput.value;
+            if (salePriceField && $variantSellPriceInput.length) {
+                salePriceField.value = $variantSellPriceInput.val();
             }
             if (statusHiddenInput) {
                 statusHiddenInput.value = variantStatusToggle && variantStatusToggle.checked ? '1' : '0';
@@ -4616,14 +4676,14 @@ $(document).ready(function() {
             const discountValueHidden = row.querySelector('[data-variant-discount-value-input]');
             const discountActiveHidden = row.querySelector('[data-variant-discount-active-input]');
 
-            if (discountTypeHidden && discountTypeSelect) {
-                discountTypeHidden.value = discountTypeSelect.value;
+            if (discountTypeHidden && $discountTypeSelect.length) {
+                discountTypeHidden.value = $discountTypeSelect.val();
             }
-            if (discountValueHidden && discountValueInput) {
-                discountValueHidden.value = discountValueInput.value;
+            if (discountValueHidden && $discountValueInput.length) {
+                discountValueHidden.value = $discountValueInput.val();
             }
-            if (discountActiveHidden && discountActiveSelect) {
-                discountActiveHidden.value = discountActiveSelect.value === '1' ? '1' : '0';
+            if (discountActiveHidden && $discountActiveSelect.length) {
+                discountActiveHidden.value = $discountActiveSelect.val() === '1' ? '1' : '0';
             }
 
             // Save variant name and barcode
@@ -4764,9 +4824,9 @@ $(document).ready(function() {
         });
     }
     
-    // Initialize heading suggestions on modal open
+    // Initialize heading suggestions on offcanvas open
     if ($variantEditModalElement.length) {
-        $variantEditModalElement[0].addEventListener('show.bs.modal', function() {
+        $variantEditModalElement[0].addEventListener('show.bs.offcanvas', function() {
             loadHeadingSuggestions();
         });
     }
@@ -5168,10 +5228,8 @@ $(document).ready(function() {
     // Select All / Deselect All functionality
     document.getElementById('selectAllBtn').addEventListener('click', function() {
         const $checkboxes = $(variantsTableBody).find('.variant-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = true;
-        });
-        showToast('success', `Selected all ${checkboxes.length} variants`);
+        $checkboxes.prop('checked', true);
+        showToast('success', `Selected all ${$checkboxes.length} variants`);
         if (!isRestoringVariantDraft) {
             persistVariantDraft();
         }
@@ -5179,9 +5237,7 @@ $(document).ready(function() {
 
     document.getElementById('deselectAllBtn').addEventListener('click', function() {
         const $checkboxes = $(variantsTableBody).find('.variant-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
+        $checkboxes.prop('checked', false);
         showToast('success', 'Deselected all variants');
         if (!isRestoringVariantDraft) {
             persistVariantDraft();
@@ -5397,6 +5453,12 @@ $(document).ready(function() {
         }
 
         console.log('loadExistingVariants: Loading', payload.length, 'variants');
+        
+        // Clear all attribute-related data before loading variants to prevent auto-preservation
+        selectedAttributeIds = [];
+        attributeValues = {};
+        selectedAttributeValues = {};
+        
         generatedVariants = payload;
 
         // Display the variants
@@ -5411,12 +5473,28 @@ $(document).ready(function() {
         if ($bulkActions.length) {
             $bulkActions.css('display', 'block');
         }
+        
+        // Ensure attribute data remains cleared after loading variants
+        // This prevents preserveUnsatisfiedVariants from populating values
+        selectedAttributeIds = [];
+        attributeValues = {};
+        selectedAttributeValues = {};
+        
+        // Uncheck all attribute checkboxes
+        const $availableAttributesContainer = $('#availableAttributesContainer');
+        if ($availableAttributesContainer.length) {
+            $availableAttributesContainer.find('.attribute-checkbox').prop('checked', false);
+        }
+        
+        // Uncheck all attribute value checkboxes
+        $('#variantAttributeSelectors').find('.value-checkbox, .variant-attribute-value-checkbox').prop('checked', false);
 
+        // Disabled: Don't auto-select attributes on page load
         // Wait a bit for DOM to be ready, then auto-select attributes
-        setTimeout(function() {
-            console.log('loadExistingVariants: Calling ensureAttributeSelectionFromVariants');
-            ensureAttributeSelectionFromVariants();
-        }, 300);
+        // setTimeout(function() {
+        //     console.log('loadExistingVariants: Calling ensureAttributeSelectionFromVariants');
+        //     ensureAttributeSelectionFromVariants();
+        // }, 300);
     }
 
     // Toast notification function
@@ -5742,10 +5820,14 @@ $(document).ready(function() {
         }
 
         bulkEditTargets.forEach(function(row) {
+            // Convert jQuery object to DOM element if needed
+            const rowElement = row.jquery ? row[0] : row;
+            const $row = row.jquery ? row : $(row);
+            
             if (bulkPriceValue && bulkPriceValue.value) {
                 const normalized = normalizeCurrencyValue(bulkPriceValue.value);
                 if (normalized !== '') {
-                    const priceInput = row.querySelector('[name*="[price]"]');
+                    const priceInput = $row.find('[name*="[price]"]')[0];
                     if (priceInput) {
                         priceInput.value = normalized;
                     }
@@ -5754,19 +5836,19 @@ $(document).ready(function() {
 
             if (bulkSalePriceValue && bulkSalePriceValue.value) {
                 const normalizedSale = normalizeCurrencyValue(bulkSalePriceValue.value);
-                const saleInput = row.querySelector('[name*="[sale_price]"]');
+                const saleInput = $row.find('[name*="[sale_price]"]')[0];
                 if (saleInput) {
                     saleInput.value = normalizedSale;
                 }
             }
 
             if (bulkStatusValue !== null && bulkStatusValue !== undefined) {
-                const statusToggle = row.querySelector('.variant-status-toggle');
+                const statusToggle = $row.find('.variant-status-toggle')[0];
                 if (statusToggle) {
                     statusToggle.checked = !!bulkStatusValue.checked;
                     updateVariantRowStatus(statusToggle);
                 } else {
-                    const hiddenStatus = row.querySelector('[data-variant-status-input]');
+                    const hiddenStatus = $row.find('[data-variant-status-input]')[0];
                     if (hiddenStatus) {
                         hiddenStatus.value = bulkStatusValue.checked ? '1' : '0';
                     }
@@ -5774,21 +5856,21 @@ $(document).ready(function() {
             }
 
             if (bulkDiscountTypeValue && bulkDiscountTypeValue.value) {
-                const discountTypeHidden = row.querySelector('[data-variant-discount-type-input]');
+                const discountTypeHidden = $row.find('[data-variant-discount-type-input]')[0];
                 if (discountTypeHidden) {
                     discountTypeHidden.value = bulkDiscountTypeValue.value;
                 }
             }
 
             if (bulkDiscountValue && bulkDiscountValue.value) {
-                const discountValueHidden = row.querySelector('[data-variant-discount-value-input]');
+                const discountValueHidden = $row.find('[data-variant-discount-value-input]')[0];
                 if (discountValueHidden) {
                     discountValueHidden.value = bulkDiscountValue.value;
                 }
             }
 
             if (bulkDiscountActiveValue !== null && bulkDiscountActiveValue !== undefined) {
-                const discountActiveHidden = row.querySelector('[data-variant-discount-active-input]');
+                const discountActiveHidden = $row.find('[data-variant-discount-active-input]')[0];
                 if (discountActiveHidden) {
                     discountActiveHidden.value = bulkDiscountActiveValue.checked ? '1' : '';
                 }
@@ -5966,10 +6048,11 @@ $(document).ready(function() {
         }
 
         try {
+            // Only save variants, not attribute selections - user must manually select each time
             const draftPayload = {
-                selectedAttributeIds: deepClone(selectedAttributeIds),
-                attributeValues: deepClone(attributeValues),
-                selectedAttributeValues: deepClone(selectedAttributeValues),
+                selectedAttributeIds: [], // Always empty - don't preserve attribute selections
+                attributeValues: {}, // Always empty - don't preserve attribute values
+                selectedAttributeValues: {}, // Always empty - don't preserve selected values
                 generatedVariants: collectVariantRowData(),
                 // Removed attributeSearchQuery - Select2 handles search internally
             };
@@ -6017,21 +6100,32 @@ $(document).ready(function() {
  
         isRestoringVariantDraft = true;
  
+        // Don't restore attribute selection data - let user manually select
+        // Only restore the variants themselves
         selectedAttributeIds = [];
-        attributeValues = payload.attributeValues || {};
-        selectedAttributeValues = payload.selectedAttributeValues || {};
+        attributeValues = {};
+        selectedAttributeValues = {};
+        
+        // Immediately uncheck all attribute checkboxes to ensure clean state
+        const $availableAttributesContainer = $('#availableAttributesContainer');
+        if ($availableAttributesContainer.length) {
+            $availableAttributesContainer.find('.attribute-checkbox').prop('checked', false);
+        }
+        
         const restoredAttributeIds = Array.isArray(payload.selectedAttributeIds) ? payload.selectedAttributeIds : [];
         const restoredVariants = Array.isArray(payload.generatedVariants) ? payload.generatedVariants : [];
 
+        // Disabled: Don't restore selected attributes from draft - let user manually select
         // Restore selected attributes in checkboxes
-        if (restoredAttributeIds.length > 0) {
-            setSelectedAttributeIds(restoredAttributeIds);
-            selectedAttributeIds = restoredAttributeIds;
-        }
+        // if (restoredAttributeIds.length > 0) {
+        //     setSelectedAttributeIds(restoredAttributeIds);
+        //     selectedAttributeIds = restoredAttributeIds;
+        // }
 
-        if (!restoredAttributeIds.length) {
-            updateAttributeValuesConfig();
-        }
+        // Don't call updateAttributeValuesConfig when restoring - no attributes should be selected
+        // if (!restoredAttributeIds.length) {
+        //     updateAttributeValuesConfig();
+        // }
 
         if (restoredVariants.length) {
             generatedVariants = restoredVariants.map(variant => {
@@ -6043,6 +6137,20 @@ $(document).ready(function() {
             });
             displayVariants();
         }
+
+        // Ensure all attribute-related data is cleared after restoring
+        // User must manually select attributes
+        selectedAttributeIds = [];
+        attributeValues = {};
+        selectedAttributeValues = {};
+        
+        // Ensure checkboxes remain unchecked (already unchecked above, but double-check)
+        if ($availableAttributesContainer.length) {
+            $availableAttributesContainer.find('.attribute-checkbox').prop('checked', false);
+        }
+        
+        // Also uncheck all attribute value checkboxes
+        $('#variantAttributeSelectors').find('.value-checkbox, .variant-attribute-value-checkbox').prop('checked', false);
 
         isRestoringVariantDraft = false;
         persistVariantDraft();
@@ -6170,7 +6278,8 @@ $(document).ready(function() {
             console.log('Adding', variantAttributes.length, 'attributes to checkbox list');
             
             variantAttributes.forEach(function(attr) {
-                const isSelected = currentSelected.includes(String(attr.id));
+                // Don't auto-check attributes based on existing variants
+                // const isSelected = currentSelected.includes(String(attr.id));
                 const attributeName = attr.name;
                 const attributeType = attr.type ? attr.type.charAt(0).toUpperCase() + attr.type.slice(1) : '';
                 const description = attr.description || '';
@@ -6185,7 +6294,6 @@ $(document).ready(function() {
                            type="checkbox" 
                            value="${attr.id}" 
                            id="${checkboxId}"
-                           ${isSelected ? 'checked' : ''}
                            data-attribute-type="${attr.type || ''}"
                            data-attribute-description="${description}">
                     <label class="form-check-label" for="${checkboxId}">
@@ -6200,20 +6308,10 @@ $(document).ready(function() {
             
             console.log('All checkboxes added to DOM. Total:', container.querySelectorAll('.attribute-checkbox').length);
             
-            // Restore selected values
-            const validSelected = currentSelected.filter(id => 
-                variantAttributes.some(attr => String(attr.id) === String(id))
-            );
-            
-            if (validSelected.length > 0) {
-                setSelectedAttributeIds(validSelected);
-                selectedAttributeIds = validSelected;
-                updateAttributeValuesConfig();
-            } else {
-                // No valid selected attributes, clear selection
-                selectedAttributeIds = [];
-                updateAttributeValuesConfig();
-            }
+            // Don't restore selected values - let user manually select attributes
+            // Attributes will not be auto-checked on page load
+            selectedAttributeIds = [];
+            updateAttributeValuesConfig();
         } else {
             // This should not happen as we check at the beginning, but just in case
             // No variant attributes from category - load all attributes as fallback
@@ -6262,7 +6360,8 @@ $(document).ready(function() {
     // Run after a short delay to ensure SKU type is initialized
     setTimeout(function() {
         ensureVariantSectionEnabled();
-        preselectExistingAttributeCheckboxes();
+        // Disabled: Don't preselect attributes on page load
+        // preselectExistingAttributeCheckboxes();
     }, 200);
 
     // Category change is now handled by categories.blade.php

@@ -677,18 +677,13 @@ function initializeDataTable() {
                 }
             },
             {
-                data: 'brands',
-                name: 'brands',
+                data: 'brand',
+                name: 'brand',
                 render: function(data, type, row) {
-                    if (data && data.length > 0) {
-                        let brandsHtml = '';
-                        data.forEach((brand, index) => {
-                            const badgeClass = index === 0 ? 'bg-primary' : 'bg-secondary';
-                            brandsHtml += `<span class="badge ${badgeClass} me-1">${brand.name}</span>`;
-                        });
-                        return brandsHtml;
+                    if (data && data.name) {
+                        return `<span class="badge bg-primary">${data.name}</span>`;
                     }
-                    return '<span class="text-muted">No brands</span>';
+                    return '<span class="text-muted">No brand</span>';
                 }
             },
             {

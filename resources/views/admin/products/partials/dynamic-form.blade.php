@@ -733,7 +733,7 @@ function submitForm(button) {
     cleanedFormData.set('type', currentTypeValue);
 
     // SKU and price are now handled at variant level, not product level
-    const requiredFields = ['name', 'status', 'brand_ids[]'];
+    const requiredFields = ['name', 'status'];
 
     if (cleanedFormData.has('primary_category')) {
         requiredFields.push('primary_category');
@@ -902,7 +902,7 @@ function handleMissingFields(missingFields) {
         'name': 'Product Name',
         'sku': 'SKU',
         'price': 'Regular Price',
-        'brand_ids[]': 'Brand Selection',
+        'brand_id': 'Brand Selection',
         'type': 'Product Type',
         'status': 'Product Status'
     };
@@ -912,7 +912,7 @@ function handleMissingFields(missingFields) {
         'name': 'section-basic-info',
         'sku': 'section-basic-info',
         'price': 'section-basic-info',
-        'brand_ids[]': 'section-categories',
+        'brand_id': 'section-categories',
         'category_id': 'section-categories',
         'type': 'section-basic-info',
         'status': 'section-categories'

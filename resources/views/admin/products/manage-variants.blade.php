@@ -70,12 +70,21 @@
             handlerAttached = true;
             console.log('Attaching click handler to save button');
             
-            // Prevent default form submission completely
+            // Prevent default form submission only for variantsForm
             variantsForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Form submit event prevented');
-                return false;
+                // Only prevent if the event target is the variantsForm itself, not nested forms
+                const targetForm = e.target;
+                // Allow bulk edit form to submit normally
+                if (targetForm && targetForm.id === 'bulkEditForm') {
+                    return; // Don't prevent bulk edit form submission
+                }
+                if (targetForm === variantsForm) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Variants form submit event prevented');
+                    return false;
+                }
+                // Allow other forms to submit normally
             }, true); // Use capture phase
             
             // Handle button click - directly call the submission function

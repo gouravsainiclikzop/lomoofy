@@ -194,16 +194,14 @@
                             </div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-md-3"><strong>Brands:</strong></div>
+                            <div class="col-md-3"><strong>Brand:</strong></div>
                             <div class="col-md-9">
-                                @if($product->brands->count() > 0)
-                                    @foreach($product->brands as $brand)
-                                        <span class="badge bg-{{ $brand->pivot->is_primary ?? false ? 'primary' : 'secondary' }} me-1">
-                                            {{ $brand->name }}
-                                        </span>
-                                    @endforeach
+                                @if($product->brand)
+                                    <span class="badge bg-primary">
+                                        {{ $product->brand->name }}
+                                    </span>
                                 @else
-                                    <span class="text-muted">No brands</span>
+                                    <span class="text-muted">No brand assigned</span>
                                 @endif
                             </div>
                         </div>

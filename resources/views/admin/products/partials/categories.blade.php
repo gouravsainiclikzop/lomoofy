@@ -1,9 +1,6 @@
 @php
-    $existingBrandIds = isset($product) && $product->exists ? $product->brands->pluck('id')->toArray() : [];
-    $selectedBrandIds = old('brand_ids', $existingBrandIds);
-    if (empty($selectedBrandIds) && isset($otherBrandId)) {
-        $selectedBrandIds = [$otherBrandId];
-    }
+    // Get selected brand_id (single selection)
+    $selectedBrandId = old('brand_id', isset($product) && $product->exists && $product->brand_id ? $product->brand_id : null);
 
     // Get selected category_ids (multiple category selection)
     $selectedCategoryIds = old('category_ids', []);
@@ -77,30 +74,31 @@
     </div>
     <div class="card-body py-3">
         <div class="row g-2">
-            {{-- Brands Selection --}}
-            <div class="col-md-6">
+            {{-- Brand Selection --}}
+            <div class="col-12">
                 <div class="mb-3">
-                    <label for="productBrands" class="form-label form-label-sm">
-                        Select Brands <span class="text-danger">*</span>
+                    <label for="productBrand" class="form-label form-label-sm">
+                        Select Brand
                     </label>
-                    <select class="form-select form-select-sm select2-multiple" id="productBrands" name="brand_ids[]" multiple required data-other-brand-id="{{ $otherBrandId ?? '' }}">
+                    <select class="form-select form-select-sm" id="productBrand" name="brand_id">
+                        <option value="">-- Select Brand (Optional) --</option>
                         @foreach($brands as $brand)
                             <option value="{{ $brand->id }}" 
-                                    {{ in_array($brand->id, $selectedBrandIds ?? []) ? 'selected' : '' }}>
+                                    {{ $selectedBrandId == $brand->id ? 'selected' : '' }}>
                                 {{ $brand->name }}
                             </option>
                         @endforeach
                     </select>
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        Select one or more brands. First selected brand will be the primary brand.
+                        Select a brand for this product (optional).
                     </small>
                     <div class="invalid-feedback"></div>
                 </div>
             </div>
 
             {{-- Category Selection (Hierarchical Tree) --}}
-            <div class="col-md-6">
+            <div class="col-12">
                 <div class="mb-3">
                     <label for="productCategory" class="form-label form-label-sm">
                         Select Category <span class="text-danger">*</span>
@@ -168,7 +166,7 @@
                         <div class="d-flex align-items-center">
                             <i class="fas fa-building text-primary me-3"></i>
                             <div class="flex-grow-1">
-                                <strong>Brands:</strong> Select one or more brands for this product <small class="text-muted">(Required - determines available categories and primary brand)</small>
+                                <strong>Brand:</strong> Select a brand for this product <small class="text-muted">(Optional)</small>
                             </div>
                         </div>
                     </div>
@@ -230,7 +228,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('=== CATEGORIES SECTION WITH SELECT2 INITIALIZED ===');
 
-    // Initialize Select2 for multiple selection (Brands)
+    // Initialize Select2 for single brand selection
+    $('#productBrand').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Select Brand (Optional)...',
+        allowClear: true,
+        width: '100%',
+    });
+    
+    // Initialize Select2 for multiple category selection
     $('.select2-multiple').select2({
         theme: 'bootstrap-5',
         placeholder: 'Select options...',

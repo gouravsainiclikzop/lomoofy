@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductImportController;
@@ -17,15 +19,105 @@ Route::get('/about-us', [FrontendController::class, 'aboutUs'])->name('frontend.
 Route::get('/contact', [FrontendController::class, 'contact'])->name('frontend.contact');
 Route::get('/privacy', [FrontendController::class, 'privacy'])->name('frontend.privacy');
 Route::get('/faq', [FrontendController::class, 'faq'])->name('frontend.faq');
-Route::get('/my-orders', [FrontendController::class, 'myOrders'])->name('frontend.my-orders');
-Route::get('/wishlist', [FrontendController::class, 'wishlist'])->name('frontend.wishlist');
-Route::get('/profile-info', [FrontendController::class, 'profileInfo'])->name('frontend.profile-info');
-Route::get('/addresses', [FrontendController::class, 'addresses'])->name('frontend.addresses');
-Route::get('/payment-methode', [FrontendController::class, 'paymentMethode'])->name('frontend.payment-methode');
+
+// Public API Routes
+Route::get('/api/location-by-pincode', [FrontendController::class, 'getLocationByPincode'])->name('frontend.location-by-pincode');
+
+// Address API Routes (Protected - require customer authentication)
+Route::middleware(['customer.auth'])->group(function () {
+    Route::get('/api/address/{id}', [FrontendController::class, 'getAddress'])->name('frontend.address.get');
+    Route::delete('/api/address/{id}', [FrontendController::class, 'deleteAddress'])->name('frontend.address.delete');
+});
+
+// Customer Dashboard Routes (Protected - require customer authentication)
+Route::middleware(['customer.auth'])->group(function () {
+    Route::get('/my-orders', [FrontendController::class, 'myOrders'])->name('frontend.my-orders');
+    Route::get('/wishlist', [FrontendController::class, 'wishlist'])->name('frontend.wishlist');
+    Route::get('/profile-info', [FrontendController::class, 'profileInfo'])->name('frontend.profile-info');
+    Route::post('/profile-info', [FrontendController::class, 'updateProfileInfo'])->name('frontend.profile-info.update');
+    Route::get('/change-password', [FrontendController::class, 'changePassword'])->name('frontend.change-password');
+    Route::post('/change-password', [FrontendController::class, 'updatePassword'])->name('frontend.change-password.update');
+    Route::get('/addresses', [FrontendController::class, 'addresses'])->name('frontend.addresses');
+    Route::post('/addresses', [FrontendController::class, 'saveAddress'])->name('frontend.addresses.save');
+    Route::get('/payment-methode', [FrontendController::class, 'paymentMethode'])->name('frontend.payment-methode');
+    Route::get('/checkout', [FrontendController::class, 'checkout'])->name('frontend.checkout');
+    Route::get('/complete-order', [FrontendController::class, 'completeOrder'])->name('frontend.complete-order');
+});
+
+// Public Frontend Routes
 Route::get('/shoping-cart', [FrontendController::class, 'shopingCart'])->name('frontend.shoping-cart');
-Route::get('/checkout', [FrontendController::class, 'checkout'])->name('frontend.checkout');
-Route::get('/complete-order', [FrontendController::class, 'completeOrder'])->name('frontend.complete-order'); 
- 
+
+// ============================================================
+// API Routes (moved from api.php to web.php for Blade usage)
+// ============================================================
+
+// Authentication API Routes
+Route::prefix('api/auth')->group(function () {
+    Route::get('/login-fields', [\App\Http\Controllers\auth\AuthApiController::class, 'getLoginFields']); // Get system fields for login (email, password)
+    Route::post('/register', [\App\Http\Controllers\auth\AuthApiController::class, 'register']); // Register new customer (full_name, phone, email, password, password_confirmation)
+    Route::post('/login', [\App\Http\Controllers\auth\AuthApiController::class, 'login']); // Login customer
+    Route::get('/me', [\App\Http\Controllers\auth\AuthApiController::class, 'me']); // Get authenticated customer (optional auth)
+    Route::middleware('customer.auth')->group(function () {
+        Route::post('/logout', [\App\Http\Controllers\auth\AuthApiController::class, 'logout']); // Logout customer
+    });
+});
+
+// Legacy user endpoint (for backward compatibility)
+Route::get('/api/user', function (Request $request) {
+    return Auth::guard('customer')->user();
+})->middleware('customer.auth');
+
+// Cart API Routes
+Route::prefix('api/cart')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\CartApiController::class, 'index']); // Get cart summary
+    Route::get('/count', [\App\Http\Controllers\Api\CartApiController::class, 'count']); // Get cart count
+    Route::post('/items', [\App\Http\Controllers\Api\CartApiController::class, 'addItem']); // Add item to cart
+    Route::put('/items/{itemId}', [\App\Http\Controllers\Api\CartApiController::class, 'updateItem']); // Update cart item quantity
+    Route::delete('/items/{itemId}', [\App\Http\Controllers\Api\CartApiController::class, 'removeItem']); // Remove cart item
+    Route::post('/coupon', [\App\Http\Controllers\Api\CartApiController::class, 'applyCoupon']); // Apply coupon
+    Route::delete('/coupon', [\App\Http\Controllers\Api\CartApiController::class, 'removeCoupon']); // Remove coupon
+});
+
+// Wishlist API Routes
+Route::prefix('api/wishlist')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\WishlistApiController::class, 'index']); // Get wishlist items
+    Route::get('/count', [\App\Http\Controllers\Api\WishlistApiController::class, 'count']); // Get wishlist count
+    Route::post('/', [\App\Http\Controllers\Api\WishlistApiController::class, 'store']); // Add product to wishlist
+    Route::delete('/{id}', [\App\Http\Controllers\Api\WishlistApiController::class, 'destroy']); // Remove wishlist item by ID
+    Route::delete('/product/{productId}', [\App\Http\Controllers\Api\WishlistApiController::class, 'removeByProduct']); // Remove wishlist item by product ID
+});
+
+// Order API Routes
+Route::prefix('api/orders')->middleware('customer.auth')->group(function () {
+    Route::get('/validate-cart', [\App\Http\Controllers\Api\OrderApiController::class, 'validateCart']);  
+    Route::post('/', [\App\Http\Controllers\Api\OrderApiController::class, 'store']); // Create order from cart
+});
+
+// Catalog API Routes
+Route::prefix('api/catalog')->group(function () {
+    // Brands
+    Route::get('/brands', [\App\Http\Controllers\Api\CatalogApiController::class, 'getBrands']);
+    Route::get('/brands/{identifier}', [\App\Http\Controllers\Api\CatalogApiController::class, 'getBrand']);
+    Route::get('/brands/{identifier}/categories', [\App\Http\Controllers\Api\CatalogApiController::class, 'getBrandCategories']);
+    
+    // Categories
+    Route::get('/categories', [\App\Http\Controllers\Api\CatalogApiController::class, 'getCategories']);
+    Route::get('/categories/{identifier}', [\App\Http\Controllers\Api\CatalogApiController::class, 'getCategory']);
+    Route::get('/categories/{identifier}/children', [\App\Http\Controllers\Api\CatalogApiController::class, 'getCategoryChildren']);
+    
+    // Products
+    Route::get('/products', [\App\Http\Controllers\Api\CatalogApiController::class, 'getProducts']);
+    Route::get('/products/{identifier}', [\App\Http\Controllers\Api\CatalogApiController::class, 'getProduct']);
+});
+
+// Sections API Routes - Single endpoint for frontend
+Route::prefix('api/sections')->group(function () {
+    // Get sections for frontend (defaults to home page, can filter by page_url)
+    Route::get('/', [\App\Http\Controllers\Api\SectionsApiController::class, 'getSections']);
+});
+    
+
+
 
 Route::get('/admin', [AuthController::class, 'showLogin'])->name('admin.login');
 Route::get('/login', function() {
@@ -72,14 +164,41 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/categories/update-status', [\App\Http\Controllers\CategoryController::class, 'updateStatus'])->name('categories.updateStatus');
     Route::post('/categories/update-parent', [\App\Http\Controllers\CategoryController::class, 'updateParent'])->name('categories.updateParent');
     
-    // Our Collections Management
-    Route::get('/our-collections', [\App\Http\Controllers\OurCollectionController::class, 'index'])->name('our-collections.index');
-    Route::get('/our-collections/data', [\App\Http\Controllers\OurCollectionController::class, 'getData'])->name('our-collections.data');
-    Route::post('/our-collections/update-sort-order', [\App\Http\Controllers\OurCollectionController::class, 'updateSortOrder'])->name('our-collections.update-sort-order');
-    Route::get('/our-collections/{id}', [\App\Http\Controllers\OurCollectionController::class, 'show'])->name('our-collections.show');
-    Route::post('/our-collections', [\App\Http\Controllers\OurCollectionController::class, 'store'])->name('our-collections.store');
-    Route::match(['post', 'put'], '/our-collections/{id}', [\App\Http\Controllers\OurCollectionController::class, 'update'])->name('our-collections.update');
-    Route::delete('/our-collections/{id}', [\App\Http\Controllers\OurCollectionController::class, 'destroy'])->name('our-collections.destroy');
+    // Featured Category Style Management
+    Route::get('/featured-category-style', [\App\Http\Controllers\FeaturedCategoryStyleController::class, 'index'])->name('featured-category-style.index');
+    Route::get('/featured-category-style/data', [\App\Http\Controllers\FeaturedCategoryStyleController::class, 'getData'])->name('featured-category-style.data');
+    Route::post('/featured-category-style/update-sort-order', [\App\Http\Controllers\FeaturedCategoryStyleController::class, 'updateSortOrder'])->name('featured-category-style.update-sort-order');
+    Route::get('/featured-category-style/{id}', [\App\Http\Controllers\FeaturedCategoryStyleController::class, 'show'])->name('featured-category-style.show');
+    Route::post('/featured-category-style', [\App\Http\Controllers\FeaturedCategoryStyleController::class, 'store'])->name('featured-category-style.store');
+    Route::match(['post', 'put'], '/featured-category-style/{id}', [\App\Http\Controllers\FeaturedCategoryStyleController::class, 'update'])->name('featured-category-style.update');
+    Route::delete('/featured-category-style/{id}', [\App\Http\Controllers\FeaturedCategoryStyleController::class, 'destroy'])->name('featured-category-style.destroy');
+    
+    // Our Collection Management
+    Route::get('/our-collection', [\App\Http\Controllers\OurCollectionController::class, 'index'])->name('our-collection.index');
+    Route::post('/our-collection/update', [\App\Http\Controllers\OurCollectionController::class, 'update'])->name('our-collection.update');
+    
+    // Testimonials Management
+    Route::get('/testimonials', [\App\Http\Controllers\TestimonialController::class, 'index'])->name('testimonials.index');
+    Route::get('/testimonials/data', [\App\Http\Controllers\TestimonialController::class, 'getData'])->name('testimonials.data');
+    Route::post('/testimonials/update-sort-order', [\App\Http\Controllers\TestimonialController::class, 'updateSortOrder'])->name('testimonials.update-sort-order');
+    Route::get('/testimonials/{id}', [\App\Http\Controllers\TestimonialController::class, 'show'])->name('testimonials.show');
+    Route::post('/testimonials', [\App\Http\Controllers\TestimonialController::class, 'store'])->name('testimonials.store');
+    Route::match(['post', 'put'], '/testimonials/{id}', [\App\Http\Controllers\TestimonialController::class, 'update'])->name('testimonials.update');
+    Route::delete('/testimonials/{id}', [\App\Http\Controllers\TestimonialController::class, 'destroy'])->name('testimonials.destroy');
+    
+    // Home Sliders Management
+    Route::get('/home-sliders', [\App\Http\Controllers\HomeSliderController::class, 'index'])->name('home-sliders.index');
+    Route::get('/home-sliders/data', [\App\Http\Controllers\HomeSliderController::class, 'getData'])->name('home-sliders.data');
+    Route::post('/home-sliders/update-sort-order', [\App\Http\Controllers\HomeSliderController::class, 'updateSortOrder'])->name('home-sliders.update-sort-order');
+    Route::post('/home-sliders/{id}/update-status', [\App\Http\Controllers\HomeSliderController::class, 'updateStatus'])->name('home-sliders.update-status');
+    Route::get('/home-sliders/{id}', [\App\Http\Controllers\HomeSliderController::class, 'show'])->name('home-sliders.show');
+    Route::post('/home-sliders', [\App\Http\Controllers\HomeSliderController::class, 'store'])->name('home-sliders.store');
+    Route::match(['post', 'put'], '/home-sliders/{id}', [\App\Http\Controllers\HomeSliderController::class, 'update'])->name('home-sliders.update');
+    Route::delete('/home-sliders/{id}', [\App\Http\Controllers\HomeSliderController::class, 'destroy'])->name('home-sliders.destroy');
+    
+    // Service Highlights Management
+    Route::get('/service-highlights', [\App\Http\Controllers\ServiceHighlightController::class, 'index'])->name('service-highlights.index');
+    Route::post('/service-highlights/update', [\App\Http\Controllers\ServiceHighlightController::class, 'update'])->name('service-highlights.update');
     
     // Profile (GET and POST only)
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');

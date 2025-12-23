@@ -6,17 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class OurCollection extends Model
 {
-    protected $fillable = [
-        'category_id',
-        'title',
-        'featured_image',
-        'is_active',
-        'sort_order',
-    ];
+    protected $table = 'our_collection';
 
-    protected $casts = [
-        'is_active' => 'boolean',
-        'sort_order' => 'integer',
+    protected $fillable = [
+        'background_image',
+        'heading',
+        'description',
+        'category_id',
     ];
 
     /**
@@ -25,5 +21,22 @@ class OurCollection extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Get or create the singleton instance
+     */
+    public static function getInstance()
+    {
+        $instance = self::first();
+        if (!$instance) {
+            $instance = self::create([
+                'background_image' => null,
+                'heading' => null,
+                'description' => null,
+                'category_id' => null,
+            ]);
+        }
+        return $instance;
     }
 }

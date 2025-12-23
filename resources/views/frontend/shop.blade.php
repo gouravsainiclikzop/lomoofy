@@ -74,10 +74,10 @@
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<h5 class="ft-medium mb-4 shop-shop-by">Shop By</h5>
 							<div class="shop-by-categories">
-								<!-- Desktop Grid View -->
-								<div class="row g-3 category-grid-view">
+								<!-- Category Carousel -->
+								<div class="category-carousel">
 									@foreach($childCategories as $childCategory)
-									<div class="col-xl-2 col-lg-2 col-md-4 col-sm-4 col-6">
+									<div class="category-carousel-item">
 										<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}" class="category-tab-item">
 											<div class="category-image-wrapper">
 												@if($childCategory->image)
@@ -90,26 +90,6 @@
 										</a>
 									</div>
 									@endforeach
-								</div>
-								
-								<!-- Mobile Slider View -->
-								<div class="category-slider-view">
-									<div class="category-slider">
-										@foreach($childCategories as $childCategory)
-										<div>
-											<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}" class="category-tab-item">
-												<div class="category-image-wrapper">
-													@if($childCategory->image)
-														<img src="{{ asset('storage/' . $childCategory->image) }}" alt="{{ $childCategory->name }}" class="category-image">
-													@else
-														<img src="{{ asset('frontend/images/1.jpg') }}" alt="{{ $childCategory->name }}" class="category-image">
-													@endif
-												</div>
-												<div class="category-label">{{ $childCategory->name }}</div>
-											</a>
-										</div>
-										@endforeach
-									</div>
 								</div>
 							</div>
 						</div>
@@ -469,9 +449,9 @@
 																	
 																	// Determine display price range (no strikethrough for default view)
 																	if ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0) {
-																		$displayPrice = '$' . number_format($minDisplayPrice, 0) . ' - $' . number_format($maxDisplayPrice, 0);
+																		$displayPrice = '₹' . number_format($minDisplayPrice, 0) . ' - ₹' . number_format($maxDisplayPrice, 0);
 																	} else {
-																		$displayPrice = '$' . number_format($minDisplayPrice, 0);
+																		$displayPrice = '₹' . number_format($minDisplayPrice, 0);
 																	}
 																@endphp
 																{{ $displayPrice }}
@@ -515,6 +495,58 @@ $(document).ready(function() {
     let currentPage = 1;
     let isLoading = false;
     
+    // Initialize Category Carousel
+    if ($('.category-carousel').length && typeof $.fn.slick !== 'undefined') {
+        if ($('.category-carousel').children().length > 0 && !$('.category-carousel').hasClass('slick-initialized')) {
+            $('.category-carousel').slick({
+                slidesToShow: 6,
+                slidesToScroll: 1,
+                arrows: true,
+                dots: false,
+                infinite: true,
+                autoplay: false,
+                speed: 300,
+                responsive: [
+                    {
+                        breakpoint: 1200,
+                        settings: {
+                            slidesToShow: 5,
+                            slidesToScroll: 1
+                        }
+                    },
+                    {
+                        breakpoint: 992,
+                        settings: {
+                            slidesToShow: 4,
+                            slidesToScroll: 1
+                        }
+                    },
+                    {
+                        breakpoint: 768,
+                        settings: {
+                            slidesToShow: 3,
+                            slidesToScroll: 1
+                        }
+                    },
+                    {
+                        breakpoint: 576,
+                        settings: {
+                            slidesToShow: 2,
+                            slidesToScroll: 1
+                        }
+                    },
+                    {
+                        breakpoint: 480,
+                        settings: {
+                            slidesToShow: 2,
+                            slidesToScroll: 1
+                        }
+                    }
+                ]
+            });
+        }
+    }
+    
     // Initialize Price Range Slider with dynamic values
     // Wait a bit to ensure custom.js has loaded, then override its initialization
     setTimeout(function() {
@@ -538,7 +570,7 @@ $(document).ready(function() {
                 step: 1,
                 grid: true,
                 grid_num: 4,
-                prefix: "$",
+                prefix: "₹",
                 prettify_enabled: true,
                 prettify_separator: ",",
                 onFinish: function(data) {
@@ -667,9 +699,9 @@ $(document).ready(function() {
         
         let priceDisplay = '';
         if (product.min_display_price != product.max_display_price && product.max_display_price > 0) {
-            priceDisplay = '$' + Math.round(product.min_display_price) + ' - $' + Math.round(product.max_display_price);
+            priceDisplay = '₹' + Math.round(product.min_display_price) + ' - ₹' + Math.round(product.max_display_price);
         } else {
-            priceDisplay = '$' + Math.round(product.min_display_price);
+            priceDisplay = '₹' + Math.round(product.min_display_price);
         }
         
         return `
@@ -719,4 +751,110 @@ $(document).ready(function() {
     }
 });
 </script>
+@endpush
+
+@push('styles')
+<style>
+/* Category Carousel Styles */
+.category-carousel {
+    position: relative;
+}
+
+.category-carousel .category-carousel-item {
+    padding: 0 10px;
+}
+
+.category-carousel .slick-prev,
+.category-carousel .slick-next {
+    z-index: 1;
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.category-carousel .slick-prev {
+    left: -20px;
+}
+
+.category-carousel .slick-next {
+    right: -20px;
+}
+
+.category-carousel .slick-prev:before,
+.category-carousel .slick-next:before {
+    color: #333;
+    font-size: 20px;
+}
+
+.category-carousel .slick-prev:hover,
+.category-carousel .slick-next:hover {
+    background: #151515;
+    border-color: #151515;
+}
+
+.category-carousel .slick-prev:hover:before,
+.category-carousel .slick-next:hover:before {
+    color: #fff;
+}
+
+.category-carousel .category-tab-item {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+}
+
+.category-carousel .category-tab-item:hover {
+    transform: translateY(-5px);
+}
+
+.category-carousel .category-image-wrapper {
+    margin-bottom: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+}
+
+.category-carousel .category-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.category-carousel .category-tab-item:hover .category-image {
+    transform: scale(1.05);
+}
+
+.category-carousel .category-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-top: 8px;
+}
+
+.category-carousel .category-tab-item:hover .category-label {
+    color: #151515;
+}
+
+@media (max-width: 768px) {
+    .category-carousel .slick-prev {
+        left: -10px;
+    }
+    
+    .category-carousel .slick-next {
+        right: -10px;
+    }
+    
+    .category-carousel .slick-prev,
+    .category-carousel .slick-next {
+        width: 35px;
+        height: 35px;
+    }
+}
+</style>
 @endpush

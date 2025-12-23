@@ -104,21 +104,6 @@ class Product extends Model
         return $this->belongsTo(Brand::class);
     }
 
-    // Multi-brand support
-    public function brands()
-    {
-        return $this->belongsToMany(Brand::class, 'product_brands')
-                    ->withPivot('is_primary', 'sort_order')
-                    ->withTimestamps()
-                    ->orderBy('product_brands.sort_order');
-    }
-
-    public function primaryBrand()
-    {
-        return $this->belongsToMany(Brand::class, 'product_brands')
-                    ->wherePivot('is_primary', true);
-    }
-
     public function images()
     {
         return $this->hasMany(ProductImage::class)

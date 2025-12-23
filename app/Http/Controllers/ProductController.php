@@ -158,20 +158,16 @@ class ProductController extends Controller
      */
     public function create()
     {
-        $otherBrand = $this->ensureOtherBrand();
-
-        $brands = Brand::active()->ordered()->get();
-        $brands = collect([$otherBrand])->merge(
-            $brands->reject(fn ($brand) => $brand->id === $otherBrand->id)
-        )->values();
+        // Get brands excluding "other" brand
+        $brands = Brand::active()->ordered()
+            ->where('slug', '!=', 'other')
+            ->get();
         $categories = Category::active()->ordered()->get();
         $attributes = ProductAttribute::visible()->ordered()->get();
         $units = Unit::active()->ordered()->get();
         $product = new Product(); // Empty product for form defaults
 
-        $otherBrandId = $otherBrand->id;
-
-        return view('admin.products.create', compact('brands', 'categories', 'attributes', 'units', 'product', 'otherBrandId'));
+        return view('admin.products.create', compact('brands', 'categories', 'attributes', 'units', 'product'));
     }
 
     /**
@@ -179,17 +175,14 @@ class ProductController extends Controller
      */
     public function quickCreate()
     {
-        $otherBrand = $this->ensureOtherBrand();
-        $brands = Brand::active()->ordered()->get();
-        $brands = collect([$otherBrand])->merge(
-            $brands->reject(fn ($brand) => $brand->id === $otherBrand->id)
-        )->values();
+        // Get brands excluding "other" brand
+        $brands = Brand::active()->ordered()
+            ->where('slug', '!=', 'other')
+            ->get();
         $categories = Category::active()->ordered()->get();
         $attributes = ProductAttribute::visible()->ordered()->get();
         $units = Unit::active()->ordered()->get();
         $product = new Product();
-
-        $otherBrandId = $otherBrand->id;
         $isQuickCreate = true;
 
         return view('admin.products.quick-create', compact(
@@ -198,7 +191,6 @@ class ProductController extends Controller
             'attributes',
             'units',
             'product',
-            'otherBrandId',
             'isQuickCreate'
         ));
     }
@@ -212,8 +204,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'sku' => 'required|string|max:255|unique:products,sku',
             'price' => 'required|numeric|min:0',
-            'brand_ids' => 'nullable|array',
-            'brand_ids.*' => 'exists:brands,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'type' => 'required|in:simple,variable,digital,service,bundle,subscription',
         ]);
 
@@ -225,20 +216,13 @@ class ProductController extends Controller
         }
 
         try {
-            $otherBrand = $this->ensureOtherBrand();
-            $brandIds = $request->brand_ids ?? [];
-
-            if (empty($brandIds)) {
-                $brandIds = [$otherBrand->id];
-            }
-
             // Create the product with basic information
             $product = Product::create([
                 'name' => $request->name,
                 'sku' => $request->sku,
                 'price' => $request->price,
                 'type' => $request->type,
-                'brand_id' => $brandIds[0],
+                'brand_id' => $request->brand_id,
                 'status' => 'hidden',
                 'stock_status' => 'in_stock',
                 'manage_stock' => true,
@@ -246,19 +230,9 @@ class ProductController extends Controller
                 'requires_shipping' => $request->type !== 'digital' && $request->type !== 'service',
             ]);
 
-            // Attach brands
-            $brandData = [];
-            foreach ($brandIds as $index => $brandId) {
-                $brandData[$brandId] = [
-                    'is_primary' => $index === 0, // First brand is primary
-                    'sort_order' => $index,
-                ];
-            }
-            $product->brands()->attach($brandData);
+            // Brand is now handled via brand_id column, no pivot table needed
 
-            // Ensure a default variant exists for quick create
-            $defaultVariant = $this->buildDefaultVariantPayload($request, $product);
-            $this->synchronizeVariants($product, [$defaultVariant]);
+            // No default variant creation - variants can be added later on the variants page
 
             return response()->json([
                 'success' => true,
@@ -314,8 +288,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'short_description' => 'nullable|string',
             'type' => 'required|in:simple,variable,digital,service,bundle,subscription',
-            'brand_ids' => 'nullable|array',
-            'brand_ids.*' => 'exists:brands,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'seo_url_slug' => [
                 'nullable',
                 'string',
@@ -375,13 +348,7 @@ class ProductController extends Controller
             'variants.*.images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        $validator->after(function ($validator) use ($request) {
-            // Ensure at least one variant is provided
-            $variants = $request->input('variants', []);
-            if (empty($variants) || !is_array($variants) || count(array_filter($variants)) === 0) {
-                $validator->errors()->add('variants', 'At least one variant is required. Please add a variant in the Variants section.');
-            }
-        });
+        // Variants validation removed - variants can be added later on a separate page
 
         if ($validator->fails()) {
             // Custom error messages for better user experience
@@ -392,8 +359,6 @@ class ProductController extends Controller
                 'name' => 'Product Name',
                 'sku' => 'SKU',
                 'price' => 'Regular Price',
-                'brand_ids' => 'Brand Selection',
-                'brand_ids.*' => 'Brand Selection',
                 'stock_quantity' => 'Stock Quantity',
                 'stock_status' => 'Stock Status',
                 'type' => 'Product Type',
@@ -436,12 +401,6 @@ class ProductController extends Controller
         DB::beginTransaction();
 
         try {
-            $otherBrand = $this->ensureOtherBrand();
-            $brandIds = $request->brand_ids ?? [];
-            if (empty($brandIds)) {
-                $brandIds = [$otherBrand->id];
-            }
-
             $slug = $request->filled('seo_url_slug')
                 ? Str::slug($request->seo_url_slug)
                 : Str::slug($request->name);
@@ -450,7 +409,7 @@ class ProductController extends Controller
                 'name' => $request->name,
                 'slug' => $slug,
                 'short_description' => $request->short_description,
-                'brand_id' => $brandIds[0], // Keep for backward compatibility
+                'brand_id' => $request->brand_id,
                 'requires_shipping' => $request->has('requires_shipping'),
                 'free_shipping' => $request->has('free_shipping'),
                 'gst_type' => $request->has('gst_type') ? ($request->gst_type == '1' || $request->gst_type == 1) : true,
@@ -483,24 +442,7 @@ class ProductController extends Controller
                 ]);
             }
 
-            // Handle brands
-            if ($request->brand_ids) {
-                $brandData = [];
-                foreach ($brandIds as $index => $brandId) {
-                    $brandData[$brandId] = [
-                        'is_primary' => $index === 0, // First brand is primary
-                        'sort_order' => $index,
-                    ];
-                }
-                $product->brands()->attach($brandData);
-            } else {
-                $product->brands()->attach([
-                    $brandIds[0] => [
-                        'is_primary' => true,
-                        'sort_order' => 0,
-                    ],
-                ]);
-            }
+            // Brand is now handled via brand_id column, no pivot table needed
 
             // Handle images
             if ($request->hasFile('images')) {
@@ -508,7 +450,7 @@ class ProductController extends Controller
             }
 
             // Variants are now managed on a separate page
-            // Only create a default variant if none provided (can be managed later on variants page)
+            // Only create variants if explicitly provided (no default variant creation)
             if ($request->has('variants') && !empty($request->input('variants'))) {
                 $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
                 $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
@@ -521,11 +463,8 @@ class ProductController extends Controller
                 if (!empty($variantsPayload)) {
                     $this->synchronizeVariants($product, $variantsPayload);
                 }
-            } else {
-                // Create a default variant for new products (can be managed later on variants page)
-                $defaultVariant = $this->buildDefaultVariantPayload($request, $product);
-                $this->synchronizeVariants($product, [$defaultVariant]);
             }
+            // No default variant creation - variants can be added later on the variants page
 
             // Handle static attributes
             $this->synchronizeStaticAttributes($product, $request);
@@ -642,26 +581,22 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        $otherBrand = $this->ensureOtherBrand();
-        $brands = Brand::active()->ordered()->get();
-        $brands = collect([$otherBrand])->merge(
-            $brands->reject(fn ($brand) => $brand->id === $otherBrand->id)
-        )->values();
+        // Get brands excluding "other" brand
+        $brands = Brand::active()->ordered()
+            ->where('slug', '!=', 'other')
+            ->get();
         $categories = Category::active()->ordered()->get();
         $attributes = ProductAttribute::visible()->ordered()->get();
         $units = Unit::active()->ordered()->get();
         
-        $product->load(['images', 'category.parent', 'variants', 'brands', 'unit', 'defaultWarehouse']);
-
-        $otherBrandId = $otherBrand->id;
+        $product->load(['images', 'category.parent', 'variants', 'brand', 'unit', 'defaultWarehouse']);
 
         return view('admin.products.edit', compact(
             'brands', 
             'categories', 
             'attributes', 
             'units', 
-            'product', 
-            'otherBrandId'
+            'product'
         ));
     }
 
@@ -670,17 +605,15 @@ class ProductController extends Controller
      */
     public function manageVariants(Product $product)
     {
-        $otherBrand = $this->ensureOtherBrand();
         $attributes = ProductAttribute::visible()->ordered()->get();
         $units = Unit::active()->ordered()->get();
         
-        $product->load(['images', 'category.parent', 'variants.images', 'brands', 'unit', 'defaultWarehouse']);
+        $product->load(['images', 'category.parent', 'variants.images', 'brand', 'unit', 'defaultWarehouse']);
 
         return view('admin.products.manage-variants', compact(
             'product',
             'attributes',
-            'units',
-            'otherBrand'
+            'units'
         ));
     }
 
@@ -763,8 +696,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'short_description' => 'nullable|string',
             'type' => 'required|in:simple,variable,digital,service,bundle,subscription',
-            'brand_ids' => 'nullable|array',
-            'brand_ids.*' => 'exists:brands,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'seo_url_slug' => [
                 'nullable',
                 'string',
@@ -831,16 +763,7 @@ class ProductController extends Controller
             'variants.*.images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        $validator->after(function ($validator) use ($request, $product) {
-            // Ensure at least one variant is provided
-            $variants = $request->input('variants', []);
-            if (empty($variants) || !is_array($variants) || count(array_filter($variants)) === 0) {
-                // Only enforce if no existing variants exist
-                if ($product->variants()->count() === 0) {
-                    $validator->errors()->add('variants', 'At least one variant is required. Please add a variant in the Variants section.');
-                }
-            }
-        });
+        // Variants validation removed - variants can be added later on a separate page
 
         if ($validator->fails()) {
             // Custom error messages for better user experience
@@ -851,8 +774,6 @@ class ProductController extends Controller
                 'name' => 'Product Name',
                 'sku' => 'SKU',
                 'price' => 'Regular Price',
-                'brand_ids' => 'Brand Selection',
-                'brand_ids.*' => 'Brand Selection',
                 'stock_quantity' => 'Stock Quantity',
                 'stock_status' => 'Stock Status',
                 'type' => 'Product Type',
@@ -895,12 +816,6 @@ class ProductController extends Controller
         DB::beginTransaction();
 
         try {
-            $otherBrand = $this->ensureOtherBrand();
-            $brandIds = $request->brand_ids ?? [];
-            if (empty($brandIds)) {
-                $brandIds = [$otherBrand->id];
-            }
-
             $slug = $request->filled('seo_url_slug')
                 ? Str::slug($request->seo_url_slug)
                 : Str::slug($request->name);
@@ -909,6 +824,7 @@ class ProductController extends Controller
                 'name' => $request->name,
                 'slug' => $slug,
                 'short_description' => $request->short_description,
+                'brand_id' => $request->brand_id,
                 'requires_shipping' => $request->has('requires_shipping'),
                 'free_shipping' => $request->has('free_shipping'),
                 'gst_type' => $request->has('gst_type') ? ($request->gst_type == '1' || $request->gst_type == 1) : ($product->gst_type ?? true),
@@ -942,24 +858,7 @@ class ProductController extends Controller
                 ]);
             }
 
-            // Handle brands
-            if (!empty($brandIds)) {
-                $brandData = [];
-                foreach ($brandIds as $index => $brandId) {
-                    $brandData[$brandId] = [
-                        'is_primary' => $index === 0, // First brand is primary
-                        'sort_order' => $index,
-                    ];
-                }
-                $product->brands()->sync($brandData);
-            } else {
-                $product->brands()->sync([
-                    $brandIds[0] => [
-                        'is_primary' => true,
-                        'sort_order' => 0,
-                    ],
-                ]);
-            }
+            // Brand is now handled via brand_id column, no pivot table needed
 
             // Handle image removal
             if ($request->remove_images) {
@@ -1172,7 +1071,7 @@ class ProductController extends Controller
                           $q->select('id', 'name', 'parent_id');
                       }]);
             },
-            'brands:id,name',
+            'brand:id,name',
             'variants' => function($q) {
                 // Variants are automatically from non-deleted products since Product uses SoftDeletes
                 $q->select('id', 'product_id', 'sku', 'price', 'sale_price', 'stock_quantity', 'stock_status', 'manage_stock', 'measurements', 'discount_active', 'discount_type', 'discount_value')
@@ -1204,9 +1103,7 @@ class ProductController extends Controller
 
         // Filter by brand
         if ($request->has('brand_id') && $request->brand_id) {
-            $query->whereHas('brands', function($q) use ($request) {
-                $q->where('brand_id', $request->brand_id);
-            });
+            $query->where('brand_id', $request->brand_id);
         }
 
         // Filter by category (includes all descendants for unlimited nesting support)
@@ -1301,13 +1198,10 @@ class ProductController extends Controller
             return [
                 'id' => $product->id,
                 'name' => $product->name,
-                'brands' => $product->brands->map(function($brand) {
-                    return [
-                        'id' => $brand->id,
-                        'name' => $brand->name,
-                        'is_primary' => $brand->pivot->is_primary
-                    ];
-                }),
+                'brand' => $product->brand ? [
+                    'id' => $product->brand->id,
+                    'name' => $product->brand->name,
+                ] : null,
                 'sku' => $variants->isNotEmpty() ? $variants->pluck('sku')->filter()->implode(', ') : '—',
                 'variant_count' => $variantCount,
                 'has_variants' => $variantCount > 0,

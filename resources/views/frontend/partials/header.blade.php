@@ -10,7 +10,7 @@
 			</div>
 			
 			<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12 hide-ipad">
-				<div class="top_second text-center"><p class="medium text-light m-0 p-0">Get Free delivery from $2000 <a href="{{ route('frontend.shop') }}" class="medium text-light text-underline">Shop Now</a></p></div>
+				<div class="top_second text-center"><p class="medium text-light m-0 p-0">Get Free delivery from ₹2000 <a href="{{ route('frontend.shop') }}" class="medium text-light text-underline">Shop Now</a></p></div>
 			</div>
 			
 			<!-- Right Menu -->
@@ -78,11 +78,28 @@
 								</form>
 							</div>
 						</li>
+					@guest
 					<li>
 						<a href="#" data-bs-toggle="modal" data-bs-target="#login"> 
               <i class="lni lni-user-4"></i>
 						</a>
 					</li>
+					@else
+					<li class="has-submenu">
+						<a href="{{ route('frontend.profile-info') }}">
+							<i class="lni lni-user-4"></i>
+							<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span>
+						</a>
+						<ul class="nav-dropdown nav-submenu">
+							<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
+							<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
+							<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i>Profile Info</a></li>
+							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Addresses</a></li>
+							<!-- <li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li> -->
+							<li><a href="#" id="customerLogoutBtn2"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
+						</ul>
+					</li>
+					@endguest
 					<li>
 						<a href="{{ route('frontend.wishlist') }}" class="wishlist-link">
 							<i class="lni lni-heart"></i><span class="dn-counter">0</span>
@@ -222,8 +239,8 @@
 								<li class="main-menu-item"><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"> <i class="lni lni-heart"></i> Wishlist</a></li>
 								<li class="main-menu-item"><a href="{{ route('frontend.profile-info') }}"> <i class="lni lni-user"></i> Profile Info</a></li>
 								<li class="main-menu-item"><a href="{{ route('frontend.addresses') }}"> <i class="lni lni-map-marker"></i> Addresses</a></li>
-								<li class="main-menu-item"><a href="{{ route('frontend.payment-methode') }}"> <i class="lni lni-mastercard"></i> Payment Methode</a></li>
-								<li class="main-menu-item"><a href="#" data-bs-toggle="modal" data-bs-target="#login"> 
+								<!-- <li class="main-menu-item"><a href="{{ route('frontend.payment-methode') }}"> <i class="lni lni-mastercard"></i>Payment Methode</a></li> -->
+								<li class="main-menu-item"><a href="#" id="customerLogoutBtn3"> 
 									<i class="lni lni-power-switch"></i>   Log Out</a></li>
 								
 
@@ -406,36 +423,42 @@
 							</form>
 						</div>
 					</li>
-					<!-- <li>
-						<a href="#" data-bs-toggle="modal" data-bs-target="#login">
+
+					<!-- Customer Auth: Checked via JavaScript (session-based) -->
+					<!-- Guest User Icon (shown by default, hidden when customer logged in) -->
+					<li id="guestUserIcon" class="customer-auth-element">
+						<a href="#" id="guestUserIconLink">
 							<i class="lni lni-user"></i>
 						</a>
-					</li> -->
-
-					<li class="has-submenu">
-					<a href="javascript:void(0);">
-						<i class="lni lni-user"></i>
-						<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span>
-					</a>
-					<ul class="nav-dropdown nav-submenu">
-						<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
-						<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
-						<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i>Profile Info</a></li>
-						<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Addresses</a></li>
-						<li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li>
-						<li><a href="#" data-bs-toggle="modal" data-bs-target="#login"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
-					</ul>
-				</li>
+					</li>
+					
+					<!-- Logged In Customer Menu (hidden by default, shown when customer logged in) -->
+					<li id="customerUserMenu" class="has-submenu customer-auth-element" style="display: none;">
+						<a href="javascript:void(0);">
+							<i class="lni lni-user"></i>
+							<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span>
+						</a>
+						<ul class="nav-dropdown nav-submenu">
+							<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
+							<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
+							<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i>Profile Info</a></li>
+							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Addresses</a></li>
+							<!-- <li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li> -->
+							<li><a href="#" id="customerLogoutBtn"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
+						</ul>
+					</li>
 					<li>
 						<a href="{{ route('frontend.wishlist') }}" class="wishlist-link">
-							<i class="lni lni-heart"></i><span class="dn-counter">0</span>
+							<i class="lni lni-heart"></i><span class="dn-counter"></span>
 						</a>
 					</li>
 					<li>
 						<a href="{{ route('frontend.shoping-cart') }}">
-							<i class="lni lni-shopping-basket"></i><span class="dn-counter">3</span>
+							<i class="lni lni-shopping-basket"></i><span class="dn-counter"></span>
 						</a>
-					</li> 
+					</li>
+
+
 				</ul>
 			</div>
 		</nav>
@@ -443,4 +466,131 @@
 </div>
 <!-- End Navigation -->
 <div class="clearfix"></div>
+
+
+@push('scripts')
+<script>
+// Wait for jQuery to be available
+(function() {
+	function initCustomerAuth() {
+		if (typeof jQuery === 'undefined') {
+			setTimeout(initCustomerAuth, 100);
+			return;
+		}
+		
+jQuery(document).ready(function($) {
+	// Get CSRF token
+	const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+	
+	// Update UI based on customer auth status
+	function updateCustomerAuthUI(isLoggedIn, customerData) {
+		if (isLoggedIn) {
+			// Hide guest icon, show customer menu
+			$('#guestUserIcon').hide();
+			$('#customerUserMenu').show();
+		} else {
+			// Show guest icon, hide customer menu
+			$('#guestUserIcon').show();
+			$('#customerUserMenu').hide();
+		}
+	}
+	
+	// Check customer auth and update UI
+	function checkAndUpdateCustomerAuth() {
+		$.ajax({
+			url: '/api/auth/me',
+			method: 'GET',
+			headers: {
+				'X-CSRF-TOKEN': csrfToken,
+				'Accept': 'application/json'
+			},
+			success: function(response) {
+				if (response.success && response.data) {
+					updateCustomerAuthUI(true, response.data);
+				} else {
+					updateCustomerAuthUI(false);
+				}
+			},
+			error: function(xhr) {
+				updateCustomerAuthUI(false);
+			}
+		});
+	}
+	
+	// Handle guest user icon click - check auth before showing modal
+	$('#guestUserIconLink').on('click', function(e) {
+		e.preventDefault();
+		
+		// Check if user is actually logged in before showing modal
+		$.ajax({
+			url: '/api/auth/me',
+			method: 'GET',
+			headers: {
+				'X-CSRF-TOKEN': csrfToken,
+				'Accept': 'application/json'
+			},
+			success: function(response) {
+				if (response.success && response.data) {
+					// User is logged in, update UI and don't show modal
+					updateCustomerAuthUI(true, response.data);
+				} else {
+					// User is not logged in, show login modal
+					$('#login').modal('show');
+				}
+			},
+			error: function(xhr) {
+				// On error, assume not logged in and show modal
+				$('#login').modal('show');
+			}
+		});
+	});
+	
+	// Run on page load (with delay to ensure DOM is ready)
+	setTimeout(function() {
+		checkAndUpdateCustomerAuth();
+	}, 500);
+	
+	// Trigger check when modal is closed (in case user just logged in)
+	$('#login').on('hidden.bs.modal', function() {
+		setTimeout(function() {
+			checkAndUpdateCustomerAuth();
+		}, 500);
+	});
+	
+	// Handle customer logout - unified handler for all logout buttons
+	function handleCustomerLogout(e) {
+		if (e) {
+			e.preventDefault();
+		}
+		
+		$.ajax({
+			url: '/api/auth/logout',
+			method: 'POST',
+			headers: {
+				'X-CSRF-TOKEN': csrfToken,
+				'Accept': 'application/json'
+			},
+			success: function() {
+				updateCustomerAuthUI(false);
+				window.location.href = '{{ route("frontend.index") }}';
+			},
+			error: function() {
+				// Even if logout fails, redirect to home
+				updateCustomerAuthUI(false);
+				window.location.href = '{{ route("frontend.index") }}';
+			}
+		});
+	}
+	
+	// Attach logout handler to all logout buttons
+	$('#customerLogoutBtn, #customerLogoutBtn2, #customerLogoutBtn3').on('click', handleCustomerLogout);
+
+		}); // End jQuery ready
+	} // End initCustomerAuth
+	
+	// Start initialization
+	initCustomerAuth();
+})(); // End IIFE
+</script>
+@endpush
 

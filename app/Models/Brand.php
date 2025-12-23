@@ -45,16 +45,7 @@ class Brand extends Model
     // Relationships
     public function products()
     {
-        return $this->hasManyThrough(Product::class, Category::class);
-    }
-
-    // Multi-brand support
-    public function productBrands()
-    {
-        return $this->belongsToMany(Product::class, 'product_brands')
-                    ->withPivot('is_primary', 'sort_order')
-                    ->withTimestamps()
-                    ->orderBy('product_brands.sort_order');
+        return $this->hasMany(Product::class);
     }
 
     // Scopes

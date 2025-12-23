@@ -737,18 +737,11 @@ class ProductImportService
             $brandIds = [$defaultBrand->id];
         }
 
-        $product->brand_id = $brandIds[0];
-        $product->save();
-
-        $pivotData = [];
-        foreach ($brandIds as $index => $brandId) {
-            $pivotData[$brandId] = [
-                'is_primary' => $index === 0,
-                'sort_order' => $index,
-            ];
+        // Brand is now handled via brand_id column, no pivot table needed
+        if (!empty($brandIds)) {
+            $product->brand_id = $brandIds[0];
+            $product->save();
         }
-
-        $product->brands()->sync($pivotData);
     }
 
 

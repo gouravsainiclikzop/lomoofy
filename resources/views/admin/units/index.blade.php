@@ -286,7 +286,7 @@ $(document).ready(function() {
     $(document).on('click', '.delete-unit', function(e) {
         e.preventDefault();
         deleteUnitId = $(this).data('id');
-        $('#deleteUnitModal').modal('show');
+        showModalSafely('#deleteUnitModal');
     });
     
     // Toggle Status Click
@@ -431,6 +431,78 @@ $(document).ready(function() {
         });
     }
     
+    // Safe modal close function (Bootstrap 5 compatible)
+    function closeModalSafely(modalSelector) {
+        try {
+            const modalElement = document.querySelector(modalSelector);
+            if (modalElement) {
+                // Try Bootstrap 5 API first
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    } else {
+                        // If no instance exists, create one and hide
+                        const newModal = new bootstrap.Modal(modalElement);
+                        newModal.hide();
+                    }
+                } else if (typeof $.fn.modal !== 'undefined') {
+                    // Fallback to jQuery/Bootstrap 4
+                    $(modalSelector).modal('hide');
+                } else {
+                    // Last resort: hide via CSS
+                    $(modalElement).removeClass('show').css('display', 'none');
+                    $('body').removeClass('modal-open');
+                    $('.modal-backdrop').remove();
+                }
+            }
+        } catch (error) {
+            console.error('Error closing modal:', error);
+            // Fallback: hide via CSS
+            $(modalSelector).removeClass('show').css('display', 'none');
+            $('body').removeClass('modal-open');
+            $('.modal-backdrop').remove();
+        }
+    }
+    
+    // Safe modal show function (Bootstrap 5 compatible)
+    function showModalSafely(modalSelector) {
+        try {
+            const modalElement = document.querySelector(modalSelector);
+            if (modalElement) {
+                // Try Bootstrap 5 API first
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement, {
+                        backdrop: true,
+                        keyboard: true,
+                        focus: true
+                    });
+                    if (!modalElement.classList.contains('show')) {
+                        modal.show();
+                    }
+                } else if (typeof $.fn.modal !== 'undefined') {
+                    // Fallback to jQuery/Bootstrap 4
+                    if (!$(modalSelector).hasClass('show')) {
+                        $(modalSelector).modal('show');
+                    }
+                } else {
+                    // Last resort: show via CSS
+                    $(modalElement).addClass('show').css('display', 'block');
+                    $('body').addClass('modal-open');
+                    $('.modal-backdrop').remove();
+                    $('body').append('<div class="modal-backdrop fade show"></div>');
+                }
+            }
+        } catch (error) {
+            console.error('Error showing modal:', error);
+            // Fallback: show via CSS
+            $(modalSelector).addClass('show').css('display', 'block');
+            $('body').addClass('modal-open');
+            $('.modal-backdrop').remove();
+            $('body').append('<div class="modal-backdrop fade show"></div>');
+        }
+    }
+    
     // Open Create Modal
     function openCreateModal() {
         currentUnitId = null;
@@ -439,7 +511,7 @@ $(document).ready(function() {
         $('#unitIsActive').prop('checked', true);
         $('#httpMethod').val('POST');
         clearValidationErrors();
-        $('#unitModal').modal('show');
+        showModalSafely('#unitModal');
     }
     
     // Edit Unit
@@ -461,7 +533,7 @@ $(document).ready(function() {
                     $('#httpMethod').val('PUT');
                     
                     clearValidationErrors();
-                    $('#unitModal').modal('show');
+                    showModalSafely('#unitModal');
                 }
             },
             error: function(xhr) {
@@ -472,19 +544,48 @@ $(document).ready(function() {
     
     // Save Unit
     function saveUnit() {
-        let formData = new FormData($('#unitForm')[0]);
+        // Clear previous validation errors
+        clearValidationErrors();
         
-        // Fix checkbox value for is_active
-        if ($('#unitIsActive').is(':checked')) {
-            formData.set('is_active', '1');
-        } else {
-            formData.set('is_active', '0');
+        // Get form values explicitly to ensure all fields are included
+        let formData = {
+            name: $('#unitName').val(),
+            symbol: $('#unitSymbol').val(),
+            type: $('#unitType').val(),
+            is_active: $('#unitIsActive').is(':checked') ? '1' : '0',
+            _token: $('meta[name="csrf-token"]').attr('content')
+        };
+        
+        // Add _method for PUT requests
+        if (currentUnitId) {
+            formData._method = 'PUT';
+        }
+        
+        // Validate required fields before submission
+        if (!formData.name || !formData.symbol || !formData.type) {
+            let missingFields = [];
+            if (!formData.name) {
+                $('#unitName').addClass('is-invalid');
+                $('#nameError').text('The name field is required.');
+                missingFields.push('Name');
+            }
+            if (!formData.symbol) {
+                $('#unitSymbol').addClass('is-invalid');
+                $('#symbolError').text('The symbol field is required.');
+                missingFields.push('Symbol');
+            }
+            if (!formData.type) {
+                $('#unitType').addClass('is-invalid');
+                $('#typeError').text('The type field is required.');
+                missingFields.push('Type');
+            }
+            showToast('Validation Error', 'Please fill in all required fields: ' + missingFields.join(', '), 'error');
+            return;
         }
         
         let url = currentUnitId 
             ? '{{ route("units.update", ":id") }}'.replace(':id', currentUnitId)
             : '{{ route("units.store") }}';
-        let method = currentUnitId ? 'PUT' : 'POST';
         
         // Show loading state
         $('#saveSpinner').removeClass('d-none');
@@ -495,15 +596,14 @@ $(document).ready(function() {
             url: url,
             type: 'POST',
             data: formData,
-            processData: false,
-            contentType: false,
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
                 if(response.success) {
                     showToast('Success', response.message, 'success');
-                    $('#unitModal').modal('hide');
+                    // Close modal using Bootstrap 5 API
+                    closeModalSafely('#unitModal');
                     loadUnits();
                 } else {
                     showToast('Error', response.message || 'Failed to save unit', 'error');
@@ -514,6 +614,12 @@ $(document).ready(function() {
                     // Validation errors
                     let errors = xhr.responseJSON.errors;
                     displayValidationErrors(errors);
+                    let errorMessage = xhr.responseJSON.message || 'Validation failed';
+                    if (errors) {
+                        let errorList = Object.values(errors).flat().join(', ');
+                        errorMessage += ': ' + errorList;
+                    }
+                    showToast('Validation Error', errorMessage, 'error');
                 } else {
                     showToast('Error', 'Failed to save unit', 'error');
                 }
@@ -545,7 +651,8 @@ $(document).ready(function() {
             success: function(response) {
                 if(response.success) {
                     showToast('Success', response.message, 'success');
-                    $('#deleteUnitModal').modal('hide');
+                    // Close modal using Bootstrap 5 API
+                    closeModalSafely('#deleteUnitModal');
                     loadUnits();
                 } else {
                     showToast('Error', response.message || 'Failed to delete unit', 'error');
@@ -597,11 +704,25 @@ $(document).ready(function() {
     function displayValidationErrors(errors) {
         clearValidationErrors();
         
+        // Map field names to their corresponding input IDs
+        const fieldMap = {
+            'name': 'unitName',
+            'symbol': 'unitSymbol',
+            'type': 'unitType',
+            'is_active': 'unitIsActive'
+        };
+        
         Object.keys(errors).forEach(function(field) {
-            let errorElement = $('#' + field + 'Error');
+            let inputId = fieldMap[field] || field;
+            let errorElement = $('#' + inputId + 'Error');
+            let inputElement = $('#' + inputId);
+            
             if(errorElement.length) {
                 errorElement.text(errors[field][0]);
-                $('#' + field).addClass('is-invalid');
+                inputElement.addClass('is-invalid');
+            } else if(inputElement.length) {
+                // If error element doesn't exist, add class to input
+                inputElement.addClass('is-invalid');
             }
         });
     }

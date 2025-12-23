@@ -11,11 +11,11 @@
 							<nav aria-label="breadcrumb">
 								<ol class="breadcrumb">
 									<li class="breadcrumb-item"><a href="{{ route('frontend.index') }}">Home</a></li>
-									@if($product->category)
-										<li class="breadcrumb-item"><a href="{{ route('frontend.shop') }}?category={{ $product->category->slug }}">{{ $product->category->name }}</a></li>
-										@if($product->category->parent)
-											<li class="breadcrumb-item"><a href="{{ route('frontend.shop') }}?category={{ $product->category->parent->slug }}">{{ $product->category->parent->name }}</a></li>
+									@if($primaryCategory)
+										@if($primaryCategory->parent)
+											<li class="breadcrumb-item"><a href="{{ route('frontend.shop') }}?category={{ $primaryCategory->parent->slug }}">{{ $primaryCategory->parent->name }}</a></li>
 										@endif
+										<li class="breadcrumb-item"><a href="{{ route('frontend.shop') }}?category={{ $primaryCategory->slug }}">{{ $primaryCategory->name }}</a></li>
 									@endif
 									<li class="breadcrumb-item active" aria-current="page">{{ $product->name }}</li>
 								</ol>
@@ -32,13 +32,30 @@
 					<div class="row align-items-center">
 					
 						<div class="col-xl-5 col-lg-6 col-md-12 col-sm-12">
-							<div class="sp-loading"><img src="{{ $productImages->first()['url'] ?? asset('frontend/images/product/1.jpg') }}" alt=""><br>LOADING IMAGES</div>
-							<div class="sp-wrap" id="productImagesGallery">
-								@foreach($productImages as $image)
-									<a href="{{ $image['url'] }}"><img src="{{ $image['url'] }}" alt="{{ $image['alt'] }}"></a>
+							<!-- Main Product Image -->
+							<div class="product-main-image mb-3" id="productMainImageContainer">
+								<img id="productMainImage" 
+									 src="{{ $productImages->first()['url'] ?? asset('frontend/images/product/1.jpg') }}" 
+									 alt="{{ $product->name }}" 
+									 class="img-fluid w-100">
+							</div>
+							
+							<!-- Product Thumbnails -->
+							<div class="product-thumbnails" id="productThumbnailsContainer">
+								@if($productImages->count() > 0)
+									@foreach($productImages as $index => $image)
+										<div class="product-thumbnail-item {{ $index === 0 ? 'active' : '' }}" 
+											 data-image-url="{{ $image['url'] }}" 
+											 data-image-alt="{{ $image['alt'] }}">
+											<img src="{{ $image['url'] }}" alt="{{ $image['alt'] }}" class="img-fluid">
+										</div>
 								@endforeach
-								@if($productImages->isEmpty())
-									<a href="{{ asset('frontend/images/product/1.jpg') }}"><img src="{{ asset('frontend/images/product/1.jpg') }}" alt="{{ $product->name }}"></a>
+								@else
+									<div class="product-thumbnail-item active" 
+										 data-image-url="{{ asset('frontend/images/product/1.jpg') }}" 
+										 data-image-alt="{{ $product->name }}">
+										<img src="{{ asset('frontend/images/product/1.jpg') }}" alt="{{ $product->name }}" class="img-fluid">
+									</div>
 								@endif
 							</div>
 						</div>
@@ -46,8 +63,8 @@
 						<div class="col-xl-7 col-lg-6 col-md-12 col-sm-12">
 							<div class="prd_details ps-xl-5">
 								
-								@if($product->category)
-								<div class="prt_01 mb-2"><span class="text-success bg-light-success rounded px-2 py-1">{{ $product->category->name }}</span></div>
+								@if($primaryCategory) 
+								<div class="prt_01 mb-2"><span class="text-success bg-light-success rounded px-2 py-1">{{ $primaryCategory->name }}</span></div>
 								@endif
 								<div class="prt_02 mb-3">
 									<h2 class="ft-bold mb-1">{{ $product->name }}</h2>
@@ -60,14 +77,14 @@
 											<i class="fas fa-star"></i>
 											<span class="small">(0 Reviews)</span>
 										</div>
-										<div class="elis_rty">
+										<div class="elis_rty" id="product-price">
 											@if($hasSale && $minSalePrice)
-												<span class="ft-medium text-muted line-through fs-md me-2">${{ number_format($minPrice, 0) }}</span>
-												<span class="ft-bold theme-cl fs-lg">${{ number_format($minSalePrice, 0) }}</span>
+												<span class="ft-medium text-muted line-through fs-md me-2">₹{{ number_format($minPrice, 0) }}</span>
+												<span class="ft-bold theme-cl fs-lg">₹{{ number_format($minSalePrice, 0) }}</span>
 											@else
-												<span class="ft-bold theme-cl fs-lg">${{ number_format($minPrice, 0) }}</span>
+												<span class="ft-bold theme-cl fs-lg">₹{{ number_format($minPrice, 0) }}</span>
 												@if($minPrice != $maxPrice && $maxPrice > 0)
-													<span class="ft-bold theme-cl fs-lg"> - ${{ number_format($maxPrice, 0) }}</span>
+													<span class="ft-bold theme-cl fs-lg"> - ₹{{ number_format($maxPrice, 0) }}</span>
 												@endif
 											@endif
 										</div>
@@ -80,63 +97,119 @@
 								</div>
 								@endif
 								
-								@if(count($colors) > 0)
-                <div class="prt_04 mb-2">
-									<p class="d-flex align-items-center mb-0 text-dark ft-medium">Color:</p>
-									<div class="text-left">
-										@foreach($colors as $colorIndex => $colorValue)
-											@php
-												$colorId = 'color_' . strtolower(str_replace(' ', '', $colorValue)) . '_' . $colorIndex;
-												$colorVariant = $colorVariantsMap[$colorValue] ?? null;
-												$colorCode = $colorVariant['color_code'] ?? '#ccc';
-											@endphp
-											<div class="form-check form-option form-check-inline mb-1">
-												<input class="form-check-input color-option-product" type="radio" name="productColor" id="{{ $colorId }}" value="{{ $colorValue }}" 
-													data-color-value="{{ $colorValue }}"
-													data-color-code="{{ $colorCode }}"
-													@if($colorVariant)
-														data-variant-image="{{ $colorVariant['image'] }}"
-														data-price="{{ $colorVariant['display_price'] }}"
-														data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
-														data-regular-price="{{ $colorVariant['price'] }}"
+								@if(isset($attributesData) && count($attributesData) > 0)
+									@foreach($attributesData as $attribute)
+										@php
+											$attributeSlug = $attribute['slug'] ?? strtolower(str_replace(' ', '-', $attribute['name']));
+											$attributeType = $attribute['type'] ?? 'text';
+										@endphp
+										<div class="prt_04 mb-{{ $loop->last ? '4' : '2' }}" data-attribute-container="{{ $attribute['id'] }}">
+											<p class="d-flex align-items-center mb-0 text-dark ft-medium">{{ $attribute['name'] }}:</p>
+											<div class="text-left {{ $attributeType === 'color' ? '' : 'pb-0 pt-2' }}">
+												@foreach($attribute['values'] as $valueIndex => $valueData)
+													@php
+														$value = is_array($valueData) ? ($valueData['value'] ?? '') : $valueData;
+														$valueId = $attributeSlug . '_' . strtolower(str_replace(' ', '', $value)) . '_' . $valueIndex;
+													@endphp
+													@if($attributeType === 'color')
+														@php
+															$colorCode = is_array($valueData) && isset($valueData['color_code']) ? $valueData['color_code'] : '#ccc';
+														@endphp
+														<div class="form-check form-option form-check-inline mb-1">
+															<input class="form-check-input attribute-option-product" type="radio" 
+																name="productAttr_{{ $attribute['id'] }}" 
+																id="{{ $valueId }}" 
+																value="{{ $value }}" 
+																data-attribute-id="{{ $attribute['id'] }}"
+																data-attribute-name="{{ $attribute['name'] }}"
+																data-attribute-slug="{{ $attributeSlug }}"
+																data-value="{{ $value }}"
+																{{ $valueIndex === 0 ? 'checked' : '' }}>
+															<label class="form-option-label rounded-circle" for="{{ $valueId }}">
+																<span class="form-option-color rounded-circle" style="background-color: {{ $colorCode }}"></span>
+															</label>
+														</div>
+													@else
+														<div class="form-check size-option form-option form-check-inline mb-2">
+															<input class="form-check-input attribute-option-product" type="radio" 
+																name="productAttr_{{ $attribute['id'] }}" 
+																id="{{ $valueId }}" 
+																value="{{ $value }}"
+																data-attribute-id="{{ $attribute['id'] }}"
+																data-attribute-name="{{ $attribute['name'] }}"
+																data-attribute-slug="{{ $attributeSlug }}"
+																data-value="{{ $value }}"
+																{{ $valueIndex === 0 ? 'checked' : '' }}>
+															<label class="form-option-label" for="{{ $valueId }}">{{ $value }}</label>
+														</div>
 													@endif
-													{{ $colorIndex === 0 ? 'checked' : '' }}>
-												<label class="form-option-label rounded-circle" for="{{ $colorId }}">
-													<span class="form-option-color rounded-circle" style="background-color: {{ $colorCode }}"></span>
-												</label>
+												@endforeach
 											</div>
-										@endforeach
-									</div>
-								</div>
-								@endif
-								@if(count($sizes) > 0)
-                <div class="prt_04 mb-4">
-									<p class="d-flex align-items-center mb-0 text-dark ft-medium">Size:</p>
-									<div class="text-left pb-0 pt-2">
-										@foreach($sizes as $sizeIndex => $sizeValue)
-											@php
-												$sizeId = 'size_' . strtolower(str_replace(' ', '', $sizeValue)) . '_' . $sizeIndex;
-											@endphp
-											<div class="form-check size-option form-option form-check-inline mb-2">
-												<input class="form-check-input size-option-product" type="radio" name="productSize" id="{{ $sizeId }}" value="{{ $sizeValue }}" {{ $sizeIndex === 0 ? 'checked' : '' }}>
-												<label class="form-option-label" for="{{ $sizeId }}">{{ $sizeValue }}</label>
+										</div>
+									@endforeach
+								@else
+									{{-- Fallback to legacy color/size display --}}
+									@if(count($colors) > 0)
+										<div class="prt_04 mb-2">
+											<p class="d-flex align-items-center mb-0 text-dark ft-medium">Color:</p>
+											<div class="text-left">
+												@foreach($colors as $colorIndex => $colorValue)
+													@php
+														$colorId = 'color_' . strtolower(str_replace(' ', '', $colorValue)) . '_' . $colorIndex;
+														$colorVariant = $colorVariantsMap[$colorValue] ?? null;
+														$colorCode = $colorVariant['color_code'] ?? '#ccc';
+													@endphp
+													<div class="form-check form-option form-check-inline mb-1">
+														<input class="form-check-input color-option-product" type="radio" name="productColor" id="{{ $colorId }}" value="{{ $colorValue }}" 
+															data-color-value="{{ $colorValue }}"
+															data-color-code="{{ $colorCode }}"
+															@if($colorVariant)
+																data-variant-image="{{ $colorVariant['image'] }}"
+																data-price="{{ $colorVariant['display_price'] }}"
+																data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
+																data-regular-price="{{ $colorVariant['price'] }}"
+															@endif
+															{{ $colorIndex === 0 ? 'checked' : '' }}>
+														<label class="form-option-label rounded-circle" for="{{ $colorId }}">
+															<span class="form-option-color rounded-circle" style="background-color: {{ $colorCode }}"></span>
+														</label>
+													</div>
+												@endforeach
 											</div>
-										@endforeach
-									</div>
-								</div>
+										</div>
+									@endif
+									@if(count($sizes) > 0)
+										<div class="prt_04 mb-4">
+											<p class="d-flex align-items-center mb-0 text-dark ft-medium">Size:</p>
+											<div class="text-left pb-0 pt-2">
+												@foreach($sizes as $sizeIndex => $sizeValue)
+													@php
+														$sizeId = 'size_' . strtolower(str_replace(' ', '', $sizeValue)) . '_' . $sizeIndex;
+													@endphp
+													<div class="form-check size-option form-option form-check-inline mb-2">
+														<input class="form-check-input size-option-product" type="radio" name="productSize" id="{{ $sizeId }}" value="{{ $sizeValue }}" {{ $sizeIndex === 0 ? 'checked' : '' }}>
+														<label class="form-option-label" for="{{ $sizeId }}">{{ $sizeValue }}</label>
+													</div>
+												@endforeach
+											</div>
+										</div>
+									@endif
 								@endif
 
             
 
 								<div class="prt_04 mb-4">
-									@if($product->category)
+									@if($primaryCategory)
 									<p class="d-flex align-items-center mb-1">Category:<strong class="fs-sm text-dark ft-medium ms-1">
-										{{ $product->category->name }}{{ $product->category->parent ? ', ' . $product->category->parent->name : '' }}
+										{{ $primaryCategory->name }}{{ $primaryCategory->parent ? ', ' . $primaryCategory->parent->name : '' }}
 									</strong></p>
 									@endif
-									@if($displaySku)
-									<p class="d-flex align-items-center mb-0">SKU:<strong class="fs-sm text-dark ft-medium ms-1">{{ $displaySku }}</strong></p>
+									@if($primaryBrand)
+									<p class="d-flex align-items-center mb-1">Brand:<strong class="fs-sm text-dark ft-medium ms-1">
+										{{ $primaryBrand->name }}
+									</strong></p>
 									@endif
+									<p class="d-flex align-items-center mb-0">SKU:<strong class="fs-sm text-dark ft-medium ms-1" id="variant-sku">{{ $displaySku ?? '' }}</strong></p>
 								</div>
 								
 								<div class="prt_05 mb-4">
@@ -153,16 +226,18 @@
 										</div>
 										<div class="col-12 col-md-12 col-lg-6">
 											<!-- Submit -->
-											<a  href="{{ route('frontend.shoping-cart') }}" class="btn btn-block custom-height bg-dark mb-2 w-100 text-decoration-none">
-												<i class="lni lni-shopping-basket me-2" ></i>Add to Cart 
-											</a>
+											<button type="button" class="btn btn-block custom-height bg-dark mb-2 w-100 add-to-cart-btn" 
+												data-product-id="{{ $product->id }}"
+												data-product-slug="{{ $product->slug }}">
+												<i class="lni lni-shopping-basket me-2"></i>Add to Cart 
+											</button>
 										</div>
 										<div class="col-12 col-md-6 col-lg-3">
 											<!-- Wishlist -->
 											<button class="btn custom-height btn-default btn-block mb-2 text-dark w-100 snackbar-wishlist {{ $inWishlist ? 'wishlist-active' : '' }}" 
 												data-product-id="{{ $product->id }}" 
 												data-in-wishlist="{{ $inWishlist ? '1' : '0' }}">
-												<i class="lni lni-heart me-2 {{ $inWishlist ? 'text-danger' : '' }}"></i>Wishlist
+												<i class="{{ $inWishlist ? 'fas' : 'lni' }} {{ $inWishlist ? 'fa-heart' : 'lni-heart' }} me-2{{ $inWishlist ? ' text-danger' : '' }}" {{ $inWishlist ? 'style="color: #dc3545 !important;"' : '' }}></i>Wishlist
 											</button>
 										</div>
 								  </div>
@@ -181,17 +256,38 @@
                     <div class="side-list no-border">
                       <!-- Single Filter Card -->
                       <div class="single_filter_card">
-                        <div class="card-body pt-0">
-                          <h6 class="font-size-sm mb-2">Composition</h6>
-                          <ul class="lists-2 min-space">
-                            <li>Elastic rib: Cotton 95%, Elastane 5%</li>
-                            <li>Lining: Cotton 100%</li>
-                            <li>Cotton 80%, Polyester 20%</li>
+                        <div class="card-body pt-0" id="variant-highlights-details">
+                          @php
+                            // Get highlights_details from the first active variant
+                            $firstVariant = $activeVariants->first();
+                            $highlightsDetails = [];
+                            
+                            if ($firstVariant && $firstVariant->highlights_details) {
+                              // Ensure highlights_details is an array
+                              if (is_string($firstVariant->highlights_details)) {
+                                $highlightsDetails = json_decode($firstVariant->highlights_details, true) ?? [];
+                              } else {
+                                $highlightsDetails = is_array($firstVariant->highlights_details) ? $firstVariant->highlights_details : [];
+                              }
+                            }
+                          @endphp
+                          
+                          @if(count($highlightsDetails) > 0)
+                            @foreach($highlightsDetails as $highlight)
+                              @if(!empty($highlight['heading_name']))
+                                <h6 class="font-size-sm mb-2">{{ $highlight['heading_name'] }}</h6>
+                                @if(!empty($highlight['bullet_points']) && is_array($highlight['bullet_points']))
+                                  <ul class="lists-2 min-space {{ $loop->last ? 'mb-0' : '' }}">
+                                    @foreach($highlight['bullet_points'] as $point)
+                                      @if(!empty($point))
+                                        <li>{{ $point }}</li>
+                                      @endif
+                                    @endforeach
                           </ul>
-                          <h6 class="font-size-sm mb-2">Design. No.</h6>
-                          <ul class="lists-2 min-space mb-0">
-                            <li>183260098</li>
-                          </ul>
+                                @endif
+                              @endif
+                            @endforeach 
+                          @endif
                         </div>
                       </div>
                     </div>
@@ -244,11 +340,13 @@
 								
 								<!-- Description Content -->
 								<div class="tab-pane fade show active" id="description" role="tabpanel" aria-labelledby="description-tab">
-									<div class="description_info">
-										@if($product->description)
-											<p class="p-0 mb-2">{!! nl2br(e($product->description)) !!}</p>
-										@elseif($product->short_description)
-											<p class="p-0 mb-2">{!! nl2br(e($product->short_description)) !!}</p>
+									<div class="description_info" id="variant-description">
+										@php
+											$firstVariant = $activeVariants->first();
+											$variantDescription = $firstVariant && $firstVariant->description ? $firstVariant->description : ($product->description ?? $product->short_description ?? '');
+										@endphp
+										@if($variantDescription)
+											<div class="p-0 mb-2">{!! $variantDescription !!}</div>
 										@else
 											<p class="p-0 mb-2">No description available for this product.</p>
 										@endif
@@ -264,12 +362,18 @@
 												  <th class="ft-medium text-dark">Product ID</th>
 												  <td>#{{ $product->id }}</td>
 												</tr>
-												@if($displaySku)
-												<tr>
+												<tr id="variant-sku-row" style="{{ $displaySku ? '' : 'display: none;' }}">
 												  <th class="ft-medium text-dark">SKU</th>
-												  <td>{{ $displaySku }}</td>
+												  <td id="variant-sku-info">{{ $displaySku ?? '' }}</td>
 												</tr>
-												@endif
+												<tr id="variant-color-row" style="display: none;">
+												  <th class="ft-medium text-dark">Selected Color</th>
+												  <td id="variant-color-info">-</td>
+												</tr>
+												<tr id="variant-size-row" style="display: none;">
+												  <th class="ft-medium text-dark">Selected Size</th>
+												  <td id="variant-size-info">-</td>
+												</tr>
 												@if(count($colors) > 0)
 												<tr>
 												  <th class="ft-medium text-dark">Available Colors</th>
@@ -282,10 +386,10 @@
 												  <td>{{ implode(', ', $sizes) }}</td>
 												</tr>
 												@endif
-												@if($product->category)
+												@if($primaryCategory)
 												<tr>
 												  <th class="ft-medium text-dark">Category</th>
-												  <td>{{ $product->category->name }}{{ $product->category->parent ? ' > ' . $product->category->parent->name : '' }}</td>
+												  <td>{{ $primaryCategory->name }}{{ $primaryCategory->parent ? ' > ' . $primaryCategory->parent->name : '' }}</td>
 												</tr>
 												@endif
 											</tbody>
@@ -498,8 +602,8 @@
 														<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}?product={{ $similarProduct['slug'] }}">{{ $similarProduct['name'] }}</a></h5>
 														<div class="elis_rty">
 															@if($similarProduct['has_sale'] && $similarProduct['min_sale_price'])
-																<span class="text-muted ft-medium line-through me-2">${{ number_format($similarProduct['min_price'], 0) }}</span>
-																<span class="ft-medium theme-cl fs-md">${{ number_format($similarProduct['min_sale_price'], 0) }}</span>
+																<span class="text-muted ft-medium line-through me-2">₹{{ number_format($similarProduct['min_price'], 0) }}</span>
+																<span class="ft-medium theme-cl fs-md">₹{{ number_format($similarProduct['min_sale_price'], 0) }}</span>
 															@else
 																<span class="ft-medium fs-md text-dark">{{ $similarProduct['display_price'] }}</span>
 															@endif
@@ -524,149 +628,594 @@
 			</section>
 			<!-- ======================= Similar Products End ============================ -->
 			 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/9.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Formal Women Lowers</a></h5>
-													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$129.00</span><span class="ft-medium theme-cl fs-md">$79.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/10.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Running Women Suit</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$80.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/11.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Half Fancy Women Dress</a></h5>
-													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$149.00</span><span class="ft-medium theme-cl fs-md">$110.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/12.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Flix Flox Women Jeans</a></h5>
-													<div class="elis_rty"><span class="text-muted ft-medium line-through me-2">$90.00</span><span class="ft-medium theme-cl fs-md">$49.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/13.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Fancy Salwar Suits</a></h5>
-													<div class="elis_rty"><span class="ft-medium fs-md text-dark">$114.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								<!-- single Item -->
-								<div class="single_itesm">
-									<div class="product_grid card b-0 mb-0">
-										<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										<button class="snackbar-wishlist btn btn_love position-absolute ab-right"><i class="far fa-heart"></i></button> 
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}"><img class="card-img-top" src="{{ asset('frontend/images/product/14.jpg') }}" alt="..."></a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio"><a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium"><i class="fas fa-eye me-1"></i>Quick View</a></div>
-												</div>
-											</div>
-										</div>
-										<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-											<div class="text-left">
-												<div class="text-center">
-													<h5 class="fw-normal fs-md mb-0 lh-1 mb-1"><a href="{{ route('frontend.product') }}">Collot Full Dress</a></h5>
-													<div class="elis_rty"><span class="ft-medium theme-cl fs-md text-dark">$120.00</span></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-							</div>
-						</div>
-					</div>
-					
-				</div>
-			</section>
-			<!-- ======================= Similar Products Start ============================ -->
+<script>
+(function() {
+    // Variant data map from backend - make it global for add to cart function
+    window.variantDataMap = @json($variantDataMap ?? []);
+    const variantDataMap = window.variantDataMap;
+    const colorVariantsMap = @json($colorVariantsMap ?? []);
+    const productImages = @json($productImages ?? []);
+    
+    // Get selected variant based on all attributes
+    function getSelectedVariant() {
+        // Try new attribute-based selection first
+        const selectedAttributes = {};
+        document.querySelectorAll('.attribute-option-product:checked').forEach(function(input) {
+            const attrId = input.dataset.attributeId;
+            const value = input.value;
+            if (attrId && value) {
+                selectedAttributes[attrId] = value;
+            }
+        });
+        
+        // Build key from all selected attributes
+        if (Object.keys(selectedAttributes).length > 0) {
+            const keyParts = [];
+            Object.keys(selectedAttributes).sort().forEach(function(attrId) {
+                keyParts.push(attrId + ':' + selectedAttributes[attrId]);
+            });
+            const key = keyParts.join('|');
+            if (variantDataMap[key]) {
+                return variantDataMap[key];
+            }
+        }
+        
+        // Fallback to legacy color/size selection
+        const selectedColor = document.querySelector('input[name="productColor"]:checked')?.value || '';
+        const selectedSize = document.querySelector('input[name="productSize"]:checked')?.value || '';
+        const key = selectedColor + '|' + selectedSize;
+        return variantDataMap[key] || null;
+    }
+    
+    // Update product images gallery based on selected variant
+    function updateProductImagesGallery() {
+        const variant = getSelectedVariant();
+        const mainImageElement = document.getElementById('productMainImage');
+        const thumbnailsContainer = document.getElementById('productThumbnailsContainer');
+        
+        if (!mainImageElement || !thumbnailsContainer) return;
+        
+        // Get images from selected variant
+        let imagesToShow = [];
+        
+        // Try to get images from variant first (new dynamic attributes system)
+        if (variant && variant.images && Array.isArray(variant.images) && variant.images.length > 0) {
+            imagesToShow = variant.images.filter(function(img) {
+                return img && img.url && img.url !== 'undefined' && img.url !== 'null';
+            });
+        }
+        
+        // If no images from exact variant match, try to find by color-type attribute
+        if (imagesToShow.length === 0) {
+            // Find color-type attribute from selected attributes
+            const selectedAttributes = {};
+            document.querySelectorAll('.attribute-option-product:checked').forEach(function(input) {
+                const attrId = input.dataset.attributeId;
+                const value = input.value;
+                if (attrId && value) {
+                    selectedAttributes[attrId] = value;
+                }
+            });
+            
+            // Check if any selected attribute is a color-type
+            let colorAttributeId = null;
+            let colorValue = null;
+            for (let attrId in selectedAttributes) {
+                const attrInput = document.querySelector('.attribute-option-product[data-attribute-id="' + attrId + '"]:checked');
+                if (attrInput && attrInput.closest('[data-attribute-container]')?.querySelector('.form-option-color')) {
+                    colorAttributeId = attrId;
+                    colorValue = selectedAttributes[attrId];
+                    break;
+                }
+            }
+            
+            // If we found a color attribute, try to find variant with that color
+            if (colorAttributeId && colorValue && window.variantDataMap) {
+                // Search through all variants to find one with matching color
+                for (let key in window.variantDataMap) {
+                    const variantData = window.variantDataMap[key];
+                    if (variantData.attributes && variantData.attributes[colorAttributeId] === colorValue) {
+                        if (variantData.images && Array.isArray(variantData.images) && variantData.images.length > 0) {
+                            imagesToShow = variantData.images.filter(function(img) {
+                                return img && img.url && img.url !== 'undefined' && img.url !== 'null';
+                            });
+                            if (imagesToShow.length > 0) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fallback: Try legacy color-based image selection
+        if (imagesToShow.length === 0) {
+            const selectedColor = document.querySelector('input[name="productColor"]:checked')?.value || '';
+            if (selectedColor && colorVariantsMap[selectedColor] && colorVariantsMap[selectedColor].images && colorVariantsMap[selectedColor].images.length > 0) {
+                imagesToShow = colorVariantsMap[selectedColor].images.filter(function(img) {
+                    return img && img.url && img.url !== 'undefined' && img.url !== 'null';
+                });
+            }
+        }
+        
+        // If no variant images or empty, use default product images
+        if (imagesToShow.length === 0) {
+            if (productImages && productImages.length > 0) {
+                // Filter out any undefined/null URLs from product images
+                imagesToShow = productImages.filter(function(img) {
+                    return img && img.url && img.url !== 'undefined' && img.url !== 'null';
+                });
+            }
+            
+            // Final fallback
+            if (imagesToShow.length === 0) {
+                const fallbackUrl = '{{ asset("frontend/images/product/1.jpg") }}';
+                const fallbackAlt = '{{ addslashes($product->name) }}';
+                imagesToShow = [{url: fallbackUrl, alt: fallbackAlt}];
+            }
+        }
+        
+        // Update main image to first image
+        if (imagesToShow.length > 0 && imagesToShow[0].url) {
+            mainImageElement.src = imagesToShow[0].url;
+            mainImageElement.alt = imagesToShow[0].alt || '{{ addslashes($product->name) }}';
+        }
+        
+        // Build thumbnails HTML
+        let thumbnailsHtml = '';
+        imagesToShow.forEach(function(image, index) {
+            if (image && image.url && image.url !== 'undefined' && image.url !== 'null') {
+                const imageUrl = image.url;
+                const imageAlt = (image.alt || '{{ addslashes($product->name) }}').replace(/'/g, "&#39;");
+                const activeClass = index === 0 ? ' active' : '';
+                thumbnailsHtml += '<div class="product-thumbnail-item' + activeClass + '" ' +
+                    'data-image-url="' + imageUrl + '" ' +
+                    'data-image-alt="' + imageAlt + '">' +
+                    '<img src="' + imageUrl + '" alt="' + imageAlt + '" class="img-fluid">' +
+                    '</div>';
+            }
+        });
+        
+        // Update thumbnails container
+        thumbnailsContainer.innerHTML = thumbnailsHtml;
+        
+        // Re-attach click handlers to thumbnails
+        attachThumbnailHandlers();
+    }
+    
+    // Handle thumbnail click to change main image
+    function attachThumbnailHandlers() {
+        const thumbnails = document.querySelectorAll('.product-thumbnail-item');
+        const mainImage = document.getElementById('productMainImage');
+        
+        thumbnails.forEach(function(thumbnail) {
+            thumbnail.addEventListener('click', function() {
+                const imageUrl = this.getAttribute('data-image-url');
+                const imageAlt = this.getAttribute('data-image-alt');
+                
+                if (imageUrl && mainImage) {
+                    // Update main image
+                    mainImage.src = imageUrl;
+                    mainImage.alt = imageAlt;
+                    
+                    // Update active state
+                    thumbnails.forEach(function(thumb) {
+                        thumb.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                }
+            });
+        });
+    }
+    
+    // Update description
+    function updateVariantDescription() {
+        const variant = getSelectedVariant();
+        const descriptionElement = document.getElementById('variant-description');
+        
+        if (!descriptionElement) return;
+        
+        let description = '';
+        if (variant && variant.description) {
+            description = variant.description;
+        } else {
+            // Fallback to product description
+            const productDescription = @json($product->description ?? $product->short_description ?? '');
+            description = productDescription;
+        }
+        
+        if (description) {
+            // Render HTML directly (description is already HTML)
+            descriptionElement.innerHTML = '<div class="p-0 mb-2">' + description + '</div>';
+        } else {
+            descriptionElement.innerHTML = '<p class="p-0 mb-2">No description available for this product.</p>';
+        }
+    }
+    
+    // Update highlights details
+    function updateVariantHighlightsDetails() {
+        const variant = getSelectedVariant();
+        const highlightsElement = document.getElementById('variant-highlights-details');
+        
+        if (!highlightsElement) return;
+        
+        let html = '';
+        const highlightsDetails = variant && variant.highlights_details ? variant.highlights_details : [];
+        
+        if (highlightsDetails.length > 0) {
+            highlightsDetails.forEach((highlight, index) => {
+                if (highlight.heading_name) {
+                    html += '<h6 class="font-size-sm mb-2">' + escapeHtml(highlight.heading_name) + '</h6>';
+                    if (highlight.bullet_points && Array.isArray(highlight.bullet_points) && highlight.bullet_points.length > 0) {
+                        const isLast = index === highlightsDetails.length - 1;
+                        html += '<ul class="lists-2 min-space' + (isLast ? ' mb-0' : '') + '">';
+                        highlight.bullet_points.forEach(function(point) {
+                            if (point) {
+                                html += '<li>' + escapeHtml(point) + '</li>';
+                            }
+                        });
+                        html += '</ul>';
+                    }
+                }
+            });
+        } else {
+            html = '<p class="text-muted mb-0">No product information available.</p>';
+        }
+        
+        highlightsElement.innerHTML = html;
+    }
+    
+    // Escape HTML function
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Update Price
+    function updateVariantPrice() {
+        const variant = getSelectedVariant();
+        const priceElement = document.getElementById('product-price');
+        
+        if (!priceElement) return;
+        
+        let priceHtml = '';
+        if (variant && variant.price !== undefined) {
+            const price = variant.price || 0;
+            const salePrice = variant.sale_price;
+            const hasSale = variant.has_sale || (salePrice && salePrice < price);
+            
+            if (hasSale && salePrice) {
+                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2">₹' + 
+                           Math.round(price) + '</span>' +
+                           '<span class="ft-bold theme-cl fs-lg">₹' + Math.round(salePrice) + '</span>';
+            } else {
+                priceHtml = '<span class="ft-bold theme-cl fs-lg">₹' + Math.round(price) + '</span>';
+            }
+        } else {
+            // Fallback to product price range
+            const minPrice = @json($minPrice ?? 0);
+            const maxPrice = @json($maxPrice ?? 0);
+            const minSalePrice = @json($minSalePrice ?? null);
+            const hasSale = @json($hasSale ?? false);
+            
+            if (hasSale && minSalePrice) {
+                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2">₹' + 
+                           Math.round(minPrice) + '</span>' +
+                           '<span class="ft-bold theme-cl fs-lg">₹' + Math.round(minSalePrice) + '</span>';
+            } else {
+                priceHtml = '<span class="ft-bold theme-cl fs-lg">₹' + Math.round(minPrice) + '</span>';
+                if (minPrice != maxPrice && maxPrice > 0) {
+                    priceHtml += '<span class="ft-bold theme-cl fs-lg"> - ₹' + Math.round(maxPrice) + '</span>';
+                }
+            }
+        }
+        
+        priceElement.innerHTML = priceHtml;
+    }
+    
+    // Update SKU
+    function updateVariantSku() {
+        const variant = getSelectedVariant();
+        const skuElement = document.getElementById('variant-sku');
+        const skuInfoElement = document.getElementById('variant-sku-info');
+        const skuRowElement = document.getElementById('variant-sku-row');
+        
+        const sku = variant && variant.sku ? variant.sku : '';
+        
+        if (skuElement) {
+            skuElement.textContent = sku || '';
+        }
+        
+        if (skuInfoElement) {
+            skuInfoElement.textContent = sku || '-';
+        }
+        
+        if (skuRowElement) {
+            skuRowElement.style.display = sku ? '' : 'none';
+        }
+    }
+    
+    // Update variant additional information (color, size)
+    function updateVariantAdditionalInfo() {
+        const selectedColor = document.querySelector('input[name="productColor"]:checked')?.value || '';
+        const selectedSize = document.querySelector('input[name="productSize"]:checked')?.value || '';
+        
+        const colorInfoElement = document.getElementById('variant-color-info');
+        const colorRowElement = document.getElementById('variant-color-row');
+        const sizeInfoElement = document.getElementById('variant-size-info');
+        const sizeRowElement = document.getElementById('variant-size-row');
+        
+        // Update color
+        if (colorInfoElement && colorRowElement) {
+            if (selectedColor) {
+                colorInfoElement.textContent = selectedColor;
+                colorRowElement.style.display = '';
+            } else {
+                colorRowElement.style.display = 'none';
+            }
+        }
+        
+        // Update size
+        if (sizeInfoElement && sizeRowElement) {
+            if (selectedSize) {
+                sizeInfoElement.textContent = selectedSize;
+                sizeRowElement.style.display = '';
+            } else {
+                sizeRowElement.style.display = 'none';
+            }
+        }
+    }
+    
+    // Update all variant information including images
+    function updateVariantInfo() {
+        updateProductImagesGallery(); // Update images first
+        updateVariantPrice(); // Update price
+        updateVariantDescription();
+        updateVariantHighlightsDetails();
+        updateVariantSku();
+        updateVariantAdditionalInfo(); // Update additional info tab
+    }
+    
+    // Add event listeners for all attribute changes
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('attribute-option-product')) {
+            // Check if it's a color-type attribute
+            const attributeType = e.target.closest('[data-attribute-container]')?.querySelector('.form-option-color') ? 'color' : 'other';
+            // Always update images when any attribute changes, as variant images may change
+            updateVariantInfo();
+        } else if (e.target.classList.contains('color-option-product')) {
+            // Legacy color change
+            updateVariantInfo();
+        } else if (e.target.classList.contains('size-option-product')) {
+            // Legacy size change - update price and all variant details
+            updateVariantPrice();
+            updateVariantDescription();
+            updateVariantHighlightsDetails();
+            updateVariantSku();
+            updateVariantAdditionalInfo();
+        }
+    });
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Attach thumbnail handlers
+        attachThumbnailHandlers();
+        // Update variant info
+        updateVariantInfo();
+    });
+})();
+</script>
+
+@push('scripts')
+<script>
+// Common Add to Cart Function - Wait for jQuery
+(function() {
+    function initAddToCart() {
+        if (typeof jQuery === 'undefined') {
+            setTimeout(initAddToCart, 50);
+            return;
+        }
+        
+        jQuery(function($) {
+            // Get session ID
+            function getSessionId() {
+                let sessionId = localStorage.getItem('session_id');
+                if (!sessionId) {
+                    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('session_id', sessionId);
+                }
+                return sessionId;
+            }
+            
+            // Add to cart function - can be called from anywhere
+            window.addToCart = function(productId, variantId, quantity, callback) {
+                const sessionId = getSessionId();
+                
+                $.ajax({
+                    url: '/api/cart/items',
+                    method: 'POST',
+                    headers: {
+                        'X-Session-ID': sessionId
+                    },
+                    data: {
+                        product_id: productId,
+                        product_variant_id: variantId || null,
+                        quantity: quantity || 1,
+                        session_id: sessionId
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            if (typeof Snackbar !== 'undefined') {
+                                Snackbar.show({
+                                    text: 'Product added to cart successfully!',
+                                    pos: 'top-right',
+                                    showAction: false,
+                                    duration: 3000,
+                                    textColor: '#fff',
+                                    backgroundColor: '#151515'
+                                });
+                            }
+                            // Update cart count in header
+                            if (typeof updateCartCount === 'function') {
+                                updateCartCount();
+                            } else if (window.updateCartCount) {
+                                window.updateCartCount();
+                            }
+                            if (callback && typeof callback === 'function') {
+                                callback(true, response);
+                            }
+                        }
+                    },
+                    error: function(xhr) {
+                        const message = xhr.responseJSON && xhr.responseJSON.error && xhr.responseJSON.error.message 
+                            ? xhr.responseJSON.error.message 
+                            : 'Failed to add product to cart';
+                        if (typeof Snackbar !== 'undefined') {
+                            Snackbar.show({
+                                text: message,
+                                pos: 'top-right',
+                                showAction: false,
+                                duration: 3000,
+                                textColor: '#fff',
+                                backgroundColor: '#dc3545'
+                            });
+                        }
+                        if (callback && typeof callback === 'function') {
+                            callback(false, xhr.responseJSON);
+                        }
+                    }
+                });
+            };
+            
+            // Handle add to cart button click on product page
+            $(document).on('click', '.add-to-cart-btn', function(e) {
+                e.preventDefault();
+                const $btn = $(this);
+                const productId = $btn.data('product-id');
+                
+                if (!productId) {
+                    console.error('Product ID not found');
+                    return;
+                }
+                
+                // Get selected variant
+                const variantDataMap = window.variantDataMap || {};
+                const selectedColor = document.querySelector('input[name="productColor"]:checked')?.value || '';
+                const selectedSize = document.querySelector('input[name="productSize"]:checked')?.value || '';
+                const key = selectedColor + '|' + selectedSize;
+                const variant = variantDataMap[key] || null;
+                const variantId = variant ? variant.id : null;
+                
+                // Get quantity from the select element in the same form row
+                const $formRow = $btn.closest('.form-row, .row');
+                const quantitySelect = $formRow.find('select.custom-select').first()[0] || document.querySelector('.custom-select');
+                const quantity = quantitySelect ? parseInt(quantitySelect.value) : 1;
+                
+                // Disable button while processing
+                $btn.prop('disabled', true);
+                
+                // Add to cart
+                window.addToCart(productId, variantId, quantity, function(success) {
+                    $btn.prop('disabled', false);
+                    if (success) {
+                        // Update cart count in header
+                        if (typeof updateCartCount === 'function') {
+                            updateCartCount();
+                        } else if (window.updateCartCount) {
+                            window.updateCartCount();
+                        }
+                        // Optionally redirect to cart
+                        // window.location.href = '{{ route("frontend.shoping-cart") }}';
+                    }
+                });
+            });
+        });
+    }
+    
+    // Initialize when script loads
+    initAddToCart();
+})();
+</script>
+@endpush
+
+@push('styles')
+<style>
+.product-main-image {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.product-main-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.product-thumbnails {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.product-thumbnail-item {
+    width: 80px;
+    height: 80px;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.product-thumbnail-item:hover {
+    border-color: #333;
+    transform: translateY(-2px);
+}
+
+.product-thumbnail-item.active {
+    border-color: #333;
+    border-width: 3px;
+}
+
+.product-thumbnail-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .product-thumbnail-item {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+/* Wishlist Button Styling */
+.snackbar-wishlist.wishlist-active,
+.snackbar-wishlist.wishlist-active i,
+.snackbar-wishlist.wishlist-active .fa-heart,
+.snackbar-wishlist.wishlist-active .fas {
+    color: #dc3545 !important;
+}
+
+.snackbar-wishlist.wishlist-active {
+    border-color: #dc3545 !important;
+}
+
+.snackbar-wishlist .fas.fa-heart.text-danger,
+.snackbar-wishlist.wishlist-active .fas.fa-heart {
+    color: #dc3545 !important;
+}
+</style>
+@endpush
 			
 @endsection

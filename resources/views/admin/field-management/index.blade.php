@@ -1064,9 +1064,19 @@ function renderFormPreview() {
     const container = $('#formPreviewContainer');
     container.empty();
     
+    // Move profile_image from qol to basic_info if it exists
+    formFields.forEach(field => {
+        if (field.field_key === 'profile_image' && field.field_group === 'qol') {
+            field.field_group = 'basic_info';
+        }
+    });
+    
+    // Filter out qol group fields (except profile_image which was moved above)
+    const filteredFields = formFields.filter(field => field.field_group !== 'qol');
+    
     // Separate system fields from non-system fields
-    const systemFields = formFields.filter(field => field.is_system === true);
-    const nonSystemFields = formFields.filter(field => !field.is_system || field.is_system === false);
+    const systemFields = filteredFields.filter(field => field.is_system === true);
+    const nonSystemFields = filteredFields.filter(field => !field.is_system || field.is_system === false);
     
     // Group system fields by field_group
     const systemFieldGroups = {};
@@ -1098,7 +1108,7 @@ function renderFormPreview() {
     });
     
     // Predefined group order
-    const groupOrder = ['basic_info', 'credentials', 'address', 'business', 'preferences', 'qol', 'internal', 'other'];
+    const groupOrder = ['basic_info', 'credentials', 'address', 'business', 'preferences', 'internal', 'other'];
     
     // Sort system field groups: first by predefined order, then alphabetically for remaining groups
     const systemGroupKeys = Object.keys(systemFieldGroups).sort((a, b) => {
@@ -1183,7 +1193,6 @@ function getGroupTitle(groupKey) {
         'address': 'Address Details',
         'business': 'Business Information',
         'preferences': 'Preferences',
-        'qol': 'Quality-of-Life Fields',
         'internal': 'Internal Use',
         'other': 'Other Information'
     };
@@ -1222,8 +1231,25 @@ function initializeSortable() {
 function updateFieldOrder(evt) {
     const fieldElement = $(evt.item);
     const fieldKey = fieldElement.data('field-id');
-    const newGroup = fieldElement.closest('.form-preview-group').data('group');
+    let newGroup = fieldElement.closest('.form-preview-group').data('group');
     const newIndex = evt.newIndex;
+    
+    // Prevent moving to qol group - move profile_image to basic_info instead
+    if (newGroup === 'qol') {
+        if (fieldKey === 'profile_image') {
+            newGroup = 'basic_info';
+        } else {
+            // For other fields, prevent moving to qol
+            showToast('error', 'Quality-of-Life Fields section has been removed. Cannot move fields to this group.');
+            loadFormPreview(); // Reload to revert
+            return;
+        }
+    }
+    
+    // Ensure profile_image is always in basic_info
+    if (fieldKey === 'profile_image' && newGroup === 'qol') {
+        newGroup = 'basic_info';
+    }
     
     // Get all fields in the new group after the move
     const newGroupContainer = fieldElement.closest('.fields-list');

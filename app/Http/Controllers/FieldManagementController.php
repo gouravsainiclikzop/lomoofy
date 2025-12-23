@@ -130,6 +130,15 @@ class FieldManagementController extends Controller
                 // Always use isSystemField() to ensure system fields are properly identified
                 $isSystem = $field->isSystemField();
                 
+                // Move profile_image from qol to basic_info
+                $fieldGroup = $field->field_group;
+                if ($field->field_key === 'profile_image' && $fieldGroup === 'qol') {
+                    $fieldGroup = 'basic_info';
+                    // Update in database as well
+                    $field->field_group = 'basic_info';
+                    $field->save();
+                }
+                
                 return [
                     'field_key' => $field->field_key,
                     'label' => $field->label,
@@ -138,7 +147,7 @@ class FieldManagementController extends Controller
                     'is_required' => $field->is_required,
                     'is_visible' => $field->is_visible,
                     'is_active' => $field->is_active,
-                    'field_group' => $field->field_group,
+                    'field_group' => $fieldGroup,
                     'options' => $field->options,
                     'conditional_rules' => $field->conditional_rules,
                     'validation_rules' => $field->validation_rules,
@@ -146,6 +155,10 @@ class FieldManagementController extends Controller
                     'sort_order' => $field->sort_order,
                     'is_system' => $isSystem,
                 ];
+            })
+            ->filter(function($field) {
+                // Filter out qol group fields (profile_image is already moved to basic_info above)
+                return $field['field_group'] !== 'qol';
             })
             ->sortBy(function($field) {
                 // First sort by is_system (system fields first), then by field_group, then by sort_order
@@ -457,7 +470,26 @@ class FieldManagementController extends Controller
         $field = FieldManagement::where('field_key', $fieldKey)->firstOrFail();
         
         if ($request->has('field_group')) {
-            $field->field_group = $request->field_group;
+            $requestedGroup = $request->field_group;
+            
+            // Prevent moving to qol group - move profile_image to basic_info instead
+            if ($requestedGroup === 'qol') {
+                if ($fieldKey === 'profile_image') {
+                    $requestedGroup = 'basic_info';
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Quality-of-Life Fields section has been removed. Cannot move fields to this group.',
+                    ], 400);
+                }
+            }
+            
+            // Ensure profile_image is always in basic_info
+            if ($fieldKey === 'profile_image' && $requestedGroup === 'qol') {
+                $requestedGroup = 'basic_info';
+            }
+            
+            $field->field_group = $requestedGroup;
         }
         
         if ($request->has('sort_order')) {

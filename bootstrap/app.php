@@ -12,10 +12,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Replace default CSRF middleware with our custom one
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
+        
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'permission' => \App\Http\Middleware\CheckPermission::class, 
-            'refreshStorage' => \App\Http\Middleware\RefreshStorage::class, 
+            'refreshStorage' => \App\Http\Middleware\RefreshStorage::class,
+            'customer.auth' => \App\Http\Middleware\EnsureCustomerIsAuthenticated::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

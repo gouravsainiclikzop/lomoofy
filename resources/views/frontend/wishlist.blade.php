@@ -27,32 +27,7 @@
 	<div class="container">
 		<div class="row justify-content-center justify-content-between">
 		
-			<div class="col-12 col-md-12 col-lg-4 col-xl-4 text-center miliods">
-				<div class="d-block border rounded mfliud-bot">
-					<div class="dashboard_author px-2 py-5">
-						<div class="dash_auth_thumb circle p-1 border d-inline-flex mx-auto mb-2">
-							<img src="{{ asset('frontend/images/team-1.jpg') }}" class="img-fluid circle" width="100" alt="" />
-						</div>
-						<div class="dash_caption">
-							<h4 class="fs-md ft-medium mb-0 lh-1">Adam Wishnoi</h4>
-							<span class="text-muted smalls">Australia</span>
-						</div>
-					</div>
-					
-					<div class="dashboard_author">
-						<h4 class="px-3 py-2 mb-0 lh-2 gray fs-sm ft-medium text-muted text-uppercase text-left">Dashboard Navigation</h4>
-						<ul class="dahs_navbar">
-							<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
-							<li><a href="{{ route('frontend.wishlist') }}" class="active"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
-							<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i>Profile Info</a></li>
-							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Addresses</a></li>
-							<li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li>
-							<li><a href="login.html"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
-						</ul>
-					</div>
-					
-				</div>
-			</div>
+			@include('frontend.partials.customer-sidebar')
 			
 			<div class="col-12 col-md-12 col-lg-8 col-xl-8 text-center">
 				<!-- row -->
@@ -100,8 +75,8 @@
 												</h5>
 												<div class="elis_rty">
 													@if($product['has_sale'] && $product['min_sale_price'])
-														<span class="text-muted ft-medium line-through me-2">${{ number_format($product['min_price'], 0) }}</span>
-														<span class="ft-medium theme-cl fs-md">${{ number_format($product['min_sale_price'], 0) }}</span>
+														<span class="text-muted ft-medium line-through me-2">₹{{ number_format($product['min_price'], 0) }}</span>
+														<span class="ft-medium theme-cl fs-md">₹{{ number_format($product['min_sale_price'], 0) }}</span>
 													@else
 														<span class="ft-medium fs-md text-dark">{{ $product['price_display'] }}</span>
 													@endif

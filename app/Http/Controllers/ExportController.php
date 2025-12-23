@@ -200,7 +200,7 @@ class ExportController extends Controller
             
             // Data
             foreach ($products as $product) {
-                $brandSlugs = $product->brands->pluck('slug')->filter()->join(', ');
+                $brandSlugs = $product->brand ? $product->brand->slug : '';
                 $categorySlug = $product->category ? $product->category->slug : '';
                 $categoryPath = $product->category_path ?? '';
                 $tags = is_array($product->tags) ? implode(', ', $product->tags) : ($product->tags ?? '');
@@ -413,7 +413,7 @@ class ExportController extends Controller
 
         // Data
         foreach ($products as $product) {
-            $brandSlugs = $product->brands->pluck('slug')->filter()->join(', ');
+            $brandSlugs = $product->brand ? $product->brand->slug : '';
             $categorySlug = $product->category ? $product->category->slug : '';
             $categoryPath = $product->category_path ?? '';
             $tags = is_array($product->tags) ? implode(', ', $product->tags) : ($product->tags ?? '');

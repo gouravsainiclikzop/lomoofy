@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Our Collections Management')
+@section('title', 'Featured Category Style Management')
 
 @push('styles')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -57,14 +57,14 @@
                 <nav class="mb-2" aria-label="breadcrumb">
                     <ol class="breadcrumb breadcrumb-sa-simple">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Our Collections</li>
+                        <li class="breadcrumb-item active" aria-current="page">Featured Category Style</li>
                     </ol>
                 </nav>
-                <h1 class="h3 m-0">Our Collections Management</h1>
+                <h1 class="h3 m-0">Featured Category Style Management</h1>
             </div>
             <div class="col-auto">
                 <button class="btn btn-primary" id="addCollectionBtn">
-                    <i class="fas fa-plus"></i> Add Collection
+                    <i class="fas fa-plus"></i> Add Featured Category Style
                 </button>
             </div>
         </div>
@@ -81,7 +81,7 @@
                         </select>
                     </div>
                     <div class="col-md-8">
-                        <input type="text" placeholder="Search collections..." class="form-control form-control--search" id="tableSearch"/>
+                        <input type="text" placeholder="Search featured category styles..." class="form-control form-control--search" id="tableSearch"/>
                     </div>
                 </div>
             </div>
@@ -120,7 +120,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="collectionModalLabel">Add Collection</h5>
+                <h5 class="modal-title" id="collectionModalLabel">Add Featured Category Style</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -289,7 +289,7 @@ $(document).ready(function() {
     $('#addCollectionBtn').on('click', function() {
         isEditMode = false;
         pendingCategoryData = null; // Clear any pending category data
-        $('#collectionModalLabel').text('Add Collection');
+        $('#collectionModalLabel').text('Add Featured Category Style');
         $('#collectionForm')[0].reset();
         $('#collectionId').val('');
         $('#imagePreview').hide();
@@ -325,8 +325,8 @@ $(document).ready(function() {
         }
         
         const url = isEditMode 
-            ? '{{ route("our-collections.update", ":id") }}'.replace(':id', $('#collectionId').val())
-            : '{{ route("our-collections.store") }}';
+            ? '{{ route("featured-category-style.update", ":id") }}'.replace(':id', $('#collectionId').val())
+            : '{{ route("featured-category-style.store") }}';
         const method = 'POST';
 
         // Add _method for PUT if editing (Laravel method spoofing)
@@ -368,10 +368,10 @@ $(document).ready(function() {
     $(document).on('click', '.edit-collection', function() {
         const id = $(this).data('id');
         isEditMode = true;
-        $('#collectionModalLabel').text('Edit Collection');
+        $('#collectionModalLabel').text('Edit Featured Category Style');
         
         $.ajax({
-            url: '{{ route("our-collections.show", ":id") }}'.replace(':id', id),
+            url: '{{ route("featured-category-style.show", ":id") }}'.replace(':id', id),
             method: 'GET',
             success: function(response) {
                 if (response.success) {
@@ -413,7 +413,7 @@ $(document).ready(function() {
         
         if (confirm(`Are you sure you want to delete "${title}"?`)) {
             $.ajax({
-                url: '{{ route("our-collections.destroy", ":id") }}'.replace(':id', id),
+                url: '{{ route("featured-category-style.destroy", ":id") }}'.replace(':id', id),
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -481,7 +481,7 @@ $(document).ready(function() {
         });
 
         $.ajax({
-            url: '{{ route("our-collections.update-sort-order") }}',
+            url: '{{ route("featured-category-style.update-sort-order") }}',
             method: 'POST',
             data: {
                 items: items
@@ -506,7 +506,7 @@ $(document).ready(function() {
         $('#collectionsTableBody').html('<tr><td colspan="8" class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
 
         $.ajax({
-            url: '{{ route("our-collections.data") }}',
+            url: '{{ route("featured-category-style.data") }}',
             method: 'GET',
             data: {
                 search: search,
@@ -543,7 +543,7 @@ $(document).ready(function() {
         console.log('Rendering table with data:', data);
         
         if (!data || data.length === 0) {
-            $('#collectionsTableBody').html('<tr><td colspan="8" class="text-center py-5">No collections found</td></tr>');
+                    $('#collectionsTableBody').html('<tr><td colspan="8" class="text-center py-5">No featured category styles found</td></tr>');
             return;
         }
 
@@ -556,7 +556,7 @@ $(document).ready(function() {
                 : '<span class="badge bg-secondary">Inactive</span>';
             
             const imageHtml = item.featured_image 
-                ? `<img src="${item.featured_image}" alt="${item.title || 'Collection'}" class="image-preview">`
+                ? `<img src="${item.featured_image}" alt="${item.title || 'Featured Category Style'}" class="image-preview">`
                 : '<span class="text-muted">No image</span>';
 
             const title = item.title || 'Untitled';
