@@ -320,7 +320,11 @@ class ProductController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
             'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'images.*' => [
+                'image',
+                'mimes:jpeg,png,jpg,gif,webp',
+                'max:5120',
+            ],
             'image_alt_texts' => 'nullable|array',
             'image_alt_texts.*' => 'nullable|string|max:255',
             'image_sort_orders' => 'nullable|array',
@@ -345,7 +349,11 @@ class ProductController extends Controller
             'variants.*.height' => 'nullable|numeric|min:0',
             'variants.*.is_active' => 'nullable|boolean',
             'variants.*.images' => 'nullable|array',
-            'variants.*.images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'variants.*.images.*' => [
+                'image',
+                'mimes:jpeg,png,jpg,gif,webp',
+                'max:5120',
+            ],
         ]);
 
         // Variants validation removed - variants can be added later on a separate page
@@ -733,7 +741,11 @@ class ProductController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'exists:categories,id',
             'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'images.*' => [
+                'image',
+                'mimes:jpeg,png,jpg,gif,webp',
+                'max:5120',
+            ],
             'image_alt_texts' => 'nullable|array',
             'image_alt_texts.*' => 'nullable|string|max:255',
             'image_sort_orders' => 'nullable|array',
@@ -760,7 +772,11 @@ class ProductController extends Controller
             'variants.*.height' => 'nullable|numeric|min:0',
             'variants.*.is_active' => 'nullable|boolean',
             'variants.*.images' => 'nullable|array',
-            'variants.*.images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'variants.*.images.*' => [
+                'image',
+                'mimes:jpeg,png,jpg,gif,webp',
+                'max:5120',
+            ],
         ]);
 
         // Variants validation removed - variants can be added later on a separate page

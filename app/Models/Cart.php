@@ -107,10 +107,18 @@ class Cart extends Model
         
         // Calculate discount from coupon if exists
         $discountAmount = 0;
-        if ($this->coupon && $this->coupon->is_active) {
-            // TODO: Implement coupon discount calculation
-            // For now, set to 0
-            $discountAmount = 0;
+        if ($this->coupon_code && $this->coupon) {
+            // Reload coupon to ensure we have latest data
+            $this->load('coupon');
+            $coupon = $this->coupon;
+            
+            if ($coupon && $coupon->isActive() && $coupon->canBeUsed()) {
+                // Check minimum order amount
+                if (!$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount) {
+                    // Calculate discount using coupon's method
+                    $discountAmount = $coupon->calculateDiscount($subtotal);
+                }
+            }
         }
         $this->discount_amount = $discountAmount;
         

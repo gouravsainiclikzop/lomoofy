@@ -31,6 +31,9 @@
 
         <form id="variantsForm" method="POST" action="{{ route('products.variants.update', $product) }}" enctype="multipart/form-data" onsubmit="return false;">
             @csrf
+            {{-- Hidden inputs for product data needed by variant generation --}}
+            <input type="hidden" id="productName" value="{{ $product->name }}">
+            <input type="hidden" id="productSku" value="{{ $product->sku ?? '' }}">
             <div class="row">
                 <div class="col-12">
                     @include('admin.products.partials.variants')

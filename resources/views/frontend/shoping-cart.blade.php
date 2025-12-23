@@ -345,7 +345,7 @@ $(document).ready(function() {
             if ($('#removeCouponBtn').length === 0) {
                 $('#couponForm button[type="submit"]').replaceWith('<button class="btn btn-danger" type="button" id="removeCouponBtn">Remove</button>');
             }
-            $('#couponMessage').html('<small class="text-success">Coupon "' + coupon.code + '" applied. Discount: $' + parseFloat(discountAmount || 0).toFixed(2) + '</small>').show();
+            $('#couponMessage').html('<small class="text-success">Coupon "' + coupon.code + '" applied. Discount: ₹' + parseFloat(discountAmount || 0).toFixed(2) + '</small>').show();
         }
     }
     
@@ -544,8 +544,9 @@ $(document).ready(function() {
         });
     });
     
-    // Remove coupon
-    $('#removeCouponBtn').on('click', function() {
+    // Remove coupon - use event delegation for dynamically created button
+    $(document).on('click', '#removeCouponBtn', function(e) {
+        e.preventDefault();
         $.ajax({
             url: '/api/cart/coupon',
             method: 'DELETE',
@@ -570,8 +571,6 @@ $(document).ready(function() {
                     }
                     // Reload cart data to show updated totals
                     loadCartData();
-                    // Clear coupon section after removing
-                    updateCouponSection(null, 0);
                 }
             },
             error: function(xhr) {

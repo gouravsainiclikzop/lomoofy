@@ -246,6 +246,7 @@
 
 					@php 
 						// Get parent categories (level 0) with their children (level 1) and grandchildren (level 2)
+						// Limit to maximum 4 parent categories
 						$parentCategories = App\Models\Category::whereNull('parent_id')
 							->where(function($q) {
 								$q->where('is_active', true)->orWhereNull('is_active');
@@ -256,13 +257,14 @@
 								})
 								->orderBy('sort_order')
 								->with(['children' => function($q) {
-									$q->where(function($query) {
+									LL$q->where(function($query) {
 										$query->where('is_active', true)->orWhereNull('is_active');
 									})
 									->orderBy('sort_order');
 								}]);
 							}])
 							->orderBy('sort_order')
+							->limit(4)
 							->get();
 					@endphp
 

@@ -1145,13 +1145,19 @@
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     overflow: hidden;
-    background: #fff;
+    background: #f8f9fa;
+    height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .product-main-image img {
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
     cursor: pointer;
     transition: opacity 0.3s ease;
 }
@@ -1171,8 +1177,11 @@
     overflow: hidden;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: #fff;
+    background: #f8f9fa;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .product-thumbnail-item:hover {
@@ -1189,6 +1198,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     display: block;
 }
 

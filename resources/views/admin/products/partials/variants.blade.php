@@ -268,6 +268,7 @@
                 <table class="table table-bordered" id="variantsTable">
                     <thead>
                         <tr>
+                            <th style="width: 60px;">SR No</th>
                             <th>Variant</th>
                             <th>SKU</th>
                             <th>Regular Price</th>
@@ -337,7 +338,7 @@
                             <small class="text-muted">Editable variant name (auto-generated from attributes)</small>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label form-label-sm">MRP</label>
+                            <label class="form-label form-label-sm">Regular Price</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">₹</span>
                                 <input type="number" class="form-control form-control-sm" id="variantPrice" name="variant_price" step="0.01">
@@ -463,10 +464,10 @@
                         </div>
                         
                         {{-- Additional Information Section --}}
-                        <div class="col-12">
+                        <div class="col-12" id="variantAdditionalInfoSection" style="display: none !important;">
                             <hr>
                             <label class="form-label form-label-sm d-block mb-2">Additional Information</label>
-                            <textarea class="form-control" id="variantAdditionalInfo" name="variant_additional_information" placeholder="Additional information for this variant..."></textarea>
+                            <textarea class="form-control" id="variantAdditionalInfo" name="variant_additional_information" placeholder="Additional information for this variant..." style="display: none !important;"></textarea>
                             <small class="text-muted d-block mt-2">
                                 <i class="fas fa-info-circle me-1"></i>
                                 Add any additional information specific to this variant.
@@ -1878,20 +1879,41 @@ $(document).ready(function() {
             }
         }
         
+        // Additional Information Editor is disabled - section is hidden
         // Initialize Additional Information Editor (always initialize after cleanup to ensure clean state)
-        if ($additionalInfoTextarea.length && typeof RichTextEditor !== 'undefined') {
-            try {
-                variantAdditionalInfoEditor = new RichTextEditor($additionalInfoTextarea[0]);
-                window.variantAdditionalInfoEditor = variantAdditionalInfoEditor;
-                
-                // Update textarea on change
-                variantAdditionalInfoEditor.attachEvent("textchanged", function() {
-                    $additionalInfoTextarea.val(variantAdditionalInfoEditor.getHTMLCode());
-                });
-            } catch (e) {
-                console.error('Error initializing additional info editor:', e);
-            }
-        }
+        // if ($additionalInfoTextarea.length && typeof RichTextEditor !== 'undefined') {
+        //     try {
+        //         // Ensure the parent container is visible
+        //         const $additionalInfoContainer = $additionalInfoTextarea.closest('.col-12');
+        //         if ($additionalInfoContainer.length) {
+        //             $additionalInfoContainer.show().css('display', 'block');
+        //         }
+        //         
+        //         variantAdditionalInfoEditor = new RichTextEditor($additionalInfoTextarea[0]);
+        //         window.variantAdditionalInfoEditor = variantAdditionalInfoEditor;
+        //         
+        //         // Update textarea on change
+        //         variantAdditionalInfoEditor.attachEvent("textchanged", function() {
+        //             $additionalInfoTextarea.val(variantAdditionalInfoEditor.getHTMLCode());
+        //         });
+        //     } catch (e) {
+        //         console.error('Error initializing additional info editor:', e);
+        //         // Ensure container is visible even if editor fails
+        //         const $additionalInfoContainer = $additionalInfoTextarea.closest('.col-12');
+        //         if ($additionalInfoContainer.length) {
+        //             $additionalInfoContainer.show().css('display', 'block');
+        //         }
+        //     }
+        // } else {
+        //     // If editor not available, ensure textarea and container are visible
+        //     if ($additionalInfoTextarea.length) {
+        //         const $additionalInfoContainer = $additionalInfoTextarea.closest('.col-12');
+        //         if ($additionalInfoContainer.length) {
+        //             $additionalInfoContainer.show().css('display', 'block');
+        //         }
+        //         $additionalInfoTextarea.show().css('display', 'block');
+        //     }
+        // }
     }
     
     // Initialize editors when offcanvas is shown
@@ -3495,11 +3517,19 @@ $(document).ready(function() {
                         value.toString().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3)
                     ).join('-');
                     
-                    // Get parent SKU or product name for base
-                    const parentSku = $('#productSku').val() || '';
+                    // Get parent SKU or product name for base - prioritize product name
                     const productName = $('#productName').val() || '';
-                    const baseSku = parentSku ? parentSku.replace('PRD-', '').split('-')[0] : 
-                                  (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10) : 'VAR');
+                    const parentSku = $('#productSku').val() || '';
+                    
+                    let baseSku = 'VAR';
+                    if (productName) {
+                        // Use product name as base (first 10 alphanumeric characters)
+                        baseSku = productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10);
+                    } else if (parentSku) {
+                        // Fallback to product SKU
+                        baseSku = parentSku.replace('PRD-', '').split('-')[0];
+                    }
+                    
                     variantSku = `${baseSku}-${index + 1}-${skuSuffix}`;
                 }
                 variantPrice = variant.price || '';
@@ -3535,11 +3565,19 @@ $(document).ready(function() {
                         value.toString().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3)
                     ).join('-');
                     
-                    // Get parent SKU or product name for base
-                    const parentSku = $('#productSku').val() || '';
+                    // Get parent SKU or product name for base - prioritize product name
                     const productName = $('#productName').val() || '';
-                    const baseSku = parentSku ? parentSku.replace('PRD-', '').split('-')[0] : 
-                                  (productName ? productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10) : 'VAR');
+                    const parentSku = $('#productSku').val() || '';
+                    
+                    let baseSku = 'VAR';
+                    if (productName) {
+                        // Use product name as base (first 10 alphanumeric characters)
+                        baseSku = productName.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10);
+                    } else if (parentSku) {
+                        // Fallback to product SKU
+                        baseSku = parentSku.replace('PRD-', '').split('-')[0];
+                    }
+                    
                     variantSku = `${baseSku}-${index + 1}-${skuSuffix}`;
                 }
                 variantPrice = '';
@@ -3556,11 +3594,14 @@ $(document).ready(function() {
             
             const $row = $('<tr>');
             $row.html(`
+                <td class="text-center">
+                    <strong>${index + 1}</strong>
+                </td>
                 <td>
                     <div class="form-check">
                         <input class="form-check-input variant-checkbox" type="checkbox" value="${index}" id="variant_${index}">
                         <label class="form-check-label" for="variant_${index}">
-                            ${variantName}
+${variantName}
                         </label>
                     </div>
                 </td>
@@ -3606,6 +3647,10 @@ $(document).ready(function() {
                             <div class="flex-grow-1">
                                 <input type="file" class="form-control form-control-sm variant-image-input" name="variants[${index}][images][]" accept="image/*" multiple data-variant-index="${index}">
                                 <div class="small text-muted mt-1">Supported: multiple images (jpeg, png, webp)</div>
+                                <div class="small text-info mt-1">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <strong>Recommended dimensions:</strong> 620 × 780 pixels
+                                </div>
                             </div>
                             <button type="button" class="btn btn-sm ${normalizedImages && normalizedImages.length > 0 ? 'btn-outline-success' : 'btn-outline-info'} view-variant-images-btn" data-variant-index="${index}" title="View Images" style="flex-shrink: 0;">
                                 <i class="fas fa-images"></i>
@@ -3816,6 +3861,12 @@ $(document).ready(function() {
         // Load highlights & details
         loadHighlightsDetailsFromRow($row[0]);
         
+        // Additional Information section is hidden
+        // const $additionalInfoSection = $('#variantAdditionalInfo').closest('.col-12');
+        // if ($additionalInfoSection.length) {
+        //     $additionalInfoSection.show().css('display', 'block');
+        // }
+        
         // Load description and additional information
         const variantDataStr = $row.data('variantData');
         if (variantDataStr) {
@@ -3828,9 +3879,16 @@ $(document).ready(function() {
                     $descriptionTextarea.val(variantData.description || '');
                 }
                 
-                if ($additionalInfoTextarea.length) {
-                    $additionalInfoTextarea.val(variantData.additional_information || '');
-                }
+                // Additional Information section is hidden
+                // if ($additionalInfoTextarea.length) {
+                //     $additionalInfoTextarea.val(variantData.additional_information || '');
+                //     // Ensure the textarea and its container are visible
+                //     $additionalInfoTextarea.show().css('display', 'block');
+                //     const $container = $additionalInfoTextarea.closest('.col-12');
+                //     if ($container.length) {
+                //         $container.show().css('display', 'block');
+                //     }
+                // }
                 
                 // Set editor content after editors are initialized (will be called after modal is shown)
                 setTimeout(function() {
@@ -5546,22 +5604,28 @@ $(document).ready(function() {
             mrp = 0;
         }
 
-        let sellPrice = $variantSellPriceInput.val() ? parseFloat($variantSellPriceInput.val()) : mrp;
-
+        // Get current sell price value (preserve if already set)
+        let currentSellPrice = $variantSellPriceInput.val() ? parseFloat($variantSellPriceInput.val()) : null;
+        
+        // Only calculate if discount is active, otherwise preserve existing value
         if ($discountActive.length && $discountActive.val() === '1' && $discountTypeField.length && $discountTypeField.val() && $discountValueField.length) {
             const discountValue = parseFloat($discountValueField.val());
             if (!isNaN(discountValue) && discountValue >= 0) {
                 if ($discountTypeField.val() === 'percentage') {
-                    sellPrice = Math.max(mrp - (mrp * (discountValue / 100)), 0);
+                    currentSellPrice = Math.max(mrp - (mrp * (discountValue / 100)), 0);
                 } else {
-                    sellPrice = Math.max(mrp - discountValue, 0);
+                    currentSellPrice = Math.max(mrp - discountValue, 0);
                 }
             }
-        } else {
-            sellPrice = mrp;
         }
+        // If no discount active and no existing sell price, default to Regular Price
+        // Otherwise, keep the existing sell price value
+        else if (currentSellPrice === null || currentSellPrice === '') {
+            currentSellPrice = mrp;
+        }
+        // If discount is not active but sell price exists, keep the existing value (don't overwrite)
 
-        $variantSellPriceInput.val(sellPrice ? sellPrice.toFixed(2) : '');
+        $variantSellPriceInput.val(currentSellPrice !== null ? currentSellPrice.toFixed(2) : '');
     }
 
     function handleDiscountStateChange() {
@@ -5640,16 +5704,38 @@ $(document).ready(function() {
 
         previewEl.innerHTML = '';
         let hasContent = false;
+        const requiredWidth = 620;
+        const requiredHeight = 780;
 
         if (fileList && fileList.length) {
             Array.from(fileList).forEach(file => {
                 const wrapper = document.createElement('div');
-                wrapper.className = 'variant-image-thumb';
+                wrapper.className = 'variant-image-thumb position-relative';
                 const img = document.createElement('img');
                 img.src = URL.createObjectURL(file);
                 img.alt = file.name;
                 img.onload = function() {
                     URL.revokeObjectURL(img.src);
+                    // Check dimensions
+                    const matchesRecommended = img.naturalWidth === requiredWidth && img.naturalHeight === requiredHeight;
+                    if (matchesRecommended) {
+                        const successBadge = document.createElement('span');
+                        successBadge.className = 'badge bg-success position-absolute top-0 start-0 m-1';
+                        successBadge.style.fontSize = '0.7rem';
+                        successBadge.innerHTML = `<i class="fas fa-check"></i> ${img.naturalWidth}×${img.naturalHeight}`;
+                        wrapper.appendChild(successBadge);
+                    } else {
+                        const infoBadge = document.createElement('span');
+                        infoBadge.className = 'badge bg-info position-absolute top-0 start-0 m-1';
+                        infoBadge.style.fontSize = '0.7rem';
+                        infoBadge.innerHTML = `<i class="fas fa-info-circle"></i> ${img.naturalWidth}×${img.naturalHeight}`;
+                        wrapper.appendChild(infoBadge);
+                        const recommendedText = document.createElement('small');
+                        recommendedText.className = 'text-info d-block mt-1';
+                        recommendedText.style.fontSize = '0.65rem';
+                        recommendedText.textContent = `Recommended: ${requiredWidth}×${requiredHeight}`;
+                        wrapper.appendChild(recommendedText);
+                    }
                 };
                 wrapper.appendChild(img);
                 previewEl.appendChild(wrapper);

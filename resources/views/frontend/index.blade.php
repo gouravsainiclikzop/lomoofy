@@ -17,11 +17,14 @@
 									<!-- Slide Title -->
 									<div class="home-slider-desc">
 										<div class="home-slider-title mb-4">
-											@if($slider['tagline'])
-												<h5 class="theme-cl fs-sm ft-ragular mb-0">{{ $slider['tagline'] }}</h5>
+											@if($slider['category']) 
+												<h5 class="theme-cl fs-sm ft-ragular mb-0">{{ $slider['category']['name'] }} Collection</h5>
 											@endif
 											@if($slider['title'])
 												<h1 class="mb-1 ft-bold lg-heading">{!! $slider['title'] !!}</h1>
+											@endif
+											@if($slider['tagline'])
+											<span class="trending">{{ $slider['tagline'] }}</span> 
 											@endif
 										</div>
 										@if($slider['category'])
@@ -867,6 +870,51 @@ $(document).ready(function() {
 
 @push('styles')
 <style>
+    /* Product Card Image Consistency - 4:5 Aspect Ratio */
+    .shop_thumb {
+        width: 100%;
+        padding-bottom: 125%; /* 5/4 = 1.25 = 125% for 4:5 aspect ratio */
+        overflow: hidden;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        aspect-ratio: 4 / 5; /* Modern browsers */
+    }
+
+    .shop_thumb .card-img-top,
+    .shop_thumb > a {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .shop_thumb .card-img-top,
+    .shop_thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        transition: transform 0.3s ease;
+    }
+
+    .shop_thumb:hover .card-img-top,
+    .shop_thumb:hover img {
+        transform: scale(1.05);
+    }
+
+    .product_grid .card-img-top {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
     .btn_love .fa-heart.fas,
     .btn_love .fa-heart.text-danger,
     .wishlist-active .fa-heart,

@@ -291,6 +291,106 @@
 
 @push('styles')
 <style>
+    /* Quick View Modal - Scrollable */
+    #quickview .modal-body {
+        max-height: 90vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    /* Quick View Modal Image Container */
+    .quick_view_thmb {
+        width: 100%;
+        min-height: 500px;
+        height: auto;
+        max-height: 600px;
+        overflow: hidden;
+        background: #f8f9fa;
+        position: relative;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    /* Quick View Images Slider Container - Centered */
+    #quickViewImages {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .quick_view_slide {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .quick_view_slide .single_view_slide {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    .quick_view_slide .single_view_slide img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
+        margin: 0 auto;
+    }
+
+    /* Slick slider adjustments - Centered */
+    #quickViewImages.slick-slider {
+        width: 100%;
+        height: 100%;
+    }
+
+    #quickViewImages.slick-slider .slick-slide {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #quickViewImages.slick-slider .slick-slide > div {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Ensure single_view_slide within slick has proper dimensions and centering */
+    #quickViewImages.slick-slider .slick-slide .single_view_slide {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    #quickViewImages.slick-slider .slick-slide .single_view_slide img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
+    }
+
     #quickViewWishlist.active,
     #quickViewWishlist.active i,
     #quickViewWishlist.active .fa-heart {
@@ -298,6 +398,44 @@
     }
     #quickViewWishlist.active {
         border-color: #dc3545 !important;
+    }
+
+    /* Ensure modal content doesn't overflow */
+    #quickview .modal-content {
+        max-height: 95vh;
+    }
+
+    #quickview .quick_view_wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+        #quickview .modal-body {
+            max-height: 85vh;
+        }
+        
+        .quick_view_thmb {
+            width: 100%;
+        }
+        
+        #quickview .quick_view_wrap {
+            flex-direction: column;
+        }
+    }
+
+    /* Ensure proper layout on larger screens */
+    @media (min-width: 769px) {
+        .quick_view_thmb {
+            flex: 0 0 45%;
+            max-width: 45%;
+        }
+        
+        .quick_view_capt {
+            flex: 0 0 calc(55% - 20px);
+            max-width: calc(55% - 20px);
+        }
     }
 </style>
 @endpush
@@ -847,14 +985,49 @@ $(document).ready(function() {
             $btn.data('processing', true);
             $btn.prop('disabled', true);
             
-            // Get selected variant
+            // Get selected variant using the same logic as updateQuickViewVariant
             let matchingVariant = null;
             if (currentProductData && currentProductData.variants) {
-                matchingVariant = currentProductData.variants.find(function(variant) {
-                    const colorMatch = !selectedColor || (variant.color && variant.color.toLowerCase() === selectedColor.toLowerCase());
-                    const sizeMatch = !selectedSize || variant.size === selectedSize;
-                    return colorMatch && sizeMatch;
-                });
+                // Use dynamic attribute matching if available
+                if (window.selectedAttributeValues && Object.keys(window.selectedAttributeValues).length > 0) {
+                    matchingVariant = currentProductData.variants.find(function(variant) {
+                        if (!variant.attributes || !Array.isArray(variant.attributes)) {
+                            return false;
+                        }
+                        
+                        const selectedCount = Object.keys(window.selectedAttributeValues).length;
+                        if (variant.attributes.length !== selectedCount) {
+                            return false;
+                        }
+                        
+                        let allMatch = true;
+                        for (let attrId in window.selectedAttributeValues) {
+                            const selectedValue = window.selectedAttributeValues[attrId];
+                            const variantAttr = variant.attributes.find(function(attr) {
+                                return String(attr.attribute_id) === String(attrId) && String(attr.value) === String(selectedValue);
+                            });
+                            if (!variantAttr) {
+                                allMatch = false;
+                                break;
+                            }
+                        }
+                        return allMatch;
+                    });
+                }
+                
+                // Fallback to legacy color/size matching
+                if (!matchingVariant) {
+                    matchingVariant = currentProductData.variants.find(function(variant) {
+                        const colorMatch = !selectedColor || (variant.color && variant.color.toLowerCase() === selectedColor.toLowerCase());
+                        const sizeMatch = !selectedSize || variant.size === selectedSize;
+                        return colorMatch && sizeMatch;
+                    });
+                }
+                
+                // If still no match, use first available variant
+                if (!matchingVariant && currentProductData.variants.length > 0) {
+                    matchingVariant = currentProductData.variants[0];
+                }
             }
             
             const variantId = matchingVariant ? matchingVariant.id : null;

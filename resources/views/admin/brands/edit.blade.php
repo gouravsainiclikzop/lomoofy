@@ -184,17 +184,47 @@
 
 <script>
 // Auto-generate slug from name
+let slugManuallyEdited = false;
+
+function generateSlugFromName(name) {
+    return name.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+// Check if slug was manually edited on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const nameField = document.getElementById('name');
+    const slugField = document.getElementById('slug');
+    
+    if (nameField && slugField) {
+        const name = nameField.value;
+        const slug = slugField.value;
+        
+        // Check if current slug matches auto-generated slug
+        if (name && slug) {
+            const autoSlug = generateSlugFromName(name);
+            slugManuallyEdited = (slug !== autoSlug);
+        }
+    }
+});
+
 document.getElementById('name').addEventListener('input', function() {
     const name = this.value;
     const slugField = document.getElementById('slug');
     
-    if (!slugField.value) {
-        slugField.value = name.toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .trim('-');
+    // Only auto-generate if slug hasn't been manually edited
+    if (!slugManuallyEdited) {
+        const slug = generateSlugFromName(name);
+        slugField.value = slug;
     }
+});
+
+// Track if slug is manually edited
+document.getElementById('slug').addEventListener('input', function() {
+    slugManuallyEdited = true;
 });
 </script>
 @endsection

@@ -755,6 +755,51 @@ $(document).ready(function() {
 
 @push('styles')
 <style>
+/* Product Card Image Consistency - 4:5 Aspect Ratio */
+.shop_thumb {
+    width: 100%;
+    padding-bottom: 125%; /* 5/4 = 1.25 = 125% for 4:5 aspect ratio */
+    overflow: hidden;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    aspect-ratio: 4 / 5; /* Modern browsers */
+}
+
+.shop_thumb .card-img-top,
+.shop_thumb > a {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shop_thumb .card-img-top,
+.shop_thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.3s ease;
+}
+
+.shop_thumb:hover .card-img-top,
+.shop_thumb:hover img {
+    transform: scale(1.05);
+}
+
+.product_grid .card-img-top {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /* Category Carousel Styles */
 .category-carousel {
     position: relative;

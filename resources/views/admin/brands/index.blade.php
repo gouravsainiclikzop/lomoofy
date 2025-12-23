@@ -254,22 +254,53 @@ $(document).ready(function() {
     });
     
     // Auto-generate slug from name
-    $('#brandName').on('input', function() {
-    const name = $(this).val();
-    const slugField = $('#brandSlug');
-
-    console.log();
-
-    if (!slugField.val()) {
-        const slug = name.toLowerCase()                   // convert to lowercase
-                        .replace(/[^a-z0-9\s-]/g, '')    // remove invalid chars
-                        .replace(/\s+/g, '-')           // replace spaces with hyphens
-                        .replace(/-+/g, '-')            // collapse multiple hyphens
-                        .replace(/^-+|-+$/g, '');       // remove leading/trailing hyphens
-
-        slugField.val(slug);
+    let slugManuallyEdited = false;
+    
+    function generateSlugFromName(name) {
+        return name.toLowerCase()                   // convert to lowercase
+                    .replace(/[^a-z0-9\s-]/g, '')    // remove invalid chars
+                    .replace(/\s+/g, '-')           // replace spaces with hyphens
+                    .replace(/-+/g, '-')            // collapse multiple hyphens
+                    .replace(/^-+|-+$/g, '');       // remove leading/trailing hyphens
     }
-});
+    
+    $('#brandName').on('input', function() {
+        const name = $(this).val();
+        const slugField = $('#brandSlug');
+        
+        // Only auto-generate if slug hasn't been manually edited
+        if (!slugManuallyEdited) {
+            const slug = generateSlugFromName(name);
+            slugField.val(slug);
+        }
+    });
+    
+    // Track if slug is manually edited
+    $('#brandSlug').on('input', function() {
+        slugManuallyEdited = true;
+    });
+    
+    // Reset flag when modal is opened for new brand
+    $('#brandModal').on('show.bs.modal', function() {
+        // Check if this is a new brand (no ID) or if slug matches auto-generated
+        const brandId = $('#brandId').val();
+        const brandName = $('#brandName').val();
+        const brandSlug = $('#brandSlug').val();
+        
+        if (!brandId) {
+            // New brand - reset flag
+            slugManuallyEdited = false;
+        } else if (brandName && brandSlug) {
+            // Existing brand - check if slug matches auto-generated
+            const autoSlug = generateSlugFromName(brandName);
+            slugManuallyEdited = (brandSlug !== autoSlug);
+        }
+    });
+    
+    $('#brandModal').on('hidden.bs.modal', function() {
+        slugManuallyEdited = false;
+        $('#brandSlug').val('');
+    });
 
 
     

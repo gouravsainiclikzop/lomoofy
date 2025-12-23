@@ -50,6 +50,9 @@ class CartApiController extends Controller
             ]);
         }
         
+        // Recalculate totals to ensure they're up to date
+        $cart->recalculateTotals();
+        
         $cart->load([
             'items.product.primaryImage',
             'items.product.images' => function($q) {
@@ -178,19 +181,48 @@ class CartApiController extends Controller
                 ]);
             }
             
-            // Get product variant
-            $variant = \App\Models\ProductVariant::find($request->product_variant_id);
-            if (!$variant) {
+            // Get product
+            $product = \App\Models\Product::find($request->product_id);
+            if (!$product) {
                 return response()->json([
                     'success' => false,
-                    'error' => ['message' => 'Product variant not found'],
+                    'error' => ['message' => 'Product not found'],
                 ], 404);
+            }
+            
+            // Get product variant - if variant_id is not provided, use first available variant
+            $variant = null;
+            $variantId = $request->product_variant_id;
+            
+            if ($variantId) {
+                $variant = \App\Models\ProductVariant::where('id', $variantId)
+                    ->where('product_id', $request->product_id)
+                    ->first();
+                
+                if (!$variant) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => ['message' => 'Product variant not found'],
+                    ], 404);
+                }
+            } else {
+                // If no variant_id provided, get the first active variant for this product
+                $variant = $product->variants()->where('is_active', true)->first();
+                
+                if (!$variant) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => ['message' => 'No active variant found for this product. Please select a variant.'],
+                    ], 404);
+                }
+                
+                $variantId = $variant->id;
             }
             
             // Check if item already exists
             $existingItem = $cart->items()
                 ->where('product_id', $request->product_id)
-                ->where('product_variant_id', $request->product_variant_id)
+                ->where('product_variant_id', $variantId)
                 ->first();
             
             if ($existingItem) {
@@ -201,7 +233,7 @@ class CartApiController extends Controller
                 CartItem::create([
                     'cart_id' => $cart->id,
                     'product_id' => $request->product_id,
-                    'product_variant_id' => $request->product_variant_id,
+                    'product_variant_id' => $variantId,
                     'quantity' => $request->quantity,
                     'unit_price' => $variant->sale_price ?? $variant->price,
                     'total_price' => ($variant->sale_price ?? $variant->price) * $request->quantity,
@@ -349,24 +381,121 @@ class CartApiController extends Controller
             } else {
                 $query->where('session_id', $sessionId);
             }
-        })->active()->first();
+        })->active()->with('items')->first();
         
         if (!$cart) {
             return response()->json([
                 'success' => false,
-                'error' => ['message' => 'Cart not found'],
+                'error' => [
+                    'code' => 'CART_NOT_FOUND',
+                    'message' => 'Cart not found',
+                ],
             ], 404);
         }
         
-        // TODO: Implement coupon validation and application
-        // For now, just set the coupon code
-        $cart->coupon_code = $request->coupon_code;
+        // Check if cart has items
+        if ($cart->items->count() === 0) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'CART_EMPTY',
+                    'message' => 'Cart is empty. Add items to cart before applying coupon.',
+                ],
+            ], 400);
+        }
+        
+        // Find coupon by code
+        $coupon = \App\Models\Coupon::where('code', strtoupper(trim($request->coupon_code)))->first();
+        
+        if (!$coupon) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'COUPON_NOT_FOUND',
+                    'message' => 'Coupon code not found. Please check and try again.',
+                ],
+            ], 404);
+        }
+        
+        // Check if coupon is active
+        if (!$coupon->isActive()) {
+            $now = \Carbon\Carbon::now();
+            if (!$coupon->status) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'COUPON_INACTIVE',
+                        'message' => 'This coupon is not active.',
+                    ],
+                ], 400);
+            }
+            if ($coupon->start_date && $now->lt($coupon->start_date)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'COUPON_NOT_STARTED',
+                        'message' => 'This coupon is not yet valid.',
+                    ],
+                ], 400);
+            }
+            if ($coupon->end_date && $now->gt($coupon->end_date)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'COUPON_EXPIRED',
+                        'message' => 'This coupon has expired.',
+                    ],
+                ], 400);
+            }
+        }
+        
+        // Check if coupon can be used (usage limit)
+        if (!$coupon->canBeUsed()) {
+            if ($coupon->max_uses && $coupon->uses >= $coupon->max_uses) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'COUPON_LIMIT_REACHED',
+                        'message' => 'This coupon has reached its usage limit.',
+                    ],
+                ], 400);
+            }
+        }
+        
+        // Calculate cart subtotal
+        $subtotal = $cart->items->sum('total_price');
+        
+        // Check minimum order amount
+        if ($coupon->min_order_amount && $subtotal < $coupon->min_order_amount) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'COUPON_MIN_ORDER_NOT_MET',
+                    'message' => 'Minimum order amount of ₹' . number_format($coupon->min_order_amount, 2) . ' required for this coupon.',
+                ],
+            ], 400);
+        }
+        
+        // Apply coupon
+        $cart->coupon_code = $coupon->code;
         $cart->save();
         $cart->recalculateTotals();
         
+        // Reload cart with coupon relationship
+        $cart->load('coupon');
+        $discountAmount = $cart->discount_amount;
+        
         return response()->json([
             'success' => true,
-            'message' => 'Coupon applied',
+            'message' => 'Coupon applied successfully!',
+            'data' => [
+                'coupon' => [
+                    'code' => $coupon->code,
+                    'discount_type' => $coupon->discount_type,
+                    'discount_value' => $coupon->discount_value,
+                ],
+                'discount_amount' => $discountAmount,
+            ],
         ]);
     }
 

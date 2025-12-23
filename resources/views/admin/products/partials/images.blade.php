@@ -30,6 +30,10 @@
                             </label>
                         </p>
                         <small class="text-muted">Supports JPG, PNG, GIF. Multiple files allowed.</small>
+                        <small class="text-info d-block mt-1">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Recommended dimensions:</strong> 620 × 780 pixels
+                        </small>
                     </div>
                 </div>
                 <small class="text-muted small mt-2">
@@ -191,7 +195,8 @@
                         <i class="fas fa-lightbulb me-2"></i>Best Practices
                     </h6>
                     <div class="mb-0">
-                        <div><strong>Use high-quality images</strong> that showcase your product clearly <small class="text-muted">(Minimum 800x800 pixels recommended)</small></div>
+                        <div><strong>Recommended image dimensions:</strong> <span class="text-info">620 × 780 pixels</span> <small class="text-muted">(For best display quality, use these dimensions)</small></div>
+                        <div><strong>Use high-quality images</strong> that showcase your product clearly <small class="text-muted">(Ensure images are sharp and well-lit)</small></div>
                         <div><strong>Include multiple angles</strong> to give customers a complete view <small class="text-muted">(Front, back, side views, details)</small></div>
                         <div><strong>Choose a compelling primary image</strong> that represents your product best <small class="text-muted">(This appears in search results and listings)</small></div>
                         <div><strong>Optimize file sizes</strong> for faster loading without losing quality <small class="text-muted">(Use image compression tools)</small></div>
@@ -424,6 +429,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function previewImages(input) {
     const container = document.getElementById('imagePreviewContainer');
     const grid = document.getElementById('imagePreviewGrid');
+    const requiredWidth = 620;
+    const requiredHeight = 780;
     
     if (input.files && input.files.length > 0) {
         container.style.display = 'block';
@@ -432,30 +439,45 @@ function previewImages(input) {
         Array.from(input.files).forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const col = document.createElement('div');
-                col.className = 'col-md-2 col-sm-3 col-6';
-                col.innerHTML = `
-                    <div class="card h-100 shadow-sm">
-                        <img src="${e.target.result}" class="card-img-top" 
-                             style="height: 180px; object-fit: cover;" alt="Preview">
-                        <div class="card-body p-2">
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" name="primary_image_index" 
-                                       value="new_${index}" id="newPrimaryImage${index}" ${index === 0 ? 'checked' : ''}>
-                                <label class="form-check-label small" for="newPrimaryImage${index}">
-                                    Set as Primary
-                                </label>
+                const img = new Image();
+                img.onload = function() {
+                    const matchesRecommended = img.width === requiredWidth && img.height === requiredHeight;
+                    const col = document.createElement('div');
+                    col.className = 'col-md-2 col-sm-3 col-6';
+                    col.innerHTML = `
+                        <div class="card h-100 shadow-sm">
+                            <img src="${e.target.result}" class="card-img-top" 
+                                 style="height: 180px; object-fit: cover;" alt="Preview">
+                            <div class="card-body p-2">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="primary_image_index" 
+                                           value="new_${index}" id="newPrimaryImage${index}" ${index === 0 ? 'checked' : ''}>
+                                    <label class="form-check-label small" for="newPrimaryImage${index}">
+                                        Set as Primary
+                                    </label>
+                                </div>
+                                ${matchesRecommended ? 
+                                    `<small class="text-success d-block">
+                                        <i class="fas fa-check-circle me-1"></i>${img.width} × ${img.height} px<br>
+                                        <small class="text-muted">Matches recommended size</small>
+                                    </small>` :
+                                    `<small class="text-info d-block">
+                                        <i class="fas fa-info-circle me-1"></i>${img.width} × ${img.height} px<br>
+                                        <small class="text-muted">Recommended: ${requiredWidth} × ${requiredHeight} px</small>
+                                    </small>`
+                                }
+                                <small class="text-muted d-block text-truncate mt-1" title="${file.name}">
+                                    <i class="fas fa-file-image me-1"></i>${file.name}
+                                </small>
+                                <small class="text-muted d-block">
+                                    ${(file.size / 1024).toFixed(1)} KB
+                                </small>
                             </div>
-                            <small class="text-muted d-block text-truncate" title="${file.name}">
-                                <i class="fas fa-file-image me-1"></i>${file.name}
-                            </small>
-                            <small class="text-muted d-block">
-                                ${(file.size / 1024).toFixed(1)} KB
-                            </small>
                         </div>
-                    </div>
-                `;
-                grid.appendChild(col);
+                    `;
+                    grid.appendChild(col);
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         });

@@ -165,14 +165,14 @@
                         <div class="col-md-6">
                             <label class="form-label">Type <span class="text-danger">*</span></label>
                             <select class="form-select" name="type" required>
-                                <option value="">Select Type</option>
+                                <!-- <option value="">Select Type</option> -->
                                 <option value="text">Text Input</option>
-                                <option value="select">Dropdown Select</option>
+                                <!-- <option value="select">Dropdown Select</option> -->
                                 <option value="color">Color Picker</option>
-                                <option value="number">Number Input</option>
+                                <!-- <option value="number">Number Input</option>
                                 <option value="date">Date Picker</option>
                                 <option value="boolean">Yes/No</option>
-                                <option value="image">Image Upload</option>
+                                <option value="image">Image Upload</option> -->
                             </select>
                         </div>
                         <div class="col-md-6">
