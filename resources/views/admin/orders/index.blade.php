@@ -734,7 +734,7 @@ $(document).ready(function() {
                             let statusColor = statusColors[order.status] || 'bg-secondary';
                             let paymentStatusColor = paymentStatusColors[order.payment_status] || 'bg-secondary';
                         
-                        let isEditable = order.source !== 'online';
+                        let isEditable = order.source !== 'frontend' && order.source !== 'online'; 
                         let actionButtons = '';
                         
                         if (isEditable) {
@@ -774,7 +774,7 @@ $(document).ready(function() {
                                 <td><span class="badge bg-info">${order.items_count}</span></td>
                                 <td><strong>₹${parseFloat(order.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
                                 <td>
-                                    ${order.source === 'online' 
+                                    ${order.source === 'frontend' || order.source === 'online' 
                                         ? '<span class="badge bg-primary">Online</span>' 
                                         : '<span class="badge bg-secondary">Offline</span>'}
                                 </td>

@@ -78,6 +78,30 @@ class Customer extends Authenticatable
     /**
      * Get default address
      */
+    public function getDefaultAddressAttribute()
+    {
+        return $this->addresses()->where('is_default', true)->first();
+    }
+
+    /**
+     * Get default shipping address (same as default for now)
+     */
+    public function getDefaultShippingAddressAttribute()
+    {
+        return $this->defaultAddress;
+    }
+
+    /**
+     * Get default billing address (same as default for now)
+     */
+    public function getDefaultBillingAddressAttribute()
+    {
+        return $this->defaultAddress;
+    }
+
+    /**
+     * Get default address
+     */
     public function defaultAddress()
     {
         return $this->hasOne(CustomerAddress::class)->where('is_default', true);

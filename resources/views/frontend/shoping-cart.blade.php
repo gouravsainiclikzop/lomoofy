@@ -189,8 +189,18 @@
 				</div>
 				
 				<!-- Proceed to Checkout button - shown/hidden dynamically -->
-				<!-- Customer auth checked via JavaScript -->
-				<a class="btn btn-block btn-dark w-100 mb-3" href="{{ route('frontend.checkout') }}" id="checkoutBtn" style="display: none;" data-requires-auth="true">Proceed to Checkout</a>
+				<a class="btn btn-block btn-dark w-100 mb-3" href="{{ route('frontend.checkout') }}" id="checkoutBtn" style="display: none;">
+					<i class="lni lni-shopping-basket me-2"></i>Proceed to Checkout  
+				</a>
+				
+				<!-- Static checkout button for when cart has items (server-side rendered) -->
+				<!-- @if($cart && $cart->items->count() > 0)
+				<noscript>
+					<a class="btn btn-block btn-dark w-100 mb-3" href="{{ route('frontend.checkout') }}">
+						<i class="lni lni-shopping-basket me-2"></i>Proceed to Checkout  dd
+					</a>
+				</noscript>
+				@endif -->
 				
 				<a class="btn-link text-dark ft-medium" href="{{ route('frontend.shop') }}">
 				  <i class="ti-back-left me-2"></i> Continue Shopping
@@ -597,36 +607,24 @@ $(document).ready(function() {
         loadCartData();
     });
     
-    // Handle checkout button click - check customer auth
-    $(document).on('click', '#checkoutBtn[data-requires-auth="true"]', function(e) {
-        e.preventDefault(); // Always prevent default first
-        const checkoutUrl = $(this).attr('href');
-        const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
-        
-        // Verify customer is authenticated via session
-        $.ajax({
-            url: '/api/auth/me',
-            method: 'GET',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            },
-            success: function(response) {
-                if (!response.success || !response.data) {
-                    // Not authenticated, show login
-                    $('#login').modal('show');
-                    return false;
-                }
-                // Authenticated, navigate to checkout
-                window.location.href = checkoutUrl;
-            },
-            error: function(xhr) {
-                // Not authenticated, show login
-                $('#login').modal('show');
-                return false;
-            }
-        });
-    });
+    // Handle checkout button click - simple redirect (let backend handle auth)
+    $(document).on('click', '#checkoutBtn', function(e) {
+    e.preventDefault();
+
+    const $btn = $(this);
+    const url = $btn.attr('href');
+
+    console.log('Navigating to:', url);
+
+    $btn.prop('disabled', true)
+        .html('<i class="fa fa-spinner fa-spin me-2"></i>Loading...');
+
+    setTimeout(function () {
+        window.location.href = url;
+    }, 300);
+});
+
+
 });
 </script>
 @endpush

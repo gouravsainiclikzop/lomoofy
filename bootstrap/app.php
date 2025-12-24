@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class, 
             'refreshStorage' => \App\Http\Middleware\RefreshStorage::class,
             'customer.auth' => \App\Http\Middleware\EnsureCustomerIsAuthenticated::class,
+            'checkout.prerequisites' => \App\Http\Middleware\CheckoutPrerequisites::class,
+            'simple.checkout.prerequisites' => \App\Http\Middleware\SimpleCheckoutPrerequisites::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

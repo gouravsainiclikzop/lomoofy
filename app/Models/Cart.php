@@ -85,6 +85,76 @@ class Cart extends Model
     }
 
     /**
+     * Recalculate cart totals
+     */
+    public function recalculateTotals()
+    {
+        $this->load('items', 'coupon');
+        
+        // Calculate subtotal
+        $subtotal = $this->items->sum('total_price');
+        $this->subtotal = $subtotal;
+        
+        // Calculate discount from coupon if exists
+        $discountAmount = 0;
+        if ($this->coupon_code && $this->coupon) {
+            $coupon = $this->coupon;
+            
+            // Check if coupon has required methods, otherwise use basic calculation
+            if (method_exists($coupon, 'isActive') && method_exists($coupon, 'canBeUsed') && method_exists($coupon, 'calculateDiscount')) {
+                if ($coupon->isActive() && $coupon->canBeUsed()) {
+                    // Check minimum order amount if property exists
+                    if (!property_exists($coupon, 'min_order_amount') || !$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount) {
+                        $discountAmount = $coupon->calculateDiscount($subtotal);
+                    }
+                }
+            } else {
+                // Fallback to basic discount calculation
+                if (property_exists($coupon, 'discount_type') && property_exists($coupon, 'discount_value')) {
+                    if ($coupon->discount_type === 'percentage') {
+                        $discountAmount = ($subtotal * $coupon->discount_value) / 100;
+                    } else {
+                        $discountAmount = min($coupon->discount_value, $subtotal);
+                    }
+                }
+            }
+        }
+        $this->discount_amount = $discountAmount;
+        
+        // Calculate tax (0% for now - can be configured later)
+        $taxRate = 0;
+        $taxableAmount = $subtotal - $discountAmount;
+        $taxAmount = $taxableAmount * $taxRate;
+        $this->tax_amount = $taxAmount;
+        
+        // Calculate shipping
+        $allItemsFreeShipping = $this->items->every(function($item) {
+            return $item->product && $item->product->free_shipping;
+        });
+        
+        $hasNonShippingItems = $this->items->contains(function($item) {
+            return $item->product && !$item->product->requires_shipping;
+        });
+        
+        if ($allItemsFreeShipping || $hasNonShippingItems) {
+            $shippingAmount = 0;
+        } else {
+            $freeShippingThreshold = 0;
+            $defaultShippingCost = 0;
+            $shippingAmount = $subtotal > $freeShippingThreshold ? 0 : $defaultShippingCost;
+        }
+        
+        $this->shipping_amount = $shippingAmount;
+        
+        // Calculate total
+        $this->total_amount = $subtotal - $discountAmount + $taxAmount + $shippingAmount;
+        
+        $this->save();
+        
+        return $this;
+    }
+
+    /**
      * Scope for active (non-expired) carts
      */
     public function scopeActive($query)
@@ -95,43 +165,4 @@ class Cart extends Model
         });
     }
 
-    /**
-     * Recalculate cart totals
-     */
-    public function recalculateTotals()
-    {
-        $this->load('items', 'coupon');
-        
-        $subtotal = $this->items->sum('total_price');
-        $this->subtotal = $subtotal;
-        
-        // Calculate discount from coupon if exists
-        $discountAmount = 0;
-        if ($this->coupon_code && $this->coupon) {
-            // Reload coupon to ensure we have latest data
-            $this->load('coupon');
-            $coupon = $this->coupon;
-            
-            if ($coupon && $coupon->isActive() && $coupon->canBeUsed()) {
-                // Check minimum order amount
-                if (!$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount) {
-                    // Calculate discount using coupon's method
-                    $discountAmount = $coupon->calculateDiscount($subtotal);
-                }
-            }
-        }
-        $this->discount_amount = $discountAmount;
-        
-        // Calculate tax (example: 10% tax)
-        $taxRate = 0.10; // 10%
-        $this->tax_amount = ($subtotal - $discountAmount) * $taxRate;
-        
-        // Shipping (can be calculated based on rules)
-        $this->shipping_amount = 0; // TODO: Calculate shipping
-        
-        // Total
-        $this->total_amount = $subtotal - $discountAmount + $this->tax_amount + $this->shipping_amount;
-        
-        $this->save();
-    }
 }

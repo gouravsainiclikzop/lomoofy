@@ -40,8 +40,22 @@ Route::middleware(['customer.auth'])->group(function () {
     Route::get('/addresses', [FrontendController::class, 'addresses'])->name('frontend.addresses');
     Route::post('/addresses', [FrontendController::class, 'saveAddress'])->name('frontend.addresses.save');
     Route::get('/payment-methode', [FrontendController::class, 'paymentMethode'])->name('frontend.payment-methode');
-    Route::get('/checkout', [FrontendController::class, 'checkout'])->name('frontend.checkout');
-    Route::get('/complete-order', [FrontendController::class, 'completeOrder'])->name('frontend.complete-order');
+    Route::get('/checkout', [FrontendController::class, 'checkout'])->name('frontend.checkout')->middleware('simple.checkout.prerequisites');
+    Route::post('/checkout', [FrontendController::class, 'processCheckout'])->name('frontend.checkout.process')->middleware('simple.checkout.prerequisites');
+    
+    // Temporary debug route without middleware
+    Route::get('/checkout-debug', [FrontendController::class, 'checkout'])->name('frontend.checkout.debug');
+    
+    // Simple test route to check authentication
+    Route::get('/test-auth', function() {
+        $customer = Auth::guard('customer')->user();
+        return response()->json([
+            'authenticated' => $customer ? true : false,
+            'customer_id' => $customer ? $customer->id : null,
+            'customer_name' => $customer ? $customer->full_name : null,
+        ]);
+    });
+    Route::get('/complete-order/{order?}', [FrontendController::class, 'completeOrder'])->name('frontend.complete-order');
 });
 
 // Public Frontend Routes
@@ -89,7 +103,9 @@ Route::prefix('api/wishlist')->group(function () {
 
 // Order API Routes
 Route::prefix('api/orders')->middleware('customer.auth')->group(function () {
-    Route::get('/validate-cart', [\App\Http\Controllers\Api\OrderApiController::class, 'validateCart']);  
+    Route::get('/validate-cart', [\App\Http\Controllers\Api\OrderApiController::class, 'validateCart']);
+    Route::get('/addresses', [\App\Http\Controllers\Api\OrderApiController::class, 'getAddresses']);
+    Route::post('/validate-addresses', [\App\Http\Controllers\Api\OrderApiController::class, 'validateAddresses']);
     Route::post('/', [\App\Http\Controllers\Api\OrderApiController::class, 'store']); // Create order from cart
 });
 

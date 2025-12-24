@@ -25,6 +25,11 @@ class Order extends Model
         'payment_method',
         'payment_status',
         'notes',
+        'shipping_address',
+        'billing_address',
+        'billing_same_as_shipping',
+        'shipping_address_id',
+        'billing_address_id',
     ];
 
     protected $casts = [
@@ -33,6 +38,9 @@ class Order extends Model
         'shipping_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'shipping_address' => 'array',
+        'billing_address' => 'array',
+        'billing_same_as_shipping' => 'boolean',
     ];
 
     // Relationships

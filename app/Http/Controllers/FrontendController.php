@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
+use App\Services\CheckoutService;
 use Carbon\Carbon;
 use App\Models\Category;
 use App\Models\Product;
@@ -3897,35 +3898,27 @@ class FrontendController extends Controller
 
     public function checkout(Request $request)
     {
-        // Get customer (must be authenticated to checkout)
-        $customer = Auth::guard('customer')->user();
-        if (!$customer) {
-            return redirect()->route('frontend.shoping-cart')->with('error', 'Please login to proceed to checkout');
+        // Get validated data from middleware attributes
+        $cart = $request->attributes->get('validated_cart');
+        $customer = $request->attributes->get('authenticated_customer');
+        $addressData = $request->attributes->get('address_data');
+        
+        // Safety check - if middleware didn't provide data, redirect back
+        if (!$cart || !$customer) {
+            \Log::error('Checkout controller: Missing cart or customer data', [
+                'cart' => $cart ? 'exists' : 'null',
+                'customer' => $customer ? 'exists' : 'null'
+            ]);
+            return redirect()->route('frontend.shoping-cart')
+                ->with('error', 'Unable to proceed to checkout. Please try again.');
         }
         
-        $customerId = $customer->id;
-        
-        // Get session_id
         $sessionId = $request->input('session_id') 
                   ?? $request->query('session_id') 
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
-        // Get cart
-        $cart = \App\Models\Cart::where(function($query) use ($customerId, $sessionId) {
-            if ($customerId) {
-                $query->where('customer_id', $customerId);
-            } else {
-                $query->where('session_id', $sessionId);
-            }
-        })->active()->with('items')->first();
-        
-        // If no cart or cart is empty, redirect to cart page
-        if (!$cart || $cart->items->count() === 0) {
-            return redirect()->route('frontend.shoping-cart')->with('error', 'Your cart is empty');
-        }
-        
-        // Load cart items with relationships
+        // Load cart items with relationships for display
         $cart->load([
             'items.product.primaryImage',
             'items.product.images' => function($q) {
@@ -3938,65 +3931,113 @@ class FrontendController extends Controller
             'coupon'
         ]);
         
-        // Recalculate cart totals
-        $subtotal = $cart->items->sum('total_price');
-        $cart->subtotal = $subtotal;
+        // Recalculate and save cart totals
+        $cart->recalculateTotals();
         
-        // Calculate discount
-        $discountAmount = 0;
-        if ($cart->coupon_code && $cart->coupon) {
-            $coupon = $cart->coupon;
-            if ($coupon->discount_type === 'percentage') {
-                $discountAmount = ($subtotal * $coupon->discount_value) / 100;
-            } else {
-                $discountAmount = min($coupon->discount_value, $subtotal);
-            }
-        }
-        $cart->discount_amount = $discountAmount;
+        // Persist checkout data in session for validation errors
+        session()->put('checkout_data', [
+            'cart_id' => $cart->id,
+            'session_id' => $sessionId,
+            'shipping_address_id' => $request->old('shipping_address_id', $addressData['default_shipping']->id ?? null),
+            'billing_address_id' => $request->old('billing_address_id', $addressData['default_billing']->id ?? null),
+            'billing_same_as_shipping' => $request->old('billing_same_as_shipping', true),
+        ]);
         
-        // Calculate tax (0% for now - can be configured later)
-        $taxRate = 0;
-        $taxableAmount = $subtotal - $discountAmount;
-        $taxAmount = $taxableAmount * $taxRate;
-        $cart->tax_amount = $taxAmount;
-        
-        // Calculate shipping
-        $allItemsFreeShipping = $cart->items->every(function($item) {
-            return $item->product && $item->product->free_shipping;
-        });
-        
-        $hasNonShippingItems = $cart->items->contains(function($item) {
-            return $item->product && !$item->product->requires_shipping;
-        });
-        
-        if ($allItemsFreeShipping || $hasNonShippingItems) {
-            $shippingAmount = 0;
-        } else {
-            $freeShippingThreshold = 0;
-            $defaultShippingCost = 0;
-            $shippingAmount = $subtotal > $freeShippingThreshold ? 0 : $defaultShippingCost;
-        }
-        
-        $cart->shipping_amount = $shippingAmount;
-        
-        // Calculate total
-        $cart->total_amount = $subtotal - $discountAmount + $taxAmount + $shippingAmount;
-        $cart->save();
-        
-        // Get customer's default address
-        $defaultAddress = $customer->defaultAddress;
-        
+       
         return view('frontend.checkout', [
             'cart' => $cart,
             'customer' => $customer,
-            'defaultAddress' => $defaultAddress,
+            'addresses' => $addressData['addresses'],
+            'defaultShippingAddress' => $addressData['default_shipping'],
+            'defaultBillingAddress' => $addressData['default_billing'],
+            'hasAddresses' => $addressData['has_addresses'],
+            'singleAddress' => $addressData['single_address'],
             'sessionId' => $sessionId,
+            'checkoutData' => session('checkout_data', []),
         ]);
     }
 
-    public function completeOrder()
+    public function processCheckout(Request $request)
     {
-        return view('frontend.complete-order');
+        // Get validated data from middleware attributes
+        $cart = $request->attributes->get('validated_cart');
+        $customer = $request->attributes->get('authenticated_customer');
+        
+        try {
+            $checkoutService = app(CheckoutService::class);
+            
+            // Validate request data
+            $validatedData = $checkoutService->validateCheckoutRequest($request->all());
+            
+            // Validate addresses
+            $addressValidation = $checkoutService->validateAddresses(
+                $customer,
+                $validatedData['shipping_address_id'] ?? null,
+                $validatedData['billing_address_id'] ?? null,
+                $validatedData['billing_same_as_shipping'] ?? false
+            );
+            
+            if (!$addressValidation['valid']) {
+                return redirect()->route('frontend.checkout')
+                    ->withInput()
+                    ->withErrors(['addresses' => $addressValidation['errors']]);
+            }
+            
+            // Create order
+            $order = $checkoutService->createOrder(
+                $cart,
+                $customer,
+                $addressValidation['shipping_address'],
+                $addressValidation['billing_address'],
+                $validatedData['billing_same_as_shipping'] ?? false,
+                [
+                    'payment_method' => $validatedData['payment_method'] ?? 'cash_on_delivery',
+                    'notes' => $validatedData['notes'] ?? null,
+                ]
+            );
+            
+            // Clear checkout session data
+            session()->forget('checkout_data');
+            
+            // Redirect to order confirmation
+            return redirect()->route('frontend.complete-order', ['order' => $order->order_number])
+                ->with('success', 'Order placed successfully!');
+                
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('frontend.checkout')
+                ->withInput()
+                ->withErrors($e->errors());
+        } catch (\Exception $e) {
+            \Log::error('Checkout processing failed: ' . $e->getMessage(), [
+                'customer_id' => $customer->id,
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('frontend.checkout')
+                ->withInput()
+                ->with('error', 'Checkout failed. Please try again.');
+        }
+    }
+
+    public function completeOrder(Request $request)
+    {
+        $orderNumber = $request->route('order');
+        $order = null;
+        
+        if ($orderNumber) {
+            $customer = Auth::guard('customer')->user();
+            if ($customer) {
+                $order = \App\Models\Order::where('order_number', $orderNumber)
+                    ->where('customer_id', $customer->id)
+                    ->with('items.product')
+                    ->first();
+            }
+        }
+        
+        return view('frontend.complete-order', [
+            'order' => $order
+        ]);
     }
 
     /**

@@ -257,7 +257,7 @@
 								})
 								->orderBy('sort_order')
 								->with(['children' => function($q) {
-									LL$q->where(function($query) {
+									$q->where(function($query) {
 										$query->where('is_active', true)->orWhereNull('is_active');
 									})
 									->orderBy('sort_order');
