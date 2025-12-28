@@ -156,14 +156,19 @@
 				
 				<form id="customerLoginForm">				
 					<div class="form-group mb-3">
-						<label class="mb-2">Email</label>
-						<input type="email" id="customerLoginEmail" name="email" class="form-control" placeholder="Email*" required>
+						<label class="mb-2">Email or Phone</label>
+						<input type="text" id="customerLoginEmailOrPhone" name="email_or_phone" class="form-control" placeholder="Email or Phone*" required>
 						<div class="invalid-feedback"></div>
 					</div>
 					
 					<div class="form-group mb-3">
 						<label class="mb-2">Password</label>
-						<input type="password" id="customerLoginPassword" name="password" class="form-control" placeholder="Password*" required>
+						<div class="position-relative">
+							<input type="password" id="customerLoginPassword" name="password" class="form-control pe-5" placeholder="Password*" required>
+							<button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted password-toggle" data-target="#customerLoginPassword">
+								<i class="fas fa-eye"></i>
+							</button>
+						</div>
 						<div class="invalid-feedback"></div>
 					</div>
 					
@@ -187,7 +192,7 @@
 					</div>
 					
 					<div class="form-group text-center mb-0">
-						<p class="extra">Not a member?<a href="#et-register-wrap" class="text-dark"> Register</a></p>
+						<p class="extra">Not a member?<a href="#" class="text-dark" data-bs-toggle="modal" data-bs-target="#register" data-bs-dismiss="modal"> Register</a></p>
 					</div>
 				</form>
 			</div>
@@ -196,6 +201,50 @@
 </div>
 <!-- End Modal -->
 
+<!-- Register Modal -->
+<div class="modal fade" id="register" tabindex="-1" role="dialog" aria-labelledby="registermodal" aria-hidden="true">
+	<div class="modal-dialog login-pop-form modal-lg" role="document">
+		<div class="modal-content" id="registermodal">
+			<div class="modal-headers">
+				<button type="button" class="border-0 close" data-bs-dismiss="modal" aria-label="Close">
+				  <span class="ti-close"></span>
+				</button>
+			  </div>
+		
+			<div class="modal-body p-5">
+				<div class="text-center mb-4">
+					<h2 class="m-0 ft-regular">Register</h2>
+				</div>
+				
+				<!-- Error/Success Messages -->
+				<div id="customerRegisterMessage" style="display: none;"></div>
+				
+				<form id="customerRegisterForm">
+					<!-- Dynamic fields will be loaded here -->
+					<div id="customerRegisterFields">
+						<div class="text-center py-3">
+							<div class="spinner-border text-primary" role="status">
+								<span class="visually-hidden">Loading...</span>
+							</div>
+						</div>
+					</div>
+					
+					<div class="form-group mb-3" id="customerRegisterSubmitSection" style="display: none;">
+						<button type="submit" id="customerRegisterBtn" class="btn btn-md full-width bg-dark text-light fs-md ft-medium">
+							<span id="customerRegisterBtnText">Register</span>
+							<span id="customerRegisterBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+						</button>
+					</div>
+					
+					<div class="form-group text-center mb-0" id="customerRegisterLoginSection" style="display: none;">
+						<p class="extra">Already a member?<a href="#" class="text-dark" data-bs-toggle="modal" data-bs-target="#login" data-bs-dismiss="modal"> Login</a></p>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- End Modal -->
 
 <!-- Wishlist -->
 <div class="w3-ch-sideBar w3-bar-block w3-card-2 w3-animate-right" style="display:none;right:0;" id="Wishlist">
@@ -436,6 +485,102 @@
             flex: 0 0 calc(55% - 20px);
             max-width: calc(55% - 20px);
         }
+    }
+
+    /* Password toggle button styles */
+    .password-toggle {
+        border: none !important;
+        background: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        width: auto !important;
+        height: auto !important;
+        z-index: 10;
+    }
+
+    .password-toggle:hover {
+        background: none !important;
+        color: #495057 !important;
+    }
+
+    .password-toggle:focus {
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    .password-toggle i {
+        font-size: 14px;
+        transition: color 0.2s ease;
+    }
+
+    /* Ensure password input has proper padding for the eye icon */
+    .position-relative input.pe-5 {
+        padding-right: 2.5rem !important;
+    }
+
+    /* Modal responsive improvements */
+    @media (max-width: 767px) {
+        .modal-dialog.login-pop-form {
+            margin: 1rem;
+        }
+        
+        .modal-body {
+            padding: 1.5rem !important;
+        }
+    }
+
+    /* Enhanced modal width for registration */
+    @media (min-width: 768px) {
+        .modal-dialog.login-pop-form.modal-lg {
+            max-width: 600px;
+            width: 90%;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .modal-dialog.login-pop-form.modal-lg {
+            max-width: 700px;
+            width: 80%;
+        }
+    }
+
+    /* Registration form field spacing */
+    #customerRegisterFields .form-group {
+        margin-bottom: 1rem;
+    }
+
+    #customerRegisterFields .row {
+        margin-bottom: 0.5rem;
+    }
+
+    /* Form validation styles */
+    .form-control.is-invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
+
+    .invalid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #dc3545;
+    }
+
+    .form-control.is-invalid:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
+
+    /* Success state for valid fields */
+    .form-control.is-valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+
+    .form-control.is-valid:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
     }
 </style>
 @endpush
@@ -1650,14 +1795,33 @@ $(document).ready(function() {
         $('#customerLoginMessage').hide().html('');
         
         // Get form data
-        const email = $('#customerLoginEmail').val().trim();
+        const emailOrPhone = $('#customerLoginEmailOrPhone').val().trim();
         const password = $('#customerLoginPassword').val();
         const remember = $('#customerRememberMe').is(':checked');
         
         // Basic validation
-        if (!email || !password) {
+        if (!emailOrPhone || !password) {
             showCustomerLoginError('Please fill in all fields');
             return;
+        }
+        
+        // Determine if input is email or phone
+        const isEmail = emailOrPhone.includes('@');
+        const loginData = {
+            password: password,
+            remember: remember
+        };
+        
+        // Add session_id for cart merging
+        let sessionId = localStorage.getItem('session_id');
+        if (sessionId) {
+            loginData.session_id = sessionId;
+        }
+        
+        if (isEmail) {
+            loginData.email = emailOrPhone;
+        } else {
+            loginData.phone = emailOrPhone;
         }
         
         // Show loading state
@@ -1674,13 +1838,10 @@ $(document).ready(function() {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-Session-ID': sessionId
             },
-            data: {
-                email: email,
-                password: password,
-                remember: remember
-            },
+            data: loginData,
             dataType: 'json',
             success: function(response) {
                 console.log('Login Response:', response);
@@ -1713,9 +1874,9 @@ $(document).ready(function() {
                     // Handle validation errors
                     if (xhr.status === 422 && xhr.responseJSON.error.errors) {
                         const errors = xhr.responseJSON.error.errors;
-                        if (errors.email) {
-                            $('#customerLoginEmail').addClass('is-invalid');
-                            $('#customerLoginEmail').next('.invalid-feedback').text(errors.email[0]);
+                        if (errors.email || errors.phone) {
+                            $('#customerLoginEmailOrPhone').addClass('is-invalid');
+                            $('#customerLoginEmailOrPhone').next('.invalid-feedback').text(errors.email?.[0] || errors.phone?.[0]);
                         }
                         if (errors.password) {
                             $('#customerLoginPassword').addClass('is-invalid');
@@ -1754,6 +1915,516 @@ $(document).ready(function() {
         $('#customerLoginBtnSpinner').addClass('d-none');
         $('#customerLoginBtn').prop('disabled', false);
     }
+
+    // Load registration fields when register modal is shown
+    $('#register').on('show.bs.modal', function() {
+        loadRegistrationFields();
+    });
+
+    function loadRegistrationFields() {
+        $('#customerRegisterFields').html(
+            '<div class="text-center py-3">' +
+            '<div class="spinner-border text-primary" role="status">' +
+            '<span class="visually-hidden">Loading...</span>' +
+            '</div>' +
+            '</div>'
+        );
+        $('#customerRegisterSubmitSection, #customerRegisterLoginSection').hide();
+
+        $.ajax({
+            url: '/api/auth/register-fields',
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.data.fields) {
+                    renderRegistrationFields(response.data.fields);
+                } else {
+                    showRegistrationError('Failed to load registration form');
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading registration fields:', xhr);
+                showRegistrationError('Failed to load registration form');
+            }
+        });
+    }
+
+    function renderRegistrationFields(fields) {
+        let fieldsHtml = '';
+        
+        // Define the correct field order for registration
+        const fieldOrder = ['full_name', 'phone', 'email', 'password', 'password_confirmation'];
+        
+        // Sort fields according to the defined order
+        const sortedFields = fieldOrder.map(function(fieldKey) {
+            return fields.find(function(field) {
+                return field.field_key === fieldKey;
+            });
+        }).filter(function(field) {
+            return field !== undefined; // Remove undefined fields
+        });
+        
+        // Create the specific layout requested:
+        // Row 1: Full Name * Phone (two columns)
+        // Row 2: Email (full width)
+        // Row 3: Password and Confirm Password (full width each)
+        
+        let fullNameField = sortedFields.find(f => f.field_key === 'full_name');
+        let phoneField = sortedFields.find(f => f.field_key === 'phone');
+        let emailField = sortedFields.find(f => f.field_key === 'email');
+        let passwordField = sortedFields.find(f => f.field_key === 'password');
+        let confirmPasswordField = sortedFields.find(f => f.field_key === 'password_confirmation');
+        
+        // Row 1: Full Name * Phone
+        if (fullNameField && phoneField) {
+            fieldsHtml += '<div class="row mb-3">';
+            fieldsHtml += '<div class="col-md-6">';
+            fieldsHtml += renderSingleField(fullNameField);
+            fieldsHtml += '</div>';
+            fieldsHtml += '<div class="col-md-6">';
+            fieldsHtml += renderSingleField(phoneField);
+            fieldsHtml += '</div>';
+            fieldsHtml += '</div>';
+        }
+        
+        // Row 2: Email (complete row)
+        if (emailField) {
+            fieldsHtml += '<div class="row mb-3">';
+            fieldsHtml += '<div class="col-12">';
+            fieldsHtml += renderSingleField(emailField);
+            fieldsHtml += '</div>';
+            fieldsHtml += '</div>';
+        }
+        
+      // Row 3: Password + Confirm Password in one row
+if (passwordField || confirmPasswordField) {
+    fieldsHtml += '<div class="row mb-3">';
+
+    if (passwordField) {
+        fieldsHtml += '<div class="col-md-6">';
+        fieldsHtml += renderSingleField(passwordField);
+        fieldsHtml += '</div>';
+    }
+
+    if (confirmPasswordField) {
+        fieldsHtml += '<div class="col-md-6">';
+        fieldsHtml += renderSingleField(confirmPasswordField);
+        fieldsHtml += '</div>';
+    }
+
+    fieldsHtml += '</div>';
+}
+
+        
+        // Add note about email OR phone requirement
+        fieldsHtml += '<div class="alert alert-info mb-3">' +
+            '<small><i class="fas fa-info-circle me-1"></i> Either email or phone number is required for registration.</small>' +
+            '</div>';
+        
+        $('#customerRegisterFields').html(fieldsHtml);
+        $('#customerRegisterSubmitSection, #customerRegisterLoginSection').show();
+    }
+
+    function renderSingleField(field) {
+        let fieldHtml = '<div class="form-group">';
+        
+        // Label
+        fieldHtml += '<label class="mb-2">' + field.label;
+        if (field.is_required) {
+            fieldHtml += ' <span class="text-danger">*</span>';
+        }
+        fieldHtml += '</label>';
+        
+        // Input field
+        let inputType = field.input_type;
+        let placeholder = field.placeholder || field.label;
+        let required = field.is_required ? 'required' : '';
+        let fieldId = 'customerRegister' + capitalizeFirst(field.field_key.replace('_', ''));
+        
+        // Special handling for different input types
+        if (inputType === 'email') {
+            fieldHtml += '<input type="email" id="' + fieldId + '" name="' + field.field_key + '" class="form-control" placeholder="' + placeholder + '" ' + required + '>';
+        } else if (inputType === 'tel') {
+            fieldHtml += '<input type="tel" id="' + fieldId + '" name="' + field.field_key + '" class="form-control" placeholder="' + placeholder + '" ' + required + ' pattern="[0-9]{10}" maxlength="15">';
+        } else if (inputType === 'password') {
+            let minLength = '';
+            if (field.validation_rules && field.validation_rules.includes('min:')) {
+                const minMatch = field.validation_rules.match(/min:(\d+)/);
+                if (minMatch) {
+                    minLength = 'minlength="' + minMatch[1] + '"';
+                }
+            }
+            fieldHtml += '<div class="position-relative">';
+            fieldHtml += '<input type="password" id="' + fieldId + '" name="' + field.field_key + '" class="form-control pe-5" placeholder="' + placeholder + '" ' + required + ' ' + minLength + '>';
+            fieldHtml += '<button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted password-toggle" data-target="#' + fieldId + '">';
+            fieldHtml += '<i class="fas fa-eye"></i>';
+            fieldHtml += '</button>';
+            fieldHtml += '</div>';
+        } else {
+            let maxLength = '';
+            if (field.validation_rules && field.validation_rules.includes('max:')) {
+                const maxMatch = field.validation_rules.match(/max:(\d+)/);
+                if (maxMatch) {
+                    maxLength = 'maxlength="' + maxMatch[1] + '"';
+                }
+            }
+            fieldHtml += '<input type="text" id="' + fieldId + '" name="' + field.field_key + '" class="form-control" placeholder="' + placeholder + '" ' + required + ' ' + maxLength + '>';
+        }
+        
+        fieldHtml += '<div class="invalid-feedback"></div>';
+        
+        // Help text
+        if (field.help_text) {
+            fieldHtml += '<small class="form-text text-muted">' + field.help_text + '</small>';
+        }
+        
+        fieldHtml += '</div>';
+        
+        return fieldHtml;
+    }
+
+    function capitalizeFirst(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Customer Registration Form Handler
+    $('#customerRegisterForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Clear previous errors
+        $('#customerRegisterForm .is-invalid').removeClass('is-invalid');
+        $('#customerRegisterForm .invalid-feedback').text('');
+        $('#customerRegisterMessage').hide().html('');
+        
+        // Validate form before submission
+        if (!validateRegistrationForm()) {
+            return false;
+        }
+        
+        // Get form data
+        const formData = {};
+        $('#customerRegisterForm input').each(function() {
+            const name = $(this).attr('name');
+            const value = $(this).val().trim();
+            if (name) {
+                // Include all fields, even empty ones (server will validate)
+                formData[name] = value;
+            }
+        });
+        
+        // Add session_id for cart merging
+        let sessionId = localStorage.getItem('session_id');
+        if (sessionId) {
+            formData.session_id = sessionId;
+        }
+        
+        // Show loading state
+        $('#customerRegisterBtnText').text('Registering...');
+        $('#customerRegisterBtnSpinner').removeClass('d-none');
+        $('#customerRegisterBtn').prop('disabled', true);
+        
+        // Get CSRF token
+        const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+        
+        // Make API call
+        $.ajax({
+            url: '/api/auth/register',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+                'X-Session-ID': sessionId
+            },
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                console.log('Registration Response:', response);
+                
+                if (response.success) {
+                    // Show success message
+                    showRegistrationSuccess('Registration successful! Redirecting...');
+                    
+                    // Close modal
+                    $('#register').modal('hide');
+                    
+                    // Reload page to update UI with session
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    console.error('Registration failed:', response);
+                    showRegistrationError(response.error?.message || 'Registration failed. Please try again.');
+                    resetRegisterButton();
+                }
+            },
+            error: function(xhr) {
+                console.error('Registration Error:', xhr);
+                
+                let errorMessage = 'Registration failed. Please try again.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error.message || errorMessage;
+                    
+                    // Handle validation errors
+                    if (xhr.status === 422 && xhr.responseJSON.error.errors) {
+                        const errors = xhr.responseJSON.error.errors;
+                        let hasFieldErrors = false;
+                        
+                        Object.keys(errors).forEach(function(fieldName) {
+                            // Handle field name conversion for ID matching
+                            let fieldId = 'customerRegister' + capitalizeFirst(fieldName.replace('_', ''));
+                            const fieldInput = $('#' + fieldId);
+                            if (fieldInput.length) {
+                                fieldInput.addClass('is-invalid');
+                                fieldInput.next('.invalid-feedback').text(errors[fieldName][0]);
+                                hasFieldErrors = true;
+                            }
+                        });
+                        
+                        if (hasFieldErrors) {
+                            errorMessage = 'Please correct the errors above.';
+                        }
+                    }
+                }
+                
+                showRegistrationError(errorMessage);
+                resetRegisterButton();
+            }
+        });
+    });
+
+    function showRegistrationError(message) {
+        $('#customerRegisterMessage').html(
+            '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+            '<strong>Error!</strong> ' + message +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+            '</div>'
+        ).show();
+    }
+    
+    function showRegistrationSuccess(message) {
+        $('#customerRegisterMessage').html(
+            '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+            '<strong>Success!</strong> ' + message +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+            '</div>'
+        ).show();
+    }
+    
+    function resetRegisterButton() {
+        $('#customerRegisterBtnText').text('Register');
+        $('#customerRegisterBtnSpinner').addClass('d-none');
+        $('#customerRegisterBtn').prop('disabled', false);
+    }
+
+    // Registration form validation function
+    function validateRegistrationForm() {
+        let isValid = true;
+        
+        // Debug: Log available form fields
+        console.log('Available form fields:', $('#customerRegisterForm input').map(function() { 
+            return this.id + ' (' + this.name + ')'; 
+        }).get());
+        
+        // Get form values safely
+        const fullName = $('#customerRegisterFullName').val() ? $('#customerRegisterFullName').val().trim() : '';
+        const email = $('#customerRegisterEmail').val() ? $('#customerRegisterEmail').val().trim() : '';
+        const phone = $('#customerRegisterPhone').val() ? $('#customerRegisterPhone').val().trim() : '';
+        const password = $('#customerRegisterPassword').val() ? $('#customerRegisterPassword').val() : '';
+        const confirmPassword = $('#customerRegisterPasswordConfirmation').val() ? $('#customerRegisterPasswordConfirmation').val() : '';
+        
+        // Validate Full Name (only if field exists)
+        if ($('#customerRegisterFullName').length) {
+            if (!fullName) {
+                showFieldError('#customerRegisterFullName', 'Full name is required');
+                isValid = false;
+            } else if (fullName.length < 2) {
+                showFieldError('#customerRegisterFullName', 'Full name must be at least 2 characters');
+                isValid = false;
+            } else if (fullName.length > 255) {
+                showFieldError('#customerRegisterFullName', 'Full name cannot exceed 255 characters');
+                isValid = false;
+            }
+        }
+        
+        // Validate Email OR Phone (at least one required)
+        const hasEmail = email && email.length > 0;
+        const hasPhone = phone && phone.length > 0;
+        const emailFieldExists = $('#customerRegisterEmail').length > 0;
+        const phoneFieldExists = $('#customerRegisterPhone').length > 0;
+        
+        if ((emailFieldExists || phoneFieldExists) && !hasEmail && !hasPhone) {
+            if (emailFieldExists) showFieldError('#customerRegisterEmail', 'Either email or phone number is required');
+            if (phoneFieldExists) showFieldError('#customerRegisterPhone', 'Either email or phone number is required');
+            isValid = false;
+        }
+        
+        // Validate Email (if provided and field exists)
+        if (hasEmail && $('#customerRegisterEmail').length) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showFieldError('#customerRegisterEmail', 'Please enter a valid email address');
+                isValid = false;
+            } else if (email.length > 255) {
+                showFieldError('#customerRegisterEmail', 'Email cannot exceed 255 characters');
+                isValid = false;
+            }
+        }
+        
+        // Validate Phone (if provided and field exists)
+        if (hasPhone && $('#customerRegisterPhone').length) {
+            const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,20}$/;
+            if (!phoneRegex.test(phone)) {
+                showFieldError('#customerRegisterPhone', 'Please enter a valid phone number (10-20 digits)');
+                isValid = false;
+            } else if (phone.length > 20) {
+                showFieldError('#customerRegisterPhone', 'Phone number cannot exceed 20 characters');
+                isValid = false;
+            }
+        }
+        
+        // Validate Password (only if field exists)
+        if ($('#customerRegisterPassword').length) {
+            if (!password) {
+                showFieldError('#customerRegisterPassword', 'Password is required');
+                isValid = false;
+            } else if (password.length < 8) {
+                showFieldError('#customerRegisterPassword', 'Password must be at least 8 characters');
+                isValid = false;
+            } else if (password.length > 255) {
+                showFieldError('#customerRegisterPassword', 'Password cannot exceed 255 characters');
+                isValid = false;
+            }
+        }
+        
+        // Validate Password Confirmation (only if field exists)
+        if ($('#customerRegisterPasswordConfirmation').length) {
+            if (!confirmPassword) {
+                showFieldError('#customerRegisterPasswordConfirmation', 'Please confirm your password');
+                isValid = false;
+            } else if (password !== confirmPassword) {
+                showFieldError('#customerRegisterPasswordConfirmation', 'Passwords do not match');
+                isValid = false;
+            }
+        }
+        
+        return isValid;
+    }
+    
+    // Helper function to show field-specific errors
+    function showFieldError(fieldSelector, message) {
+        const field = $(fieldSelector);
+        if (field.length) {
+            field.addClass('is-invalid');
+            field.next('.invalid-feedback').text(message);
+            
+            // If field is inside a position-relative div (password fields), find the feedback div
+            if (field.parent().hasClass('position-relative')) {
+                field.parent().next('.invalid-feedback').text(message);
+            }
+        }
+    }
+    
+    // Real-time validation on input events
+    $(document).on('input blur', '#customerRegisterForm input', function() {
+        const fieldId = $(this).attr('id');
+        const fieldValue = $(this).val() ? $(this).val().trim() : '';
+        
+        // Clear previous states for this field
+        $(this).removeClass('is-invalid is-valid');
+        $(this).next('.invalid-feedback').text('');
+        if ($(this).parent().hasClass('position-relative')) {
+            $(this).parent().next('.invalid-feedback').text('');
+        }
+        
+        // Field-specific real-time validation
+        switch(fieldId) {
+            case 'customerRegisterFullName':
+                if (fieldValue && fieldValue.length < 2) {
+                    showFieldError('#' + fieldId, 'Full name must be at least 2 characters');
+                } else if (fieldValue && fieldValue.length > 255) {
+                    showFieldError('#' + fieldId, 'Full name cannot exceed 255 characters');
+                } else if (fieldValue && fieldValue.length >= 2) {
+                    $(this).addClass('is-valid');
+                }
+                break;
+                
+            case 'customerRegisterEmail':
+                if (fieldValue) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(fieldValue)) {
+                        showFieldError('#' + fieldId, 'Please enter a valid email address');
+                    } else if (fieldValue.length > 255) {
+                        showFieldError('#' + fieldId, 'Email cannot exceed 255 characters');
+                    } else {
+                        $(this).addClass('is-valid');
+                    }
+                }
+                break;
+                
+            case 'customerRegisterPhone':
+                if (fieldValue) {
+                    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,20}$/;
+                    if (!phoneRegex.test(fieldValue)) {
+                        showFieldError('#' + fieldId, 'Please enter a valid phone number');
+                    } else if (fieldValue.length > 20) {
+                        showFieldError('#' + fieldId, 'Phone number cannot exceed 20 characters');
+                    } else {
+                        $(this).addClass('is-valid');
+                    }
+                }
+                break;
+                
+            case 'customerRegisterPassword':
+                if (fieldValue && fieldValue.length < 8) {
+                    showFieldError('#' + fieldId, 'Password must be at least 8 characters');
+                } else if (fieldValue && fieldValue.length > 255) {
+                    showFieldError('#' + fieldId, 'Password cannot exceed 255 characters');
+                } else if (fieldValue && fieldValue.length >= 8) {
+                    $(this).addClass('is-valid');
+                }
+                // Also validate confirm password if it has a value
+                const confirmPasswordField = $('#customerRegisterPasswordConfirmation');
+                if (confirmPasswordField.length) {
+                    const confirmPassword = confirmPasswordField.val() ? confirmPasswordField.val() : '';
+                    if (confirmPassword && fieldValue !== confirmPassword) {
+                        showFieldError('#customerRegisterPasswordConfirmation', 'Passwords do not match');
+                    } else if (confirmPassword && fieldValue === confirmPassword && fieldValue.length >= 8) {
+                        confirmPasswordField.removeClass('is-invalid').addClass('is-valid');
+                        confirmPasswordField.parent().next('.invalid-feedback').text('');
+                    }
+                }
+                break;
+                
+            case 'customerRegisterPasswordConfirmation':
+                const passwordField = $('#customerRegisterPassword');
+                if (passwordField.length) {
+                    const password = passwordField.val() ? passwordField.val() : '';
+                    if (fieldValue && password !== fieldValue) {
+                        showFieldError('#' + fieldId, 'Passwords do not match');
+                    } else if (fieldValue && password === fieldValue && password.length >= 8) {
+                        $(this).addClass('is-valid');
+                    }
+                }
+                break;
+        }
+    });
+
+    // Password toggle functionality
+    $(document).on('click', '.password-toggle', function(e) {
+        e.preventDefault();
+        
+        const targetSelector = $(this).data('target');
+        const targetInput = $(targetSelector);
+        const icon = $(this).find('i');
+        
+        if (targetInput.attr('type') === 'password') {
+            targetInput.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            targetInput.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
     
     // Check if we should show login modal (from session redirect)
     @if(session('show_login'))

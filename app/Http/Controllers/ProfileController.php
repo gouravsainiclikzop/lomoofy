@@ -201,11 +201,20 @@ class ProfileController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
-            'company_logo_text' => 'required|string|max:255',
+            'company_logo_text' => 'nullable|string|max:255',
             'company_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'phone' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
+            'pincode' => 'nullable|string|max:10',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'pan_no' => 'nullable|string|max:20|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/',
+            'gst_registration_no' => 'nullable|string|max:50|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/',
+            'authorized_signatory' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ], [
+            'pan_no.regex' => 'PAN number must be in valid format (e.g., ABCDE1234F)',
+            'gst_registration_no.regex' => 'GST registration number must be in valid format (e.g., 22AAAAA0000A1Z5)',
         ]);
 
         if ($validator->fails()) {
@@ -222,7 +231,32 @@ class ProfileController extends Controller
             'phone',
             'email',
             'address',
+            'pincode',
+            'city',
+            'state',
+            'pan_no',
+            'gst_registration_no',
         ]);
+        
+        // Handle signature upload
+        if ($request->hasFile('authorized_signatory')) {
+            // Delete old signature if exists
+            if ($settings->authorized_signatory && Storage::disk('public')->exists($settings->authorized_signatory)) {
+                Storage::disk('public')->delete($settings->authorized_signatory);
+            }
+
+            // Store new signature
+            $signaturePath = $request->file('authorized_signatory')->store('company-signatures', 'public');
+            $data['authorized_signatory'] = $signaturePath;
+        }
+        
+        // Convert PAN and GST to uppercase
+        if (!empty($data['pan_no'])) {
+            $data['pan_no'] = strtoupper($data['pan_no']);
+        }
+        if (!empty($data['gst_registration_no'])) {
+            $data['gst_registration_no'] = strtoupper($data['gst_registration_no']);
+        }
 
         // Handle logo upload
         if ($request->hasFile('company_logo')) {
@@ -238,8 +272,9 @@ class ProfileController extends Controller
 
         $settings->update($data);
 
-        // Include logo URL in response
+        // Include logo and signature URLs in response
         $settings->logo_url = $settings->company_logo ? asset('storage/' . $settings->company_logo) : null;
+        $settings->signature_url = $settings->authorized_signatory ? asset('storage/' . $settings->authorized_signatory) : null;
 
         return response()->json([
             'success' => true,

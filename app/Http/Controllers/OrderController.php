@@ -685,6 +685,12 @@ class OrderController extends Controller
                 'phone' => $companySettings->phone,
                 'email' => $companySettings->email,
                 'address' => $companySettings->address,
+                'pincode' => $companySettings->pincode,
+                'city' => $companySettings->city,
+                'state' => $companySettings->state,
+                'pan_no' => $companySettings->pan_no,
+                'gst_registration_no' => $companySettings->gst_registration_no,
+                'authorized_signatory' => $companySettings->authorized_signatory ? asset('storage/' . $companySettings->authorized_signatory) : null,
             ],
             'items' => $order->items->map(function($item) {
                 $product = $item->product;

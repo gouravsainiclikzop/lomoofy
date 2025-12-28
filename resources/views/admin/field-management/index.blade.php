@@ -188,13 +188,13 @@
                 <div class="card">
                     <div class="card-header">
                         <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview-pane" type="button" role="tab" aria-controls="preview-pane" aria-selected="true">
+                            <li class="nav-item" role="presentation" style="display: none;">
+                                <button class="nav-link" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview-pane" type="button" role="tab" aria-controls="preview-pane" aria-selected="false">
                                     Form Preview
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="fields-tab" data-bs-toggle="tab" data-bs-target="#fields-pane" type="button" role="tab" aria-controls="fields-pane" aria-selected="false">
+                                <button class="nav-link active" id="fields-tab" data-bs-toggle="tab" data-bs-target="#fields-pane" type="button" role="tab" aria-controls="fields-pane" aria-selected="true">
                                     Form Fields
                                 </button>
                             </li>
@@ -202,8 +202,8 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="tab-content" id="fieldManagementTabs">
-                            <!-- Form Preview Tab -->
-                            <div class="tab-pane fade show active" id="preview-pane" role="tabpanel" aria-labelledby="preview-tab">
+                            <!-- Form Preview Tab (Hidden) -->
+                            <div class="tab-pane fade" id="preview-pane" role="tabpanel" aria-labelledby="preview-tab" style="display: none;">
                                 <div class="mb-3">
                                     <h5 class="mb-2">Form Preview - Drag & Drop to Reorder</h5>
                                     <small class="text-muted">Drag fields to change their order and group. Changes are saved automatically.</small>
@@ -219,7 +219,7 @@
                             </div>
                             
                             <!-- Fields Table Tab -->
-                            <div class="tab-pane fade" id="fields-pane" role="tabpanel" aria-labelledby="fields-tab">
+                            <div class="tab-pane fade show active" id="fields-pane" role="tabpanel" aria-labelledby="fields-tab">
                                 <div class="table-responsive">
                                     <table class="table table-hover" id="fieldsTable">
                                         <thead>
@@ -517,10 +517,11 @@ $(document).ready(function() {
         }
     });
     
-    // Initialize on page load if fields tab is active (though preview is default)
-    // DataTable will initialize when user switches to fields tab
+    // Initialize DataTable immediately since fields tab is now the default active tab
+    initializeDataTable();
     
-    loadFormPreview();
+    // Form preview is now hidden, but keep the function for potential future use
+    // loadFormPreview();
     
     // Show options field for select/radio
     $('#fieldInputType').on('change', function() {

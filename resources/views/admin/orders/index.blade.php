@@ -394,112 +394,211 @@
     box-shadow: none;
 }
 .invoice-container {
-    padding: 2rem;
+    padding: 1.5rem;
     background: white;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #000;
 }
+
 .invoice-header {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
-    margin-bottom: 2.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 2px solid #dee2e6;
-    align-items: start;
-}
-.invoice-company {
     display: flex;
-    flex-direction: column;
-}
-.invoice-company-logo-img {
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #000;
 }
-.invoice-company-logo-img img {
-    max-height: 70px;
+
+.invoice-company-logo-section {
+    flex: 1;
+}
+
+.company-logo {
+    max-height: 60px;
     max-width: 200px;
-    object-fit: contain;
 }
-.invoice-company-logo {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #212529;
-    margin-bottom: 0.75rem;
+
+.company-logo-text {
+    font-size: 24px;
+    font-weight: bold;
+    color: #000;
 }
-.invoice-company-name {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #212529;
-    margin-bottom: 0.75rem;
+
+.invoice-title-section {
+    flex: 1;
+    text-align: right;
 }
-.invoice-company-details {
-    font-size: 0.95rem;
-    color: #495057;
-    line-height: 1.8;
+
+.invoice-title-section h2 {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+    color: #000;
 }
-.invoice-company-details div {
-    margin-bottom: 0.25rem;
+
+.invoice-title-section p {
+    font-size: 12px;
+    margin: 5px 0 0 0;
+    color: #666;
 }
-.invoice-shipping {
+
+.invoice-details-row {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #000;
+}
+
+.invoice-sold-by {
+    flex: 1;
+}
+
+.invoice-addresses {
+    flex: 1;
     display: flex;
     flex-direction: column;
+    gap: 1rem;
+    text-align: right;
 }
- 
-.invoice-shipping-section-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #212529;
+
+.section-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #000;
+    font-size: 13px;
+}
+
+.company-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 13px;
+}
+
+.company-address, .customer-address, .customer-city, .customer-pincode {
+    font-size: 12px;
+    margin-bottom: 3px;
+}
+
+.customer-name {
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 3px;
+}
+
+.billing-address, .shipping-address {
+    text-align: right;
+}
+
+.billing-address .section-title, .shipping-address .section-title {
+    text-align: right;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.invoice-order-details {
+    display: flex;
+    justify-content: space-between;
     margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #dee2e6;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    font-size: 12px;
 }
-.invoice-shipping-details {
-    font-size: 0.95rem;
-    color: #212529;
-    line-height: 1.8;
-}
- 
-.invoice-shipping-label {
-    font-weight: 600;
-    color: #495057;
-    display: inline-block;
-    min-width: 140px;
-}
-.invoice-shipping-value {
-    color: #212529;
+
+.order-info-left, .order-info-right {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 .invoice-items-table {
     width: 100%;
-    margin: 2rem 0;
+    margin: 1rem 0;
+    border-collapse: collapse;
+    font-size: 12px;
 }
+
 .invoice-items-table th,
 .invoice-items-table td {
-    padding: 0.75rem;
+    padding: 8px 6px;
     text-align: left;
-    border-bottom: 1px solid #dee2e6;
+    border: 1px solid #000;
+    vertical-align: top;
 }
+
 .invoice-items-table th {
     background: #f8f9fa;
-    font-weight: 600;
+    font-weight: bold;
+    font-size: 11px;
+    text-align: center;
 }
-.invoice-totals {
-    margin-top: 2rem;
+
+.invoice-items-table td:nth-child(1),
+.invoice-items-table td:nth-child(4),
+.invoice-items-table td:nth-child(6) {
+    text-align: center;
+}
+
+.invoice-items-table td:nth-child(3),
+.invoice-items-table td:nth-child(5),
+.invoice-items-table td:nth-child(7),
+.invoice-items-table td:nth-child(8) {
     text-align: right;
 }
-.invoice-totals table {
-    width: 100%;
-    max-width: 300px;
-    margin-left: auto;
-}
-.invoice-totals td {
-    padding: 0.5rem;
-}
-.invoice-totals td:first-child {
-    text-align: left;
-    font-weight: 600;
-}
-.invoice-totals .grand-total {
-    font-size: 1.2rem;
+
+.subtotal-row td,
+.gst-row td,
+.discount-row td,
+.shipping-row td {
     font-weight: bold;
-    border-top: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.grand-total-row td {
+    font-weight: bold !important;
+    background-color: #e9ecef !important;
+    border-top: 2px solid #000 !important;
+}
+
+.amount-in-words {
+    margin: 1rem 0;
+    padding: 10px;
+    border: 1px solid #000;
+    font-size: 12px;
+}
+
+.invoice-footer {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.tax-note {
+    font-size: 12px;
+}
+
+.signature-section {
+    text-align: right;
+}
+
+.authorized-signatory {
+    font-size: 12px;
+    text-align: center;
+    min-width: 200px;
+}
+
+.signature-image {
+    margin: 10px 0;
+    text-align: center;
+}
+
+.signature-image img {
+    max-height: 60px;
+    max-width: 200px;
+    object-fit: contain;
 }
 @media print {
     .modal-header,
@@ -541,6 +640,56 @@ $(document).ready(function() {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
     });
+
+    // State and Country Code Lookup Functions
+    async function getStateCode(stateName) {
+        if (!stateName) return '';
+        
+        try {
+            const response = await fetch('{{ asset("location-json/gstcode_state.json") }}');
+            const gstData = await response.json();
+            
+            // gstcode_state.json is an array with one object containing code->state mappings
+            const gstCodes = gstData[0];
+            
+            // Find GST code by matching state name (case insensitive)
+            for (const [code, state] of Object.entries(gstCodes)) {
+                const stateNameLower = stateName.toLowerCase().trim();
+                const gstStateLower = state.toLowerCase().trim();
+                
+                // Exact match or partial match
+                if (gstStateLower === stateNameLower ||
+                    gstStateLower.includes(stateNameLower) ||
+                    stateNameLower.includes(gstStateLower)) {
+                    return code;
+                }
+            }
+            
+            return '';
+        } catch (error) {
+            console.error('Error fetching GST state code:', error);
+            return '';
+        }
+    }
+
+    async function getCountryCode(countryName = 'India') {
+        try {
+            const response = await fetch('{{ asset("location-json/countries.json") }}');
+            const countries = await response.json();
+            
+            // Find country by name (case insensitive)
+            const country = countries.find(c => 
+                c.name.toLowerCase() === countryName.toLowerCase() ||
+                c.name.toLowerCase().includes(countryName.toLowerCase()) ||
+                countryName.toLowerCase().includes(c.name.toLowerCase())
+            );
+            
+            return country ? country.iso2 : 'IN'; // Default to India
+        } catch (error) {
+            console.error('Error fetching country code:', error);
+            return 'IN'; // Default to India
+        }
+    }
     
     // Load orders on page load
     loadOrders();
@@ -896,11 +1045,15 @@ $(document).ready(function() {
         $.ajax({
             url: '{{ route("orders.show", ":id") }}'.replace(':id', id),
             type: 'GET',
-            success: function(response) {
+            success: async function(response) {
                 if(response.success) {
                     let order = response.data;
                     let shippingAddress = order.shipping_address || {};
                     let companySettings = order.company_settings || {};
+                    
+                    // Get state and country codes
+                    const stateCode = await getStateCode(shippingAddress.state);
+                    const countryCode = await getCountryCode(shippingAddress.country);
                     
                     // Build address components separately
                     let addressParts = [];
@@ -933,194 +1086,405 @@ $(document).ready(function() {
                     const statusColor = statusColors[order.status.toLowerCase()] || '#6c757d';
                     const statusText = order.status.charAt(0).toUpperCase() + order.status.slice(1);
                     
+                    // Format order date
+                    let orderDate = new Date(order.created_at).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: '2-digit', 
+                        year: 'numeric'
+                    });
+                    
+                    // Build company billing address
+                    let companyBillingParts = [];
+                    if (companySettings.company_billing_address || companySettings.address) {
+                        companyBillingParts.push(companySettings.company_billing_address || companySettings.address);
+                    }
+                    if (companySettings.company_billing_city || companySettings.city) {
+                        companyBillingParts.push(companySettings.company_billing_city || companySettings.city);
+                    }
+                    if (companySettings.company_billing_state || companySettings.state) {
+                        companyBillingParts.push(companySettings.company_billing_state || companySettings.state);
+                    }
+                    if (companySettings.company_billing_pincode || companySettings.pincode) {
+                        companyBillingParts.push(companySettings.company_billing_pincode || companySettings.pincode);
+                    }
+                    let companyBillingAddress = companyBillingParts.join(', ');
+                    
                     let invoiceHtml = `
                         <div class="invoice-container">
                             <div class="invoice-header">
-                                <!-- Left Column: Company Details -->
-                                <div class="invoice-company">
+                                <!-- Company Logo/Name -->
+                                <div class="invoice-company-logo-section">
                                     ${companySettings.company_logo ? 
-                                        `<div class="invoice-company-logo-img">
-                                            <img src="${companySettings.company_logo}" alt="Company Logo">
-                                        </div>` : 
-                                        `<div class="invoice-company-logo">${companySettings.company_logo_text || 'Lomoofy'}</div>`
+                                        `<img src="${companySettings.company_logo}" alt="Company Logo" class="company-logo">` : 
+                                        `<div class="company-logo-text">${companySettings.company_logo_text || 'Lomoofy'}</div>`
                                     }
-                                    <div class="invoice-company-name">${companySettings.company_name || 'Lomoof'}</div>
-                                    <div class="invoice-company-details">
-                                        ${companySettings.phone ? `<div>${companySettings.phone}</div>` : ''}
-                                        ${companySettings.email ? `<div>${companySettings.email}</div>` : ''}
-                                        ${companySettings.address ? `<div>${companySettings.address}</div>` : ''}
-                                    </div>
                                 </div>
                                 
-                                <!-- Right Column: Invoice Title and Shipping Details -->
-                                <div class="invoice-shipping"> 
-                                    <div class="invoice-shipping-details">
-                                        <div class="invoice-shipping-section-title">Shipping Details</div>
-                                        <div>
-                                            <span class="invoice-shipping-label">Order Id :</span>
-                                            <span class="invoice-shipping-value">${order.order_number}</span>
-                                        </div>
-                                        <div>
-                                            <span class="invoice-shipping-label">Name :</span>
-                                            <span class="invoice-shipping-value">${order.customer.full_name}</span>
-                                        </div>
-                                        <div>
-                                            <span class="invoice-shipping-label">Phone :</span>
-                                            <span class="invoice-shipping-value">${order.customer.phone || '-'}</span>
-                                        </div>
-                                        <div>
-                                            <span class="invoice-shipping-label">Email :</span>
-                                            <span class="invoice-shipping-value">${order.customer.email}</span>
-                                        </div>
-                                        <div>
-                                            <span class="invoice-shipping-label">Address :</span>
-                                            <span class="invoice-shipping-value">${address}</span>
-                                        </div>
-                                        <div>
-                                            <span class="invoice-shipping-label">City with state:</span>
-                                            <span class="invoice-shipping-value">${cityState}</span>
-                                        </div>
-                                        <div>
-                                            <span class="invoice-shipping-label">Pin Code :</span>
-                                            <span class="invoice-shipping-value">${pinCodeCountry}</span>
-                                        </div>
-                                        <div>
-                                            <span class="invoice-shipping-label">Payment Method :</span>
-                                            <span class="invoice-shipping-value">${order.payment_method || 'Offline'}</span>
-                                        </div>
+                                <!-- Invoice Title -->
+                                <div class="invoice-title-section">
+                                    <h2>Tax Invoice</h2>
+                                    <p>(Original for Recipient)</p>
+                                </div>
+                            </div>
+                            
+                            <div class="invoice-details-row">
+                                <!-- Left Column: Sold By -->
+                                <div class="invoice-sold-by">
+                                    <div class="section-title">Sold By :</div>
+                                    <div class="company-name">${companySettings.company_name || ''}</div>
+                                    <div class="company-address">${companyBillingAddress}</div>
+                                    <div class="company-country">${countryCode || 'IN'}</div>
+                                    <br>
+                                    <div><strong>PAN No:</strong> ${companySettings.pan_no || ''}</div>
+                                    <div><strong>GST Registration No:</strong> ${companySettings.gst_registration_no || ''}</div>
+                                </div>
+                                
+                                <!-- Right Column: Billing & Shipping Address -->
+                                <div class="invoice-addresses">
+                                    <div class="billing-address">
+                                        <div class="section-title">Billing Address :</div>
+                                        <div class="customer-name">${order.customer.full_name}</div>
+                                        <div class="customer-address">${address}</div>
+                                        <div class="customer-city">${cityState}</div>
+                                        <div class="customer-pincode">${pinCodeCountry}</div>
+                                        <div><strong>State/UT Code:</strong> ${stateCode || ''}</div>
+                                        <div><strong>Country Code:</strong> ${countryCode || 'IN'}</div>
                                     </div>
+                                    
+                                    <div class="shipping-address">
+                                        <div class="section-title">Shipping Address :</div> 
+                                        <div class="customer-address">${address}</div>
+                                        <div class="customer-city">${cityState}</div>
+                                        <div class="customer-pincode">${pinCodeCountry}</div>
+                                        <div><strong>State/UT Code:</strong> ${stateCode || ''}</div>
+                                        <div><strong>Country Code:</strong> ${countryCode || 'IN'}</div>
+                                        <div><strong>Place of supply:</strong> ${shippingAddress.state || ''}</div>
+                                        <div><strong>Place of delivery:</strong> ${shippingAddress.state || 'HARYANA'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="invoice-order-details">
+                                <div class="order-info-left">
+                                    <div><strong>Order Number:</strong> ${order.order_number}</div>
+                                    <div><strong>Order Date:</strong> ${orderDate}</div>
+                                </div>
+                                <div class="order-info-right">
+                                    <div><strong>Invoice Number:</strong> YNVU-${order.id}</div>
+                                    <div><strong>Invoice Details:</strong> DL-YNVU-${order.id}-${orderDate.replace(/\//g, '')}</div>
+                                    <div><strong>Invoice Date:</strong> ${orderDate}</div>
                                 </div>
                             </div>
                             
                             <table class="invoice-items-table">
                                 <thead>
                                     <tr>
-                                        <th>Item name</th>
-                                        <th>Variant</th>
+                                        <th>Sl. No</th>
+                                        <th>Description</th>
                                         <th>Unit Price</th>
-                                        <th>GST</th>
-                                        <th>Quantity</th>
-                                        <th>Total</th>
+                                        <th>Qty</th>
+                                        <th>Net Amount</th>
+                                        <th>Tax Rate</th>
+                                        <th>Tax Amount</th>
+                                        <th>Total Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                     `;
                     
+                    // Get company and customer state codes for GST calculation
+                    // Map state names to GST codes
+                    const stateGstCodes = {
+                        'Jammu And Kashmir': '01', 'Himachal Pradesh': '02', 'Punjab': '03', 'Chandigarh': '04',
+                        'Uttarakhand': '05', 'Haryana': '06', 'Delhi': '07', 'Rajasthan': '08', 'Uttar Pradesh': '09',
+                        'Bihar': '10', 'Sikkim': '11', 'Arunachal Pradesh': '12', 'Nagaland': '13', 'Manipur': '14',
+                        'Mizoram': '15', 'Tripura': '16', 'Meghalaya': '17', 'Assam': '18', 'West Bengal': '19',
+                        'Jharkhand': '20', 'Odisha': '21', 'Chhattisgarh': '22', 'Madhya Pradesh': '23', 'Gujarat': '24',
+                        'Daman And Diu': '25', 'Dadra & Nagar Haveli and Daman & Diu': '26', 'Maharashtra': '27',
+                        'Andhra Pradesh': '28', 'Karnataka': '29', 'Goa': '30', 'Lakshadweep': '31', 'Kerala': '32',
+                        'Tamil Nadu': '33', 'Puducherry': '34', 'Andaman And Nicobar islands': '35', 'Telangana': '36',
+                        'Ladakh': '38'
+                    };
+                    
+                    // Get company state code
+                    let companyState = companySettings.state || companySettings.company_billing_state || 'Haryana';
+                    let companyStateCode = stateGstCodes[companyState] || '06';
+                    
+                    // Get customer state code
+                    let customerState = shippingAddress.state || 'Haryana';
+                    let customerStateCode = stateGstCodes[customerState] || '06';
+                    
+                    // Compare state codes for GST calculation
+                    let isSameState = companyStateCode === customerStateCode;
+                    
+                    console.log('Company State:', companyState, 'Code:', companyStateCode);
+                    console.log('Customer State:', customerState, 'Code:', customerStateCode);
+                    console.log('Same State:', isSameState);
+                    
                     // Calculate total GST and track exclusive GST amount
                     let totalGstAmount = 0;
-                    let exclusiveGstAmount = 0; // GST amount that needs to be added to grand total
+                    let exclusiveGstAmount = 0;
                     let gstBreakdown = {};
+                    let cgstBreakdown = {};
+                    let sgstBreakdown = {};
+                    let igstBreakdown = {};
                     
-                    order.items.forEach(function(item) {
+                    order.items.forEach(function(item, index) {
                         let itemGstAmount = 0;
-                        // Handle GST type: true/1 = Inclusive, false/0 = Exclusive, default to Inclusive
-                        let gstType = item.gst_type !== undefined && item.gst_type !== null 
-                            ? (item.gst_type === true || item.gst_type === 1 || item.gst_type === '1' || item.gst_type === 'true') 
-                            : true;
-                        let gstPercentage = item.gst_percentage !== null && item.gst_percentage !== undefined 
-                            ? parseFloat(item.gst_percentage) 
-                            : 0;
-                        let itemTotal = parseFloat(item.total_price) || 0;
+                        // Get GST from product (use product's GST settings)
+                        let gstType = item.product && item.product.gst_type !== undefined && item.product.gst_type !== null 
+                            ? (item.product.gst_type === true || item.product.gst_type === 1 || item.product.gst_type === '1' || item.product.gst_type === 'true') 
+                            : true; // Default to inclusive
+                        let gstPercentage = item.product && item.product.gst_percentage !== null && item.product.gst_percentage !== undefined 
+                            ? parseFloat(item.product.gst_percentage) 
+                            : 18; // Default to 18% GST
                         
-                        // Format GST display
-                        let gstDisplay = '-';
-                        if (gstPercentage > 0) {
-                            let gstTypeText = gstType ? 'Inclusive' : 'Exclusive';
-                            gstDisplay = `${gstPercentage}% (${gstTypeText})`;
+                        let itemTotal = parseFloat(item.total_price) || 0;
+                        let unitPrice = parseFloat(item.unit_price) || 0;
+                        let quantity = parseInt(item.quantity) || 1;
+                        
+                        // Calculate net amount (amount without GST)
+                        let netAmount = 0;
+                        if (gstType) {
+                            // Inclusive GST: Net = Total / (1 + GST/100)
+                            netAmount = itemTotal / (1 + gstPercentage / 100);
+                        } else {
+                            // Exclusive GST: Net = Total (GST will be added separately)
+                            netAmount = itemTotal;
                         }
                         
-                        // Calculate GST amount if percentage is set
-                        if (gstPercentage > 0 && itemTotal > 0) {
+                        // Calculate GST amount
+                        let cgstAmount = 0;
+                        let sgstAmount = 0;
+                        let igstAmount = 0;
+                        
+                        if (gstPercentage > 0) {
                             if (gstType) {
-                                // Inclusive of GST: GST = (total * percentage) / (100 + percentage)
-                                // Example: If total is ₹118 with 18% inclusive GST, GST = (118 * 18) / 118 = 18
-                                itemGstAmount = (itemTotal * gstPercentage) / (100 + gstPercentage);
+                                // Inclusive of GST: GST = Total - Net
+                                itemGstAmount = itemTotal - netAmount;
                             } else {
-                                // Exclusive of GST: GST = (total * percentage) / 100
-                                // Example: If total is ₹100 with 18% exclusive GST, GST = (100 * 18) / 100 = 18
-                                itemGstAmount = (itemTotal * gstPercentage) / 100;
-                                // For exclusive GST, we need to add this to the grand total
+                                // Exclusive of GST: GST = Net * (GST/100)
+                                itemGstAmount = netAmount * (gstPercentage / 100);
                                 exclusiveGstAmount += itemGstAmount;
                             }
                             
-                            totalGstAmount += itemGstAmount;
-                            
-                            // Group by GST percentage and type for breakdown
-                            let gstTypeText = gstType ? 'Inclusive' : 'Exclusive';
-                            let gstKey = `${gstPercentage}% (${gstTypeText})`;
-                            if (!gstBreakdown[gstKey]) {
-                                gstBreakdown[gstKey] = 0;
+                            // State-wise GST breakdown
+                            if (isSameState) {
+                                // Same state: CGST + SGST (half each)
+                                cgstAmount = itemGstAmount / 2;
+                                sgstAmount = itemGstAmount / 2;
+                                
+                                // Track CGST breakdown
+                                let cgstKey = `CGST ${gstPercentage/2}%`;
+                                if (!cgstBreakdown[cgstKey]) {
+                                    cgstBreakdown[cgstKey] = 0;
+                                }
+                                cgstBreakdown[cgstKey] += cgstAmount;
+                                
+                                // Track SGST breakdown
+                                let sgstKey = `SGST ${gstPercentage/2}%`;
+                                if (!sgstBreakdown[sgstKey]) {
+                                    sgstBreakdown[sgstKey] = 0;
+                                }
+                                sgstBreakdown[sgstKey] += sgstAmount;
+                            } else {
+                                // Different state: IGST (full amount)
+                                igstAmount = itemGstAmount;
+                                
+                                // Track IGST breakdown
+                                let igstKey = `IGST ${gstPercentage}%`;
+                                if (!igstBreakdown[igstKey]) {
+                                    igstBreakdown[igstKey] = 0;
+                                }
+                                igstBreakdown[igstKey] += igstAmount;
                             }
-                            gstBreakdown[gstKey] += itemGstAmount;
+                            
+                            totalGstAmount += itemGstAmount;
+                        }
+                        
+                        // Format GST display for tax rate column
+                        let gstDisplay = '';
+                        if (gstPercentage > 0) {
+                            if (isSameState) {
+                                gstDisplay = `CGST ${(gstPercentage/2).toFixed(1)}%<br>SGST ${(gstPercentage/2).toFixed(1)}%`;
+                            } else {
+                                gstDisplay = `IGST ${gstPercentage}%`;
+                            }
+                        } else {
+                            gstDisplay = '-';
                         }
                         
                         invoiceHtml += `
                             <tr>
-                                <td>${item.product_name}</td>
-                                <td>${item.variant_name || '-'}</td>
-                                <td>₹ ${parseFloat(item.unit_price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td>${index + 1}</td>
+                                <td>${item.product_name}${item.variant_name ? ' | ' + item.variant_name : ''}<br>
+                                    <small>HSN:${item.hsn_code || '4202'}</small></td>
+                                <td>₹${unitPrice.toFixed(2)}</td>
+                                <td>${quantity}</td>
+                                <td>₹${netAmount.toFixed(2)}</td>
                                 <td>${gstDisplay}</td>
-                                <td>${item.quantity}</td>
-                                <td>₹ ${parseFloat(item.total_price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td>₹${itemGstAmount.toFixed(2)}</td>
+                                <td>₹${(netAmount + itemGstAmount).toFixed(2)}</td>
                             </tr>
                         `;
                     });
                     
-                    invoiceHtml += `
-                                </tbody>
-                            </table>
-                            
-                            <div class="invoice-totals">
-                                <table>
-                                    <tr>
-                                        <td>SubTotal</td>
-                                        <td>₹ ${parseFloat(order.subtotal).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Discount</td>
-                                        <td>₹ ${parseFloat(order.discount_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                    </tr>`;
-                    
-                    // Show GST breakdown if there is any GST
-                    if (totalGstAmount > 0) {
-                        // Show individual GST breakdowns if multiple rates
-                        let gstKeys = Object.keys(gstBreakdown);
-                        if (gstKeys.length > 1) {
-                            gstKeys.forEach(function(key) {
-                                invoiceHtml += `
-                                    <tr>
-                                        <td>GST ${key}</td>
-                                        <td>₹ ${parseFloat(gstBreakdown[key]).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                    </tr>`;
-                            });
-                        }
-                        invoiceHtml += `
-                                    <tr>
-                                        <td>Total GST</td>
-                                        <td>₹ ${parseFloat(totalGstAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                    </tr>`;
-                    }
-                    
-                    invoiceHtml += `
-                                    <tr>
-                                        <td>Delivery Charges</td>
-                                        <td>₹ ${parseFloat(order.shipping_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                    </tr>`;
-                    
-                    // Calculate correct Grand Total
-                    // For Inclusive GST: Subtotal already includes GST, so: Subtotal - Discount + Shipping
-                    // For Exclusive GST: Subtotal does NOT include GST, so: Subtotal - Discount + Exclusive GST + Shipping
+                    // Calculate totals
                     let subtotal = parseFloat(order.subtotal) || 0;
                     let discount = parseFloat(order.discount_amount || 0);
                     let shipping = parseFloat(order.shipping_amount || 0);
                     let calculatedGrandTotal = subtotal - discount + exclusiveGstAmount + shipping;
                     
+                    // Convert amount to words
+                    function numberToWords(amount) {
+                        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+                        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+                        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+                        
+                        function convertHundreds(num) {
+                            let result = '';
+                            
+                            if (num > 99) {
+                                result += ones[Math.floor(num / 100)] + ' Hundred ';
+                                num %= 100;
+                            }
+                            
+                            if (num >= 20) {
+                                result += tens[Math.floor(num / 10)] + ' ';
+                                num %= 10;
+                            } else if (num >= 10) {
+                                result += teens[num - 10] + ' ';
+                                return result;
+                            }
+                            
+                            if (num > 0) {
+                                result += ones[num] + ' ';
+                            }
+                            
+                            return result;
+                        }
+                        
+                        if (amount === 0) return 'Zero Only';
+                        
+                        let num = Math.floor(amount);
+                        let result = '';
+                        
+                        // Crores
+                        if (num >= 10000000) {
+                            result += convertHundreds(Math.floor(num / 10000000)) + 'Crore ';
+                            num %= 10000000;
+                        }
+                        
+                        // Lakhs
+                        if (num >= 100000) {
+                            result += convertHundreds(Math.floor(num / 100000)) + 'Lakh ';
+                            num %= 100000;
+                        }
+                        
+                        // Thousands
+                        if (num >= 1000) {
+                            result += convertHundreds(Math.floor(num / 1000)) + 'Thousand ';
+                            num %= 1000;
+                        }
+                        
+                        // Hundreds, tens, and ones
+                        if (num > 0) {
+                            result += convertHundreds(num);
+                        }
+                        
+                        // Add decimal part if exists
+                        let decimal = Math.round((amount - Math.floor(amount)) * 100);
+                        if (decimal > 0) {
+                            result += 'and ' + convertHundreds(decimal) + 'Paise ';
+                        }
+                        
+                        return result.trim() + ' Only';
+                    }
+                    
                     invoiceHtml += `
-                                    <tr class="grand-total">
-                                        <td>Grand Total</td>
-                                        <td>₹ ${calculatedGrandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <!-- Subtotal and GST breakdown rows -->
+                                    <tr class="subtotal-row">
+                                        <td colspan="7" style="text-align: right; font-weight: bold;">Subtotal:</td>
+                                        <td style="font-weight: bold;">₹${subtotal.toFixed(2)}</td>
+                                    </tr>`;
+                            
+                    // Add GST breakdown to main table
+                    if (isSameState) {
+                        // Same state: Show CGST and SGST totals
+                        Object.keys(cgstBreakdown).forEach(function(key) {
+                            invoiceHtml += `
+                                    <tr class="gst-row">
+                                        <td colspan="7" style="text-align: right; font-weight: bold;">${key}:</td>
+                                        <td style="font-weight: bold;">₹${cgstBreakdown[key].toFixed(2)}</td>
+                                    </tr>`;
+                        });
+                        Object.keys(sgstBreakdown).forEach(function(key) {
+                            invoiceHtml += `
+                                    <tr class="gst-row">
+                                        <td colspan="7" style="text-align: right; font-weight: bold;">${key}:</td>
+                                        <td style="font-weight: bold;">₹${sgstBreakdown[key].toFixed(2)}</td>
+                                    </tr>`;
+                        });
+                    } else {
+                        // Different state: Show IGST total
+                        Object.keys(igstBreakdown).forEach(function(key) {
+                            invoiceHtml += `
+                                    <tr class="gst-row">
+                                        <td colspan="7" style="text-align: right; font-weight: bold;">${key}:</td>
+                                        <td style="font-weight: bold;">₹${igstBreakdown[key].toFixed(2)}</td>
+                                    </tr>`;
+                        });
+                    }
+                    
+                    // Add discount and shipping if applicable
+                    if (discount > 0) {
+                        invoiceHtml += `
+                                    <tr class="discount-row">
+                                        <td colspan="7" style="text-align: right; font-weight: bold;">Discount:</td>
+                                        <td style="font-weight: bold;">-₹${discount.toFixed(2)}</td>
+                                    </tr>`;
+                    }
+                    
+                    if (shipping > 0) {
+                        invoiceHtml += `
+                                    <tr class="shipping-row">
+                                        <td colspan="7" style="text-align: right; font-weight: bold;">Shipping Charges:</td>
+                                        <td style="font-weight: bold;">₹${shipping.toFixed(2)}</td>
+                                    </tr>`;
+                    }
+                    
+                    // Grand Total
+                    invoiceHtml += `
+                                    <tr class="grand-total-row">
+                                        <td colspan="7" style="text-align: right; font-weight: bold; background-color: #f8f9fa;">Total:</td>
+                                        <td style="font-weight: bold; background-color: #f8f9fa;">₹${calculatedGrandTotal.toFixed(2)}</td>
                                     </tr>
-                                </table>
+                                </tbody>
+                            </table>
+                            
+                            <div class="amount-in-words">
+                                <strong>Amount in Words:</strong><br>
+                                ${numberToWords(calculatedGrandTotal)}
+                            </div>
+                            
+                            <div class="invoice-footer">
+                                <div class="tax-note">
+                                    <p>Whether tax is payable under reverse charge - No</p>
+                                </div>
+                                
+                                <div class="signature-section">
+                                    <div class="authorized-signatory">
+                                        <p>For ${companySettings.company_name || ''}:</p>
+                                        <br>
+                                        ${companySettings.authorized_signatory ? 
+                                            `<div class="signature-image">
+                                                <img src="${companySettings.authorized_signatory}" alt="Authorized Signature" style="max-height: 60px; max-width: 200px;">
+                                            </div>` : 
+                                            '<br><br>'
+                                        }
+                                        <p>Authorized Signatory</p>
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="text-center mt-4">

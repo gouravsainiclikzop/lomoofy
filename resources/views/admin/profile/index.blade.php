@@ -105,7 +105,7 @@
                                 <label class="form-label text-muted mb-1">Company Name</label>
                                 <div class="fw-medium" id="displayCompanyName">{{ $companySettings->company_name ?? 'Lomoof' }}</div>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-3" style="display: none;">
                                 <label class="form-label text-muted mb-1">Company Logo Text</label>
                                 <div class="fw-medium" id="displayCompanyLogoText">{{ $companySettings->company_logo_text ?? 'Lomoofy' }}</div>
                             </div>
@@ -130,6 +130,36 @@
                             <div class="col-12 mb-3">
                                 <label class="form-label text-muted mb-1">Address</label>
                                 <div class="fw-medium" id="displayCompanyAddress">{{ $companySettings->address ?? '-' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted mb-1">Pincode</label>
+                                <div class="fw-medium" id="displayCompanyPincode">{{ $companySettings->pincode ?? '-' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted mb-1">City</label>
+                                <div class="fw-medium" id="displayCompanyCity">{{ $companySettings->city ?? '-' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted mb-1">State</label>
+                                <div class="fw-medium" id="displayCompanyState">{{ $companySettings->state ?? '-' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted mb-1">PAN Number</label>
+                                <div class="fw-medium" id="displayCompanyPanNo">{{ $companySettings->pan_no ?? '-' }}</div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label text-muted mb-1">GST Registration Number</label>
+                                <div class="fw-medium" id="displayCompanyGstNo">{{ $companySettings->gst_registration_no ?? '-' }}</div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label text-muted mb-1">Authorized Signatory</label>
+                                <div class="fw-medium" id="displayCompanySignatory">
+                                    @if($companySettings->authorized_signatory ?? null)
+                                        <img src="{{ asset('storage/' . $companySettings->authorized_signatory) }}" alt="Authorized Signatory" style="max-height: 60px; max-width: 200px;" class="img-thumbnail">
+                                    @else
+                                        <span class="text-muted">No signature uploaded</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -305,9 +335,9 @@
                         <input type="text" class="form-control" id="company_name" name="company_name" value="{{ $companySettings->company_name ?? 'Lomoof' }}" required>
                         <div class="invalid-feedback"></div>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" style="display: none;">
                         <label for="company_logo_text" class="form-label">Company Logo Text</label>
-                        <input type="text" class="form-control" id="company_logo_text" name="company_logo_text" value="{{ $companySettings->company_logo_text ?? 'Lomoofy' }}" required>
+                        <input type="text" class="form-control" id="company_logo_text" name="company_logo_text" value="{{ $companySettings->company_logo_text ?? 'Lomoofy' }}">
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3">
@@ -337,6 +367,66 @@
                     <div class="mb-3">
                         <label for="company_address" class="form-label">Address</label>
                         <textarea class="form-control" id="company_address" name="address" rows="3">{{ $companySettings->address ?? '' }}</textarea>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- New Fields -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="company_pincode" class="form-label">Pincode</label>
+                                <input type="text" class="form-control" id="company_pincode" name="pincode" value="{{ $companySettings->pincode ?? '' }}" maxlength="10" placeholder="Enter pincode">
+                                <div id="pincodeLoader" class="text-muted small mt-1" style="display: none;">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    Looking up location...
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="company_city" class="form-label">City</label>
+                                <input type="text" class="form-control" id="company_city" name="city" value="{{ $companySettings->city ?? '' }}" placeholder="Enter city" readonly>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="company_state" class="form-label">State</label>
+                                <input type="text" class="form-control" id="company_state" name="state" value="{{ $companySettings->state ?? '' }}" placeholder="Enter state" readonly>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="company_pan_no" class="form-label">PAN Number</label>
+                                <input type="text" class="form-control" id="company_pan_no" name="pan_no" value="{{ $companySettings->pan_no ?? '' }}" maxlength="20" placeholder="Enter PAN number (e.g., ABCDE1234F)" style="text-transform: uppercase;">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="company_gst_registration_no" class="form-label">GST Registration Number</label>
+                        <input type="text" class="form-control" id="company_gst_registration_no" name="gst_registration_no" value="{{ $companySettings->gst_registration_no ?? '' }}" maxlength="50" placeholder="Enter GST registration number (e.g., 22AAAAA0000A1Z5)" style="text-transform: uppercase;">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="company_authorized_signatory" class="form-label">Authorized Signatory</label>
+                        <input type="file" class="form-control" id="company_authorized_signatory" name="authorized_signatory" accept="image/*">
+                        <small class="text-muted">Accepted formats: JPEG, PNG, JPG, GIF, SVG (Max: 2MB)</small>
+                        @if($companySettings->authorized_signatory ?? null)
+                            <div class="mt-2">
+                                <img src="{{ asset('storage/' . $companySettings->authorized_signatory) }}" alt="Current Signature" style="max-height: 80px; max-width: 200px;" class="img-thumbnail">
+                                <div class="mt-1">
+                                    <small class="text-muted">Current signature</small>
+                                </div>
+                            </div>
+                        @endif
                         <div class="invalid-feedback"></div>
                     </div>
                 </div>
@@ -615,6 +705,60 @@ $(document).ready(function() {
         });
     });
 
+    // Pincode lookup functionality for company settings
+    let pincodeTimeout;
+    $('#company_pincode').on('input', function() {
+        const pincode = $(this).val().trim();
+        
+        // Clear previous timeout
+        clearTimeout(pincodeTimeout);
+        
+        // Reset city and state fields
+        $('#company_city, #company_state').val('');
+        
+        if (pincode.length >= 6) {
+            // Show loader
+            $('#pincodeLoader').show();
+            
+            // Debounce the API call
+            pincodeTimeout = setTimeout(function() {
+                $.ajax({
+                    url: '{{ route("frontend.location-by-pincode") }}',
+                    method: 'GET',
+                    data: { pincode: pincode },
+                    success: function(response) {
+                        $('#pincodeLoader').hide();
+                        
+                        if (response.success && response.data) {
+                            $('#company_city').val(response.data.city || '');
+                            $('#company_state').val(response.data.state || '');
+                            
+                            // Show success feedback
+                            $('#company_pincode').removeClass('is-invalid').addClass('is-valid');
+                        } else {
+                            // Show error feedback
+                            $('#company_pincode').removeClass('is-valid').addClass('is-invalid');
+                            showToast('error', response.message || 'Location not found for this pincode');
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#pincodeLoader').hide();
+                        $('#company_pincode').removeClass('is-valid').addClass('is-invalid');
+                        
+                        let errorMessage = 'Error looking up location';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        showToast('error', errorMessage);
+                    }
+                });
+            }, 500); // 500ms delay
+        } else {
+            $('#pincodeLoader').hide();
+            $('#company_pincode').removeClass('is-valid is-invalid');
+        }
+    });
+
     // Company Settings Form
     $('#companySettingsForm').on('submit', function(e) {
         e.preventDefault();
@@ -653,6 +797,18 @@ $(document).ready(function() {
                     $('#displayCompanyPhone').text(response.settings.phone || '-');
                     $('#displayCompanyEmail').text(response.settings.email || '-');
                     $('#displayCompanyAddress').text(response.settings.address || '-');
+                    $('#displayCompanyPincode').text(response.settings.pincode || '-');
+                    $('#displayCompanyCity').text(response.settings.city || '-');
+                    $('#displayCompanyState').text(response.settings.state || '-');
+                    $('#displayCompanyPanNo').text(response.settings.pan_no || '-');
+                    $('#displayCompanyGstNo').text(response.settings.gst_registration_no || '-');
+                    
+                    // Update signature display
+                    if (response.settings.signature_url) {
+                        $('#displayCompanySignatory').html(`<img src="${response.settings.signature_url}" alt="Authorized Signatory" style="max-height: 60px; max-width: 200px;" class="img-thumbnail">`);
+                    } else {
+                        $('#displayCompanySignatory').html('<span class="text-muted">No signature uploaded</span>');
+                    }
                     
                     // Update logo display
                     if (response.settings.logo_url) {
@@ -661,8 +817,12 @@ $(document).ready(function() {
                         $('#displayCompanyLogo').html('<span class="text-muted">No logo uploaded</span>');
                     }
                     
-                    // Reset form to clear file input
+                    // Reset form and clear all fields
                     form[0].reset();
+                    
+                    // Manually clear all input fields to empty values
+                    form.find('input[type="text"], input[type="email"], input[type="tel"], textarea').val('');
+                    form.find('input[type="file"]').val('');
                     
                     // Close modal
                     $('#companySettingsModal').modal('hide');
@@ -689,6 +849,39 @@ $(document).ready(function() {
                 spinner.addClass('d-none');
             }
         });
+    });
+
+    // Populate company settings form when modal is opened for editing
+    $('#companySettingsModal').on('show.bs.modal', function() {
+        const form = $('#companySettingsForm');
+        
+        // Clear validation states
+        form.find('.is-invalid').removeClass('is-invalid');
+        form.find('.invalid-feedback').text('');
+        
+        // Reset button state
+        const submitBtn = form.find('button[type="submit"]');
+        const btnText = submitBtn.find('.btn-text');
+        const spinner = submitBtn.find('.spinner-border');
+        
+        submitBtn.prop('disabled', false);
+        btnText.removeClass('d-none');
+        spinner.addClass('d-none');
+        
+        // Populate form with current data from display elements
+        $('#company_name').val($('#displayCompanyName').text().trim());
+        $('#company_logo_text').val($('#displayCompanyLogoText').text().trim());
+        $('#company_phone').val($('#displayCompanyPhone').text().trim() === '-' ? '' : $('#displayCompanyPhone').text().trim());
+        $('#company_email').val($('#displayCompanyEmail').text().trim() === '-' ? '' : $('#displayCompanyEmail').text().trim());
+        $('#company_address').val($('#displayCompanyAddress').text().trim() === '-' ? '' : $('#displayCompanyAddress').text().trim());
+        $('#company_pincode').val($('#displayCompanyPincode').text().trim() === '-' ? '' : $('#displayCompanyPincode').text().trim());
+        $('#company_city').val($('#displayCompanyCity').text().trim() === '-' ? '' : $('#displayCompanyCity').text().trim());
+        $('#company_state').val($('#displayCompanyState').text().trim() === '-' ? '' : $('#displayCompanyState').text().trim());
+        $('#company_pan_no').val($('#displayCompanyPanNo').text().trim() === '-' ? '' : $('#displayCompanyPanNo').text().trim());
+        $('#company_gst_registration_no').val($('#displayCompanyGstNo').text().trim() === '-' ? '' : $('#displayCompanyGstNo').text().trim());
+        
+        // Clear file inputs (they can't be pre-populated for security reasons)
+        form.find('input[type="file"]').val('');
     });
 
     // Toast notification function

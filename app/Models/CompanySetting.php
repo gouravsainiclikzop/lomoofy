@@ -13,6 +13,12 @@ class CompanySetting extends Model
         'phone',
         'email',
         'address',
+        'pincode',
+        'city',
+        'state',
+        'pan_no',
+        'gst_registration_no',
+        'authorized_signatory',
     ];
 
     /**

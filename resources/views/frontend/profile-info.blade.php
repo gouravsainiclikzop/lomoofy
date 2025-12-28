@@ -65,11 +65,47 @@
 						@csrf
 						
 						@if($fields && $fields->count() > 0)
-							@foreach($fields as $field)
+							@php
+								// Define the specific field sequence requested
+								$fieldSequence = ['full_name', 'profile_image', 'phone', 'email', 'date_of_birth', 'gender'];
+								
+								// Combine basic_info and qol fields for processing
+								$allFields = collect($fields);
+								if($qolFields && $qolFields->count() > 0) {
+									$allFields = $allFields->merge($qolFields);
+								}
+								
+								// Create a keyed collection for easy lookup
+								$fieldsKeyed = $allFields->keyBy('field_key');
+								
+								// Sort fields according to the defined sequence
+								$sortedFields = collect();
+								foreach($fieldSequence as $fieldKey) {
+									if($fieldsKeyed->has($fieldKey)) {
+										$sortedFields->push($fieldsKeyed->get($fieldKey));
+									}
+								}
+								
+								// Add any remaining fields that weren't in the sequence
+								foreach($fieldsKeyed as $field) {
+									if(!in_array($field->field_key, $fieldSequence)) {
+										$sortedFields->push($field);
+									}
+								}
+							@endphp
+							
+							@foreach($sortedFields as $field)
 								@php
-									// Determine column width based on field type
+									// Determine column width based on specific field requirements
 									$colClass = 'col-xl-12 col-lg-12 col-md-12 col-sm-12';
-									if (in_array($field->input_type, ['text', 'email', 'tel', 'number', 'date'])) {
+									
+									// Phone and Email should be in the same row (6 columns each)
+									if (in_array($field->field_key, ['phone', 'email'])) {
+										$colClass = 'col-xl-6 col-lg-6 col-md-12 col-sm-12';
+									}
+									// Other fields that can be half-width
+									elseif (in_array($field->input_type, ['text', 'number', 'date', 'select']) && 
+											!in_array($field->field_key, ['full_name', 'profile_image'])) {
 										$colClass = 'col-xl-6 col-lg-6 col-md-12 col-sm-12';
 									}
 									
@@ -137,7 +173,52 @@
 											@endif
 										</label>
 										
-										@if($field->input_type === 'textarea')
+										@if($field->input_type === 'file')
+											<!-- File Upload Field -->
+											@php
+									$fileUrl = null;
+												if ($fieldValue) {
+										$fileUrl = \Storage::disk('public')->url($fieldValue);
+									}
+								@endphp
+											<div class="file-upload-wrapper">
+												@if($fileUrl && file_exists(public_path('storage/' . $fieldValue)))
+													<div class="mb-3" id="preview_container_{{ $field->field_key }}">
+														<img src="{{ $fileUrl }}" 
+															 alt="{{ $field->label }}" 
+														 class="img-thumbnail" 
+														 style="max-width: 200px; max-height: 200px; object-fit: cover;"
+														 id="preview_{{ $field->field_key }}"
+														 onerror="this.onerror=null;this.src='{{ asset('frontend/images/user-image.webp') }}';">
+														<p class="small text-muted mt-2 mb-0" id="preview_label_{{ $field->field_key }}" style="display: none;">
+															{{ $field->label }}
+													</p>
+												</div>
+												@endif
+												
+												<input 
+													type="file"
+													class="form-control"
+													id="{{ $field->field_key }}"
+													name="{{ $field->field_key }}"
+													accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+													@if($field->is_required && !$fileUrl) required @endif
+													@if($field->help_text) aria-describedby="{{ $field->field_key }}_help" @endif
+													onchange="previewImage(this, 'preview_{{ $field->field_key }}', 'preview_container_{{ $field->field_key }}', 'preview_label_{{ $field->field_key }}', '{{ $field->label }}')"
+												>
+												
+												@if(!$fileUrl)
+													<small class="text-muted d-block mt-1">
+														Accepted formats: JPEG, JPG, PNG, GIF, WEBP (Max: 2MB)
+													</small>
+												@else
+													<small class="text-muted d-block mt-1">
+														Accepted formats: JPEG, JPG, PNG, GIF, WEBP (Max: 2MB)
+													</small>
+												@endif
+											</div>
+										
+										@elseif($field->input_type === 'textarea')
 											<textarea 
 												class="form-control {{ $field->field_key === 'about_us' ? 'ht-80' : '' }}"
 												id="{{ $field->field_key }}"
@@ -235,206 +316,6 @@
 							</div>
 						@endif
 						
-						<!-- Quality-of-Life Fields Section -->
-						@if($qolFields && $qolFields->count() > 0)
-							<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 mt-4">
-								<hr class="my-4">
-								<h5 class="mb-3">Quality-of-Life Fields</h5>
-							</div>
-							
-							@foreach($qolFields as $field)
-								@php
-									// Determine column width based on field type
-									$colClass = 'col-xl-12 col-lg-12 col-md-12 col-sm-12';
-									if (in_array($field->input_type, ['text', 'email', 'tel', 'number', 'date'])) {
-										$colClass = 'col-xl-6 col-lg-6 col-md-12 col-sm-12';
-									}
-									
-									// Get field value from customer
-									$fieldValue = null;
-									if ($customer) {
-										// For date fields, get raw value to avoid Carbon instance issues
-										if ($field->input_type === 'date') {
-											// Try to get original/raw value first, then fall back to cast value
-											$rawValue = $customer->getOriginal($field->field_key);
-											if ($rawValue === null) {
-												$castValue = $customer->{$field->field_key};
-												$fieldValue = $castValue ? $castValue : old($field->field_key, '');
-											} else {
-												$fieldValue = $rawValue ? $rawValue : old($field->field_key, '');
-											}
-										} else {
-											$fieldValue = isset($customer->{$field->field_key}) && $customer->{$field->field_key} !== null
-												? $customer->{$field->field_key} 
-												: old($field->field_key, '');
-										}
-									} else {
-										$fieldValue = old($field->field_key, '');
-									}
-									
-									// Format date fields for HTML date input (requires Y-m-d format)
-									if ($field->input_type === 'date' && $fieldValue) {
-										try {
-											// Handle Carbon instances (from model date casting)
-											if (is_object($fieldValue) && method_exists($fieldValue, 'format')) {
-												$fieldValue = $fieldValue->format('Y-m-d');
-											} elseif (is_string($fieldValue)) {
-												// Parse string dates - handle both Y-m-d and other formats
-												$parsed = \Carbon\Carbon::parse($fieldValue);
-												$fieldValue = $parsed->format('Y-m-d');
-											}
-										} catch (\Exception $e) {
-											$fieldValue = '';
-										}
-									}
-									
-									// For file fields, get the full URL
-									$fileUrl = null;
-									if ($field->input_type === 'file' && $fieldValue) {
-										$fileUrl = \Storage::disk('public')->url($fieldValue);
-									}
-								@endphp
-								
-								<div class="{{ $colClass }}">
-									<div class="form-group">
-										<label class="small text-dark ft-medium mb-2">
-											{{ $field->label }}
-											@if($field->is_required)
-												<span class="text-danger">*</span>
-											@endif
-										</label>
-										
-										@if($field->input_type === 'file')
-											<!-- File Upload with Preview -->
-											<div class="file-upload-wrapper">
-												<div class="mb-3" id="preview_container_{{ $field->field_key }}" style="{{ $fileUrl ? '' : 'display: none;' }}">
-													<img src="{{ $fileUrl ?: '#' }}" 
-														 alt="Current {{ $field->label }}" 
-														 class="img-thumbnail" 
-														 style="max-width: 200px; max-height: 200px; object-fit: cover;"
-														 id="preview_{{ $field->field_key }}"
-														 onerror="this.onerror=null;this.src='{{ asset('frontend/images/user-image.webp') }}';">
-													<p class="small text-muted mt-2 mb-0" id="preview_label_{{ $field->field_key }}">
-														{{ $fileUrl ? 'Current ' : 'New ' }}{{ $field->label }}
-													</p>
-												</div>
-												
-												<input 
-													type="file"
-													class="form-control"
-													id="{{ $field->field_key }}"
-													name="{{ $field->field_key }}"
-													accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-													@if($field->is_required && !$fileUrl) required @endif
-													@if($field->help_text) aria-describedby="{{ $field->field_key }}_help" @endif
-													onchange="previewImage(this, 'preview_{{ $field->field_key }}', 'preview_container_{{ $field->field_key }}', 'preview_label_{{ $field->field_key }}', '{{ $field->label }}')"
-												>
-												
-												@if(!$fileUrl)
-													<small class="text-muted d-block mt-1">
-														Accepted formats: JPEG, JPG, PNG, GIF, WEBP (Max: 2MB)
-													</small>
-												@else
-													<small class="text-muted d-block mt-1">
-														Leave empty to keep current image. Accepted formats: JPEG, JPG, PNG, GIF, WEBP (Max: 2MB)
-													</small>
-												@endif
-											</div>
-										
-										@elseif($field->input_type === 'textarea')
-											<textarea 
-												class="form-control {{ $field->field_key === 'about_us' ? 'ht-80' : '' }}"
-												id="{{ $field->field_key }}"
-												name="{{ $field->field_key }}"
-												placeholder="{{ $field->placeholder ?? '' }}"
-												@if($field->is_required) required @endif
-												@if($field->help_text) aria-describedby="{{ $field->field_key }}_help" @endif
-											>{{ $fieldValue }}</textarea>
-										
-										@elseif($field->input_type === 'select')
-											<select 
-												class="form-control"
-												id="{{ $field->field_key }}"
-												name="{{ $field->field_key }}"
-												@if($field->is_required) required @endif
-												@if($field->help_text) aria-describedby="{{ $field->field_key }}_help" @endif
-											>
-												<option value="">Select {{ $field->label }}</option>
-												@if($field->options && is_array($field->options))
-													@foreach($field->options as $option)
-														<option value="{{ $option['value'] ?? $option }}" 
-															{{ $fieldValue == ($option['value'] ?? $option) ? 'selected' : '' }}>
-															{{ $option['label'] ?? $option }}
-														</option>
-													@endforeach
-												@endif
-											</select>
-										
-										@elseif($field->input_type === 'checkbox')
-											<div class="form-check">
-												<input 
-													type="checkbox"
-													class="form-check-input"
-													id="{{ $field->field_key }}"
-													name="{{ $field->field_key }}"
-													value="1"
-													{{ $fieldValue ? 'checked' : '' }}
-													@if($field->is_required) required @endif
-												>
-												<label class="form-check-label" for="{{ $field->field_key }}">
-													{{ $field->placeholder ?? 'Yes' }}
-												</label>
-											</div>
-										
-										@elseif($field->input_type === 'radio')
-											<div>
-												@if($field->options && is_array($field->options))
-													@foreach($field->options as $option)
-														<div class="form-check">
-															<input 
-																type="radio"
-																class="form-check-input"
-																id="{{ $field->field_key }}_{{ $loop->index }}"
-																name="{{ $field->field_key }}"
-																value="{{ $option['value'] ?? $option }}"
-																{{ $fieldValue == ($option['value'] ?? $option) ? 'checked' : '' }}
-																@if($field->is_required) required @endif
-															>
-															<label class="form-check-label" for="{{ $field->field_key }}_{{ $loop->index }}">
-																{{ $option['label'] ?? $option }}
-															</label>
-														</div>
-													@endforeach
-												@endif
-											</div>
-										
-										@else
-											<input 
-												type="{{ $field->input_type }}"
-												class="form-control"
-												id="{{ $field->field_key }}"
-												name="{{ $field->field_key }}"
-												value="{{ $fieldValue }}"
-												placeholder="{{ $field->placeholder ?? '' }}"
-												@if($field->is_required) required @endif
-												@if($field->help_text) aria-describedby="{{ $field->field_key }}_help" @endif
-											>
-										@endif
-										
-										@if($field->help_text)
-											<small id="{{ $field->field_key }}_help" class="form-text text-muted">
-												{{ $field->help_text }}
-											</small>
-										@endif
-										
-										@error($field->field_key)
-											<div class="text-danger small">{{ $message }}</div>
-										@enderror
-									</div>
-								</div>
-							@endforeach
-						@endif
-						
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="form-group">
 								<button type="submit" class="btn btn-dark" id="submitBtn">
@@ -484,10 +365,10 @@
 					container.style.display = 'block';
 				}
 				
-				// Update label
+				// Hide label
 				var label = document.getElementById(labelId);
 				if (label) {
-					label.textContent = 'New ' + fieldLabel;
+					label.style.display = 'none';
 				}
 			};
 			
@@ -674,7 +555,7 @@
 						if (previewImg.length) {
 							previewImg.attr('src', imageUrl);
 							$('#preview_container_profile_image').show();
-							$('#preview_label_profile_image').text('Current Profile Image');
+							$('#preview_label_profile_image').text('');
 						}
 					}
 					

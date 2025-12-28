@@ -57,6 +57,7 @@
 				     alt="Customer" 
 				     id="customerSidebarImage"
 				     loading="eager"
+				     style="object-fit: cover; object-position: center;"
 				     onerror="this.src='{{ asset('frontend/images/user-image.webp') }}'; this.onerror=null;" />
 			</div>
 			<div class="dash_caption">
@@ -127,6 +128,33 @@
 		
 	</div>
 </div>
+
+@push('styles')
+<style>
+/* Customer sidebar image styling */
+.dash_auth_thumb {
+    width: 102px !important;
+    height: 102px !important;
+    overflow: hidden;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.dash_auth_thumb img {
+    width: 100px !important;
+    height: 100px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 50% !important;
+}
+
+/* Ensure circle class maintains round shape */
+.circle {
+    border-radius: 50% !important;
+}
+</style>
+@endpush
 
 @push('scripts')
 <script>

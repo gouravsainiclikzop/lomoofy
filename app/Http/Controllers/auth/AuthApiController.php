@@ -62,22 +62,133 @@ class AuthApiController extends Controller
     }
 
     /**
-     * Register a new customer
+     * Get registration fields dynamically
+     * GET /api/auth/register-fields
+     */
+    public function getRegistrationFields()
+    {
+        try {
+            // Get system fields for registration
+            $systemFieldKeys = FieldManagement::getRegistrationSystemFields();
+            
+            $fields = FieldManagement::whereIn('field_key', $systemFieldKeys)
+                ->active()
+                ->visible()
+                ->ordered()
+                ->get()
+                ->map(function($field) {
+                    return [
+                        'field_key' => $field->field_key,
+                        'label' => $field->label,
+                        'input_type' => $field->input_type,
+                        'placeholder' => $field->placeholder,
+                        'is_required' => $field->is_required,
+                        'field_group' => $field->field_group,
+                        'options' => $field->options,
+                        'help_text' => $field->help_text,
+                        'validation_rules' => $field->validation_rules,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'fields' => $fields,
+                    'field_groups' => $fields->groupBy('field_group'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'FIELDS_FETCH_ERROR',
+                    'message' => 'Failed to fetch registration fields: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+
+    /**
+     * Register a new customer using dynamic field management
      * POST /api/auth/register
-     * Only accepts: full_name, phone, email, password, password_confirmation
+     * Accepts fields based on field_management_fields configuration
      */
     public function register(Request $request)
     {
-        // Validation rules for only these 5 fields
-        $rules = [
-            'full_name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'required|email|unique:customers,email|max:255',
-            'password' => 'required|string|min:8|confirmed',
-            'password_confirmation' => 'required|string|min:8',
-        ];
+        try {
+            // Get registration fields from field management
+            $systemFieldKeys = FieldManagement::getRegistrationSystemFields();
+            $fields = FieldManagement::whereIn('field_key', $systemFieldKeys)
+                ->active()
+                ->visible()
+                ->get();
 
+            // Build dynamic validation rules
+            $rules = [];
+            $customMessages = [];
+
+            foreach ($fields as $field) {
+                $fieldRules = [];
+                
+                if ($field->is_required) {
+                    $fieldRules[] = 'required';
+                } else {
+                    $fieldRules[] = 'nullable';
+                }
+                
+                // Add field-specific validation rules
+                if ($field->validation_rules) {
+                    $fieldRules[] = $field->validation_rules;
+                }
+                
+                // Add input type specific rules
+                switch ($field->input_type) {
+                    case 'email':
+                        $fieldRules[] = 'email';
+                        if ($field->field_key === 'email') {
+                            $fieldRules[] = 'unique:customers,email';
+                        }
+                        break;
+                    case 'tel':
+                        $fieldRules[] = 'string|max:20';
+                        if ($field->field_key === 'phone') {
+                            $fieldRules[] = 'unique:customers,phone';
+                        }
+                        break;
+                    case 'password':
+                        if ($field->field_key === 'password') {
+                            $fieldRules[] = 'min:8|confirmed';
+                        }
+                        break;
+                    case 'text':
+                        $fieldRules[] = 'string|max:255';
+                        break;
+                }
+                
+                $rules[$field->field_key] = implode('|', $fieldRules);
+            }
+
+            // Special validation: require either email OR phone (not both required, but at least one)
+            $emailField = $fields->where('field_key', 'email')->first();
+            $phoneField = $fields->where('field_key', 'phone')->first();
+            
+            if ($emailField && $phoneField) {
+                // Custom validation: at least one of email or phone must be provided
+                $rules['email'] = str_replace('required|', 'nullable|', $rules['email'] ?? 'nullable');
+                $rules['phone'] = str_replace('required|', 'nullable|', $rules['phone'] ?? 'nullable');
+                
+                // Add custom validation rule
         $validator = Validator::make($request->all(), $rules);
+                
+                $validator->after(function ($validator) use ($request) {
+                    if (empty($request->email) && empty($request->phone)) {
+                        $validator->errors()->add('email', 'Either email or phone number is required.');
+                        $validator->errors()->add('phone', 'Either email or phone number is required.');
+                    }
+                });
+            } else {
+                $validator = Validator::make($request->all(), $rules);
+            }
 
         if ($validator->fails()) {
             return response()->json([
@@ -91,21 +202,36 @@ class AuthApiController extends Controller
         }
 
         DB::beginTransaction();
-        try {
-            // Prepare customer data with only these fields
-            $customerData = [
-                'full_name' => $request->full_name,
-                'phone' => $request->phone ?? null,
-                'email' => $request->email,
-                'password' => $request->password, // Will be hashed by model mutator
-                'is_active' => true,
-            ];
+            
+            // Prepare customer data dynamically
+            $customerData = ['is_active' => true];
+            
+            foreach ($fields as $field) {
+                if ($field->field_key === 'password_confirmation') {
+                    continue; // Skip confirmation field
+                }
+                
+                $value = $request->input($field->field_key);
+                if ($value !== null) {
+                    $customerData[$field->field_key] = $value;
+                }
+            }
 
             // Create customer
             $customer = Customer::create($customerData);
 
-            // Auto-login customer after registration using session
+            // Auto-login customer after registration
             Auth::guard('customer')->login($customer, $request->boolean('remember'));
+
+            // Merge guest cart with customer cart after successful registration and login
+            $sessionId = $request->input('session_id') 
+                      ?? $request->query('session_id') 
+                      ?? $request->header('X-Session-ID') 
+                      ?? session()->getId();
+
+            if ($sessionId) {
+                \App\Models\Cart::mergeGuestCartWithCustomerCart($customer->id, $sessionId);
+            }
 
             DB::commit();
 
@@ -121,6 +247,7 @@ class AuthApiController extends Controller
                     ],
                 ],
             ], 201);
+            
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -139,23 +266,36 @@ class AuthApiController extends Controller
      */
     public function login(Request $request)
     { 
+        // Support login with email OR phone
+        $loginField = $request->input('email') ?: $request->input('phone');
+        $loginFieldType = $request->has('email') && $request->email ? 'email' : 'phone';
+        
         // Debug logging
         \Log::info('Customer Login Attempt', [
-            'email' => $request->email,
+            'login_field' => $loginField,
+            'login_field_type' => $loginFieldType,
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now(),
         ]);
 
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
+        $rules = [
             'password' => 'required|string',
-        ]);
+        ];
+        
+        if ($loginFieldType === 'email') {
+            $rules['email'] = 'required|email';
+        } else {
+            $rules['phone'] = 'required|string';
+        }
+        
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             \Log::warning('Customer Login Validation Failed', [
                 'errors' => $validator->errors()->toArray(),
-                'email' => $request->email,
+                'login_field' => $loginField,
+                'login_field_type' => $loginFieldType,
             ]);
             
             return response()->json([
@@ -169,8 +309,14 @@ class AuthApiController extends Controller
         }
 
         try {
-            // Use Laravel's standard authentication attempt
-            $credentials = $request->only('email', 'password');
+            // Prepare credentials for authentication (email OR phone)
+            $credentials = ['password' => $request->password];
+            if ($loginFieldType === 'email') {
+                $credentials['email'] = $request->email;
+            } else {
+                $credentials['phone'] = $request->phone;
+            }
+            
             $remember = $request->boolean('remember');
 
             // Attempt login with customer guard
@@ -183,6 +329,16 @@ class AuthApiController extends Controller
                     'customer_id' => $customer->id,
                     'email' => $customer->email,
                 ]);
+
+                // Merge guest cart with customer cart after successful login
+                $sessionId = $request->input('session_id') 
+                          ?? $request->query('session_id') 
+                          ?? $request->header('X-Session-ID') 
+                          ?? session()->getId();
+
+
+                // Always attempt cart merge - the method now has fallback logic
+                \App\Models\Cart::mergeGuestCartWithCustomerCart($customer->id, $sessionId);
 
                 return response()->json([
                     'success' => true,
@@ -199,7 +355,10 @@ class AuthApiController extends Controller
                 ]);
             }
 
-            \Log::warning('Customer Login Failed', ['email' => $request->email]);
+            \Log::warning('Customer Login Failed', [
+                'login_field' => $loginField,
+                'login_field_type' => $loginFieldType
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -209,7 +368,8 @@ class AuthApiController extends Controller
             ], 401);
         } catch (\Exception $e) {
             \Log::error('Customer Login Exception', [
-                'email' => $request->email,
+                'login_field' => $loginField ?? 'unknown',
+                'login_field_type' => $loginFieldType ?? 'unknown',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -326,4 +486,5 @@ class AuthApiController extends Controller
             ], 500);
         }
     }
+
 }

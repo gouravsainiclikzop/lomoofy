@@ -64,6 +64,22 @@ class FieldManagement extends Model
     public static function getAuthSystemFields(): array
     {
         return [
+            'full_name',
+            'phone', 
+            'email',
+            'password',
+            'password_confirmation',
+        ];
+    }
+
+    /**
+     * Get system fields for registration
+     */
+    public static function getRegistrationSystemFields(): array
+    {
+        return [
+            'full_name',
+            'phone',
             'email',
             'password',
             'password_confirmation',

@@ -68,8 +68,9 @@ Route::get('/shoping-cart', [FrontendController::class, 'shopingCart'])->name('f
 // Authentication API Routes
 Route::prefix('api/auth')->group(function () {
     Route::get('/login-fields', [\App\Http\Controllers\auth\AuthApiController::class, 'getLoginFields']); // Get system fields for login (email, password)
-    Route::post('/register', [\App\Http\Controllers\auth\AuthApiController::class, 'register']); // Register new customer (full_name, phone, email, password, password_confirmation)
-    Route::post('/login', [\App\Http\Controllers\auth\AuthApiController::class, 'login']); // Login customer
+    Route::get('/register-fields', [\App\Http\Controllers\auth\AuthApiController::class, 'getRegistrationFields']); // Get system fields for registration
+    Route::post('/register', [\App\Http\Controllers\auth\AuthApiController::class, 'register']); // Register new customer using dynamic field management
+    Route::post('/login', [\App\Http\Controllers\auth\AuthApiController::class, 'login']); // Login customer (supports email OR phone)
     Route::get('/me', [\App\Http\Controllers\auth\AuthApiController::class, 'me']); // Get authenticated customer (optional auth)
     Route::middleware('customer.auth')->group(function () {
         Route::post('/logout', [\App\Http\Controllers\auth\AuthApiController::class, 'logout']); // Logout customer

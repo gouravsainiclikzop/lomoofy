@@ -86,15 +86,15 @@
 					</li>
 					@else
 					<li class="has-submenu">
-						<a href="{{ route('frontend.profile-info') }}">
-							<i class="lni lni-user-4"></i>
+						<a href="{{ route('frontend.profile-info') }}"> 
+								<i class="lni lnis-user-4" style="color: #1db000"></i>
 							<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span>
 						</a>
 						<ul class="nav-dropdown nav-submenu">
+						<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i> {{ ucfirst(Auth::guard('customer')->user()->full_name ?? "Guest User") }}</a></li>
 							<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
 							<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
-							<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i>Profile Info</a></li>
-							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Addresses</a></li>
+							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Saved Addresses</a></li>
 							<!-- <li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li> -->
 							<li><a href="#" id="customerLogoutBtn2"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
 						</ul>
@@ -428,23 +428,24 @@
 
 					<!-- Customer Auth: Checked via JavaScript (session-based) -->
 					<!-- Guest User Icon (shown by default, hidden when customer logged in) -->
+ 
 					<li id="guestUserIcon" class="customer-auth-element">
 						<a href="#" id="guestUserIconLink">
 							<i class="lni lni-user"></i>
 						</a>
 					</li>
-					
+				 
 					<!-- Logged In Customer Menu (hidden by default, shown when customer logged in) -->
 					<li id="customerUserMenu" class="has-submenu customer-auth-element" style="display: none;">
 						<a href="javascript:void(0);">
-							<i class="lni lni-user"></i>
+							<i class="lni lni-user lnis-user-4" style="color: #1db000"></i>
 							<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span>
 						</a>
 						<ul class="nav-dropdown nav-submenu">
+						<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i> {{ ucfirst(Auth::guard('customer')->user()->full_name ?? "Guest User") }}</a></li>
 							<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
 							<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
-							<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i>Profile Info</a></li>
-							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Addresses</a></li>
+							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Saved Addresses</a></li>
 							<!-- <li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li> -->
 							<li><a href="#" id="customerLogoutBtn"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
 						</ul>
@@ -458,9 +459,7 @@
 						<a href="{{ route('frontend.shoping-cart') }}">
 							<i class="lni lni-shopping-basket"></i><span class="dn-counter"></span>
 						</a>
-					</li>
-
-
+					</li> 
 				</ul>
 			</div>
 		</nav>
@@ -489,7 +488,7 @@ jQuery(document).ready(function($) {
 		if (isLoggedIn) {
 			// Hide guest icon, show customer menu
 			$('#guestUserIcon').hide();
-			$('#customerUserMenu').show();
+			$('#customerUserMenu').show(); 
 		} else {
 			// Show guest icon, hide customer menu
 			$('#guestUserIcon').show();

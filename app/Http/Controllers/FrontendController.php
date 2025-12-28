@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use App\Services\CheckoutService;
@@ -2901,6 +2902,7 @@ class FrontendController extends Controller
         // Return redirect for regular form submissions
         return redirect()->route('frontend.profile-info')->with('success', 'Profile updated successfully!');
     }
+
 
     public function changePassword(Request $request)
     {
