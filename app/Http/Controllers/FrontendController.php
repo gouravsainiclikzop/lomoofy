@@ -107,7 +107,7 @@ class FrontendController extends Controller
                 ? asset('storage/' . $product->primaryImage->image_path)
                 : ($product->images->first() 
                     ? asset('storage/' . $product->images->first()->image_path)
-                    : asset('frontend/images/product/1.jpg'));
+                    : asset('frontend/images/product/sample-product.jpg'));
             
             // Get all color attributes (from category or global)
             $colorAttributes = collect();
@@ -437,7 +437,7 @@ class FrontendController extends Controller
                 ? asset('storage/' . $product->primaryImage->image_path)
                 : ($product->images->first() 
                     ? asset('storage/' . $product->images->first()->image_path)
-                    : asset('frontend/images/product/1.jpg'));
+                    : asset('frontend/images/product/sample-product.jpg'));
             
             // Format price display
             $priceDisplay = '';
@@ -535,7 +535,7 @@ class FrontendController extends Controller
                     ? asset('storage/' . $product->primaryImage->image_path)
                     : ($product->images->first() 
                         ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('frontend/images/product/1.jpg'));
+                        : asset('frontend/images/product/sample-product.jpg'));
                 
                 // Format price display
                 $priceDisplay = '';
@@ -771,7 +771,7 @@ class FrontendController extends Controller
                     ? asset('storage/' . $product->primaryImage->image_path)
                     : ($product->images->first() 
                         ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('frontend/images/product/1.jpg'));
+                        : asset('frontend/images/product/sample-product.jpg'));
                 
                 // Get all color attributes (from category or global)
                 $colorAttributes = collect();
@@ -1254,7 +1254,7 @@ class FrontendController extends Controller
                     ? asset('storage/' . $product->primaryImage->image_path)
                     : ($product->images->first() 
                         ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('frontend/images/product/1.jpg'));
+                        : asset('frontend/images/product/sample-product.jpg'));
                 
                 // Get color attributes
                 $colorAttributes = collect();
@@ -1488,7 +1488,7 @@ class FrontendController extends Controller
                 ]);
             } else {
                 $productImages->push([
-                    'url' => asset('frontend/images/product/1.jpg'),
+                    'url' => asset('frontend/images/product/sample-product.jpg'),
                     'alt' => $product->name,
                 ]);
             }
@@ -1540,7 +1540,7 @@ class FrontendController extends Controller
                 })->toArray();
             }
             
-            $imageUrl = $productImages->first()['url'] ?? asset('frontend/images/product/1.jpg');
+            $imageUrl = $productImages->first()['url'] ?? asset('frontend/images/product/sample-product.jpg');
             $variantImage = $imageUrl;
             if ($variant->images && $variant->images->count() > 0) {
                 $primaryVariantImage = $variant->images->where('is_primary', true)->first();
@@ -1863,7 +1863,7 @@ class FrontendController extends Controller
             $minSalePrice = $salePrices->min();
             $hasSale = $minSalePrice && $minSalePrice < $minPrice;
             
-            $imageUrl = asset('frontend/images/product/1.jpg');
+            $imageUrl = asset('frontend/images/product/sample-product.jpg');
             if ($similarProduct->primaryImage) {
                 $imageUrl = asset('storage/' . $similarProduct->primaryImage->image_path);
             } elseif ($similarProduct->images->count() > 0) {
@@ -1994,7 +1994,7 @@ class FrontendController extends Controller
                 ]);
             } else {
                 $productImages->push([
-                    'url' => asset('frontend/images/product/1.jpg'),
+                    'url' => asset('frontend/images/product/sample-product.jpg'),
                     'alt' => $product->name,
                 ]);
             }
@@ -2388,7 +2388,7 @@ class FrontendController extends Controller
                 ? asset('storage/' . $product->primaryImage->image_path)
                 : ($product->images->first() 
                     ? asset('storage/' . $product->images->first()->image_path)
-                    : asset('frontend/images/product/1.jpg'));
+                    : asset('frontend/images/product/sample-product.jpg'));
             
             // Get color variants (similar to index method)
             $colorAttributes = collect();

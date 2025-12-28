@@ -272,7 +272,7 @@
                                         $variant = $item->variant;
                                         
                                         // Get product image
-                                        $imageUrl = asset('frontend/images/product/1.jpg'); // Default
+                                        $imageUrl = asset('frontend/images/product/sample-product.jpg'); // Default
                                         if ($variant && $variant->images && $variant->images->count() > 0) {
                                             $imageUrl = asset('storage/' . $variant->images->first()->image_path);
                                         } elseif ($product && $product->primaryImage) {

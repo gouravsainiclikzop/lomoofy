@@ -1,5 +1,40 @@
 Product Name,Product Slug,Image Path or URL,Is Primary (0 or 1),Sort Order,Alt Text
-Sample T-Shirt,sample-t-shirt,products/sample-t-shirt-front.jpg,1,0,Sample T-Shirt Front View
-Sample T-Shirt,,products/sample-t-shirt-back.jpg,0,1,Sample T-Shirt Back View
-Sample T-Shirt,,products/sample-t-shirt-side.jpg,0,2,Sample T-Shirt Side View
-
+Cotton Casual T-Shirt,cotton-casual-t-shirt,products/cotton-t-shirt-front.jpg,1,0,Cotton T-Shirt Front View
+Cotton Casual T-Shirt,,products/cotton-t-shirt-back.jpg,0,1,Cotton T-Shirt Back View
+Cotton Casual T-Shirt,,products/cotton-t-shirt-black.jpg,0,2,Cotton T-Shirt Black Color
+Cotton Casual T-Shirt,,products/cotton-t-shirt-white.jpg,0,3,Cotton T-Shirt White Color
+Denim Slim Fit Jeans,denim-slim-fit-jeans,products/denim-jeans-front.jpg,1,0,Denim Jeans Front View
+Denim Slim Fit Jeans,,products/denim-jeans-back.jpg,0,1,Denim Jeans Back View
+Denim Slim Fit Jeans,,products/denim-jeans-side.jpg,0,2,Denim Jeans Side View
+Formal Cotton Shirt,formal-cotton-shirt,products/formal-shirt-front.jpg,1,0,Formal Shirt Front View
+Formal Cotton Shirt,,products/formal-shirt-back.jpg,0,1,Formal Shirt Back View
+Formal Cotton Shirt,,products/formal-shirt-collar.jpg,0,2,Formal Shirt Collar Detail
+Designer Silk Saree,designer-silk-saree,products/silk-saree-full.jpg,1,0,Designer Silk Saree Full View
+Designer Silk Saree,,products/silk-saree-border.jpg,0,1,Silk Saree Border Detail
+Designer Silk Saree,,products/silk-saree-pattern.jpg,0,2,Silk Saree Pattern Detail
+Sports Running Shoes,sports-running-shoes,products/running-shoes-side.jpg,1,0,Running Shoes Side View
+Sports Running Shoes,,products/running-shoes-top.jpg,0,1,Running Shoes Top View
+Sports Running Shoes,,products/running-shoes-sole.jpg,0,2,Running Shoes Sole View
+Gold Plated Necklace,gold-plated-necklace,products/gold-necklace-front.jpg,1,0,Gold Necklace Front View
+Gold Plated Necklace,,products/gold-necklace-detail.jpg,0,1,Gold Necklace Detail View
+Gold Plated Necklace,,products/gold-necklace-worn.jpg,0,2,Gold Necklace Worn View
+Winter Wool Sweater,winter-wool-sweater,products/wool-sweater-front.jpg,1,0,Wool Sweater Front View
+Winter Wool Sweater,,products/wool-sweater-back.jpg,0,1,Wool Sweater Back View
+Winter Wool Sweater,,products/wool-sweater-texture.jpg,0,2,Wool Sweater Texture Detail
+Casual Canvas Sneakers,casual-canvas-sneakers,products/canvas-sneakers-side.jpg,1,0,Canvas Sneakers Side View
+Casual Canvas Sneakers,,products/canvas-sneakers-top.jpg,0,1,Canvas Sneakers Top View
+Casual Canvas Sneakers,,products/canvas-sneakers-pair.jpg,0,2,Canvas Sneakers Pair View
+Silver Bracelet Set,silver-bracelet-set,products/silver-bracelet-set.jpg,1,0,Silver Bracelet Set View
+Silver Bracelet Set,,products/silver-bracelet-detail.jpg,0,1,Silver Bracelet Detail View
+Silver Bracelet Set,,products/silver-bracelet-worn.jpg,0,2,Silver Bracelet Worn View
+Party Wear Dress,party-wear-dress,products/party-dress-front.jpg,1,0,Party Dress Front View
+Party Wear Dress,,products/party-dress-back.jpg,0,1,Party Dress Back View
+Party Wear Dress,,products/party-dress-detail.jpg,0,2,Party Dress Detail View
+Leather Handbag,leather-handbag,products/leather-handbag-front.jpg,1,0,Leather Handbag Front View
+Leather Handbag,,products/leather-handbag-side.jpg,0,1,Leather Handbag Side View
+Diamond Stud Earrings,diamond-stud-earrings,products/diamond-earrings-pair.jpg,1,0,Diamond Earrings Pair View
+Diamond Stud Earrings,,products/diamond-earrings-close.jpg,0,1,Diamond Earrings Close Up
+Winter Jacket,winter-jacket,products/winter-jacket-front.jpg,1,0,Winter Jacket Front View
+Winter Jacket,,products/winter-jacket-hood.jpg,0,1,Winter Jacket Hood Detail
+Sports Water Bottle,sports-water-bottle,products/water-bottle-front.jpg,1,0,Water Bottle Front View
+Sports Water Bottle,,products/water-bottle-cap.jpg,0,1,Water Bottle Cap Detail

@@ -49,7 +49,7 @@
 										? asset('storage/' . $product->primaryImage->image_path)
 										: ($product->images && $product->images->count() > 0
 											? asset('storage/' . $product->images->first()->image_path)
-											: asset('frontend/images/product/1.jpg'));
+											: asset('frontend/images/product/sample-product.jpg'));
 									
 									// Get variant attributes
 									$variantAttrs = $variant && $variant->attributes 
@@ -260,7 +260,7 @@ $(document).ready(function() {
                     '<div class="row align-items-center">' +
                     '<div class="col-3">' +
                     '<a href="/product?product=' + (item.product_slug || '') + '">' +
-                    '<img src="' + (item.image_url || '/frontend/images/product/1.jpg') + '" alt="' + (item.product_name || '') + '" class="img-fluid">' +
+                    '<img src="' + (item.image_url || '/frontend/images/product/sample-product.jpg') + '" alt="' + (item.product_name || '') + '" class="img-fluid">' +
                     '</a>' +
                     '</div>' +
                     '<div class="col d-flex align-items-center justify-content-between">' +

@@ -194,7 +194,7 @@ class CustomerController extends Controller
                 'pending_orders_count' => $pendingOrdersCount,
                 'cart_items_count' => $cartItemsCount,
                 'is_active' => $customer->is_active,
-                'created_at' => $customer->created_at->format('Y-m-d H:i:s'),
+                'created_at' => $customer->created_at->format('d M Y H:i'),
             ];
         });
         

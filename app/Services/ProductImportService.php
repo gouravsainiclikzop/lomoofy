@@ -117,14 +117,14 @@ class ProductImportService
                 }
             } catch (Throwable $exception) {
                 Log::error('ProductImportService@import - Failed to import product row', [
-                    'sku' => $sku,
+                    'identifier' => $productIdentifier,
                     'row' => $rowNumber,
                     'message' => $exception->getMessage(),
                 ]);
 
                 $result['errors'][] = [
                     'row' => $rowNumber,
-                    'identifier' => $sku,
+                    'identifier' => $productIdentifier,
                     'message' => $exception->getMessage(),
                 ];
                 $result['skipped']++;
@@ -142,8 +142,41 @@ class ProductImportService
         }
 
         $missingVariantKeys = array_diff(array_keys($variants), $productIdentifiers);
-        foreach ($missingVariantKeys as $missingIdentifier) {
-            $result['warnings'][] = "Variants provided for product identifier '{$missingIdentifier}', but the product sheet does not contain this product. The variants were ignored.";
+        
+        // For variants-only imports, process the "missing" variants by looking up existing products
+        if (empty($products) && !empty($missingVariantKeys)) {
+            foreach ($missingVariantKeys as $missingIdentifier) {
+                try {
+                    $importOutcome = DB::transaction(function () use ($missingIdentifier, $variants, $images) {
+                        return $this->upsertProduct($missingIdentifier, [], $variants[$missingIdentifier] ?? [], $images[$missingIdentifier] ?? []);
+                    }, 3);
+
+                    if ($importOutcome === 'created') {
+                        $result['created']++;
+                    } elseif ($importOutcome === 'updated') {
+                        $result['updated']++;
+                    } else {
+                        $result['skipped']++;
+                    }
+                } catch (Throwable $exception) {
+                    Log::error('ProductImportService@import - Failed to import variants-only product', [
+                        'identifier' => $missingIdentifier,
+                        'message' => $exception->getMessage(),
+                    ]);
+
+                    $result['errors'][] = [
+                        'row' => null,
+                        'identifier' => $missingIdentifier,
+                        'message' => $exception->getMessage(),
+                    ];
+                    $result['skipped']++;
+                }
+            }
+        } else {
+            // For regular imports, warn about missing variants
+            foreach ($missingVariantKeys as $missingIdentifier) {
+                $result['warnings'][] = "Variants provided for product identifier '{$missingIdentifier}', but the product sheet does not contain this product. The variants were ignored.";
+            }
         }
 
         $missingImageKeys = array_diff(array_keys($images), $productIdentifiers);
@@ -216,10 +249,21 @@ class ProductImportService
             $rowIndex++;
             $cells = $row->toArray();
 
-            if (empty($headers)) {
-                $headers = $this->normalizeHeaders($cells);
-                continue;
-            }
+            // if (empty($headers)) {
+            //     $headers = $this->normalizeHeaders($cells);
+            //     continue;
+            // }
+
+            // Skip comment-only rows before detecting headers
+if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
+    continue;
+}
+
+if (empty($headers)) {
+    $headers = $this->normalizeHeaders($cells);
+    continue;
+}
+
 
             $assocRow = $this->mapRow($headers, $cells);
             if ($this->rowIsEmpty($assocRow)) {
@@ -274,10 +318,25 @@ class ProductImportService
 
         while (($cells = fgetcsv($handle)) !== false) {
             $rowIndex++;
-            if ($rowIndex === 1) {
+            // if ($rowIndex === 1) {
+            //     $headers = $this->normalizeHeaders($cells);
+            //     continue;
+            // }
+            // Skip comment-only rows before detecting headers
+            if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
+                continue;
+            }
+
+            if (empty($headers)) {
                 $headers = $this->normalizeHeaders($cells);
                 continue;
             }
+
+
+            // Skip comment lines (lines starting with #)
+if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
+    continue;  // Skip lines that start with # after trimming
+}
 
             $assocRow = $this->mapRow($headers, $cells);
             if ($this->rowIsEmpty($assocRow)) {
@@ -290,11 +349,70 @@ class ProductImportService
 
         fclose($handle);
 
-        return [
-            'products' => $rows,
-            'variants' => [],
-            'images' => [],
-        ];
+        // Determine the type of CSV based on headers
+        $csvType = $this->determineCsvType($headers);
+        
+        return match ($csvType) {
+            'variants' => [
+                'products' => [],
+                'variants' => $rows,
+                'images' => [],
+            ],
+            'images' => [
+                'products' => [],
+                'variants' => [],
+                'images' => $rows,
+            ],
+            default => [
+                'products' => $rows,
+                'variants' => [],
+                'images' => [],
+            ],
+        };
+    }
+
+    /**
+     * Determine the type of CSV based on its headers.
+     */
+    private function determineCsvType(array $headers): string
+    {
+        $headerString = strtolower(implode('|', array_filter($headers)));
+        
+        // Check for variant-specific headers
+        $variantHeaders = ['variant_sku', 'variant_name', 'product_name', 'product_slug'];
+        $variantHeaderCount = 0;
+        foreach ($variantHeaders as $variantHeader) {
+            if (str_contains($headerString, $variantHeader)) {
+                $variantHeaderCount++;
+            }
+        }
+        
+        // Check for image-specific headers
+        $imageHeaders = ['image_path', 'image_path_or_url', 'is_primary', 'alt_text'];
+        $imageHeaderCount = 0;
+        foreach ($imageHeaders as $imageHeader) {
+            if (str_contains($headerString, $imageHeader)) {
+                $imageHeaderCount++;
+            }
+        }
+        
+        // Check for product-specific headers (that are not in variants)
+        $productOnlyHeaders = ['short_description', 'long_description', 'status', 'featured', 'tags'];
+        $productHeaderCount = 0;
+        foreach ($productOnlyHeaders as $productHeader) {
+            if (str_contains($headerString, $productHeader)) {
+                $productHeaderCount++;
+            }
+        }
+        
+        // Determine type based on header analysis
+        if ($variantHeaderCount >= 2 && $productHeaderCount === 0) {
+            return 'variants';
+        } elseif ($imageHeaderCount >= 2 && $variantHeaderCount === 0) {
+            return 'images';
+        } else {
+            return 'products';
+        }
     }
 
     /**
@@ -410,6 +528,59 @@ class ProductImportService
             $productMap[Str::slug($name)] = $identifier;
         }
 
+        // If we're doing a variants-only import (no products in current batch),
+        // we need to check existing products in the database
+        $existingProductMap = [];
+        if (empty($productRows) && !empty($variantRows)) {
+            $productNames = [];
+            $productSlugs = [];
+            
+            foreach ($variantRows as $row) {
+                $variantProductName = trim((string) ($row['product_name'] ?? ''));
+                if ($variantProductName !== '') {
+                    $productNames[] = $variantProductName;
+                }
+                
+                $variantProductSlug = trim((string) ($row['product_slug'] ?? $row['slug'] ?? ''));
+                if ($variantProductSlug !== '') {
+                    $productSlugs[] = Str::slug($variantProductSlug);
+                }
+            }
+            
+            // Find existing products by name or slug, including soft-deleted products
+            if (!empty($productNames) || !empty($productSlugs)) {
+                $existingProducts = Product::withTrashed()
+                    ->where(function ($query) use ($productNames, $productSlugs) {
+                        if (!empty($productNames)) {
+                            $query->whereIn('name', $productNames);
+                        }
+                        if (!empty($productSlugs)) {
+                            $query->orWhereIn('slug', $productSlugs);
+                        }
+                    })
+                    ->get();
+                
+                // Prioritize products with expected slugs over products with random slugs
+                $prioritizedProducts = [];
+                foreach ($existingProducts as $product) {
+                    $expectedSlug = Str::slug($product->name);
+                    if ($product->slug === $expectedSlug) {
+                        // This product has the expected slug, prioritize it
+                        $prioritizedProducts[$product->name] = $product;
+                    } elseif (!isset($prioritizedProducts[$product->name])) {
+                        // No prioritized product found yet, use this one as fallback
+                        $prioritizedProducts[$product->name] = $product;
+                    }
+                }
+                
+                foreach ($prioritizedProducts as $product) {
+                    $existingProductMap[$product->name] = $product->slug;
+                    $existingProductMap[Str::slug($product->name)] = $product->slug;
+                    $existingProductMap[$product->slug] = $product->slug;
+                }
+            }
+        }
+
         $grouped = [];
 
         foreach ($variantRows as $row) {
@@ -427,6 +598,9 @@ class ProductImportService
                 $variantProductName = trim((string) ($row['product_name'] ?? ''));
                 if ($variantProductName !== '' && isset($productMap[$variantProductName])) {
                     $productKey = $productMap[$variantProductName];
+                } elseif ($variantProductName !== '' && isset($existingProductMap[$variantProductName])) {
+                    // Check existing products in database
+                    $productKey = $existingProductMap[$variantProductName];
                 } elseif ($variantProductName !== '') {
                     $productKey = Str::slug($variantProductName);
                 }
@@ -435,7 +609,10 @@ class ProductImportService
             // Try product_slug
             if (!$productKey) {
                 $variantProductSlug = trim((string) ($row['product_slug'] ?? $row['slug'] ?? ''));
-                if ($variantProductSlug !== '') {
+                if ($variantProductSlug !== '' && isset($existingProductMap[$variantProductSlug])) {
+                    // Check existing products in database
+                    $productKey = $existingProductMap[$variantProductSlug];
+                } elseif ($variantProductSlug !== '') {
                     $productKey = Str::slug($variantProductSlug);
                 }
             }
@@ -538,21 +715,32 @@ class ProductImportService
      */
     private function upsertProduct(string $productIdentifier, array $productRow, array $variantRows, array $imageRows): string
     {
-        // Find product by slug (or name if slug not found)
-        $product = Product::with(['brands', 'categories', 'variants', 'images'])
+        // Find product by slug, including soft-deleted products
+        $product = Product::withTrashed()
+            ->with(['brands', 'categories', 'variants', 'images'])
             ->where('slug', $productIdentifier)
             ->first();
         
         $isNew = false;
+        $wasDeleted = false;
 
         if (!$product) {
             $product = new Product();
             $isNew = true;
+        } elseif ($product->trashed()) {
+            // Restore soft-deleted product
+            $product->restore();
+            $wasDeleted = true;
         }
 
         $name = $productRow['product_name'] ?? $productRow['name'] ?? $product->name ?? null;
         if (!$name) {
-            throw new \RuntimeException('Product Name is required.');
+            // For variants-only imports, if we found an existing product, use its name
+            if (!$isNew && $product->name) {
+                $name = $product->name;
+            } else {
+                throw new \RuntimeException('Product Name is required.');
+            }
         }
 
         $status = strtolower((string) ($productRow['status'] ?? $product->status ?? 'hidden'));
@@ -575,7 +763,7 @@ class ProductImportService
             'featured' => $this->toBoolean($productRow['featured'] ?? $productRow['is_featured'] ?? null, false),
             'tags' => $this->normalizeTags($productRow['tag_list'] ?? $productRow['tags'] ?? null),
             'gst_type' => $this->toBoolean($productRow['gst_type'] ?? null, true),
-            'gst_percentage' => $productRow['gst_percentage'] ?? $product->gst_percentage ?? null,
+            'gst_percentage' => $this->toDecimal($productRow['gst_percentage'] ?? null) ?? $product->gst_percentage ?? null,
             'requires_shipping' => $this->toBoolean($productRow['requires_shipping'] ?? null, true),
             'free_shipping' => $this->toBoolean($productRow['free_shipping'] ?? null, false),
             'meta_title' => $productRow['meta_title'] ?? $product->meta_title ?? null,
@@ -585,17 +773,48 @@ class ProductImportService
 
         $product->save();
 
-        $brandIds = $this->resolveBrandIds($productRow['brand_slugs_(comma_separated)'] ?? $productRow['brand_slugs'] ?? null);
+        // For variants-only imports, extract brand/category from first variant row if productRow is empty
+        $brandSlugs = $productRow['brand_slugs_(comma_separated)'] 
+            ?? $productRow['brand_slugs_comma_separated'] 
+            ?? $productRow['brand_slugs'] 
+            ?? null;
+            
+        $categorySlugFromProduct = $productRow['category_slug'] 
+            ?? $productRow['category_slugs_(comma_separated)'] 
+            ?? $productRow['category_slugs_comma_separated'] 
+            ?? $productRow['category_slugs'] 
+            ?? $productRow['subcategory_slugs_(comma_separated)'] 
+            ?? $productRow['subcategory_slugs_comma_separated'] 
+            ?? $productRow['subcategory_slugs'] 
+            ?? null;
+            
+        // If no brand/category in productRow and we have variant rows, check first variant
+        if (empty($brandSlugs) && !empty($variantRows)) {
+            $firstVariant = reset($variantRows);
+            $brandSlugs = $firstVariant['brand_slugs_(comma_separated)'] 
+                ?? $firstVariant['brand_slugs_comma_separated'] 
+                ?? $firstVariant['brand_slugs'] 
+                ?? null;
+        }
+        
+        if (empty($categorySlugFromProduct) && !empty($variantRows)) {
+            $firstVariant = reset($variantRows);
+            $categorySlugFromProduct = $firstVariant['category_slug'] 
+                ?? $firstVariant['category_slugs_(comma_separated)'] 
+                ?? $firstVariant['category_slugs_comma_separated'] 
+                ?? $firstVariant['category_slugs'] 
+                ?? $firstVariant['subcategory_slugs_(comma_separated)'] 
+                ?? $firstVariant['subcategory_slugs_comma_separated'] 
+                ?? $firstVariant['subcategory_slugs'] 
+                ?? null;
+        }
+
+        $brandIds = $this->resolveBrandIds($brandSlugs);
         $this->syncProductBrands($product, $brandIds);
 
         // Resolve category (supports unified hierarchy - use deepest category if multiple provided)
         // Support both legacy column names for backward compatibility
-        $categorySlug = $productRow['category_slug'] 
-            ?? $productRow['category_slugs_(comma_separated)'] 
-            ?? $productRow['category_slugs'] 
-            ?? $productRow['subcategory_slugs_(comma_separated)'] 
-            ?? $productRow['subcategory_slugs'] 
-            ?? null;
+        $categorySlug = $categorySlugFromProduct;
         
         $categoryIds = $this->resolveCategoryIds($categorySlug);
         
@@ -608,7 +827,13 @@ class ProductImportService
 
         $this->syncImages($product, $imageRows);
 
-        return $isNew ? 'created' : 'updated';
+        if ($isNew) {
+            return 'created';
+        } elseif ($wasDeleted) {
+            return 'updated'; // Restored from soft-delete
+        } else {
+            return 'updated';
+        }
     }
 
     /**
@@ -640,6 +865,75 @@ class ProductImportService
 
         $sanitized = str_replace([',', '₹', '$'], '', (string) $value);
         return is_numeric($sanitized) ? round((float) $sanitized, 2) : null;
+    }
+
+    /**
+     * Parse user-friendly attributes format into JSON
+     * Format: color:black|size:S|material:cotton
+     */
+    private function parseUserFriendlyAttributes(?string $attributesString): array
+    {
+        if (empty($attributesString)) {
+            return [];
+        }
+        
+        $attributes = [];
+        $pairs = explode('|', $attributesString);
+        
+        foreach ($pairs as $pair) {
+            $pair = trim($pair);
+            if (empty($pair)) continue;
+            
+            if (strpos($pair, ':') !== false) {
+                [$key, $value] = explode(':', $pair, 2);
+                $key = trim($key);
+                $value = trim($value);
+                
+                if (!empty($key) && !empty($value)) {
+                    $attributes[$key] = $value;
+                }
+            }
+        }
+        
+        return $attributes;
+    }
+
+    /**
+     * Parse user-friendly highlights format into JSON
+     * Format: Heading1>>point1|point2|point3##Heading2>>point1|point2
+     */
+    private function parseUserFriendlyHighlights(?string $highlightsString): array
+    {
+        if (empty($highlightsString)) {
+            return [];
+        }
+        
+        $highlights = [];
+        $sections = explode('##', $highlightsString);
+        
+        foreach ($sections as $section) {
+            $section = trim($section);
+            if (empty($section)) continue;
+            
+            if (strpos($section, '>>') !== false) {
+                [$heading, $pointsString] = explode('>>', $section, 2);
+                $heading = trim($heading);
+                $pointsString = trim($pointsString);
+                
+                if (!empty($heading) && !empty($pointsString)) {
+                    $points = array_filter(array_map('trim', explode('|', $pointsString)));
+                    
+                    if (!empty($points)) {
+                        $highlights[] = [
+                            'heading_name' => $heading,
+                            'bullet_points' => array_values($points)
+                        ];
+                    }
+                }
+            }
+        }
+        
+        return $highlights;
     }
 
     /**
@@ -720,8 +1014,8 @@ class ProductImportService
             return [];
         }
 
-        // Support both comma and pipe delimiters
-        $normalized = str_replace('|', ',', $list);
+        // Support comma, pipe, and space delimiters
+        $normalized = str_replace(['|', ' '], ',', $list);
         $parts = array_filter(array_map(static fn ($item) => Str::slug(trim((string) $item)), explode(',', $normalized)));
 
         return array_values(array_unique(array_filter($parts)));
@@ -769,15 +1063,55 @@ class ProductImportService
 
             $processedSkus[] = $variantSku;
 
-            $variant = $existingVariants->get($variantSku) ?? new ProductVariant();
-            $isNew = !$variant->exists;
+            // First, check if variant exists for this product
+            $variant = $existingVariants->get($variantSku);
+            $isNew = false;
+
+            if (!$variant) {
+                // Check if there's an orphaned variant with this SKU globally
+                $orphanedVariant = ProductVariant::where('sku', $variantSku)
+                    ->whereDoesntHave('product')
+                    ->first();
+                
+                if ($orphanedVariant) {
+                    // Reassign the orphaned variant to this product
+                    $variant = $orphanedVariant;
+                    $variant->product_id = $product->id;
+                } else {
+                    // Check if there's a variant with this SKU belonging to a different product
+                    $existingVariant = ProductVariant::where('sku', $variantSku)->first();
+                    
+                    if ($existingVariant) {
+                        // Generate a unique SKU to avoid conflict
+                        $counter = 1;
+                        $originalSku = $variantSku;
+                        do {
+                            $variantSku = $originalSku . '-' . $counter;
+                            $counter++;
+                        } while (ProductVariant::where('sku', $variantSku)->exists());
+                        
+                        // Update the processed SKUs array
+                        $processedSkus[array_search($originalSku, $processedSkus)] = $variantSku;
+                    }
+                    
+                    // Create new variant
+                    $variant = new ProductVariant();
+                    $isNew = true;
+                }
+            }
 
             $variantName = $row['variant_name'] ?? ($variant->name ?? null);
             if (!$variantName) {
                 $variantName = $this->generateVariantNameFromAttributes($row['attributes_json'] ?? null, $variantSku);
             }
 
-            $attributes = $this->decodeJsonColumn($row['attributes_json'] ?? null);
+            // Parse user-friendly attributes format first, fallback to JSON
+            $attributes = $this->parseUserFriendlyAttributes(
+                $row['attributes_keyvalue_format'] ?? 
+                $row['attributes'] ?? 
+                null
+            ) ?: $this->decodeJsonColumn($row['attributes_json'] ?? null);
+            
             $measurements = $this->decodeJsonColumn($row['measurements_json'] ?? null);
 
             $variant->fill([
@@ -802,6 +1136,12 @@ class ProductImportService
                 'height' => $this->toDecimal($row['height'] ?? null),
                 'diameter' => $this->toDecimal($row['diameter'] ?? null),
                 'sort_order' => $sortOrder,
+                'highlights_details' => $this->parseUserFriendlyHighlights(
+                    $row['highlights_details_structured_format'] ?? 
+                    $row['highlights_details'] ?? 
+                    null
+                ) ?: $this->decodeJsonColumn($row['highlights_details_json'] ?? null),
+                'description' => $row['detailed_description'] ?? $row['description'] ?? $variant->description ?? null,
             ]);
 
             $variant->save();

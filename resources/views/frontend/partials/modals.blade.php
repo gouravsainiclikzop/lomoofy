@@ -1584,7 +1584,7 @@ $(document).ready(function() {
                     return img && img.url && img.url !== 'undefined' && img.url !== 'null';
                 });
             } else {
-                imagesToLoad = [{url: '{{ asset("frontend/images/product/1.jpg") }}', alt: currentProductData.name}];
+                imagesToLoad = [{url: '{{ asset("frontend/images/product/sample-product.jpg") }}', alt: currentProductData.name}];
             }
         }
         

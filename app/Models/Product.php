@@ -104,6 +104,12 @@ class Product extends Model
         return $this->belongsTo(Brand::class);
     }
 
+    public function brands()
+    {
+        return $this->belongsToMany(Brand::class, 'product_brands')
+                    ->withTimestamps();
+    }
+
     public function images()
     {
         return $this->hasMany(ProductImage::class)

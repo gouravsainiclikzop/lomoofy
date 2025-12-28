@@ -70,7 +70,7 @@ class CartApiController extends Controller
                 ? asset('storage/' . $product->primaryImage->image_path)
                 : ($product->images && $product->images->count() > 0
                     ? asset('storage/' . $product->images->first()->image_path)
-                    : asset('frontend/images/product/1.jpg'));
+                    : asset('frontend/images/product/sample-product.jpg'));
             
             return [
                 'id' => $item->id,

@@ -49,7 +49,7 @@
 										@foreach($order->items as $item)
 											@php
 												// Get product image
-												$productImage = asset('frontend/images/product/1.jpg'); // Default
+												$productImage = asset('frontend/images/product/sample-product.jpg'); // Default
 												if ($item->variant && $item->variant->images && $item->variant->images->count() > 0) {
 													$variantImage = $item->variant->images->first();
 													$productImage = asset('storage/' . $variantImage->image_path);

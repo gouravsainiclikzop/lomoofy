@@ -54,8 +54,8 @@
 }
 #customersTable th:nth-child(3),
 #customersTable td:nth-child(3) {
-    width: 280px;
-    min-width: 280px;
+    width: 200px;
+    min-width: 200px;
     white-space: normal;
     word-break: break-word;
 }
@@ -67,8 +67,8 @@
 #customersTable td:nth-child(6),
 #customersTable th:nth-child(7),
 #customersTable td:nth-child(7) {
-    width: 130px;
-    min-width: 130px;
+    width: 80px;
+    min-width: 80px;
     text-align: center;
     white-space: nowrap;
 }
@@ -81,8 +81,8 @@
 }
 #customersTable th:nth-child(9),
 #customersTable td:nth-child(9) {
-    width: 160px;
-    min-width: 160px;
+    width: 120px;
+    min-width: 120px;
     white-space: nowrap;
 }
 #customersTable th:nth-child(10),
@@ -112,6 +112,20 @@
 }
 .password-toggle i {
     font-size: 1rem;
+}
+/* Pincode lookup styling */
+.is-loading {
+    background-image: url("data:image/svg+xml,%3csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3cg fill='none' fill-rule='evenodd'%3e%3cg fill='%23007bff' fill-opacity='0.8'%3e%3cpath d='M10 3v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6z'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+}
+.pincode-loader {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
 }
 </style>
 @endpush
@@ -201,10 +215,10 @@
                             <th>Image</th>
                             <th>Customer</th>
                             <th>Address</th>
-                            <th>No of Orders</th>
-                            <th>Amount of Orders</th>
+                            <th>Orders</th>
+                            <th>Amount</th>
                             <th>Pending</th>
-                            <th>In Cart Items</th>
+                            <th>In Cart</th>
                             <th>Status</th>
                             <th>Created</th>
                             <th class="w-min" data-orderable="false">Actions</th>
@@ -919,8 +933,19 @@ function addAddressBlock(addressData = null, index = null) {
                 <div class="row g-3">
     `;
     
+    // Reorder fields: pincode first, then city/state, then others (same as addresses module)
+    const pincodeField = addressFields.find(f => f.field_key === 'pincode');
+    const locationFields = addressFields.filter(f => ['country', 'state', 'city'].includes(f.field_key));
+    const otherFields = addressFields.filter(f => !['pincode', 'country', 'state', 'city'].includes(f.field_key));
+    
+    // Combine in order: pincode first, then location fields, then others
+    const sortedFields = [];
+    if (pincodeField) sortedFields.push(pincodeField);
+    sortedFields.push(...locationFields);
+    sortedFields.push(...otherFields);
+    
     // Render each address field with indexed names (including make_default_address)
-    addressFields.forEach(field => {
+    sortedFields.forEach(field => {
         const fieldId = `address_${addressIndex}_${field.field_key}`;
         const fieldName = `addresses[${addressIndex}][${field.field_key}]`;
         
@@ -944,6 +969,9 @@ function addAddressBlock(addressData = null, index = null) {
     
     // Initialize conditional fields for this address block
     initializeConditionalFields();
+    
+    // Initialize pincode lookup for this address block
+    initializePincodeLookup(addressIndex);
     
     // Update remove button visibility
     updateRemoveButtonVisibility();
@@ -1858,6 +1886,174 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Pincode lookup functionality for customer addresses
+let pincodeLookupTimeouts = {};
+let isSearchingPincodes = {};
+let lastSearchedPincodes = {};
+
+function initializePincodeLookup(addressIndex) {
+    const pincodeInput = $(`#address_${addressIndex}_pincode`);
+    
+    if (pincodeInput.length) {
+        // Initialize tracking variables for this address block
+        pincodeLookupTimeouts[addressIndex] = null;
+        isSearchingPincodes[addressIndex] = false;
+        lastSearchedPincodes[addressIndex] = null;
+        
+        // Listen for pincode input
+        pincodeInput.off('input.pincode').on('input.pincode', function() {
+            const pincode = $(this).val().trim();
+            
+            // Clear previous timeout
+            clearTimeout(pincodeLookupTimeouts[addressIndex]);
+            
+            // Only lookup if pincode is 4-10 digits and not already searched
+            if (pincode.length >= 4 && pincode.length <= 10 && /^\d+$/.test(pincode)) {
+                // Don't search if we're already searching or if this is the same pincode we just searched
+                if (!isSearchingPincodes[addressIndex] && pincode !== lastSearchedPincodes[addressIndex]) {
+                    // Debounce: wait 800ms after user stops typing
+                    pincodeLookupTimeouts[addressIndex] = setTimeout(function() {
+                        lookupLocationByPincodeForAddress(pincode, addressIndex);
+                    }, 800);
+                }
+            } else if (pincode.length === 0) {
+                // Clear location fields if pincode is cleared
+                clearLocationFieldsForAddress(addressIndex);
+                lastSearchedPincodes[addressIndex] = null;
+            }
+        });
+        
+        // Also trigger on blur for immediate lookup
+        pincodeInput.off('blur.pincode').on('blur.pincode', function() {
+            const pincode = $(this).val().trim();
+            if (pincode.length >= 4 && pincode.length <= 10 && /^\d+$/.test(pincode)) {
+                // Don't search if we're already searching or if this is the same pincode we just searched
+                if (!isSearchingPincodes[addressIndex] && pincode !== lastSearchedPincodes[addressIndex]) {
+                    clearTimeout(pincodeLookupTimeouts[addressIndex]);
+                    lookupLocationByPincodeForAddress(pincode, addressIndex);
+                }
+            }
+        });
+    }
+}
+
+function lookupLocationByPincodeForAddress(pincode, addressIndex) {
+    // Prevent duplicate searches
+    if (isSearchingPincodes[addressIndex] || pincode === lastSearchedPincodes[addressIndex]) {
+        return;
+    }
+    
+    // Set flag to prevent duplicate requests
+    isSearchingPincodes[addressIndex] = true;
+    lastSearchedPincodes[addressIndex] = pincode;
+    
+    // Show loading indicator
+    const pincodeField = $(`#address_${addressIndex}_pincode`);
+    pincodeField.addClass('is-loading');
+    pincodeField.after('<span class="pincode-loader ms-2"><i class="fas fa-spinner fa-spin text-primary"></i></span>');
+    
+    // Remove any previous error messages
+    $(`.pincode-error-${addressIndex}`).remove();
+    
+    $.ajax({
+        url: '{{ route("frontend.location-by-pincode") }}',
+        method: 'GET',
+        data: {
+            pincode: pincode
+        },
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+            'Accept': 'application/json'
+        },
+        success: function(response) {
+            if (response.success && response.data) {
+                // Auto-fill country (set to India)
+                const countryField = $(`#address_${addressIndex}_country`);
+                if (countryField.length) {
+                    countryField.val('India');
+                    countryField.addClass('border-success');
+                    setTimeout(function() {
+                        countryField.removeClass('border-success');
+                    }, 2000);
+                }
+                
+                // Auto-fill state
+                if (response.data.state) {
+                    const stateField = $(`#address_${addressIndex}_state`);
+                    if (stateField.length) {
+                        stateField.val(response.data.state);
+                        stateField.addClass('border-success');
+                        setTimeout(function() {
+                            stateField.removeClass('border-success');
+                        }, 2000);
+                    }
+                }
+                
+                // Auto-fill city
+                if (response.data.city) {
+                    const cityField = $(`#address_${addressIndex}_city`);
+                    if (cityField.length) {
+                        cityField.val(response.data.city);
+                        cityField.addClass('border-success');
+                        setTimeout(function() {
+                            cityField.removeClass('border-success');
+                        }, 2000);
+                    }
+                }
+                
+                // Show success message
+                showPincodeMessageForAddress('Location found and auto-filled!', 'success', addressIndex);
+            } else {
+                showPincodeMessageForAddress(response.message || 'Location not found for this pincode', 'error', addressIndex);
+            }
+        },
+        error: function(xhr) {
+            console.error('Pincode lookup error:', xhr);
+            showPincodeMessageForAddress('Error fetching location data', 'error', addressIndex);
+        },
+        complete: function() {
+            // Remove loading indicator
+            pincodeField.removeClass('is-loading');
+            $('.pincode-loader').remove();
+            
+            // Reset search flag
+            isSearchingPincodes[addressIndex] = false;
+        }
+    });
+}
+
+function clearLocationFieldsForAddress(addressIndex) {
+    $(`#address_${addressIndex}_country`).val('');
+    $(`#address_${addressIndex}_state`).val('');
+    $(`#address_${addressIndex}_city`).val('');
+}
+
+function showPincodeMessageForAddress(message, type, addressIndex) {
+    // Remove existing messages
+    $(`.pincode-error-${addressIndex}`).remove();
+    
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const iconClass = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+    
+    const messageHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show pincode-error-${addressIndex} mt-2" role="alert">
+            <i class="${iconClass} me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    $(`#address_${addressIndex}_pincode`).closest('.col-md-6, .col-12').after(`<div class="col-12">${messageHtml}</div>`);
+    
+    // Auto-hide success messages after 3 seconds
+    if (type === 'success') {
+        setTimeout(function() {
+            $(`.pincode-error-${addressIndex}`).fadeOut(300, function() {
+                $(this).parent().remove();
+            });
+        }, 3000);
+    }
 }
 
 // Initialize Select2 for location fields (country, state, city)

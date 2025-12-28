@@ -1,4 +1,15 @@
-Product Name,SEO Slug,Status,Short Description,Description,Brand Slugs (comma separated),Category Slugs (comma separated),Tag List,Featured,Requires Shipping (0 or 1),Free Shipping (0 or 1),GST Type (0 or 1),GST Percentage,Meta Title,Meta Description,Meta Keywords
-Sample T-Shirt,sample-t-shirt,published,A comfortable cotton t-shirt for everyday wear,"This is a high-quality cotton t-shirt that offers comfort and style. Perfect for casual wear.",other,clothing mens-clothing,casual cotton comfortable,1,1,0,1,18,Sample T-Shirt - Comfortable Cotton,Buy our comfortable cotton t-shirt. Perfect for everyday wear.,t-shirt cotton casual clothing
-Sample Jeans,sample-jeans,published,Classic fit denim jeans,"Premium quality denim jeans with classic fit. Durable and stylish.",other,clothing mens-clothing,denim jeans classic,0,1,0,1,18,Sample Jeans - Classic Fit,Classic fit denim jeans for everyday wear.,jeans denim classic
-
+Product Name,SEO Slug,Status,Short Description,Brand Slugs (comma separated),Category Slugs (comma separated),Tag List,Featured,GST Type (0 or 1),GST Percentage
+Cotton Casual T-Shirt,cotton-casual-t-shirt,published,Premium quality cotton t-shirt for everyday comfort,other,t-shirts plain-t-shirts,casual cotton comfortable unisex,1,1,18
+Denim Slim Fit Jeans,denim-slim-fit-jeans,published,Stylish slim fit denim jeans for modern look,other,jeans slim-fit-jeans,denim casual trendy,1,1,18
+Formal Cotton Shirt,formal-cotton-shirt,published,Professional cotton shirt for office wear,other,shirts-1 formal-shirts,formal office professional cotton,0,1,18
+Designer Silk Saree,designer-silk-saree,published,Elegant silk saree with traditional patterns,sayuri-designer,sarees designer-sarees,silk traditional ethnic elegant,1,1,5
+Sports Running Shoes,sports-running-shoes,published,Lightweight running shoes for athletes,other,footwear-1,sports running athletic comfortable,1,1,18
+Gold Plated Necklace,gold-plated-necklace,published,Beautiful gold plated necklace for special occasions,adorify,jewellery,gold jewelry necklace elegant,1,1,3
+Winter Wool Sweater,winter-wool-sweater,published,Warm wool sweater for cold weather,other,sweater winter-wear,wool warm winter cozy,0,1,18
+Casual Canvas Sneakers,casual-canvas-sneakers,published,Comfortable canvas sneakers for daily wear,other,footwear-1,casual canvas comfortable trendy,1,1,18
+Silver Bracelet Set,silver-bracelet-set,published,Elegant silver bracelet set with charms,adorify,jewellery,silver jewelry bracelet set,1,1,3
+Party Wear Dress,party-wear-dress,published,Stunning party dress for special events,other,dress,party elegant stylish,1,1,18
+Leather Handbag,leather-handbag,published,Premium leather handbag for women,other,bags accessories,leather handbag women premium,1,1,18
+Diamond Stud Earrings,diamond-stud-earrings,published,Sparkling diamond stud earrings,adorify,jewellery,diamond earrings luxury premium,1,1,3
+Winter Jacket,winter-jacket,published,Warm winter jacket with hood,other,jackets winter-wear,winter warm jacket hood,0,1,18
+Sports Water Bottle,sports-water-bottle,published,Insulated sports water bottle,other,water-bottle accessories,sports bottle insulated,0,1,18

@@ -35,7 +35,7 @@
 							<!-- Main Product Image -->
 							<div class="product-main-image mb-3" id="productMainImageContainer">
 								<img id="productMainImage" 
-									 src="{{ $productImages->first()['url'] ?? asset('frontend/images/product/1.jpg') }}" 
+									 src="{{ $productImages->first()['url'] ?? asset('frontend/images/product/sample-product.jpg') }}" 
 									 alt="{{ $product->name }}" 
 									 class="img-fluid w-100">
 							</div>
@@ -52,9 +52,9 @@
 								@endforeach
 								@else
 									<div class="product-thumbnail-item active" 
-										 data-image-url="{{ asset('frontend/images/product/1.jpg') }}" 
+										 data-image-url="{{ asset('frontend/images/product/sample-product.jpg') }}" 
 										 data-image-alt="{{ $product->name }}">
-										<img src="{{ asset('frontend/images/product/1.jpg') }}" alt="{{ $product->name }}" class="img-fluid">
+										<img src="{{ asset('frontend/images/product/sample-product.jpg') }}" alt="{{ $product->name }}" class="img-fluid">
 									</div>
 								@endif
 							</div>
@@ -749,7 +749,7 @@
             
             // Final fallback
             if (imagesToShow.length === 0) {
-                const fallbackUrl = '{{ asset("frontend/images/product/1.jpg") }}';
+                const fallbackUrl = '{{ asset("frontend/images/product/sample-product.jpg") }}';
                 const fallbackAlt = '{{ addslashes($product->name) }}';
                 imagesToShow = [{url: fallbackUrl, alt: fallbackAlt}];
             }
