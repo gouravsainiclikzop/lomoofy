@@ -33,14 +33,29 @@ class OrderApiController extends Controller
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
+        // When user is logged in, check both customer_id and session_id
+        // This handles cases where cart was created before login
         $cart = Cart::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
-                $query->where('customer_id', $customerId);
+                // Check both customer_id and session_id when logged in
+                $query->where(function($q) use ($customerId, $sessionId) {
+                    $q->where('customer_id', $customerId)
+                      ->orWhere('session_id', $sessionId);
+                });
             } else {
+                // Guest user - only check session_id
                 $query->where('session_id', $sessionId);
             }
         })->active()->with('items.product', 'items.variant')->first();
         
+        // If cart found and user is logged in, update cart to use customer_id
+        if ($cart && $customerId && !$cart->customer_id) {
+            $cart->customer_id = $customerId;
+            $cart->session_id = null; // Clear session_id when customer_id is set
+            $cart->save();
+        }
+        
+       
         $validation = $this->checkoutService->validateCart($cart);
         
         if (!$validation['valid']) {

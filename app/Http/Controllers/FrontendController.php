@@ -631,6 +631,19 @@ class FrontendController extends Controller
         $parentCategories = collect([]);
         $breadcrumb = [];
         
+        // Debug: Log request parameters
+        \Log::info('Shop request received', [
+            'category' => $request->input('category'),
+            'search' => $request->input('search'),
+            'sort' => $request->input('sort', '1'),
+            'min_price' => $request->input('min_price'),
+            'max_price' => $request->input('max_price'),
+            'sizes' => $request->input('sizes'),
+            'brands' => $request->input('brands'),
+            'colors' => $request->input('colors'),
+            'is_ajax' => $request->ajax()
+        ]);
+        
         // Get all parent categories (top-level categories) for the category list
         $parentCategories = Category::whereNull('parent_id')
             ->where(function($q) {
@@ -651,6 +664,11 @@ class FrontendController extends Controller
                     $q->where('is_active', true)->orWhereNull('is_active');
                 })
                 ->first();
+            
+            \Log::info('Category lookup', [
+                'requested_slug' => $request->category,
+                'found' => $selectedCategory ? $selectedCategory->name : 'NOT FOUND'
+            ]);
             
             // If category found, get its direct children
             if ($selectedCategory) {
@@ -730,19 +748,174 @@ class FrontendController extends Controller
             $searchTerm = $request->search;
             $productsQuery->where(function($q) use ($searchTerm) {
                 $q->where('name', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('description', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('short_description', 'like', '%' . $searchTerm . '%')
                   ->orWhere('slug', 'like', '%' . $searchTerm . '%');
             });
+        }
+        
+        // Filter by price range (check display price: sale_price if available and less than regular, otherwise regular price)
+        if ($request->has('min_price') || $request->has('max_price')) {
+            $minPrice = $request->has('min_price') ? (float)$request->min_price : null;
+            $maxPrice = $request->has('max_price') ? (float)$request->max_price : null;
+            
+            // Apply filter if at least one price parameter is provided
+            if ($minPrice !== null || $maxPrice !== null) {
+                \Log::info('Price filter applied', ['min_price' => $minPrice, 'max_price' => $maxPrice]);
+                
+                // Use raw SQL to calculate display price and filter
+                // Display price = CASE WHEN sale_price IS NOT NULL AND sale_price > 0 AND sale_price < price THEN sale_price ELSE price END
+                $productsQuery->whereHas('variants', function($q) use ($minPrice, $maxPrice) {
+                    $q->where('is_active', true);
+                    
+                    // Build the WHERE clause with raw SQL for display price calculation
+                    $conditions = [];
+                    $bindings = [];
+                    
+                    if ($minPrice !== null) {
+                        $conditions[] = '(CASE 
+                            WHEN sale_price IS NOT NULL AND sale_price > 0 AND sale_price < price THEN sale_price 
+                            ELSE price 
+                        END) >= ?';
+                        $bindings[] = $minPrice;
+                    }
+                    
+                    if ($maxPrice !== null) {
+                        $conditions[] = '(CASE 
+                            WHEN sale_price IS NOT NULL AND sale_price > 0 AND sale_price < price THEN sale_price 
+                            ELSE price 
+                        END) <= ?';
+                        $bindings[] = $maxPrice;
+                    }
+                    
+                    if (!empty($conditions)) {
+                        $q->whereRaw(implode(' AND ', $conditions), $bindings);
+                    }
+                });
+            }
+        }
+        
+        // Filter by sizes
+        if ($request->has('sizes') && is_array($request->sizes) && count($request->sizes) > 0) {
+            $sizes = array_filter($request->sizes);
+            if (count($sizes) > 0) {
+                $productsQuery->whereHas('variants', function($q) use ($sizes) {
+                    $q->where('is_active', true)
+                      ->where(function($sizeQ) use ($sizes) {
+                          foreach ($sizes as $size) {
+                              $sizeQ->orWhereJsonContains('attributes->size', $size)
+                                    ->orWhereJsonContains('attributes->Size', $size)
+                                    ->orWhere('attributes', 'like', '%"' . $size . '"%');
+                          }
+                      });
+                });
+            }
+        }
+        
+        // Filter by brands
+        if ($request->has('brands') && is_array($request->brands) && count($request->brands) > 0) {
+            $brandIds = array_filter($request->brands);
+            if (count($brandIds) > 0) {
+                $productsQuery->whereIn('brand_id', $brandIds);
+            }
+        }
+        
+        // Filter by colors (if implemented in variants)
+        if ($request->has('colors') && is_array($request->colors) && count($request->colors) > 0) {
+            $colors = array_filter($request->colors);
+            if (count($colors) > 0) {
+                // Get color attribute to check by ID if it exists
+                $colorAttribute = \App\Models\ProductAttribute::where(function($q) {
+                    $q->where('type', 'color')
+                      ->orWhere('slug', 'color')
+                      ->orWhere('name', 'Color');
+                })->first();
+                
+                $productsQuery->whereHas('variants', function($q) use ($colors, $colorAttribute) {
+                    $q->where('is_active', true)
+                      ->where(function($colorQ) use ($colors, $colorAttribute) {
+                          foreach ($colors as $color) {
+                              $colorLower = strtolower(trim($color));
+                              $colorUpper = ucfirst($colorLower);
+                              
+                              $colorQ->orWhere(function($cq) use ($colorLower, $colorUpper, $color, $colorAttribute) {
+                                  // Method 1: Check by attribute ID (if color attribute exists)
+                                  // Colors might be stored as: {"1": "red"} where 1 is the color attribute ID
+                                  if ($colorAttribute) {
+                                      $cq->whereJsonContains('attributes->' . $colorAttribute->id, $colorLower)
+                                         ->orWhereJsonContains('attributes->' . $colorAttribute->id, $colorUpper)
+                                         ->orWhereJsonContains('attributes->' . $colorAttribute->id, $color);
+                                  }
+                                  
+                                  // Method 2: Check by attribute name (case variations)
+                                  // Colors might be stored as: {"color": "red"} or {"Color": "red"}
+                                  $cq->orWhereJsonContains('attributes->color', $colorLower)
+                                     ->orWhereJsonContains('attributes->Color', $colorLower)
+                                     ->orWhereJsonContains('attributes->COLOR', $colorLower)
+                                     ->orWhereJsonContains('attributes->color', $colorUpper)
+                                     ->orWhereJsonContains('attributes->Color', $colorUpper)
+                                     ->orWhereJsonContains('attributes->COLOR', $colorUpper)
+                                     ->orWhereJsonContains('attributes->color', $color)
+                                     ->orWhereJsonContains('attributes->Color', $color)
+                                     ->orWhereJsonContains('attributes->COLOR', $color);
+                                  
+                                  // Method 3: Case-insensitive JSON search using JSON_UNQUOTE
+                                  $cq->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.color"))) = ?', [$colorLower])
+                                     ->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.Color"))) = ?', [$colorLower]);
+                                  
+                                  // Method 4: Like search for JSON string matching (handles both key formats)
+                                  $cq->orWhere('attributes', 'like', '%"color":"' . $colorLower . '"%')
+                                     ->orWhere('attributes', 'like', '%"Color":"' . $colorLower . '"%')
+                                     ->orWhere('attributes', 'like', '%"color":"' . $colorUpper . '"%')
+                                     ->orWhere('attributes', 'like', '%"Color":"' . $colorUpper . '"%');
+                                  
+                                  // Method 5: If color attribute exists, also check by ID in JSON
+                                  if ($colorAttribute) {
+                                      $cq->orWhere('attributes', 'like', '%"' . $colorAttribute->id . '":"' . $colorLower . '"%')
+                                         ->orWhere('attributes', 'like', '%"' . $colorAttribute->id . '":"' . $colorUpper . '"%');
+                                  }
+                              });
+                          }
+                      });
+                });
+            }
         }
         
         // Get total count before limiting
         $totalProducts = $productsQuery->count();
         
-        // Limit to 20 products initially
-        $products = $productsQuery->orderBy('created_at', 'desc')
-            ->take(20)
-            ->get()
-            ->map(function($product) use ($wishlistProductIds) {
+        \Log::info('Products query result', [
+            'total_count' => $totalProducts,
+            'category' => $selectedCategory ? $selectedCategory->slug : 'none'
+        ]);
+        
+        // Get sort parameter
+        $sort = $request->input('sort', '1');
+        
+        // Apply initial ordering based on sort type
+        // Note: Price sorting will be done after mapping since we need display prices
+        switch ($sort) {
+            case '2': // Price: Low to High - will sort after mapping
+            case '3': // Price: High to Low - will sort after mapping
+                // Get all products first (we'll limit after sorting)
+                $productsQuery = $productsQuery->orderBy('created_at', 'desc');
+                break;
+            case '4': // Rating - featured first, then by created_at
+            case '5': // Trending - featured first, then by created_at
+                $productsQuery = $productsQuery->orderBy('featured', 'desc')
+                    ->orderBy('created_at', 'desc');
+                break;
+            default: // Default: created_at desc
+                $productsQuery = $productsQuery->orderBy('created_at', 'desc');
+                break;
+        }
+        
+        // Get products (get more than 20 if we need to sort by price, then limit after)
+        $productsToMap = ($sort == '2' || $sort == '3') 
+            ? $productsQuery->get() 
+            : $productsQuery->take(20)->get();
+        
+        // Map products to array format
+        $products = $productsToMap->map(function($product) use ($wishlistProductIds) {
                 // Get price range from variants
                 $activeVariants = $product->variants->where('is_active', true);
                 $prices = $activeVariants->pluck('price')->filter();
@@ -1033,6 +1206,31 @@ class FrontendController extends Controller
                 ];
             });
         
+        // Apply sorting based on sort parameter
+        switch ($sort) {
+            case '2': // Price: Low to High
+                $products = $products->sortBy(function($product) {
+                    return $product['min_display_price'] ?? $product['min_price'] ?? 0;
+                })->values();
+                break;
+            case '3': // Price: High to Low
+                $products = $products->sortByDesc(function($product) {
+                    return $product['max_display_price'] ?? $product['max_price'] ?? 0;
+                })->values();
+                break;
+            case '4': // Rating - already sorted by featured/created_at in query
+            case '5': // Trending - already sorted by featured/created_at in query
+                // Already sorted in query, no additional sorting needed
+                break;
+            default: // Default - already sorted by created_at in query
+                break;
+        }
+        
+        // Limit to 20 products after sorting (if we got more than 20)
+        if ($sort == '2' || $sort == '3') {
+            $products = $products->take(20);
+        }
+        
         $hasMoreProducts = $totalProducts > 20;
         $currentPage = 1;
         
@@ -1121,6 +1319,70 @@ class FrontendController extends Controller
             })->values();
         }
         
+        // Get available colors from product variants with color codes
+        $colorAttribute = ProductAttribute::where(function($q) {
+            $q->where('type', 'color')
+              ->orWhere('slug', 'color')
+              ->orWhere('name', 'Color');
+        })->first();
+        
+        $availableColors = collect();
+        if ($colorAttribute) {
+            // Get all color values from variants attributes
+            $variants = DB::table('product_variants')
+                ->join('products', 'product_variants.product_id', '=', 'products.id')
+                ->where('product_variants.is_active', true)
+                ->where('products.status', 'published')
+                ->select('product_variants.attributes')
+                ->get();
+            
+            $colorValuesMap = [];
+            foreach ($variants as $variant) {
+                $attributes = is_string($variant->attributes) 
+                    ? json_decode($variant->attributes, true) 
+                    : ($variant->attributes ?? []);
+                
+                if (is_array($attributes)) {
+                    $colorValue = null;
+                    // Check by attribute ID
+                    if (isset($attributes[$colorAttribute->id])) {
+                        $colorValue = trim($attributes[$colorAttribute->id]);
+                    }
+                    // Check by attribute name/slug
+                    elseif (isset($attributes['color']) || isset($attributes['Color']) || isset($attributes[$colorAttribute->name]) || isset($attributes[$colorAttribute->slug])) {
+                        $colorValue = trim($attributes['color'] ?? $attributes['Color'] ?? $attributes[$colorAttribute->name] ?? $attributes[$colorAttribute->slug]);
+                    }
+                    
+                    if ($colorValue && !isset($colorValuesMap[$colorValue])) {
+                        // Get color code from ProductAttributeValue
+                        $attributeValue = \App\Models\ProductAttributeValue::where('attribute_id', $colorAttribute->id)
+                            ->where(function($q) use ($colorValue) {
+                                $q->where('value', $colorValue)
+                                  ->orWhereRaw('LOWER(value) = ?', [strtolower($colorValue)]);
+                            })
+                            ->first();
+                        
+                        $colorCode = '#ccc'; // Default fallback
+                        if ($attributeValue && $attributeValue->color_code) {
+                            $colorCode = $attributeValue->color_code;
+                        } else {
+                            // Fallback: Generate a basic color code from common color names
+                            $colorCode = self::getColorCodeFromName($colorValue);
+                        }
+                        
+                        $colorValuesMap[$colorValue] = [
+                            'name' => $colorValue,
+                            'code' => $colorCode,
+                            'id' => strtolower(str_replace(' ', '', $colorValue)) . 'a8'
+                        ];
+                    }
+                }
+            }
+            
+            // Convert to collection and sort
+            $availableColors = collect($colorValuesMap)->values()->sortBy('name');
+        }
+        
         // Get brands with product counts (using brand_id only, excluding "other" brand)
         $brands = \App\Models\Brand::where('is_active', true)
             ->where('slug', '!=', 'other')
@@ -1146,7 +1408,7 @@ class FrontendController extends Controller
             ->sortBy('name')
             ->values();
         
-        return view('frontend.shop', compact('selectedCategory', 'childCategories', 'parentCategories', 'breadcrumb', 'products', 'totalProducts', 'hasMoreProducts', 'currentPage', 'minPrice', 'maxPrice', 'availableSizes', 'brands'));
+        return view('frontend.shop', compact('selectedCategory', 'childCategories', 'parentCategories', 'breadcrumb', 'products', 'totalProducts', 'hasMoreProducts', 'currentPage', 'minPrice', 'maxPrice', 'availableSizes', 'availableColors', 'brands'));
     }
 
     /**
@@ -1217,7 +1479,7 @@ class FrontendController extends Controller
             $searchTerm = $request->search;
             $productsQuery->where(function($q) use ($searchTerm) {
                 $q->where('name', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('description', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('short_description', 'like', '%' . $searchTerm . '%')
                   ->orWhere('slug', 'like', '%' . $searchTerm . '%');
             });
         }
@@ -1813,8 +2075,10 @@ class FrontendController extends Controller
         // Get wishlist status
         $customer = $request->user();
         $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
-        $sessionId = $request->input('session_id') 
-                  ?? $request->query('session_id') 
+        
+        // Prioritize session_id from query parameter (for guest users with localStorage session_id)
+        $sessionId = $request->query('session_id') 
+                  ?? $request->input('session_id') 
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
@@ -3807,9 +4071,9 @@ class FrontendController extends Controller
         $customer = $request->user();
         $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
         
-        // Get session_id from request (for guest users using localStorage)
-        $sessionId = $request->input('session_id') 
-                  ?? $request->query('session_id') 
+        // Prioritize session_id from query parameter (for guest users with localStorage session_id)
+        $sessionId = $request->query('session_id') 
+                  ?? $request->input('session_id') 
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
@@ -3840,6 +4104,9 @@ class FrontendController extends Controller
                 'items.product.primaryImage',
                 'items.product.images' => function($q) {
                     $q->orderBy('sort_order')->orderBy('id')->limit(1);
+                },
+                'items.variant.images' => function($q) {
+                    $q->orderBy('is_primary', 'desc')->orderBy('sort_order')->orderBy('id');
                 },
                 'items.variant',
                 'coupon'
@@ -3930,6 +4197,7 @@ class FrontendController extends Controller
             'items.variant.images' => function($q) {
                 $q->orderBy('sort_order')->orderBy('id')->limit(1);
             },
+            'items.variant.inventoryStocks',
             'coupon'
         ]);
         
@@ -3995,7 +4263,7 @@ class FrontendController extends Controller
                 [
                     'payment_method' => $validatedData['payment_method'] ?? 'cash_on_delivery',
                     'notes' => $validatedData['notes'] ?? null,
-                ]
+                ] 
             );
             
             // Clear checkout session data
@@ -4042,6 +4310,7 @@ class FrontendController extends Controller
         ]);
     }
 
+    
     /**
      * Get color code from common color names (fallback when not in database)
      */

@@ -25,13 +25,27 @@ class CartApiController extends Controller
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
+        // When user is logged in, check both customer_id and session_id
+        // This handles cases where cart was created before login
         $cart = Cart::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
-                $query->where('customer_id', $customerId);
+                // Check both customer_id and session_id when logged in
+                $query->where(function($q) use ($customerId, $sessionId) {
+                    $q->where('customer_id', $customerId)
+                      ->orWhere('session_id', $sessionId);
+                });
             } else {
+                // Guest user - only check session_id
                 $query->where('session_id', $sessionId);
             }
         })->active()->first();
+        
+        // If cart found and user is logged in, update cart to use customer_id
+        if ($cart && $customerId && !$cart->customer_id) {
+            $cart->customer_id = $customerId;
+            $cart->session_id = null; // Clear session_id when customer_id is set
+            $cart->save();
+        }
         
         if (!$cart) {
             return response()->json([
@@ -58,6 +72,9 @@ class CartApiController extends Controller
             'items.product.images' => function($q) {
                 $q->orderBy('sort_order')->orderBy('id')->limit(1);
             },
+            'items.variant.images' => function($q) {
+                $q->orderBy('is_primary', 'desc')->orderBy('sort_order')->orderBy('id');
+            },
             'items.variant',
             'coupon'
         ]);
@@ -65,12 +82,67 @@ class CartApiController extends Controller
         $items = $cart->items->map(function($item) {
             $product = $item->product;
             $variant = $item->variant;
+        
+            if (!$product) {
+                return [
+                    'id' => $item->id,
+                    'product_id' => null,
+                    'product_name' => 'Product unavailable',
+                    'product_slug' => null,
+                    'variant_id' => $variant ? $variant->id : null,
+                    'variant_name' => $variant ? $variant->name : null,
+                    'quantity' => $item->quantity,
+                    'unit_price' => (float)$item->unit_price,
+                    'total_price' => (float)$item->total_price,
+                    'image_url' => asset('frontend/images/product/sample-product.jpg'),
+                ];
+            }
+        
+            // Get variant image first (primary or first), fallback to product image
+            $imageUrl = asset('frontend/images/product/sample-product.jpg'); // Default fallback
             
-            $imageUrl = $product->primaryImage 
-                ? asset('storage/' . $product->primaryImage->image_path)
-                : ($product->images && $product->images->count() > 0
-                    ? asset('storage/' . $product->images->first()->image_path)
-                    : asset('frontend/images/product/sample-product.jpg'));
+            if ($variant && $variant->images && $variant->images->count() > 0) {
+                // Try to get primary variant image first
+                $primaryVariantImage = $variant->images->where('is_primary', true)->first();
+                if ($primaryVariantImage) {
+                    $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                } else {
+                    // Use first variant image
+                    $firstVariantImage = $variant->images->first();
+                    if ($firstVariantImage) {
+                        $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                    }
+                }
+            } else {
+                // Fallback to product image if no variant image
+                $imageUrl = $product->primaryImage
+                    ? asset('storage/' . $product->primaryImage->image_path)
+                    : ($product->images && $product->images->count() > 0
+                        ? asset('storage/' . $product->images->first()->image_path)
+                        : asset('frontend/images/product/sample-product.jpg'));
+            }
+        
+            // Check stock availability
+            $stockSource = $variant ?: $product;
+            $isInStock = true;
+            $availableStock = null;
+            $manageStock = false;
+            
+            if ($stockSource && $stockSource->manage_stock) {
+                $manageStock = true;
+                // Check warehouse-based inventory if available
+                if ($variant && $variant->inventoryStocks()->exists()) {
+                    $totalStock = $variant->inventoryStocks()->sum('quantity');
+                    $reservedStock = $variant->inventoryStocks()->sum('reserved_quantity');
+                    $availableStock = max(0, $totalStock - $reservedStock);
+                } else {
+                    // Fallback to variant/product stock_quantity
+                    $availableStock = $variant 
+                        ? ($variant->available_stock ?? ($variant->stock_quantity ?? 0))
+                        : ($product->stock_quantity ?? 0);
+                }
+                $isInStock = $availableStock >= $item->quantity;
+            }
             
             return [
                 'id' => $item->id,
@@ -83,13 +155,16 @@ class CartApiController extends Controller
                 'unit_price' => (float)$item->unit_price,
                 'total_price' => (float)$item->total_price,
                 'image_url' => $imageUrl,
+                'in_stock' => $isInStock,
+                'available_stock' => $availableStock,
+                'manage_stock' => $manageStock,
             ];
         });
         
         return response()->json([
             'success' => true,
             'data' => [
-                'items' => $items,
+                'items' => $items->values()->all(),
                 'summary' => [
                     'subtotal' => (float)$cart->subtotal,
                     'tax_amount' => (float)$cart->tax_amount,
@@ -99,7 +174,8 @@ class CartApiController extends Controller
                 ],
                 'coupon' => $cart->coupon ? [
                     'code' => $cart->coupon->code,
-                    'discount_amount' => (float)$cart->discount_amount,
+                    'discount_type' => $cart->coupon->discount_type,
+                    'discount_value' => $cart->coupon->discount_value,
                 ] : null,
             ],
         ]);
@@ -114,18 +190,40 @@ class CartApiController extends Controller
         $customer = Auth::guard('customer')->user();
         $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
         
-        $sessionId = $request->input('session_id') 
-                  ?? $request->query('session_id') 
-                  ?? $request->header('X-Session-ID') 
-                  ?? session()->getId();
+        // When user is logged in, ignore session_id from query parameters and use customer_id only
+        // For guest users, use session_id
+        $sessionId = null;
+        if (!$customerId) {
+            $sessionId = $request->input('session_id') 
+                      ?? $request->query('session_id') 
+                      ?? $request->header('X-Session-ID') 
+                      ?? session()->getId();
+        }
         
+        // When user is logged in, check both customer_id and session_id
+        // This handles cases where cart was created before login
         $cart = Cart::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
-                $query->where('customer_id', $customerId);
+                // Check both customer_id and session_id when logged in
+                $query->where(function($q) use ($customerId, $sessionId) {
+                    $q->where('customer_id', $customerId);
+                    // Only check session_id if it was provided (for migration cases)
+                    if ($sessionId) {
+                        $q->orWhere('session_id', $sessionId);
+                    }
+                });
             } else {
+                // Guest user - only check session_id
                 $query->where('session_id', $sessionId);
             }
         })->active()->first();
+        
+        // If cart found and user is logged in, update cart to use customer_id
+        if ($cart && $customerId && !$cart->customer_id) {
+            $cart->customer_id = $customerId;
+            $cart->session_id = null; // Clear session_id when customer_id is set
+            $cart->save();
+        }
         
         // Count unique products instead of summing variant quantities
         $count = 0;
@@ -161,13 +259,26 @@ class CartApiController extends Controller
         
         DB::beginTransaction();
         try {
+            // When user is logged in, check both customer_id and session_id
             $cart = Cart::where(function($query) use ($customerId, $sessionId) {
                 if ($customerId) {
-                    $query->where('customer_id', $customerId);
+                    // Check both customer_id and session_id when logged in
+                    $query->where(function($q) use ($customerId, $sessionId) {
+                        $q->where('customer_id', $customerId)
+                          ->orWhere('session_id', $sessionId);
+                    });
                 } else {
+                    // Guest user - only check session_id
                     $query->where('session_id', $sessionId);
                 }
             })->active()->first();
+            
+            // If cart found and user is logged in, update cart to use customer_id
+            if ($cart && $customerId && !$cart->customer_id) {
+                $cart->customer_id = $customerId;
+                $cart->session_id = null; // Clear session_id when customer_id is set
+                $cart->save();
+            }
             
             if (!$cart) {
                 $cart = Cart::create([
@@ -277,13 +388,26 @@ class CartApiController extends Controller
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
+        // When user is logged in, check both customer_id and session_id
         $cart = Cart::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
-                $query->where('customer_id', $customerId);
+                // Check both customer_id and session_id when logged in
+                $query->where(function($q) use ($customerId, $sessionId) {
+                    $q->where('customer_id', $customerId)
+                      ->orWhere('session_id', $sessionId);
+                });
             } else {
+                // Guest user - only check session_id
                 $query->where('session_id', $sessionId);
             }
         })->active()->first();
+        
+        // If cart found and user is logged in, update cart to use customer_id
+        if ($cart && $customerId && !$cart->customer_id) {
+            $cart->customer_id = $customerId;
+            $cart->session_id = null;
+            $cart->save();
+        }
         
         if (!$cart) {
             return response()->json([
@@ -325,13 +449,26 @@ class CartApiController extends Controller
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
+        // When user is logged in, check both customer_id and session_id
         $cart = Cart::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
-                $query->where('customer_id', $customerId);
+                // Check both customer_id and session_id when logged in
+                $query->where(function($q) use ($customerId, $sessionId) {
+                    $q->where('customer_id', $customerId)
+                      ->orWhere('session_id', $sessionId);
+                });
             } else {
+                // Guest user - only check session_id
                 $query->where('session_id', $sessionId);
             }
         })->active()->first();
+        
+        // If cart found and user is logged in, update cart to use customer_id
+        if ($cart && $customerId && !$cart->customer_id) {
+            $cart->customer_id = $customerId;
+            $cart->session_id = null;
+            $cart->save();
+        }
         
         if (!$cart) {
             return response()->json([
@@ -375,13 +512,26 @@ class CartApiController extends Controller
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
+        // When user is logged in, check both customer_id and session_id
         $cart = Cart::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
-                $query->where('customer_id', $customerId);
+                // Check both customer_id and session_id when logged in
+                $query->where(function($q) use ($customerId, $sessionId) {
+                    $q->where('customer_id', $customerId)
+                      ->orWhere('session_id', $sessionId);
+                });
             } else {
+                // Guest user - only check session_id
                 $query->where('session_id', $sessionId);
             }
         })->active()->with('items')->first();
+        
+        // If cart found and user is logged in, update cart to use customer_id
+        if ($cart && $customerId && !$cart->customer_id) {
+            $cart->customer_id = $customerId;
+            $cart->session_id = null;
+            $cart->save();
+        }
         
         if (!$cart) {
             return response()->json([
@@ -512,13 +662,26 @@ class CartApiController extends Controller
                   ?? $request->header('X-Session-ID') 
                   ?? session()->getId();
         
+        // When user is logged in, check both customer_id and session_id
         $cart = Cart::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
-                $query->where('customer_id', $customerId);
+                // Check both customer_id and session_id when logged in
+                $query->where(function($q) use ($customerId, $sessionId) {
+                    $q->where('customer_id', $customerId)
+                      ->orWhere('session_id', $sessionId);
+                });
             } else {
+                // Guest user - only check session_id
                 $query->where('session_id', $sessionId);
             }
         })->active()->first();
+        
+        // If cart found and user is logged in, update cart to use customer_id
+        if ($cart && $customerId && !$cart->customer_id) {
+            $cart->customer_id = $customerId;
+            $cart->session_id = null;
+            $cart->save();
+        }
         
         if (!$cart) {
             return response()->json([

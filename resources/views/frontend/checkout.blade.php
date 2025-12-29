@@ -22,12 +22,19 @@
 
 @section('content')
 <section class="middle">
-    <div class="container">
+    <div class="container" id="checkoutContainer">
         <div class="row">
             <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
                 <div class="text-center d-block mb-5">
                     <h2>Checkout</h2>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Cart Validation Alert Container - positioned after title -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div id="cartValidationAlertContainer"></div>
             </div>
         </div>
 
@@ -324,8 +331,30 @@
                                         if ($item->variant_name && empty($variantDisplay)) {
                                             $variantDisplay[] = $item->variant_name;
                                         }
-                                    @endphp
-                                    <li class="list-group-item">
+                                        
+                                        // Check stock availability
+                                        $stockSource = $variant ?: $product;
+                                        $isInStock = true;
+                                        $availableStock = null;
+                                        $manageStock = false;
+                                        
+                                        if ($stockSource && $stockSource->manage_stock) {
+                                            $manageStock = true;
+                                            // Check warehouse-based inventory if available
+                                            if ($variant && $variant->inventoryStocks()->exists()) {
+                                                $totalStock = $variant->inventoryStocks()->sum('quantity');
+                                                $reservedStock = $variant->inventoryStocks()->sum('reserved_quantity');
+                                                $availableStock = max(0, $totalStock - $reservedStock);
+                                            } else {
+                                                // Fallback to variant/product stock_quantity
+                                                $availableStock = $variant 
+                                                    ? ($variant->available_stock ?? ($variant->stock_quantity ?? 0))
+                                                    : ($product->stock_quantity ?? 0);
+                                            }
+                                            $isInStock = $availableStock >= $item->quantity;
+                                        }
+                                    @endphp  
+                                    <li class="list-group-item{{ !$isInStock && $manageStock ? ' border-danger' : '' }}">
                                         <div class="row align-items-center">
                                             <div class="col-3">
                                                 <a href="{{ route('frontend.product', ['product' => $product->slug ?? '']) }}">
@@ -334,11 +363,27 @@
                                             </div>
                                             <div class="col d-flex align-items-center">
                                                 <div class="cart_single_caption ps-2">
-                                                    <h4 class="product_title fs-md ft-medium mb-1 lh-1">{{ $item->product_name }}</h4>
-                                                    @if(!empty($variantDisplay))
-                                                        @foreach($variantDisplay as $display)
-                                                            <p class="mb-1 lh-1"><span class="text-dark">{{ $display }}</span></p>
-                                                        @endforeach
+                                                    <h4 class="product_title fs-md ft-medium mb-1 lh-1">
+                                                        {{ $product ? $product->name : $item->product_name }}
+                                                        @if($manageStock)
+                                                            @if(!$isInStock)
+                                                                <span class="badge bg-danger ms-2">Out of Stock</span>
+                                                            @else
+                                                                <span class="badge bg-success ms-2">In Stock ({{ $availableStock }})</span>
+                                                            @endif
+                                                        @endif
+                                                    </h4>
+                                                    @if($sizeValue)
+                                                        <p class="mb-1 lh-1"><span class="text-dark">Size: {{ $sizeValue }}</span></p>
+                                                    @endif
+                                                    @if($colorValue)
+                                                        <p class="mb-1 lh-1"><span class="text-dark">Color: {{ $colorValue }}</span></p>
+                                                    @endif
+                                                    @if($item->variant_name && empty($sizeValue) && empty($colorValue))
+                                                        <p class="mb-1 lh-1"><span class="text-dark">{{ $item->variant_name }}</span></p>
+                                                    @endif
+                                                    @if(!$isInStock && $manageStock)
+                                                        <p class="text-danger mb-1"><small>Available: {{ $availableStock }}, Requested: {{ $item->quantity }}</small></p>
                                                     @endif
                                                     <p class="mb-1 lh-1"><span class="text-muted small">Qty: {{ $item->quantity }}</span></p>
                                                     <h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->total_price, 2) }}</h4>

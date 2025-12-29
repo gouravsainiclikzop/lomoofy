@@ -1227,5 +1227,72 @@
 }
 </style>
 @endpush
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // Check wishlist status on page load using session_id from localStorage
+    function getSessionId() {
+        let sessionId = localStorage.getItem('session_id');
+        if (!sessionId) {
+            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('session_id', sessionId);
+        }
+        return sessionId;
+    }
+    
+    // Get the main product wishlist button
+    const $wishlistBtn = $('.snackbar-wishlist[data-product-id="{{ $product->id }}"]').first();
+    
+    if ($wishlistBtn.length > 0) {
+        const productId = $wishlistBtn.data('product-id');
+        const sessionId = getSessionId();
+        
+        // Check wishlist status via API
+        $.ajax({
+            url: '/api/wishlist',
+            method: 'GET',
+            data: { session_id: sessionId },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const isInWishlist = response.data.some(function(item) {
+                        return item.product_id == productId;
+                    });
+                    
+                    // Update button state if status changed
+                    const currentState = $wishlistBtn.data('in-wishlist') == '1';
+                    if (isInWishlist !== currentState) {
+                        updateWishlistButton($wishlistBtn, isInWishlist);
+                    }
+                }
+            },
+            error: function(xhr) {
+                // Silently fail - keep current state
+                console.log('Could not check wishlist status (possibly offline)');
+            }
+        });
+    }
+    
+    // Function to update wishlist button state
+    function updateWishlistButton($btn, isInWishlist) {
+        const $icon = $btn.find('i');
+        
+        if (isInWishlist) {
+            // Add to wishlist state
+            $btn.addClass('wishlist-active text-danger');
+            $btn.attr('data-in-wishlist', '1');
+            $btn.css('color', '#dc3545');
+            $icon.removeClass('lni lni-heart').addClass('fas fa-heart text-danger').css('color', '#dc3545');
+        } else {
+            // Remove from wishlist state
+            $btn.removeClass('wishlist-active text-danger');
+            $btn.attr('data-in-wishlist', '0');
+            $btn.css('color', '');
+            $icon.removeClass('fas fa-heart text-danger').addClass('lni lni-heart').css('color', '');
+        }
+    }
+});
+</script>
+@endpush
 			
 @endsection

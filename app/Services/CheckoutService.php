@@ -31,35 +31,62 @@ class CheckoutService
             $errors[] = 'Cart has expired';
             return ['valid' => false, 'errors' => $errors];
         }
+ 
         
         // Validate each cart item
         foreach ($cart->items as $item) {
             $product = $item->product;
             $variant = $item->variant;
             
+            // Get product name for error messages
+            $productName = $product ? $product->name : ($item->product_name ?? 'Unknown Product');
+            
             // Check if product exists and is active
-            if (!$product || !$product->is_active) {
-                $errors[] = "Product '{$item->product_name}' is no longer available";
+            // if (!$product || !$product->is_active) {   
+            //     $errors[] = "Product '{$productName}' is no longer available";
+            //     continue;
+            // }
+  
+            
+            if ($variant && !$variant->is_active) {
+                $errors[] = "Variant for '{$productName}' is no longer available";
                 continue;
-            }
+            } 
             
             // Check stock availability
             $stockSource = $variant ?: $product;
-            if ($stockSource->manage_stock) {
-                $availableStock = $stockSource->stock_quantity ?? 0;
-                if ($item->quantity > $availableStock) {
-                    $errors[] = "Insufficient stock for '{$item->product_name}'. Available: {$availableStock}, Requested: {$item->quantity}";
+        
+            if ($stockSource && $stockSource->manage_stock) {
+                $availableStock = 0;
+                
+                // Check warehouse-based inventory if available
+                if ($variant && $variant->inventoryStocks()->exists()) {
+                    $totalStock = $variant->inventoryStocks()->sum('quantity');
+                    $reservedStock = $variant->inventoryStocks()->sum('reserved_quantity');
+                    $availableStock = max(0, $totalStock - $reservedStock);
+                } else {
+                    // Fallback to variant/product stock_quantity
+                    $availableStock = $variant 
+                        ? ($variant->available_stock ?? ($variant->stock_quantity ?? 0))
+                        : ($product->stock_quantity ?? 0);
                 }
+          
+                 
+                if ($item->quantity > $availableStock) {
+                    $errors[] = "Insufficient stock for '{$productName}'. Available: {$availableStock}, Requested: {$item->quantity}";
+                } else if ($availableStock <= 0) {
+                    $errors[] = "Product '{$productName}' is out of stock";
+                } 
             }
             
             // Validate pricing (ensure prices haven't changed dramatically)
-            $currentPrice = $variant ? ($variant->price ?? $product->price) : $product->price;
-            $priceDifference = abs($currentPrice - $item->unit_price);
-            $priceChangeThreshold = $item->unit_price * 0.1; // 10% threshold
+            // $currentPrice = $variant ? ($variant->price ?? $product->price) : $product->price;
+            // $priceDifference = abs($currentPrice - $item->unit_price);
+            // $priceChangeThreshold = $item->unit_price * 0.1; // 10% threshold
             
-            if ($priceDifference > $priceChangeThreshold) {
-                $errors[] = "Price has changed for '{$item->product_name}'. Please review your cart";
-            }
+            // if ($priceDifference > $priceChangeThreshold) {
+            //     $errors[] = "Price has changed for '{$productName}'. Please review your cart";
+            // }
         }
         
         return [
@@ -185,15 +212,25 @@ class CheckoutService
                 'billing_address_id' => $billingAddress->id,
             ]);
             
-            // Create order items
+            // Create order items and decrement stock
             foreach ($cart->items as $cartItem) {
                 $product = $cartItem->product;
                 $variant = $cartItem->variant;
+                
+                // Get warehouse for this item (if warehouse-based inventory is used)
+                $warehouseId = null;
+                $locationId = null;
+                if ($variant && $variant->inventoryStocks()->exists()) {
+                    $warehouse = \App\Models\Warehouse::getDefault();
+                    $warehouseId = $warehouse ? $warehouse->id : null;
+                }
                 
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
                     'product_variant_id' => $variant ? $variant->id : null,
+                    'warehouse_id' => $warehouseId,
+                    'warehouse_location_id' => $locationId,
                     'product_name' => $product->name,
                     'product_sku' => $variant ? $variant->sku : ($product->sku ?? '-'),
                     'variant_name' => $variant ? $variant->name : null,
@@ -203,8 +240,8 @@ class CheckoutService
                     'total_price' => $cartItem->total_price,
                 ]);
                 
-                // Decrement stock
-                $this->decrementStock($product, $variant, $cartItem->quantity);
+                // Decrement stock (handles warehouse-based inventory)
+                // $this->decrementStock($product, $variant, $cartItem->quantity, $warehouseId, $locationId);
             }
             
             // Clear the cart
@@ -234,17 +271,154 @@ class CheckoutService
         ];
     }
     
-    /**
-     * Decrement product/variant stock
-     */
-    private function decrementStock($product, $variant, int $quantity): void
-    {
-        $stockSource = $variant ?: $product;
-        
-        if ($stockSource->manage_stock && $stockSource->stock_quantity >= $quantity) {
-            $stockSource->decrement('stock_quantity', $quantity);
+ 
+
+private function decrementStock($product, $variant, int $quantity, $warehouseId = null, $locationId = null): void
+{
+    // Variant priority
+    if ($variant && $variant->manage_stock) {
+
+       
+
+        // Warehouse inventory path
+        if ($variant->inventoryStocks()->exists()) {
+
+            if (!$warehouseId) {
+                $warehouse = \App\Models\Warehouse::getDefault();
+                $warehouseId = $warehouse?->id;
+            }
+
+            $stocks = $variant->inventoryStocks() 
+                ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                ->orderBy('available_quantity', 'desc')
+                ->lockForUpdate()
+                ->get();
+ 
+            if ($stocks->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'inventory' => "No inventory record found for variant {$variant->sku}."
+                ]);
+            } 
+          
+          
+            $remaining = $quantity;
+
+            foreach ($stocks as $stock) {
+                if ($remaining <= 0) break;
+
+                $available = max(0, $stock->available_quantity);
+                $deduct = min($remaining, $available);
+
+                if ($deduct <= 0) continue;
+
+                $stock->quantity = max(0, $stock->quantity - $deduct);
+                $stock->available_quantity = max(0, $stock->available_quantity - $deduct);
+                $stock->save();
+ 
+                $remaining -= $deduct;
+            }
+
+         
+
+            if ($remaining > 0) {
+                throw ValidationException::withMessages([
+                    'inventory' => "Insufficient stock for {$variant->sku}."
+                ]);
+            }
+
+
+
+            $variant->stock_quantity = $variant->inventoryStocks()->sum('quantity');
+            $variant->available_stock = $variant->inventoryStocks()->sum('available_quantity');
+            $variant->stock_status = $variant->stock_quantity > 0 ? 'in_stock' : 'out_of_stock';
+            $variant->save();
+
+            return;
         }
+
+        // Variant fallback
+        $variant->stock_quantity = max(0, ($variant->stock_quantity ?? 0) - $quantity);
+        $variant->available_stock = max(0, ($variant->available_stock ?? $variant->stock_quantity));
+        $variant->stock_status = $variant->stock_quantity > 0 ? 'in_stock' : 'out_of_stock';
+        $variant->save();
+
+        return;
     }
+
+       
+
+    // Product fallback
+    if ($product && $product->manage_stock) {
+        $product->stock_quantity = max(0, ($product->stock_quantity ?? 0) - $quantity);
+        $product->stock_status = $product->stock_quantity > 0 ? 'in_stock' : 'out_of_stock';
+        $product->save();
+    }
+}
+
+
+
+
+    /**
+     * Decrement product/variant stock (handles warehouse-based inventory)
+     */
+    // private function decrementStock($product, $variant, int $quantity, $warehouseId = null, $locationId = null): void
+    // {
+    //     if ($variant) {
+    //         // Handle variant stock
+    //         if ($variant->manage_stock) {
+    //             // If warehouse-based inventory exists, use it
+    //             if ($variant->inventoryStocks()->exists()) {
+    //                 // Get default warehouse if not specified
+    //                 if (!$warehouseId) {
+    //                     $warehouse = \App\Models\Warehouse::getDefault();
+    //                     $warehouseId = $warehouse ? $warehouse->id : null;
+    //                 }
+                    
+    //                 if ($warehouseId) {
+    //                     $inventoryStock = \App\Models\InventoryStock::firstOrNew([
+    //                         'product_variant_id' => $variant->id,
+    //                         'warehouse_id' => $warehouseId,
+    //                         'warehouse_location_id' => $locationId,
+    //                     ]);
+                        
+    //                     $inventoryStock->quantity = max(0, ($inventoryStock->quantity ?? 0) - $quantity);
+    //                     $inventoryStock->save();
+                        
+    //                     // Sync total to variant stock_quantity
+    //                     $totalStock = $variant->inventoryStocks()->sum('quantity');
+    //                     $variant->stock_quantity = $totalStock;
+    //                 } else {
+    //                     // Fallback to variant stock_quantity
+    //                     $newQuantity = max(0, ($variant->stock_quantity ?? 0) - $quantity);
+    //                     $variant->stock_quantity = $newQuantity;
+    //                 }
+    //             } else {
+    //                 // Fallback to variant stock_quantity
+    //                 $newQuantity = max(0, ($variant->stock_quantity ?? 0) - $quantity);
+    //                 $variant->stock_quantity = $newQuantity;
+    //             }
+                
+    //             // Update stock status
+    //             $totalStock = $variant->total_stock_quantity ?? ($variant->stock_quantity ?? 0);
+    //             if ($totalStock <= 0) {
+    //                 $variant->stock_status = 'out_of_stock';
+    //             }
+    //             $variant->save();
+    //         }
+    //     } else {
+    //         // Handle product stock (legacy - products don't have variants)
+    //         if ($product->manage_stock) {
+    //             $newQuantity = max(0, ($product->stock_quantity ?? 0) - $quantity);
+    //             $product->stock_quantity = $newQuantity;
+                
+    //             // Update stock status
+    //             if ($newQuantity <= 0) {
+    //                 $product->stock_status = 'out_of_stock';
+    //             }
+    //             $product->save();
+    //         }
+    //     }
+    // }
     
     /**
      * Get customer addresses for checkout

@@ -673,8 +673,12 @@ $(document).ready(function() {
         $.ajax({
             url: '{{ route("brands.destroy", ":id") }}'.replace(':id', deleteBrandId),
             type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
             data: {
-                '_method': 'DELETE'
+                '_method': 'DELETE',
+                '_token': '{{ csrf_token() }}'
             },
             success: function(response) {
                 if(response.success) {
@@ -683,14 +687,22 @@ $(document).ready(function() {
                     loadBrands();
                     $('#selectAllBrands').prop('checked', false);
                     updateBulkDeleteButton();
+                } else {
+                    showToast('error', response.message || 'Failed to delete brand');
                 }
             },
             error: function(xhr) {
-                if(xhr.status === 422) {
-                    showToast('error', xhr.responseJSON.message || 'Cannot delete brand');
-                } else {
-                    showToast('error', 'Failed to delete brand');
+                let errorMessage = 'Failed to delete brand';
+                if(xhr.responseJSON) {
+                    errorMessage = xhr.responseJSON.message || errorMessage;
+                } else if(xhr.status === 422) {
+                    errorMessage = xhr.responseJSON?.message || 'Cannot delete brand';
+                } else if(xhr.status === 404) {
+                    errorMessage = 'Brand not found';
+                } else if(xhr.status === 500) {
+                    errorMessage = xhr.responseJSON?.message || 'Server error occurred while deleting brand';
                 }
+                showToast('error', errorMessage);
             },
             complete: function() {
                 deleteBrandId = null;

@@ -328,19 +328,43 @@ $(function() {
 	
 	// Update cart count in header - make it globally available
 	window.updateCartCount = function() {
-		let sessionId = localStorage.getItem('session_id');
-		if (!sessionId) {
-			sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-			localStorage.setItem('session_id', sessionId);
+		// Check if user is logged in first
+		let isLoggedIn = false;
+		let sessionId = null;
+		
+		// Check authentication status synchronously
+		$.ajax({
+			url: '/api/auth/me',
+			method: 'GET',
+			async: false, // Synchronous to get result before proceeding
+			success: function(response) {
+				isLoggedIn = response.success && response.data;
+			}
+		});
+		
+		// Only get/set session_id if user is not logged in
+		if (!isLoggedIn) {
+			sessionId = localStorage.getItem('session_id');
+			if (!sessionId) {
+				sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+				localStorage.setItem('session_id', sessionId);
+			}
+		}
+		
+		const ajaxHeaders = {};
+		const ajaxData = {};
+		
+		// Only include session_id if user is not logged in
+		if (!isLoggedIn && sessionId) {
+			ajaxHeaders['X-Session-ID'] = sessionId;
+			ajaxData.session_id = sessionId;
 		}
 		
 		$.ajax({
 			url: '/api/cart/count',
 			method: 'GET',
-			headers: {
-				'X-Session-ID': sessionId
-			},
-			data: { session_id: sessionId },
+			headers: ajaxHeaders,
+			data: ajaxData,
 			success: function(response) {
 				if (response.success) {
 					// Update all cart counters in header

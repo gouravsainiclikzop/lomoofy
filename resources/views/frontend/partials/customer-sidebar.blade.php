@@ -203,17 +203,39 @@ $(document).ready(function() {
 					$('#customerSidebarLoading').hide();
 					$('#customerSidebarInfo').show();
 				} else {
-					// Not authenticated, redirect to home
-					window.location.href = '{{ route("frontend.index") }}';
+					// Not authenticated - show guest state instead of redirecting
+					// Don't redirect on wishlist page or when offline
+					const isOffline = !navigator.onLine;
+					const isWishlistPage = window.location.pathname.includes('/wishlist');
+					
+					if (!isOffline && !isWishlistPage) {
+						// Only redirect if online and not on wishlist page
+						window.location.href = '{{ route("frontend.index") }}';
+					} else {
+						// Show guest state
+						$('#customerSidebarLoading').hide();
+						$('#customerSidebarInfo').show();
+						$('#customerSidebarName').text('Guest User');
+						$('#customerSidebarLocation').text('Not Set');
+						$('#customerSidebarImage').attr('src', '{{ asset("frontend/images/user-image.webp") }}').show();
+					}
 				}
 			},
 			error: function(xhr) {
-				if (xhr.status === 401 || xhr.status === 200) {
-					// Not authenticated, redirect to home
+				// Don't redirect if offline or if on wishlist page (which works with session_id)
+				const isOffline = !navigator.onLine;
+				const isWishlistPage = window.location.pathname.includes('/wishlist');
+				
+				if ((xhr.status === 401 || xhr.status === 200) && !isOffline && !isWishlistPage) {
+					// Not authenticated, redirect to home (only if online and not on wishlist)
 					window.location.href = '{{ route("frontend.index") }}';
 				} else {
-					// Other error, show error message
-					$('#customerSidebarLoading').html('<p class="text-danger small mt-2 mb-0">Error loading profile</p>');
+					// Other error or offline/wishlist page - show guest state
+					$('#customerSidebarLoading').hide();
+					$('#customerSidebarInfo').show();
+					$('#customerSidebarName').text('Guest User');
+					$('#customerSidebarLocation').text('Not Set');
+					$('#customerSidebarImage').attr('src', '{{ asset("frontend/images/user-image.webp") }}').show();
 				}
 			}
 		});

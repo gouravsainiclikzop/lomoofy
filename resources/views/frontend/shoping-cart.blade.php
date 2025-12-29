@@ -36,7 +36,15 @@
 		
 		<div class="row justify-content-between">
 			<div class="col-12 col-lg-7 col-md-12">
-				<div id="cartItemsContainer">
+				<!-- Cart Loading Spinner -->
+				<div id="cartLoader" class="text-center py-5">
+					<div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+						<span class="visually-hidden">Loading...</span>
+					</div>
+					<p class="mt-3 text-muted">Loading your cart...</p>
+				</div>
+				
+				<div id="cartItemsContainer" style="display: none;">
 					@if($cart->items && $cart->items->count() > 0)
 						<ul class="list-group list-group-sm list-group-flush-y list-group-flush-x mb-4">
 							@foreach($cart->items as $item)
@@ -44,12 +52,29 @@
 									$product = $item->product;
 									$variant = $item->variant;
 									
-									// Get product image
-									$imageUrl = $product->primaryImage 
-										? asset('storage/' . $product->primaryImage->image_path)
-										: ($product->images && $product->images->count() > 0
-											? asset('storage/' . $product->images->first()->image_path)
-											: asset('frontend/images/product/sample-product.jpg'));
+									// Get variant image first (primary or first), fallback to product image
+									$imageUrl = asset('frontend/images/product/sample-product.jpg'); // Default fallback
+									
+									if ($variant && $variant->images && $variant->images->count() > 0) {
+										// Try to get primary variant image first
+										$primaryVariantImage = $variant->images->where('is_primary', true)->first();
+										if ($primaryVariantImage) {
+											$imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+										} else {
+											// Use first variant image
+											$firstVariantImage = $variant->images->first();
+											if ($firstVariantImage) {
+												$imageUrl = asset('storage/' . $firstVariantImage->image_path);
+											}
+										}
+									} elseif ($product) {
+										// Fallback to product image if no variant image
+										$imageUrl = $product->primaryImage 
+											? asset('storage/' . $product->primaryImage->image_path)
+											: ($product->images && $product->images->count() > 0
+												? asset('storage/' . $product->images->first()->image_path)
+												: asset('frontend/images/product/sample-product.jpg'));
+									}
 									
 									// Get variant attributes
 									$variantAttrs = $variant && $variant->attributes 
@@ -114,7 +139,11 @@
 												@endif
 												<h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->unit_price, 2) }}</h4>
 												<select class="mb-2 custom-select w-auto cart-item-quantity" data-cart-item-id="{{ $item->id }}" data-variant-id="{{ $item->product_variant_id }}">
-													@for($qty = 1; $qty <= 10; $qty++)
+													@php
+    $availableStock = $variant ? $variant->available_stock : ($product->stock_quantity ?? 10);
+    $maxQty = min(10, max(1, $availableStock));
+@endphp
+@for($qty = 1; $qty <= $maxQty; $qty++)
 														<option value="{{ $qty }}" {{ $item->quantity == $qty ? 'selected' : '' }}>{{ $qty }}</option>
 													@endfor
 												</select>
@@ -130,7 +159,7 @@
 							@endforeach
 						</ul>
 					@else
-						<div class="alert alert-info text-center">
+						<div id="emptyCartMessage" class="alert alert-info text-center" style="display: none;">
 							<p class="mb-0">Your cart is empty.</p>
 							<a href="{{ route('frontend.shop') }}" class="btn btn-dark mt-3">Continue Shopping</a>
 						</div>
@@ -217,34 +246,107 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
-    // Get session ID from localStorage
-    let sessionId = localStorage.getItem('session_id');
-    if (!sessionId) {
-        sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('session_id', sessionId);
+    // Check if user is logged in
+    let isLoggedIn = false;
+    
+    // Check authentication status first
+    $.ajax({
+        url: '/api/auth/me',
+        method: 'GET',
+        async: false, // Synchronous to get result before proceeding
+        success: function(response) {
+            isLoggedIn = response.success && response.data;
+        }
+    });
+    
+    // Get session ID from localStorage (only needed for guest users)
+    let sessionId = null;
+    if (!isLoggedIn) {
+        sessionId = localStorage.getItem('session_id');
+        if (!sessionId) {
+            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('session_id', sessionId);
+        }
     }
     
-    // Load cart data using session_id from localStorage
+    // Check if session_id is in URL - remove it if user is logged in
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionIdParam = urlParams.get('session_id');
+    
+    if (isLoggedIn && sessionIdParam) {
+        // User is logged in but URL has session_id - remove it
+        urlParams.delete('session_id');
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.history.replaceState({}, '', newUrl);
+    } else if (!isLoggedIn && !sessionIdParam && sessionId) {
+        // Guest user - add session_id to URL if not present
+        const newUrl = window.location.pathname + '?session_id=' + sessionId;
+        window.history.replaceState({}, '', newUrl);
+    }
+    
+    // Load cart data
     function loadCartData() {
+        console.log('Loading cart - isLoggedIn:', isLoggedIn, 'sessionId:', sessionId);
+        
+        // Show loader, hide cart content
+        $('#cartLoader').show();
+        $('#cartItemsContainer').hide();
+        
+        const ajaxData = {};
+        const ajaxHeaders = {};
+        
+        // Only include session_id if user is not logged in
+        if (!isLoggedIn && sessionId) {
+            ajaxData.session_id = sessionId;
+            ajaxHeaders['X-Session-ID'] = sessionId;
+        }
+        
         $.ajax({
             url: '/api/cart',
             method: 'GET',
-            headers: {
-                'X-Session-ID': sessionId
-            },
-            data: {
-                session_id: sessionId
-            },
+            headers: ajaxHeaders,
+            data: ajaxData,
             success: function(response) {
+                console.log('Cart API response:', response);
+                
+                // Hide loader
+                $('#cartLoader').hide();
+                
                 if (response.success && response.data) {
+                    const items = response.data.items || [];
+                    console.log('Cart items count:', items.length);
+                    
+                    // Always update display with API data (it has the correct session_id)
                     updateCartDisplay(response.data);
+                } else {
+                    // If no items from API, show empty cart message
+                    updateCartDisplay({ items: [], summary: {} });
                 }
             },
             error: function(xhr) {
                 console.error('Error loading cart:', xhr);
+                
+                // Hide loader
+                $('#cartLoader').hide();
+                
+                // If AJAX fails, check if backend rendered items
+                const backendItems = $('#cartItemsContainer').find('.list-group-item').length;
+                console.log('Backend rendered items:', backendItems);
+                
+                if (backendItems === 0) {
+                    // Show empty cart message only if no items found
+                    $('#cartItemsContainer').show();
+                    $('#emptyCartMessage').show();
+                } else {
+                    // Show backend rendered items as fallback
+                    $('#cartItemsContainer').show();
+                }
             }
         });
     }
+    
+    // Load cart data on page load (this will override backend-rendered content with correct session_id data)
+    loadCartData();
     
     // Update cart display with API data
     function updateCartDisplay(cartData) {
@@ -256,7 +358,14 @@ $(document).ready(function() {
         if (items.length > 0) {
             itemsHtml = '<ul class="list-group list-group-sm list-group-flush-y list-group-flush-x mb-4">';
             items.forEach(function(item) {
-                itemsHtml += '<li class="list-group-item" data-cart-item-id="' + item.id + '">' +
+                const isOutOfStock = item.manage_stock && !item.in_stock;
+                const stockBadge = isOutOfStock 
+                    ? '<span class="badge bg-danger ms-2">Out of Stock</span>' 
+                    : (item.manage_stock && item.available_stock !== null 
+                        ? '<span class="badge bg-success ms-2">In Stock (' + item.available_stock + ')</span>' 
+                        : '');
+                
+                itemsHtml += '<li class="list-group-item' + (isOutOfStock ? ' border-danger' : '') + '" data-cart-item-id="' + item.id + '">' +
                     '<div class="row align-items-center">' +
                     '<div class="col-3">' +
                     '<a href="/product?product=' + (item.product_slug || '') + '">' +
@@ -267,13 +376,25 @@ $(document).ready(function() {
                     '<div class="cart_single_caption ps-2">' +
                     '<h4 class="product_title fs-md ft-medium mb-1 lh-1">' +
                     '<a href="/product?product=' + (item.product_slug || '') + '">' + (item.product_name || '') + '</a>' +
+                    stockBadge +
                     '</h4>' +
                     (item.variant_name ? '<p class="mb-3 lh-1"><span class="text-dark">' + item.variant_name + '</span></p>' : '') +
-                    '<h4 class="fs-md ft-medium mb-3 lh-1">₹' + parseFloat(item.unit_price).toFixed(2) + '</h4>' +
-                    '<select class="mb-2 custom-select w-auto cart-item-quantity" data-cart-item-id="' + item.id + '" data-variant-id="' + (item.variant_id || '') + '">';
-                for (let qty = 1; qty <= 10; qty++) {
-                    itemsHtml += '<option value="' + qty + '" ' + (item.quantity == qty ? 'selected' : '') + '>' + qty + '</option>';
+                    (isOutOfStock ? '<p class="text-danger mb-2"><small>Available stock: ' + (item.available_stock || 0) + ', Requested: ' + item.quantity + '</small></p>' : '') +
+                 '<h4 class="fs-md ft-medium mb-3 lh-1">₹' + parseFloat(item.unit_price).toFixed(2) + '</h4>' +
+                '<select class="mb-2 custom-select w-auto cart-item-quantity' 
+                    + (isOutOfStock ? ' border-danger' : '') 
+                    + '" data-cart-item-id="' + item.id + '" data-variant-id="' + (item.variant_id || '') + '">';
+
+                const maxQty = item.manage_stock && item.available_stock !== null
+                ? Math.max(1, item.available_stock)
+                : 10;
+
+                for (let i = 1; i <= maxQty; i++) {
+                    itemsHtml += '<option value="' + i + '"' + (i === item.quantity ? ' selected' : '') + '>' + i + '</option>';
                 }
+
+
+
                 itemsHtml += '</select>' +
                     '</div>' +
                     '<div class="fls_last">' +
@@ -295,14 +416,29 @@ $(document).ready(function() {
         
         $('#cartItemsContainer').html(itemsHtml);
         
-        // Show/hide coupon section and checkout button based on items
-        if (items.length > 0) {
+        // Show cart container after updating
+        $('#cartItemsContainer').show();
+        
+        // Check if any items are out of stock
+        const hasOutOfStockItems = items.some(item => item.manage_stock && !item.in_stock);
+        
+        // Show/hide coupon section and checkout button based on items and stock availability
+        if (items.length > 0 && !hasOutOfStockItems) {
             $('#couponSection').show();
-            $('#checkoutBtn').show();
+            $('#checkoutBtn').show().removeClass('disabled').prop('disabled', false);
             updateCouponSection(cartData.coupon, summary.discount_amount);
         } else {
             $('#couponSection').hide();
-            $('#checkoutBtn').hide();
+            if (hasOutOfStockItems) {
+                // Show checkout button but disable it
+                $('#checkoutBtn').show().addClass('disabled').prop('disabled', true);
+                // Add warning message
+                if ($('#outOfStockWarning').length === 0) {
+                    $('#cartItemsContainer').prepend('<div id="outOfStockWarning" class="alert alert-warning mb-3"><i class="lni lni-warning me-2"></i>Some items in your cart are out of stock. Please remove them or adjust quantities before proceeding to checkout.</div>');
+                }
+            } else {
+                $('#checkoutBtn').hide();
+            }
         }
         
         // Update summary
@@ -377,17 +513,23 @@ $(document).ready(function() {
         // Disable select while updating
         $select.prop('disabled', true);
         
+        const updateData = {
+            quantity: quantity,
+            variant_id: variantId
+        };
+        const updateHeaders = {};
+        
+        // Only include session_id if user is not logged in
+        if (!isLoggedIn && sessionId) {
+            updateData.session_id = sessionId;
+            updateHeaders['X-Session-ID'] = sessionId;
+        }
+        
         $.ajax({
             url: '/api/cart/items/' + (cartItemId || variantId),
             method: 'PUT',
-            headers: {
-                'X-Session-ID': sessionId
-            },
-            data: {
-                quantity: quantity,
-                variant_id: variantId,
-                session_id: sessionId
-            },
+            headers: updateHeaders,
+            data: updateData,
             success: function(response) {
                 if (response.success) {
                     // Reload cart data instead of full page reload
@@ -425,16 +567,22 @@ $(document).ready(function() {
         
         $btn.prop('disabled', true);
         
+        const removeData = {
+            variant_id: variantId
+        };
+        const removeHeaders = {};
+        
+        // Only include session_id if user is not logged in
+        if (!isLoggedIn && sessionId) {
+            removeData.session_id = sessionId;
+            removeHeaders['X-Session-ID'] = sessionId;
+        }
+        
         $.ajax({
             url: '/api/cart/items/' + (cartItemId || variantId),
             method: 'DELETE',
-            headers: {
-                'X-Session-ID': sessionId
-            },
-            data: {
-                variant_id: variantId,
-                session_id: sessionId
-            },
+            headers: removeHeaders,
+            data: removeData,
             success: function(response) {
                 if (response.success) {
                     // Reload cart data instead of full page reload
@@ -479,16 +627,22 @@ $(document).ready(function() {
             return;
         }
         
+        const couponData = {
+            coupon_code: couponCode
+        };
+        const couponHeaders = {};
+        
+        // Only include session_id if user is not logged in
+        if (!isLoggedIn && sessionId) {
+            couponData.session_id = sessionId;
+            couponHeaders['X-Session-ID'] = sessionId;
+        }
+        
         $.ajax({
             url: '/api/cart/coupon',
             method: 'POST',
-            headers: {
-                'X-Session-ID': sessionId
-            },
-            data: {
-                coupon_code: couponCode,
-                session_id: sessionId
-            },
+            headers: couponHeaders,
+            data: couponData,
             success: function(response) {
                 if (response.success) {
                     // Show success message
@@ -557,15 +711,21 @@ $(document).ready(function() {
     // Remove coupon - use event delegation for dynamically created button
     $(document).on('click', '#removeCouponBtn', function(e) {
         e.preventDefault();
+        
+        const removeCouponData = {};
+        const removeCouponHeaders = {};
+        
+        // Only include session_id if user is not logged in
+        if (!isLoggedIn && sessionId) {
+            removeCouponData.session_id = sessionId;
+            removeCouponHeaders['X-Session-ID'] = sessionId;
+        }
+        
         $.ajax({
             url: '/api/cart/coupon',
             method: 'DELETE',
-            headers: {
-                'X-Session-ID': sessionId
-            },
-            data: {
-                session_id: sessionId
-            },
+            headers: removeCouponHeaders,
+            data: removeCouponData,
             success: function(response) {
                 if (response.success) {
                     // Show success message

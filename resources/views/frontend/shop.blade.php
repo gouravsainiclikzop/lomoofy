@@ -3,6 +3,14 @@
 @section('title', 'Shop - Lomoofy Industries')
 
 @section('content')
+@push('styles')
+<style>
+	.form-check-input:checked[type="checkbox"] {
+		--bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+		display: none !important;
+	}
+</style>
+@endpush
 			<!-- ======================= Shop Style 1 ======================== -->
  
 			<section class="bg-cover d-none d-md-block" style="background:url({{ asset('frontend/images/banner-2.png') }}) no-repeat;">
@@ -106,6 +114,14 @@
 						
 						<div class="col-xl-3 col-lg-4 col-md-12 col-sm-12 p-xl-0">
 							<div class="search-sidebar sm-sidebar border">
+								<div class="search-sidebar-header p-3 border-bottom">
+									<div class="d-flex justify-content-between align-items-center">
+										<h5 class="mb-0">Filters</h5>
+										<button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllFilters">
+											<i class="fas fa-times me-1"></i>Clear All
+										</button>
+									</div>
+								</div>
 								<div class="search-sidebar-body">
 								
 									<!-- Single Option -->
@@ -296,30 +312,18 @@
 												<div class="single_filter_card">
 													<div class="card-body pt-0">
 														<div class="text-left">
-															<div class="form-check form-option form-check-inline mb-1">
-																<input class="form-check-input" type="radio" name="colora8" id="whitea8">
-																<label class="form-option-label rounded-circle" for="whitea8"><span class="form-option-color rounded-circle blc7"></span></label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-1">
-																<input class="form-check-input" type="radio" name="colora8" id="bluea8">
-																<label class="form-option-label rounded-circle" for="bluea8"><span class="form-option-color rounded-circle blc2"></span></label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-1">
-																<input class="form-check-input" type="radio" name="colora8" id="yellowa8">
-																<label class="form-option-label rounded-circle" for="yellowa8"><span class="form-option-color rounded-circle blc5"></span></label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-1">
-																<input class="form-check-input" type="radio" name="colora8" id="pinka8">
-																<label class="form-option-label rounded-circle" for="pinka8"><span class="form-option-color rounded-circle blc3"></span></label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-1">
-																<input class="form-check-input" type="radio" name="colora8" id="reda">
-																<label class="form-option-label rounded-circle" for="reda"><span class="form-option-color rounded-circle blc4"></span></label>
-															</div>
-															<div class="form-check form-option form-check-inline mb-1">
-																<input class="form-check-input" type="radio" name="colora8" id="greena">
-																<label class="form-option-label rounded-circle" for="greena"><span class="form-option-color rounded-circle blc6"></span></label>
-															</div>
+															@if($availableColors && $availableColors->count() > 0)
+																@foreach($availableColors as $color)
+																	<div class="form-check form-option form-check-inline mb-1">
+																		<input class="form-check-input" type="radio" name="colora8" id="{{ $color['id'] }}" data-color-name="{{ strtolower($color['name']) }}">
+																		<label class="form-option-label rounded-circle" for="{{ $color['id'] }}">
+																			<span class="form-option-color rounded-circle" style="background-color: {{ $color['code'] }}"></span>
+																		</label>
+																	</div>
+																@endforeach
+															@else
+																<p class="text-muted small">No colors available</p>
+															@endif
 														</div>
 													</div>
 												</div>
@@ -342,18 +346,18 @@
 											<div class="col-xl-9 col-lg-8 col-md-7 col-sm-12">
 												<div class="filter_wraps d-flex align-items-center justify-content-end m-start">
 													<div class="single_fitres me-2 br-right">
-														<select class="custom-select simple">
-														  <option value="1" selected="">Default Sorting</option>
-														  <option value="2">Sort by price: Low price</option>
-														  <option value="3">Sort by price: Hight price</option>
-														  <option value="4">Sort by rating</option>
-														  <option value="5">Sort by trending</option>
+														<select class="custom-select simple" id="sortSelect" name="sort">
+														  <option value="1" {{ request('sort', '1') == '1' ? 'selected' : '' }}>Default Sorting</option>
+														  <option value="2" {{ request('sort') == '2' ? 'selected' : '' }}>Sort by price: Low price</option>
+														  <option value="3" {{ request('sort') == '3' ? 'selected' : '' }}>Sort by price: High price</option>
+														  <option value="4" {{ request('sort') == '4' ? 'selected' : '' }}>Sort by rating</option>
+														  <option value="5" {{ request('sort') == '5' ? 'selected' : '' }}>Sort by trending</option>
 														</select>
 													</div>
-													<div class="single_fitres">
-														<a href="shop-style-5.html" class="simple-button active me-1"><i class="ti-layout-grid2"></i></a>
+													<!-- <div class="single_fitres">
+														<a href="shop-style-5.html" class="simple-button active me-1"><i class="ti-layout-grid2"></i></a> -->
 														<!-- <a href="shop-list-sidebar.html" class="simple-button"><i class="ti-view-list"></i></a> -->
-													</div>
+													<!-- </div> -->
 												</div>
 											</div>
 										</div>
@@ -494,6 +498,21 @@
 $(document).ready(function() {
     let currentPage = 1;
     let isLoading = false;
+    let filterTimeout = null;
+    let initialMinPrice = parseInt('{{ $minPrice ?? 0 }}') || 0;
+    let initialMaxPrice = parseInt('{{ $maxPrice ?? 1000 }}') || 1000;
+    let currentMinPrice = initialMinPrice;
+    let currentMaxPrice = initialMaxPrice;
+    
+    // Store the initial URL when page loads (before any filters are applied)
+    const initialUrl = window.location.href;
+    const initialUrlObj = new URL(initialUrl);
+    const initialCategory = initialUrlObj.searchParams.get('category') || '';
+    const initialSearch = initialUrlObj.searchParams.get('search') || '';
+    
+    console.log('Initial URL stored:', initialUrl);
+    console.log('Initial category:', initialCategory);
+    console.log('Initial search:', initialSearch);
     
     // Initialize Category Carousel
     if ($('.category-carousel').length && typeof $.fn.slick !== 'undefined') {
@@ -560,34 +579,641 @@ $(document).ready(function() {
                 $priceSlider.data('ionRangeSlider').destroy();
             }
             
-            // Initialize with dynamic values
+            // Get current filter values from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlMinPrice = urlParams.get('min_price') ? parseInt(urlParams.get('min_price')) : minPrice;
+            const urlMaxPrice = urlParams.get('max_price') ? parseInt(urlParams.get('max_price')) : maxPrice;
+            
+            // Initialize with dynamic values (use URL params if available, otherwise use defaults)
             $priceSlider.ionRangeSlider({
                 type: "double",
                 min: minPrice,
                 max: maxPrice,
-                from: minPrice,
-                to: maxPrice,
+                from: urlMinPrice,
+                to: urlMaxPrice,
                 step: 1,
                 grid: true,
                 grid_num: 4,
                 prefix: "₹",
                 prettify_enabled: true,
                 prettify_separator: ",",
+                onChange: function(data) {
+                    // Don't filter on every change, only on finish
+                },
                 onFinish: function(data) {
                     // Handle price filter change
+                    console.log('Price slider changed:', data.from, '-', data.to);
                     filterProductsByPrice(data.from, data.to);
                 }
             });
         }
     }, 100);
     
+    // Collect all active filters
+    function collectFilters(customMinPrice = null, customMaxPrice = null, clearCategory = false) {
+        // Use initial category/search if clearing filters, otherwise use current
+        let categoryValue = clearCategory ? (initialCategory || null) : ('{{ $selectedCategory ? $selectedCategory->slug : "" }}');
+        let searchValue = clearCategory ? (initialSearch || '') : ('{{ request("search", "") }}');
+        
+        const filters = {
+            category: categoryValue,
+            search: searchValue,
+            min_price: null,
+            max_price: null,
+            sizes: [],
+            brands: [],
+            colors: [],
+            sort: $('#sortSelect').val() || '1'
+        };
+        
+        // Use custom price values if provided, otherwise get from slider
+        if (customMinPrice !== null && customMaxPrice !== null) {
+            filters.min_price = parseInt(customMinPrice);
+            filters.max_price = parseInt(customMaxPrice);
+            console.log('Using custom price filter:', filters.min_price, '-', filters.max_price);
+        } else {
+            // Get price range from slider or use stored current values
+            const $priceSlider = $('#priceRangeSlider');
+            if ($priceSlider.length && $priceSlider.data('ionRangeSlider')) {
+                const sliderData = $priceSlider.data('ionRangeSlider');
+                const fromPrice = parseInt(sliderData.from) || currentMinPrice;
+                const toPrice = parseInt(sliderData.to) || currentMaxPrice;
+                
+                // Update stored values
+                currentMinPrice = fromPrice;
+                currentMaxPrice = toPrice;
+                
+                // Only include price filter if it's different from initial values
+                if (Math.abs(fromPrice - initialMinPrice) > 1 || Math.abs(toPrice - initialMaxPrice) > 1) {
+                    filters.min_price = fromPrice;
+                    filters.max_price = toPrice;
+                    console.log('Price filter from slider:', fromPrice, '-', toPrice);
+                }
+            } else {
+                // Fallback to stored values
+                if (Math.abs(currentMinPrice - initialMinPrice) > 1 || Math.abs(currentMaxPrice - initialMaxPrice) > 1) {
+                    filters.min_price = currentMinPrice;
+                    filters.max_price = currentMaxPrice;
+                    console.log('Price filter from stored values:', currentMinPrice, '-', currentMaxPrice);
+                }
+            }
+        }
+        
+        // Get selected sizes
+        $('.size-filter:checked').each(function() {
+            filters.sizes.push($(this).val());
+        });
+        
+        // Get selected brands
+        $('.brand-filter:checked').each(function() {
+            filters.brands.push($(this).val());
+        });
+        
+        // Get selected colors (radio buttons)
+        $('input[name^="colora8"]:checked').each(function() {
+            // Get color name from data attribute (more reliable)
+            let colorName = $(this).data('color-name') || '';
+            
+            // Fallback: Extract color name from radio button ID if data attribute not available
+            if (!colorName) {
+                const radioId = $(this).attr('id') || '';
+                // Map IDs to color names (fallback for old hardcoded colors)
+                if (radioId.includes('white')) {
+                    colorName = 'white';
+                } else if (radioId.includes('blue')) {
+                    colorName = 'blue';
+                } else if (radioId.includes('yellow')) {
+                    colorName = 'yellow';
+                } else if (radioId.includes('pink')) {
+                    colorName = 'pink';
+                } else if (radioId.includes('red')) {
+                    colorName = 'red';
+                } else if (radioId.includes('green')) {
+                    colorName = 'green';
+                } else if (radioId.includes('black')) {
+                    colorName = 'black';
+                } else if (radioId.includes('gray') || radioId.includes('grey')) {
+                    colorName = 'gray';
+                } else if (radioId.includes('orange')) {
+                    colorName = 'orange';
+                } else if (radioId.includes('purple')) {
+                    colorName = 'purple';
+                } else if (radioId.includes('brown')) {
+                    colorName = 'brown';
+                }
+            }
+            
+            if (colorName) {
+                filters.colors.push(colorName);
+                console.log('Color filter added:', colorName, 'from ID:', $(this).attr('id'));
+            }
+        });
+        
+        return filters;
+    }
+    
+    // Apply filters and reload products
+    function applyFilters(customMinPrice = null, customMaxPrice = null, clearCategory = false) {
+        if (isLoading) return;
+        
+        isLoading = true;
+        const filters = collectFilters(customMinPrice, customMaxPrice, clearCategory);
+        
+        // Show loading state
+        $('.rows-products').html('<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Filtering products...</p></div>');
+        
+        // Build query string for URL
+        const params = new URLSearchParams();
+        if (filters.category) params.append('category', filters.category);
+        if (filters.search) params.append('search', filters.search);
+        if (filters.sort && filters.sort !== '1') params.append('sort', filters.sort);
+        if (filters.min_price !== null && filters.min_price !== undefined) {
+            params.append('min_price', filters.min_price);
+        }
+        if (filters.max_price !== null && filters.max_price !== undefined) {
+            params.append('max_price', filters.max_price);
+        }
+        filters.sizes.forEach(size => params.append('sizes[]', size));
+        filters.brands.forEach(brand => params.append('brands[]', brand));
+        filters.colors.forEach(color => {
+            params.append('colors[]', color);
+            console.log('Adding color to filter:', color);
+        });
+        
+        console.log('Applying filters:', filters);
+        console.log('Colors array:', filters.colors);
+        
+        // Update URL without reload
+        const newUrl = '{{ route("frontend.shop") }}?' + params.toString();
+        window.history.pushState({}, '', newUrl);
+        
+        // Clean up filters - remove empty arrays and null values to avoid backend issues
+        const cleanFilters = {};
+        
+        // Only include non-empty values
+        if (filters.category) {
+            cleanFilters.category = filters.category;
+        }
+        if (filters.search) {
+            cleanFilters.search = filters.search;
+        }
+        if (filters.sort && filters.sort !== '1') {
+            cleanFilters.sort = filters.sort;
+        }
+        if (filters.min_price !== null && filters.min_price !== undefined) {
+            cleanFilters.min_price = filters.min_price;
+        }
+        if (filters.max_price !== null && filters.max_price !== undefined) {
+            cleanFilters.max_price = filters.max_price;
+        }
+        
+        // Only include arrays if they have values
+        if (filters.sizes && filters.sizes.length > 0) {
+            cleanFilters.sizes = filters.sizes;
+        }
+        if (filters.brands && filters.brands.length > 0) {
+            cleanFilters.brands = filters.brands;
+        }
+        if (filters.colors && filters.colors.length > 0) {
+            cleanFilters.colors = filters.colors;
+        }
+        
+        console.log('Sending clean filters:', cleanFilters);
+        
+        // Make AJAX request with X-Requested-With header to identify as AJAX
+        console.log('Sending AJAX request with filters:', cleanFilters);
+        
+        $.ajax({
+            url: '{{ route("frontend.shop") }}',
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: cleanFilters,
+            success: function(response) {
+                console.log('AJAX response received, length:', response.length);
+                try {
+                    // Remove DOCTYPE and html/head/body tags if present to avoid Quirks Mode issues
+                    let cleanResponse = response.toString();
+                    
+                    // Remove DOCTYPE declaration if present
+                    cleanResponse = cleanResponse.replace(/<!DOCTYPE[^>]*>/i, '');
+                    // Remove html, head, body tags but keep their content
+                    cleanResponse = cleanResponse.replace(/<\/?html[^>]*>/gi, '');
+                    cleanResponse = cleanResponse.replace(/<\/?head[^>]*>[\s\S]*?<\/head>/gi, '');
+                    cleanResponse = cleanResponse.replace(/<\/?body[^>]*>/gi, '');
+                    
+                    // Parse HTML response to extract products section using jQuery
+                    const $response = $('<div>').html(cleanResponse);
+                    
+                    // Find the products container - be very specific to avoid header content
+                    // Look for .row.align-items-center.rows-products which is the exact structure
+                    let $productsContainer = $response.find('.row.align-items-center.rows-products');
+                    
+                    // If not found, try .rows-products and find the row inside it
+                    if ($productsContainer.length === 0) {
+                        const $rowsProductsDiv = $response.find('.rows-products');
+                        if ($rowsProductsDiv.length > 0) {
+                            // Find the row inside .rows-products that has product cards
+                            $productsContainer = $rowsProductsDiv.find('.row').has('.product_grid, .col-xl-4').first();
+                        }
+                    }
+                    
+                    // If still not found, find any row that has product_grid cards (but exclude header rows)
+                    if ($productsContainer.length === 0 || $productsContainer.find('.product_grid').length === 0) {
+                        const $allRows = $response.find('.row');
+                        $allRows.each(function() {
+                            const $row = $(this);
+                            // Skip header rows (they have specific classes or don't have product_grid)
+                            if ($row.hasClass('hide-ipad') || $row.find('.top_first, .top_second').length > 0) {
+                                return; // Skip this row
+                            }
+                            // Check if this row has product cards
+                            if ($row.find('.product_grid').length > 0) {
+                                $productsContainer = $row;
+                                return false; // Break the loop
+                            }
+                        });
+                    }
+                    
+                    // Get the HTML from the container - verify it contains product_grid
+                    let $productsHtml = null;
+                    if ($productsContainer.length > 0) {
+                        // Count actual product_grid elements (not just col-xl-4 which might be header)
+                        const productCardCount = $productsContainer.find('.product_grid').length;
+                        
+                        // Verify the HTML contains product_grid before using it
+                        const containerHtml = $productsContainer.html();
+                        if (productCardCount > 0 && containerHtml && containerHtml.includes('product_grid')) {
+                            $productsHtml = containerHtml;
+                            console.log('Extracted HTML from container with', productCardCount, 'product cards');
+                        } else {
+                            console.warn('Container found but no product_grid in HTML. Card count:', productCardCount, 'HTML contains product_grid:', containerHtml ? containerHtml.includes('product_grid') : false);
+                        }
+                    }
+                    
+                    // Final fallback: directly find all product_grid elements and get their parent row
+                    if (!$productsHtml || $productsHtml.length < 500 || !$productsHtml.includes('product_grid')) {
+                        const $firstProductCard = $response.find('.product_grid').first();
+                        if ($firstProductCard.length > 0) {
+                            const $productRow = $firstProductCard.closest('.row');
+                            // Make sure it's not a header row
+                            if ($productRow.length > 0 && 
+                                !$productRow.hasClass('hide-ipad') && 
+                                $productRow.find('.top_first, .top_second').length === 0 &&
+                                $productRow.find('.product_grid').length > 0) {
+                                $productsContainer = $productRow;
+                                $productsHtml = $productRow.html();
+                                console.log('Found products using product_grid parent row (fallback method)');
+                            }
+                        }
+                    }
+                    
+                    // Find item count more specifically - look for the one that contains "Item" or "Items"
+                    let $itemCountElement = $response.find('h6.mb-0').filter(function() {
+                        const text = $(this).text();
+                        return text.includes('Item') || text.includes('Found');
+                    }).first();
+                    
+                    // Fallback: find any element with mb-0 that contains "Item" or "Found"
+                    if ($itemCountElement.length === 0) {
+                        $itemCountElement = $response.find('.mb-0').filter(function() {
+                            const text = $(this).text();
+                            return text.includes('Item') || text.includes('Found');
+                        }).first();
+                    }
+                    
+                    const $itemCount = $itemCountElement.length > 0 ? $itemCountElement.text() : null;
+                    const $loadMoreSection = $response.find('#loadMoreProducts').closest('.row');
+                    
+                    console.log('Products container found:', $productsContainer.length > 0 ? 'Yes' : 'No');
+                    console.log('Products container class:', $productsContainer.length > 0 ? $productsContainer.attr('class') : 'N/A');
+                    console.log('Product cards in container:', $productsContainer.length > 0 ? $productsContainer.find('.col-xl-4, .product_grid').length : 0);
+                    console.log('Products HTML found:', $productsHtml ? 'Yes' : 'No');
+                    console.log('Products HTML length:', $productsHtml ? $productsHtml.length : 0);
+                    console.log('Products HTML preview:', $productsHtml ? $productsHtml.substring(0, 500) : 'N/A');
+                    console.log('Item count element found:', $itemCountElement.length > 0 ? 'Yes' : 'No');
+                    console.log('Item count text:', $itemCount);
+                    
+                    // Also check for products in the entire response
+                    const totalProductCards = $response.find('.product_grid, .col-xl-4').length;
+                    console.log('Total product cards in response:', totalProductCards);
+                    
+                    // Check if products HTML actually contains product cards
+                    const productsHtmlHasCards = $productsHtml && ($productsHtml.includes('product_grid') || $productsHtml.includes('col-xl-4'));
+                    
+                    if ($productsHtml && $productsHtml.trim() !== '' && productsHtmlHasCards) {
+                        // Update products
+                        $('.rows-products').html($productsHtml);
+                        
+                        // Count actual product cards
+                        const actualProductCount = $('.rows-products .col-xl-4').length;
+                        console.log('Actual product count:', actualProductCount);
+                        
+                        // Update item count - use actual count if available, otherwise use response count
+                        if (actualProductCount > 0) {
+                            $('h6.mb-0').filter(function() {
+                                return $(this).text().includes('Item') || $(this).text().includes('Found');
+                            }).first().text(actualProductCount + ' ' + (actualProductCount == 1 ? 'Item' : 'Items') + ' Found');
+                        } else if ($itemCount) {
+                            $('h6.mb-0').filter(function() {
+                                return $(this).text().includes('Item') || $(this).text().includes('Found');
+                            }).first().text($itemCount);
+                        }
+                        
+                        // Update load more button
+                        if ($loadMoreSection.length > 0) {
+                            if ($('#loadMoreProducts').length === 0) {
+                                $('.rows-products').after($loadMoreSection);
+                            } else {
+                                $('#loadMoreProducts').closest('.row').replaceWith($loadMoreSection);
+                            }
+                        } else {
+                            $('#loadMoreProducts').closest('.row').remove();
+                        }
+                        
+                        // Reset current page for load more
+                        currentPage = 1;
+                        
+                        // Reinitialize product interactions
+                        initializeProductInteractions();
+                    } else {
+                        console.warn('No products HTML found in response');
+                        console.log('Products container HTML:', $productsContainer.length > 0 ? $productsContainer[0].outerHTML.substring(0, 500) : 'Not found');
+                        
+                        // Check if there are actually products but HTML extraction failed
+                        const productCards = $response.find('.col-xl-4, .product_grid').length;
+                        console.log('Product cards found in response:', productCards);
+                        
+                        if (productCards > 0) {
+                            // Products exist in response, extract them directly
+                            let extractedHtml = null;
+                            
+                            // Method 1: Find all product cards and collect their HTML
+                            const $allProductCards = $response.find('.product_grid').closest('.col-xl-4');
+                            if ($allProductCards.length > 0) {
+                                // Collect HTML of all product cards
+                                extractedHtml = '';
+                                $allProductCards.each(function() {
+                                    extractedHtml += this.outerHTML;
+                                });
+                                console.log('Collected', $allProductCards.length, 'product cards directly');
+                            }
+                            
+                            // Method 2: If Method 1 failed, try to get from the row containing product_grid
+                            if (!extractedHtml || extractedHtml.length < 500) {
+                                const $productRow = $response.find('.row').filter(function() {
+                                    const $row = $(this);
+                                    // Must have product_grid and not be a header row
+                                    return $row.find('.product_grid').length > 0 && 
+                                           !$row.hasClass('hide-ipad') && 
+                                           $row.find('.top_first, .top_second').length === 0;
+                                }).first();
+                                
+                                if ($productRow.length > 0) {
+                                    extractedHtml = $productRow.html();
+                                    console.log('Extracted from product row');
+                                }
+                            }
+                            
+                            // Method 3: Find the rows-products container and get its content
+                            if (!extractedHtml || extractedHtml.length < 500 || !extractedHtml.includes('product_grid')) {
+                                const $rowsProducts = $response.find('.rows-products');
+                                if ($rowsProducts.length > 0) {
+                                    // Get all product cards from within rows-products
+                                    const $cardsInRowsProducts = $rowsProducts.find('.product_grid').closest('.col-xl-4');
+                                    if ($cardsInRowsProducts.length > 0) {
+                                        extractedHtml = '';
+                                        $cardsInRowsProducts.each(function() {
+                                            extractedHtml += this.outerHTML;
+                                        });
+                                        console.log('Extracted from rows-products container');
+                                    }
+                                }
+                            }
+                            
+                            if (extractedHtml && extractedHtml.length > 500 && extractedHtml.includes('product_grid')) {
+                                // Wrap in a row div if needed
+                                if (!extractedHtml.includes('<div class="row')) {
+                                    extractedHtml = '<div class="row align-items-center">' + extractedHtml + '</div>';
+                                }
+                                
+                                $('.rows-products').html(extractedHtml);
+                                const actualCount = $('.rows-products .product_grid').length;
+                                console.log('Successfully loaded', actualCount, 'products');
+                                
+                                $('h6.mb-0').filter(function() {
+                                    return $(this).text().includes('Item') || $(this).text().includes('Found');
+                                }).first().text(actualCount + ' ' + (actualCount == 1 ? 'Item' : 'Items') + ' Found');
+                                
+                                // Update load more button if needed
+                                const $loadMoreSection = $response.find('#loadMoreProducts').closest('.row');
+                                if ($loadMoreSection.length > 0) {
+                                    if ($('#loadMoreProducts').length === 0) {
+                                        $('.rows-products').after($loadMoreSection);
+                                    } else {
+                                        $('#loadMoreProducts').closest('.row').replaceWith($loadMoreSection);
+                                    }
+                                } else {
+                                    $('#loadMoreProducts').closest('.row').remove();
+                                }
+                                
+                                initializeProductInteractions();
+                            } else {
+                                console.error('Failed to extract products HTML. Extracted length:', extractedHtml ? extractedHtml.length : 0, 'Contains product_grid:', extractedHtml ? extractedHtml.includes('product_grid') : false);
+                                $('.rows-products').html('<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12"><div class="text-center py-5"><p class="text-muted">No products found matching your filters.</p><p class="text-muted small">Try adjusting your filter criteria.</p></div></div>');
+                                $('h6.mb-0').filter(function() {
+                                    return $(this).text().includes('Item') || $(this).text().includes('Found');
+                                }).first().text('0 Items Found');
+                            }
+                        } else {
+                            $('.rows-products').html('<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12"><div class="text-center py-5"><p class="text-muted">No products found matching your filters.</p><p class="text-muted small">Try adjusting your filter criteria.</p></div></div>');
+                            $('h6.mb-0').filter(function() {
+                                return $(this).text().includes('Item') || $(this).text().includes('Found');
+                            }).first().text('0 Items Found');
+                        }
+                        $('#loadMoreProducts').closest('.row').remove();
+                    }
+                } catch (e) {
+                    console.error('Error parsing response:', e);
+                    $('.rows-products').html('<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12"><div class="text-center py-5"><p class="text-danger">Error loading products. Please refresh the page.</p></div></div>');
+                }
+                
+                isLoading = false;
+            },
+            error: function(xhr) {
+                console.error('Error filtering products:', xhr);
+                console.error('Status:', xhr.status);
+                console.error('Response:', xhr.responseText);
+                $('.rows-products').html('<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12"><div class="text-center py-5"><p class="text-danger">Error loading products. Please try again.</p><button class="btn btn-primary mt-2" onclick="location.reload()">Refresh Page</button></div></div>');
+                isLoading = false;
+            }
+        });
+    }
+    
     // Filter products by price range
     function filterProductsByPrice(min, max) {
-        // This will be called when price range changes
-        // You can implement filtering logic here or reload products
-        console.log('Price filter:', min, '-', max);
-        // TODO: Implement price filtering to reload products with price filter
+        // Store the price values
+        currentMinPrice = parseInt(min) || initialMinPrice;
+        currentMaxPrice = parseInt(max) || initialMaxPrice;
+        
+        console.log('filterProductsByPrice called with:', min, '-', max);
+        console.log('Stored values:', currentMinPrice, '-', currentMaxPrice);
+        
+        // Always apply filter when slider changes (user explicitly moved it)
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(function() {
+            // Pass price values directly to applyFilters
+            applyFilters(min, max);
+        }, 500); // Wait 500ms after user stops adjusting slider
     }
+    
+    // Clear all filters
+    function clearAllFilters() {
+        console.log('Clearing all filters...');
+        
+        // Reset stored price values
+        currentMinPrice = initialMinPrice;
+        currentMaxPrice = initialMaxPrice;
+        
+        // Reset price slider
+        const $priceSlider = $('#priceRangeSlider');
+        if ($priceSlider.length && $priceSlider.data('ionRangeSlider')) {
+            const sliderInstance = $priceSlider.data('ionRangeSlider');
+            sliderInstance.update({
+                from: initialMinPrice,
+                to: initialMaxPrice
+            });
+        }
+        
+        // Uncheck all size filters
+        $('.size-filter').prop('checked', false);
+        
+        // Uncheck all brand filters
+        $('.brand-filter').prop('checked', false);
+        
+        // Uncheck all color filters
+        $('input[name^="colora8"]').prop('checked', false);
+        
+        // Reset sort to default
+        $('#sortSelect').val('1');
+        
+        // Restore URL to initial state (keep category and search from initial URL)
+        const restoreUrl = new URL(initialUrl);
+        const params = new URLSearchParams();
+        
+        // Only keep category and search from initial URL
+        if (initialCategory) {
+            params.append('category', initialCategory);
+        }
+        if (initialSearch) {
+            params.append('search', initialSearch);
+        }
+        
+        const newUrl = '{{ route("frontend.shop") }}' + (params.toString() ? '?' + params.toString() : '');
+        window.history.pushState({}, '', newUrl);
+        
+        console.log('Restored URL to:', newUrl);
+        
+        // Apply filters (which will now have no filters selected, but keep initial category/search)
+        applyFilters(null, null, false); // Don't clear category, keep initial one
+    }
+    
+    // Initialize product interactions (color options, wishlist, quick view)
+    function initializeProductInteractions() {
+        // Color option change handlers
+        $(document).off('change', '.color-option').on('change', '.color-option', function() {
+            const $this = $(this);
+            const productIndex = $this.data('product-index');
+            const variantImage = $this.data('variant-image');
+            const price = $this.data('price');
+            const salePrice = $this.data('sale-price');
+            const regularPrice = $this.data('regular-price');
+            const hasSale = $this.data('has-sale') == '1';
+            
+            // Update product image
+            if (variantImage) {
+                $('.product-image-' + productIndex).attr('src', variantImage);
+            }
+            
+            // Update product price
+            let priceDisplay = '₹' + Math.round(price);
+            if (hasSale && salePrice) {
+                priceDisplay = '₹' + Math.round(salePrice);
+            }
+            $('.product-price-' + productIndex).text(priceDisplay);
+        });
+    }
+    
+    // Initialize on page load
+    initializeProductInteractions();
+    
+    // Filter event handlers with debouncing
+    $('.size-filter').on('change', function() {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(function() {
+            applyFilters();
+        }, 300);
+    });
+    
+    $('.brand-filter').on('change', function() {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(function() {
+            applyFilters();
+        }, 300);
+    });
+    
+    // Color filter toggle - allow unselecting radio buttons
+    // Store previous checked state to detect when user clicks on already-checked radio
+    let previousCheckedColor = null;
+    
+    $('input[name^="colora8"]').on('mousedown', function(e) {
+        const $this = $(this);
+        previousCheckedColor = $this.is(':checked') ? $this.attr('id') : null;
+    });
+    
+    $('input[name^="colora8"]').on('click', function(e) {
+        const $this = $(this);
+        // If this radio was already checked before mousedown, uncheck it
+        if (previousCheckedColor === $this.attr('id') && $this.is(':checked')) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Uncheck the radio button
+            $this.prop('checked', false);
+            previousCheckedColor = null;
+            // Trigger change event to apply filters
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(function() {
+                applyFilters();
+            }, 300);
+            return false;
+        }
+        // Otherwise, allow normal radio button behavior
+    });
+    
+    $('input[name^="colora8"]').on('change', function() {
+        // Only apply filters if the radio is actually checked (not unchecked)
+        if ($(this).is(':checked')) {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(function() {
+                applyFilters();
+            }, 300);
+        }
+    });
+    
+    // Sort select change handler
+    $('#sortSelect').on('change', function() {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(function() {
+            applyFilters();
+        }, 300);
+    });
+    
+    // Clear all filters button
+    $('#clearAllFilters').on('click', function(e) {
+        e.preventDefault();
+        clearAllFilters();
+    });
     
     // Get session ID
     function getSessionId() {
@@ -755,6 +1381,25 @@ $(document).ready(function() {
 
 @push('styles')
 <style>
+/* Clear Filters Button Styles */
+#clearAllFilters {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+#clearAllFilters:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+
+.search-sidebar-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
 /* Product Card Image Consistency - 4:5 Aspect Ratio */
 .shop_thumb {
     width: 100%;

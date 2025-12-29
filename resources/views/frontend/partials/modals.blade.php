@@ -1591,7 +1591,7 @@ $(document).ready(function() {
         // Build HTML with images
         let imagesHtml = '';
         imagesToLoad.forEach(function(image) {
-            imagesHtml += '<div class="single_view_slide"><img src="' + image.url + '" class="img-fluid" alt="' + (image.alt || currentProductData.name) + '" /></div>';
+            imagesHtml += '<div class="single_view_slide"><img src="' + image.url + '" class="img-fluid w-100" alt="' + (image.alt || currentProductData.name) + '" /></div>';
         });
         $('#quickViewImages').html(imagesHtml);
         

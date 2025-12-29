@@ -127,8 +127,9 @@ $(document).ready(function() {
     const urlParams = new URLSearchParams(window.location.search);
     const sessionIdParam = urlParams.get('session_id');
     
-    // Only redirect if session_id is not in URL
-    if (!sessionIdParam) {
+    // Only redirect if session_id is not in URL AND we're online
+    // Don't redirect when offline to avoid breaking the page
+    if (!sessionIdParam && navigator.onLine) {
         @if(!isset($wishlistProducts) || $wishlistProducts->count() == 0)
             // Load wishlist via AJAX first
             $.ajax({
@@ -141,12 +142,19 @@ $(document).ready(function() {
                         const newUrl = window.location.pathname + '?session_id=' + sessionId;
                         window.location.href = newUrl;
                     }
+                },
+                error: function(xhr, status, error) {
+                    // If offline or error, don't redirect - stay on page
+                    console.log('Wishlist AJAX error (possibly offline):', status, error);
                 }
             });
         @else
             // If we have products but no session_id in URL, reload with it
-            const newUrl = window.location.pathname + '?session_id=' + sessionId;
-            window.location.href = newUrl;
+            // Only if online
+            if (navigator.onLine) {
+                const newUrl = window.location.pathname + '?session_id=' + sessionId;
+                window.location.href = newUrl;
+            }
         @endif
     }
     

@@ -207,19 +207,70 @@ class BrandController extends Controller
         ]);
     }
 
-    public function destroy(Brand $brand)
+    public function destroy($id)
     {
-        // Delete logo file
-        if ($brand->logo) {
-            Storage::disk('public')->delete($brand->logo);
+        try {
+            $brand = Brand::findOrFail($id);
+            
+            // Check if brand has associated products
+            $productCount = $brand->products()->count();
+            if ($productCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot delete brand. It has {$productCount} associated product(s). Please remove or reassign products first."
+                ], 422);
+            }
+
+            // Delete logo file
+            if ($brand->logo) {
+                try {
+                    Storage::disk('public')->delete($brand->logo);
+                } catch (\Exception $e) {
+                    \Log::warning("Failed to delete brand logo: " . $e->getMessage());
+                }
+            }
+
+            // Store brand ID before deletion for verification
+            $brandId = $brand->id;
+            $brandName = $brand->name;
+            
+            // Delete the brand
+            $deleted = $brand->delete();
+            
+            // Verify deletion
+            $stillExists = Brand::find($brandId);
+            if ($stillExists !== null) {
+                \Log::error("Brand deletion failed for ID: {$brandId}, Name: {$brandName}");
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete brand. The brand still exists in the database. Please check database constraints or try again.'
+                ], 500);
+            }
+
+            \Log::info("Brand deleted successfully: ID {$brandId}, Name: {$brandName}");
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Brand deleted successfully'
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Brand not found'
+            ], 404);
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error("Brand deletion database error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Database error: Cannot delete brand. It may have associated records that prevent deletion.'
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error("Brand deletion error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting brand: ' . $e->getMessage()
+            ], 500);
         }
-
-        $brand->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Brand deleted successfully'
-        ]);
     }
 
     /**

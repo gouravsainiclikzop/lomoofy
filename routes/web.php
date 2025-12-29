@@ -30,9 +30,9 @@ Route::middleware(['customer.auth'])->group(function () {
 });
 
 // Customer Dashboard Routes (Protected - require customer authentication)
+
 Route::middleware(['customer.auth'])->group(function () {
     Route::get('/my-orders', [FrontendController::class, 'myOrders'])->name('frontend.my-orders');
-    Route::get('/wishlist', [FrontendController::class, 'wishlist'])->name('frontend.wishlist');
     Route::get('/profile-info', [FrontendController::class, 'profileInfo'])->name('frontend.profile-info');
     Route::post('/profile-info', [FrontendController::class, 'updateProfileInfo'])->name('frontend.profile-info.update');
     Route::get('/change-password', [FrontendController::class, 'changePassword'])->name('frontend.change-password');
@@ -60,6 +60,7 @@ Route::middleware(['customer.auth'])->group(function () {
 
 // Public Frontend Routes
 Route::get('/shoping-cart', [FrontendController::class, 'shopingCart'])->name('frontend.shoping-cart');
+Route::get('/wishlist', [FrontendController::class, 'wishlist'])->name('frontend.wishlist');
 
 // ============================================================
 // API Routes (moved from api.php to web.php for Blade usage)

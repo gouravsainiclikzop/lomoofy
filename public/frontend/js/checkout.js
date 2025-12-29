@@ -138,12 +138,33 @@ class CheckoutManager {
         }
     }
 
-    validateForm() {
+    async validateForm() {
         let isValid = true;
         const errors = [];
 
         // Clear previous errors
         this.clearErrors();
+
+        // Validate cart stock availability first
+        try {
+            const response = await fetch('/api/orders/validate-cart', {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            if (!data.success && data.errors) {
+                errors.push(...data.errors);
+                isValid = false;
+            }
+        } catch (error) {
+            console.error('Error validating cart:', error);
+            errors.push('Unable to validate cart. Please try again.');
+            isValid = false;
+        }
 
         // Validate shipping address
         const shippingAddress = document.querySelector('input[name="shipping_address_id"]:checked');
@@ -167,7 +188,7 @@ class CheckoutManager {
             errors.push('Please select a payment method');
             isValid = false;
         }
-
+  
         // Show errors if any
         if (!isValid) {
             this.showErrors(errors);
@@ -176,29 +197,117 @@ class CheckoutManager {
         return isValid;
     }
 
-    showErrors(errors) {
+    showErrors(errors) { 
+        // Format errors to be customer-friendly
+        const formatError = (error) => {
+            // Convert technical messages to customer-friendly ones
+            let friendlyError = error;
+            
+            // Stock-related errors
+            if (error.includes('Insufficient stock') || error.includes('out of stock')) {
+                friendlyError = error.replace(/Insufficient stock for '([^']+)'\. Available: (\d+), Requested: (\d+)/, 
+                    'Sorry, "$1" is not available in the quantity you requested. Only $2 items are available.');
+                friendlyError = friendlyError.replace(/Product '([^']+)' is out of stock/, 
+                    'Sorry, "$1" is currently out of stock. Please remove it from your cart to continue.');
+                friendlyError = friendlyError.replace(/is no longer available/, 
+                    'is no longer available. Please remove it from your cart to continue.');
+            }
+            
+            // Address-related errors
+            if (error.includes('shipping address')) {
+                friendlyError = 'Please select a delivery address for your order.';
+            }
+            if (error.includes('billing address')) {
+                friendlyError = 'Please select a billing address for your order.';
+            }
+            
+            // Payment-related errors
+            if (error.includes('payment method')) {
+                friendlyError = 'Please select a payment method to complete your order.';
+            }
+            
+            // Cart-related errors
+            if (error.includes('Cart is empty')) {
+                friendlyError = 'Your cart is empty. Please add items to your cart before checkout.';
+            }
+            if (error.includes('Cart has expired')) {
+                friendlyError = 'Your cart session has expired. Please add items to your cart again.';
+            }
+            if (error.includes('Unable to validate cart')) {
+                friendlyError = 'We couldn\'t verify your cart. Please refresh the page and try again.';
+            }
+            
+            return friendlyError;
+        };
+        
+        const friendlyErrors = errors.map(formatError);
+        
         const errorHtml = `
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <h6>Please fix the following errors:</h6>
+                <h6><i class="lni lni-warning me-2"></i>Please complete the following to proceed:</h6>
                 <ul class="mb-0">
-                    ${errors.map(error => `<li>${error}</li>`).join('')}
+                    ${friendlyErrors.map(error => `<li>${error}</li>`).join('')}
                 </ul>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         `;
 
-        // Insert error at the top of the container
-        const container = document.querySelector('.container');
-        const firstRow = container.querySelector('.row');
+        // Find the cart validation alert container
+        let alertContainer = document.getElementById('cartValidationAlertContainer');
         
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'row mb-4';
-        errorDiv.innerHTML = `<div class="col-12">${errorHtml}</div>`;
+        // If container doesn't exist, create it
+        if (!alertContainer) {
+            const checkoutContainer = document.getElementById('checkoutContainer');
+            if (checkoutContainer) {
+                // Find the row after the checkout title
+                const titleRow = checkoutContainer.querySelector('.row');
+                if (titleRow && titleRow.nextElementSibling) {
+                    // Use the existing row structure
+                    const alertRow = titleRow.nextElementSibling;
+                    alertContainer = alertRow.querySelector('#cartValidationAlertContainer');
+                    if (!alertContainer) {
+                        alertContainer = document.createElement('div');
+                        alertContainer.id = 'cartValidationAlertContainer';
+                        alertRow.querySelector('.col-12').appendChild(alertContainer);
+                    }
+                } else {
+                    // Create new row structure
+                    const alertRow = document.createElement('div');
+                    alertRow.className = 'row mb-4';
+                    alertRow.innerHTML = '<div class="col-12"><div id="cartValidationAlertContainer"></div></div>';
+                    alertContainer = alertRow.querySelector('#cartValidationAlertContainer');
+                    
+                    // Insert after title row
+                    if (titleRow) {
+                        titleRow.parentNode.insertBefore(alertRow, titleRow.nextSibling);
+                    } else {
+                        checkoutContainer.insertBefore(alertRow, checkoutContainer.firstChild);
+                    }
+                }
+            }
+        }
         
-        container.insertBefore(errorDiv, firstRow);
-
-        // Scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Insert the error HTML
+        if (alertContainer) {
+            // Clear any existing content
+            alertContainer.innerHTML = '';
+            // Add the error alert
+            alertContainer.innerHTML = errorHtml;
+            
+            // Scroll to alert smoothly
+            setTimeout(() => {
+                alertContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        } else {
+            // Fallback: insert at top of form
+            const form = document.getElementById('checkoutForm');
+            if (form) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'row mb-4';
+                errorDiv.innerHTML = `<div class="col-12">${errorHtml}</div>`;
+                form.insertBefore(errorDiv, form.firstChild);
+            }
+        }
     }
 
     clearErrors() {
@@ -207,17 +316,23 @@ class CheckoutManager {
         });
     }
 
-    handleFormSubmit(e) {
-        // Validate form
-        if (!this.validateForm()) {
-            e.preventDefault();
-            return false;
-        }
+    async handleFormSubmit(e) {
+        e.preventDefault();
 
         // Show loading state
         this.setLoadingState(true);
 
-        // Allow form to submit normally
+        // Validate form (includes stock validation)
+        const isValid = await this.validateForm();
+       
+        if (!isValid) {
+            // Re-enable submit button if validation fails
+            this.setLoadingState(false);
+            return false;
+        }
+
+        // If validation passes, submit the form
+        this.form.submit();
         return true;
     }
 
@@ -261,45 +376,134 @@ class CheckoutManager {
             const data = await response.json();
 
             if (!data.success) {
-                this.showCartValidationErrors(data.errors || ['Cart validation failed']);
+                // temporarily ignore unavailable product message
+                const filtered = (data.errors || []).filter(
+                    e => !e.includes('is no longer available')
+                );
+            
+               
+                if (filtered.length) {
+                    this.showCartValidationErrors(filtered);
+                }
             }
+            
         } catch (error) {
             console.warn('Cart validation failed:', error);
         }
     }
 
     showCartValidationErrors(errors) {
+        // Format errors to be customer-friendly
+        const formatError = (error) => {
+            // Convert technical messages to customer-friendly ones
+            let friendlyError = error;
+            
+            // Stock-related errors
+            if (error.includes('Insufficient stock') || error.includes('out of stock')) {
+                friendlyError = error.replace(/Insufficient stock for '([^']+)'\. Available: (\d+), Requested: (\d+)/, 
+                    'Sorry, "$1" is not available in the quantity you requested. Only $2 items are available.');
+                friendlyError = friendlyError.replace(/Product '([^']+)' is out of stock/, 
+                    'Sorry, "$1" is currently out of stock. Please remove it from your cart to continue.');
+                friendlyError = friendlyError.replace(/Product '([^']+)' is no longer available/, 
+                    'Sorry, "$1" is no longer available. Please remove it from your cart to continue.');
+                friendlyError = friendlyError.replace(/is no longer available/, 
+                    'is no longer available. Please remove it from your cart to continue.');
+            }
+            
+            // Cart-related errors
+            if (error.includes('Cart is empty')) {
+                friendlyError = 'Your cart is empty. Please add items to your cart before checkout.';
+            }
+            if (error.includes('Cart has expired')) {
+                friendlyError = 'Your cart session has expired. Please add items to your cart again.';
+            }
+            if (error.includes('Cart validation failed')) {
+                friendlyError = 'We couldn\'t verify your cart. Please refresh the page and try again.';
+            }
+            
+            // Price-related errors
+            if (error.includes('Price has changed')) {
+                friendlyError = error.replace(/Price has changed for '([^']+)'\. Please review your cart/, 
+                    'The price for "$1" has changed. Please review your cart and update if needed.');
+            }
+            
+            return friendlyError;
+        };
+        
+        const friendlyErrors = errors.map(formatError);
+        
         const errorHtml = `
             <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                <h6><i class="lni lni-warning me-2"></i>Cart Validation Issues:</h6>
+                <h6><i class="lni lni-warning me-2"></i>Please review your cart:</h6>
                 <ul class="mb-0">
-                    ${errors.map(error => `<li>${error}</li>`).join('')}
+                    ${friendlyErrors.map(error => `<li>${error}</li>`).join('')}
                 </ul>
                 <div class="mt-2">
                     <a href="${window.location.origin}/shoping-cart" class="btn btn-sm btn-outline-primary">
-                        Review Cart
+                        <i class="lni lni-shopping-basket me-1"></i>Review Cart
                     </a>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         `;
 
-        // Remove existing cart validation alerts
-        document.querySelectorAll('.alert-warning').forEach(alert => {
-            if (alert.textContent.includes('Cart Validation')) {
-                alert.remove();
-            }
-        });
+        // Find the dedicated cart validation alert container
+        const alertContainer = document.getElementById('cartValidationAlertContainer');
 
-        // Insert new alert
-        const container = document.querySelector('.container');
-        const firstRow = container.querySelector('.row');
+        if (alertContainer) {
+            alertContainer.innerHTML = `
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <h6>
+                        <i class="lni lni-warning me-2"></i>
+                        Please review your cart:
+                    </h6>
+                    <ul class="mb-0">
+                        ${friendlyErrors.map(error => `<li>${error}</li>`).join('')}
+                    </ul>
         
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'row mb-4';
-        errorDiv.innerHTML = `<div class="col-12">${errorHtml}</div>`;
+                    <div class="mt-2">
+                        <a href="${window.location.origin}/shoping-cart" class="btn btn-sm btn-outline-primary">
+                            <i class="lni lni-shopping-basket me-1"></i>Review Cart
+                        </a>
+                    </div>
         
-        container.insertBefore(errorDiv, firstRow);
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+        
+            setTimeout(() => {
+                alertContainer.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 100);
+        }
+        
+        
+        // Insert the alert HTML
+        if (alertContainer) {
+            // Clear any existing content
+            alertContainer.innerHTML = '';
+            // Add the alert directly
+            alertContainer.innerHTML = errorHtml;
+            // Ensure it's positioned relative and doesn't overflow
+            alertContainer.style.position = 'relative';
+            alertContainer.style.zIndex = 'auto';
+            alertContainer.style.overflow = 'visible';
+            
+            // Scroll to alert smoothly
+            setTimeout(() => {
+                alertContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        } else {
+            // Last resort: show as fixed alert at top of page (below header)
+            const header = document.querySelector('.header');
+            const headerHeight = header ? header.offsetHeight : 120;
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `position: fixed; top: ${headerHeight}px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 800px; z-index: 1000;`;
+            errorDiv.innerHTML = `<div class="container"><div class="row"><div class="col-12">${errorHtml}</div></div></div>`;
+            document.body.insertBefore(errorDiv, document.body.firstChild);
+        }
     }
 
     // Public method to refresh addresses (useful for AJAX updates)

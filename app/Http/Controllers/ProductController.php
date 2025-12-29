@@ -1104,11 +1104,17 @@ class ProductController extends Controller
         if ($request->has('search') && $request->search['value']) {
             $search = $request->search['value'];
             $query->where(function($q) use ($search) {
+                // $q->where('name', 'like', "%{$search}%")
+                //   ->orWhere('description', 'like', "%{$search}%")
+                //   ->orWhereHas('variants', function($variantQuery) use ($search) {
+                //       $variantQuery->where('sku', 'like', "%{$search}%");
+                //   });
+
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('variants', function($variantQuery) use ($search) {
-                      $variantQuery->where('sku', 'like', "%{$search}%");
-                  });
+  ->orWhereHas('variants', function($variantQuery) use ($search) {
+      $variantQuery->where('sku', 'like', "%{$search}%");
+  });
+
             });
         }
 
