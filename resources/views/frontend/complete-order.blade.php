@@ -24,6 +24,26 @@
 @section('content')
 <section class="middle">
     <div class="container">
+        <!-- Display success/info messages -->
+        @if (session('success'))
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert alert-success">
+                        <h5 class="mb-2">Order Placed Successfully!</h5>
+                        <p class="mb-0">{{ session('success') }}</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert alert-danger">{{ session('error') }}</div>
+                </div>
+            </div>
+        @endif
+
         @if($order)
             <!-- Order Success Message -->
             <div class="row justify-content-center mb-5">

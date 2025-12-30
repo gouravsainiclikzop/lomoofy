@@ -4233,11 +4233,18 @@ class FrontendController extends Controller
         $cart = $request->attributes->get('validated_cart');
         $customer = $request->attributes->get('authenticated_customer');
         
+        \Log::info('Process checkout started', [
+            'cart_id' => $cart ? $cart->id : null,
+            'customer_id' => $customer ? $customer->id : null,
+            'request_data' => $request->all()
+        ]);
+        
         try {
             $checkoutService = app(CheckoutService::class);
             
             // Validate request data
             $validatedData = $checkoutService->validateCheckoutRequest($request->all());
+            \Log::info('Request validation passed', ['validated_data' => $validatedData]);
             
             // Validate addresses
             $addressValidation = $checkoutService->validateAddresses(
@@ -4248,11 +4255,38 @@ class FrontendController extends Controller
             );
             
             if (!$addressValidation['valid']) {
+                // Convert errors array to key-value pairs for proper display
+                $errorBag = [];
+                foreach ($addressValidation['errors'] as $index => $error) {
+                    $errorBag['address_' . $index] = $error;
+                }
                 return redirect()->route('frontend.checkout')
                     ->withInput()
-                    ->withErrors(['addresses' => $addressValidation['errors']]);
+                    ->withErrors($errorBag)
+                    ->with('error', 'Please fix the address errors and try again.');
             }
             
+            // Validate cart stock before creating order
+            $cartValidation = $checkoutService->validateCart($cart);
+            \Log::info('Cart validation result', [
+                'valid' => $cartValidation['valid'],
+                'errors' => $cartValidation['errors'] ?? []
+            ]);
+            
+            if (!$cartValidation['valid']) {
+                \Log::warning('Cart validation failed', ['errors' => $cartValidation['errors']]);
+                // Convert errors array to key-value pairs for proper display
+                $errorBag = [];
+                foreach ($cartValidation['errors'] as $index => $error) {
+                    $errorBag['cart_' . $index] = $error;
+                }
+                return redirect()->route('frontend.checkout')
+                    ->withInput()
+                    ->withErrors($errorBag)
+                    ->with('error', 'Please review the following errors and try again.');
+            }
+            
+            \Log::info('Creating order...');
             // Create order
             $order = $checkoutService->createOrder(
                 $cart,
@@ -4274,19 +4308,25 @@ class FrontendController extends Controller
                 ->with('success', 'Order placed successfully!');
                 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Checkout validation exception', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
             return redirect()->route('frontend.checkout')
                 ->withInput()
                 ->withErrors($e->errors());
         } catch (\Exception $e) {
             \Log::error('Checkout processing failed: ' . $e->getMessage(), [
-                'customer_id' => $customer->id,
+                'customer_id' => $customer ? $customer->id : null,
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ]);
             
             return redirect()->route('frontend.checkout')
                 ->withInput()
-                ->with('error', 'Checkout failed. Please try again.');
+                ->with('error', 'Checkout failed: ' . $e->getMessage());
         }
     }
 

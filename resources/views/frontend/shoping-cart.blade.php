@@ -140,7 +140,8 @@
 												<h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->unit_price, 2) }}</h4>
 												<select class="mb-2 custom-select w-auto cart-item-quantity" data-cart-item-id="{{ $item->id }}" data-variant-id="{{ $item->product_variant_id }}">
 													@php
-    $availableStock = $variant ? $variant->available_stock : ($product->stock_quantity ?? 10);
+    // Use stock_quantity directly (warehouse logic disabled for now)
+    $availableStock = $variant ? ($variant->stock_quantity ?? 0) : ($product->stock_quantity ?? 10);
     $maxQty = min(10, max(1, $availableStock));
 @endphp
 @for($qty = 1; $qty <= $maxQty; $qty++)

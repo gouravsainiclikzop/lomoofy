@@ -64,9 +64,55 @@ class CartApiController extends Controller
             ]);
         }
         
+        // Load cart items with relationships
+        $cart->load([
+            'items.product.primaryImage',
+            'items.product.images' => function($q) {
+                $q->orderBy('sort_order')->orderBy('id')->limit(1);
+            },
+            'items.variant.images' => function($q) {
+                $q->orderBy('is_primary', 'desc')->orderBy('sort_order')->orderBy('id');
+            },
+            'items.variant',
+            'coupon'
+        ]);
+        
+        // Automatically adjust cart item quantities to match available stock
+        $quantityAdjusted = false;
+        foreach ($cart->items as $item) {
+            $product = $item->product;
+            $variant = $item->variant;
+            $stockSource = $variant ?: $product;
+            
+            if ($stockSource && $stockSource->manage_stock) {
+                // Use stock_quantity directly (warehouse logic disabled for now)
+                $availableStock = $variant 
+                    ? ($variant->stock_quantity ?? 0)
+                    : ($product->stock_quantity ?? 0);
+                
+                // If cart quantity exceeds available stock, adjust it
+                if ($item->quantity > $availableStock && $availableStock > 0) {
+                    $item->quantity = $availableStock;
+                    $item->total_price = $item->unit_price * $availableStock;
+                    $item->save();
+                    $quantityAdjusted = true;
+                } elseif ($availableStock <= 0) {
+                    // Remove item if completely out of stock
+                    $item->delete();
+                    $quantityAdjusted = true;
+                }
+            }
+        }
+        
+        // Reload items after adjustments
+        if ($quantityAdjusted) {
+            $cart->load('items');
+        }
+        
         // Recalculate totals to ensure they're up to date
         $cart->recalculateTotals();
         
+        // Reload relationships after recalculation
         $cart->load([
             'items.product.primaryImage',
             'items.product.images' => function($q) {
@@ -130,17 +176,10 @@ class CartApiController extends Controller
             
             if ($stockSource && $stockSource->manage_stock) {
                 $manageStock = true;
-                // Check warehouse-based inventory if available
-                if ($variant && $variant->inventoryStocks()->exists()) {
-                    $totalStock = $variant->inventoryStocks()->sum('quantity');
-                    $reservedStock = $variant->inventoryStocks()->sum('reserved_quantity');
-                    $availableStock = max(0, $totalStock - $reservedStock);
-                } else {
-                    // Fallback to variant/product stock_quantity
-                    $availableStock = $variant 
-                        ? ($variant->available_stock ?? ($variant->stock_quantity ?? 0))
-                        : ($product->stock_quantity ?? 0);
-                }
+                // Use stock_quantity directly (warehouse logic disabled for now)
+                $availableStock = $variant 
+                    ? ($variant->stock_quantity ?? 0)
+                    : ($product->stock_quantity ?? 0);
                 $isInStock = $availableStock >= $item->quantity;
             }
             

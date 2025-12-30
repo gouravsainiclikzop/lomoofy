@@ -71,6 +71,14 @@
             </div>
         @endif
 
+        @if (session('error'))
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert alert-danger">{{ session('error') }}</div>
+                </div>
+            </div>
+        @endif
+
         <form action="{{ route('frontend.checkout.process') }}" method="POST" id="checkoutForm">
             @csrf
             <input type="hidden" name="session_id" value="{{ $sessionId }}">

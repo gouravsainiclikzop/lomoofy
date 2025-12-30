@@ -114,9 +114,9 @@ class InventoryController extends Controller
                 ];
             }
             
-            // Calculate stock from warehouse-based inventory or fallback to variant stock_quantity
-            $totalStockQty = $variant->total_stock_quantity ?? ($variant->stock_quantity ?? 0);
-            $availableStock = $variant->available_stock ?? $totalStockQty;
+            // Calculate stock - use variant stock_quantity directly (warehouse logic disabled for now)
+            $totalStockQty = $variant->stock_quantity ?? 0;
+            $availableStock = $totalStockQty;
             
             // Calculate stock status based on total stock quantity if manage_stock is enabled
             $calculatedStockStatus = $variant->stock_status;
