@@ -356,43 +356,74 @@
 								<div class="card-footer b-0 p-0 pt-2">
 									<div class="d-flex align-items-start justify-content-between">
 										<div class="text-left">
-											@if($product['color_variants']->count() > 0)
-												@foreach($product['color_variants'] as $colorIndex => $colorVariant)
-													@php
-														// Generate color ID from color name (lowercase, no spaces)
-														$colorId = strtolower(str_replace(' ', '', $colorVariant['color'] ?? 'color' . $colorIndex));
-													@endphp
-													<div class="form-check form-option form-check-inline mb-1">
-														<input 
-															class="form-check-input color-option" 
-															type="radio" 
-															name="color{{ $index + 1 }}" 
-															id="{{ $colorId }}{{ $index + 1 }}"
-															data-price="{{ $colorVariant['display_price'] ?? $colorVariant['price'] ?? 0 }}"
-															data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
-															data-regular-price="{{ $colorVariant['price'] ?? 0 }}"
-															data-has-sale="{{ $colorVariant['has_sale'] ? '1' : '0' }}"
-															data-product-index="{{ $index }}"
-															data-variant-image="{{ $colorVariant['image'] ?? '' }}"
-															data-color-value="{{ $colorVariant['color'] ?? '' }}">
-														<label class="form-option-label small rounded-circle" for="{{ $colorId }}{{ $index + 1 }}">
-															<span class="form-option-color rounded-circle" style="background-color: {{ $colorVariant['color_code'] ?? '#ccc' }}"></span>
-														</label>
+											@php
+												// Priority: Show color if available, otherwise show one variable attribute (preferably size)
+												$hasColor = $product['color_variants']->count() > 0;
+												$firstColorVariant = $hasColor ? $product['color_variants']->first() : null;
+												$availableVariableValues = $firstColorVariant['available_variable_values'] ?? [];
+												
+												// If no color, get variable attributes from product data
+												if (!$hasColor && isset($product['variable_attributes'])) {
+													$availableVariableValues = $product['variable_attributes'];
+												}
+												
+												// Determine which attribute to show (prefer size, otherwise first available)
+												$attributeToShow = null;
+												if (!$hasColor && !empty($availableVariableValues)) {
+													// Prefer size, otherwise get first attribute
+													if (isset($availableVariableValues['size'])) {
+														$attributeToShow = ['key' => 'size', 'values' => $availableVariableValues['size']];
+													} else {
+														$firstKey = array_key_first($availableVariableValues);
+														if ($firstKey) {
+															$attributeToShow = ['key' => $firstKey, 'values' => $availableVariableValues[$firstKey]];
+														}
+													}
+												}
+											@endphp
+											
+											@if($hasColor)
+												{{-- Show Color Options Only --}}
+												<div class="mb-2">
+													@foreach($product['color_variants'] as $colorIndex => $colorVariant)
+														@php
+															$colorId = strtolower(str_replace(' ', '', $colorVariant['color'] ?? 'color' . $colorIndex));
+														@endphp
+														<div class="form-check form-option form-check-inline mb-1">
+															<input 
+																class="form-check-input color-option" 
+																type="radio" 
+																name="color{{ $index + 1 }}" 
+																id="{{ $colorId }}{{ $index + 1 }}"
+																data-price="{{ $colorVariant['display_price'] ?? $colorVariant['price'] ?? 0 }}"
+																data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
+																data-regular-price="{{ $colorVariant['price'] ?? 0 }}"
+																data-has-sale="{{ $colorVariant['has_sale'] ? '1' : '0' }}"
+																data-product-index="{{ $index }}"
+																data-variant-image="{{ $colorVariant['image'] ?? '' }}"
+																data-color-value="{{ $colorVariant['color'] ?? '' }}">
+															<label class="form-option-label small rounded-circle" for="{{ $colorId }}{{ $index + 1 }}">
+																<span class="form-option-color rounded-circle" style="background-color: {{ $colorVariant['color_code'] ?? '#ccc' }}"></span>
+															</label>
+														</div>
+													@endforeach 
+												</div>
+											@elseif($attributeToShow)
+												{{-- Show One Variable Attribute (preferably size) --}}
+												<div class="mb-2">
+													<div class="d-flex flex-wrap gap-1">
+														@foreach($attributeToShow['values'] as $attrValue)
+															<span class="badge bg-light text-dark border" style="font-size: 0.7rem; font-weight: normal;">
+																{{ $attrValue }}
+															</span>
+														@endforeach
 													</div>
-												@endforeach 
+												</div>
 											@endif
 										</div>
 										<div class="text-right">
 											@php
 												$inWishlist = isset($product['in_wishlist']) && $product['in_wishlist'];
-												// Debug logging
-												if ($product['id'] == 14) {
-													\Log::info('Product 14 Wishlist Check', [
-														'product_id' => $product['id'],
-														'in_wishlist' => $inWishlist,
-														'product_data' => $product
-													]);
-												}
 											@endphp
 											<button class="btn auto btn_love snackbar-wishlist {{ $inWishlist ? 'wishlist-active' : '' }}" data-product-id="{{ $product['id'] }}" data-in-wishlist="{{ $inWishlist ? '1' : '0' }}">
 												<i class="{{ $inWishlist ? 'fas' : 'far' }} fa-heart{{ $inWishlist ? ' text-danger wishlist-heart-red' : '' }}" style="{{ $inWishlist ? 'color: #dc3545 !important;' : '' }}"></i>
@@ -836,7 +867,6 @@ $(document).ready(function() {
     
     // Also check localStorage session_id
     const sessionId = localStorage.getItem('session_id');
-    console.log('Session ID from localStorage:', sessionId);
     
     // Check wishlist via API
     if (sessionId) {
@@ -845,19 +875,14 @@ $(document).ready(function() {
             method: 'GET',
             data: { session_id: sessionId },
             success: function(response) {
-                console.log('Wishlist API Response:', response);
                 if (response.success && response.data) {
                     const productIds = response.data.map(item => item.product_id);
-                    console.log('Products in wishlist:', productIds);
-                    console.log('Is product 14 in wishlist?', productIds.includes(14));
-                    
                     // Update hearts based on API response
                     response.data.forEach(function(item) {
                         const $btn = $('.snackbar-wishlist[data-product-id="' + item.product_id + '"]');
                         if ($btn.length) {
                             $btn.find('i').removeClass('far').addClass('fas').css('color', '#dc3545');
                             $btn.addClass('wishlist-active').attr('data-in-wishlist', '1');
-                            console.log('Updated product ' + item.product_id + ' to show in wishlist');
                         }
                     });
                 }

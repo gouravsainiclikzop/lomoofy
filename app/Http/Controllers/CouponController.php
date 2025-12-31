@@ -32,7 +32,7 @@ class CouponController extends Controller
             // Search
             if ($request->has('search') && is_array($request->search) && !empty($request->search['value'])) {
                 $search = $request->search['value'];
-                \Illuminate\Support\Facades\Log::info('Applying search filter: ' . $search);
+               
                 $query->where(function($q) use ($search) {
                     $q->where('code', 'like', "%{$search}%");
                 });

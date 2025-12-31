@@ -68,13 +68,13 @@
 				
 				<div class="col-xl-3 col-lg-3 col-md-3 col-sm-12">
 					<div class="footer_widget">
-						<img src="{{ asset('frontend/images/logo.png') }}" class="img-footer small mb-2" alt="" />
+						<img src="{{ $settings->company_logo ? asset('storage/' . $settings->company_logo) : asset('assets/images/favicon.png') }}" class="img-footer small mb-2" alt="" />
 						
 						<div class="address mt-3">
-							3298 Grant Street Longview, TX<br>United Kingdom 75601	
+							{{ $settings->address }}	
 						</div>
 						<div class="address mt-3">
-							1-202-555-0106<br>help@lomoofyindustries.com
+							{{ $settings->phone }}<br>{{ $settings->email }}
 						</div>
 						<div class="address mt-3">
 							<ul class="list-inline">
@@ -94,9 +94,12 @@
 					<div class="footer_widget">
 						<h4 class="widget_title">Shop</h4>
 						<ul class="footer-menu">
-							<li><a href="{{ route('frontend.shop') }}">Men</a></li>
-							<li><a href="{{ route('frontend.shop') }}">Women</a></li>
-							<li><a href="{{ route('frontend.shop') }}">Kids</a></li>  
+							@php
+								$categories = App\Models\Category::whereNull('parent_id')->where('is_active', true)->get();
+							@endphp
+							@foreach($categories as $category)
+								<li><a href="{{ route('frontend.shop') }}?category={{ $category->slug }}">{{ $category->name }}</a></li>
+							@endforeach
 						</ul>
 					</div>
 				</div>
@@ -158,7 +161,7 @@
 		<div class="container">
 			<div class="row align-items-center">
 				<div class="col-lg-12 col-md-12 text-center">
-					<p class="mb-0">© {{ date('Y') }} Lomoofy Industries All Rights Reserved.</p>
+					<p class="mb-0">© {{ date('Y') }} {{ $settings->company_name }} All Rights Reserved.</p>
 				</div>
 			</div>
 		</div>

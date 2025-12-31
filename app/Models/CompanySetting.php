@@ -19,6 +19,11 @@ class CompanySetting extends Model
         'pan_no',
         'gst_registration_no',
         'authorized_signatory',
+        'coming_soon',
+    ];
+
+    protected $casts = [
+        'coming_soon' => 'boolean',
     ];
 
     /**
@@ -27,11 +32,11 @@ class CompanySetting extends Model
     public static function getSettings()
     {
         return static::first() ?? static::create([
-            'company_name' => 'Lomoof',
-            'company_logo_text' => 'Lomoofy',
+            'company_name' => 'Lomoofy',
+            'company_logo_text' => 'Lomoofy Industries',
             'phone' => '+91 9876315314',
-            'email' => 'info@lomoof.com',
-            'address' => '123, Main Street, Anytown, USA',
+            'email' => 'info@lomoofyindustries.com',
+            'address' => '3298 Grant Street Longview, TX<br>United Kingdom 75601',
         ]);
     }
 }

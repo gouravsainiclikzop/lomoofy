@@ -74,18 +74,9 @@ class ProductImportController extends Controller
                     'success' => false,
                     'message' => 'Failed to store uploaded file. Storage operation returned false.',
                 ], 500);
-            }
-            
-            Log::info('ProductImportController@store - File stored', [
-                'original_name' => $originalName,
-                'stored_path' => $storedPath,
-                'filename' => $filename,
-            ]);
+            } 
         } catch (Throwable $storageException) {
-            Log::error('ProductImportController@store - File storage failed', [
-                'file' => $originalName,
-                'message' => $storageException->getMessage(),
-            ]);
+            
             
             return response()->json([
                 'success' => false,
@@ -127,15 +118,7 @@ class ProductImportController extends Controller
                     $filesInDir = array_values(array_diff(scandir($importsDir), ['.', '..']));
                 }
                 
-                Log::error('ProductImportController@store - Stored file not found', [
-                    'expected_path' => $absolutePath,
-                    'alternatives_tried' => $alternatives,
-                    'stored_path' => $storedPath,
-                    'storage_disk' => config('filesystems.default'),
-                    'storage_root' => storage_path('app'),
-                    'imports_directory' => $importsDir,
-                    'files_in_imports_dir' => $filesInDir,
-                ]);
+               
                 
                 return response()->json([
                     'success' => false,
@@ -147,11 +130,7 @@ class ProductImportController extends Controller
         try {
             $summary = $importService->import($absolutePath, $extension, $originalName);
         } catch (Throwable $exception) {
-            Log::error('ProductImportController@store - Import failed', [
-                'file' => $originalName,
-                'message' => $exception->getMessage(),
-            ]);
-
+            
             Storage::delete($storedPath);
 
             return response()->json([

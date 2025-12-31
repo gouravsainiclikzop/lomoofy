@@ -263,42 +263,7 @@
 										</div>
 									</div>
 									 
-
-									<!-- Single Option -->
-									<!-- <div class="single_search_boxed">
-										<div class="widget-boxed-header">
-											<h4><a href="#discount" data-bs-toggle="collapse" class="collapsed" aria-expanded="false" role="button">Discount</a></h4>
-										</div>
-										<div class="widget-boxed-body collapse" id="discount" data-parent="#discount">
-											<div class="side-list no-border"> 
-												<div class="single_filter_card">
-													<div class="card-body pt-0">
-														<div class="inner_widget_link">
-															<ul class="no-ul-list">
-																<li>
-																	<input id="d1" class="checkbox-custom" name="d1" type="checkbox">
-																	<label for="d1" class="checkbox-custom-label">80% Discount<span>22</span></label>
-																</li>
-																<li>
-																	<input id="d2" class="checkbox-custom" name="d2" type="checkbox">
-																	<label for="d2" class="checkbox-custom-label">60% Discount<span>472</span></label>
-																</li>
-																<li>
-																	<input id="d3" class="checkbox-custom" name="d3" type="checkbox">
-																	<label for="d3" class="checkbox-custom-label">50% Discount<span>170</span></label>
-																</li>
-																<li>
-																	<input id="d4" class="checkbox-custom" name="d4" type="checkbox">
-																	<label for="d4" class="checkbox-custom-label">40% Discount<span>170</span></label>
-																</li>
-															</ul>
-														</div>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-								  -->
+ 
 									 
 									
 									<!-- Single Option -->
@@ -404,30 +369,69 @@
 												<div class="card-footer b-0 p-0 pt-2">
 													<div class="d-flex align-items-start justify-content-between">
 														<div class="text-left">
-															@if($product['color_variants']->count() > 0)
-																@foreach($product['color_variants'] as $colorIndex => $colorVariant)
-																	@php
-																		// Generate color ID from color name (lowercase, no spaces)
-																		$colorId = strtolower(str_replace(' ', '', $colorVariant['color'] ?? 'color' . $colorIndex));
-																	@endphp
-																	<div class="form-check form-option form-check-inline mb-1">
-																		<input 
-																			class="form-check-input color-option" 
-																			type="radio" 
-																			name="color{{ $index + 1 }}" 
-																			id="{{ $colorId }}{{ $index + 1 }}"
-																			data-price="{{ $colorVariant['display_price'] ?? $colorVariant['price'] ?? 0 }}"
-																			data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
-																			data-regular-price="{{ $colorVariant['price'] ?? 0 }}"
-																			data-has-sale="{{ $colorVariant['has_sale'] ? '1' : '0' }}"
-																			data-product-index="{{ $index }}"
-																			data-variant-image="{{ $colorVariant['image'] ?? '' }}"
-																			data-color-value="{{ $colorVariant['color'] ?? '' }}">
-																		<label class="form-option-label small rounded-circle" for="{{ $colorId }}{{ $index + 1 }}">
-																			<span class="form-option-color rounded-circle" style="background-color: {{ $colorVariant['color_code'] ?? '#ccc' }}"></span>
-																		</label>
+															@php
+																// Priority: Show color if available, otherwise show one variable attribute (preferably size)
+																$hasColor = $product['color_variants']->count() > 0;
+																$firstColorVariant = $hasColor ? $product['color_variants']->first() : null;
+																$availableVariableValues = $firstColorVariant['available_variable_values'] ?? [];
+																
+																// If no color, get variable attributes from product data
+																if (!$hasColor && isset($product['variable_attributes'])) {
+																	$availableVariableValues = $product['variable_attributes'];
+																}
+																
+																// Determine which attribute to show (prefer size, otherwise first available)
+																$attributeToShow = null;
+																if (!$hasColor && !empty($availableVariableValues)) {
+																	// Prefer size, otherwise get first attribute
+																	if (isset($availableVariableValues['size'])) {
+																		$attributeToShow = ['key' => 'size', 'values' => $availableVariableValues['size']];
+																	} else {
+																		$firstKey = array_key_first($availableVariableValues);
+																		if ($firstKey) {
+																			$attributeToShow = ['key' => $firstKey, 'values' => $availableVariableValues[$firstKey]];
+																		}
+																	}
+																}
+															@endphp
+															
+															@if($hasColor)
+																{{-- Show Color Options Only --}}
+																<div class="mb-2">
+																	@foreach($product['color_variants'] as $colorIndex => $colorVariant)
+																		@php
+																			$colorId = strtolower(str_replace(' ', '', $colorVariant['color'] ?? 'color' . $colorIndex));
+																		@endphp
+																		<div class="form-check form-option form-check-inline mb-1">
+																			<input 
+																				class="form-check-input color-option" 
+																				type="radio" 
+																				name="color{{ $index + 1 }}" 
+																				id="{{ $colorId }}{{ $index + 1 }}"
+																				data-price="{{ $colorVariant['display_price'] ?? $colorVariant['price'] ?? 0 }}"
+																				data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
+																				data-regular-price="{{ $colorVariant['price'] ?? 0 }}"
+																				data-has-sale="{{ $colorVariant['has_sale'] ? '1' : '0' }}"
+																				data-product-index="{{ $index }}"
+																				data-variant-image="{{ $colorVariant['image'] ?? '' }}"
+																				data-color-value="{{ $colorVariant['color'] ?? '' }}">
+																			<label class="form-option-label small rounded-circle" for="{{ $colorId }}{{ $index + 1 }}">
+																				<span class="form-option-color rounded-circle" style="background-color: {{ $colorVariant['color_code'] ?? '#ccc' }}"></span>
+																			</label>
+																		</div>
+																	@endforeach 
+																</div>
+															@elseif($attributeToShow)
+																{{-- Show One Variable Attribute (preferably size) --}}
+																<div class="mb-2">
+																	<div class="d-flex flex-wrap gap-1">
+																		@foreach($attributeToShow['values'] as $attrValue)
+																			<span class="badge bg-light text-dark border" style="font-size: 0.7rem; font-weight: normal;">
+																				{{ $attrValue }}
+																			</span>
+																		@endforeach
 																	</div>
-																@endforeach 
+																</div>
 															@endif
 														</div>
 														<div class="text-right">
@@ -495,6 +499,7 @@
 
 @push('scripts')
 <script>
+    
 $(document).ready(function() {
     let currentPage = 1;
     let isLoading = false;
@@ -508,11 +513,40 @@ $(document).ready(function() {
     const initialUrl = window.location.href;
     const initialUrlObj = new URL(initialUrl);
     const initialCategory = initialUrlObj.searchParams.get('category') || '';
-    const initialSearch = initialUrlObj.searchParams.get('search') || '';
+    const initialSearch = initialUrlObj.searchParams.get('search') || ''; 
+    // Get session ID function (used for wishlist checks)
+    function getSessionId() {
+        // First, try to get from cookie (set by server on initial page load)
+        let sessionId = getCookie('wishlist_session_id');
+        
+        // If not in cookie, try localStorage
+        if (!sessionId) {
+            sessionId = localStorage.getItem('session_id');
+        }
+        
+        // If still not found, generate a new one
+        if (!sessionId) {
+            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('session_id', sessionId);
+        }
+        
+        // Sync to both cookie and localStorage for consistency
+        document.cookie = 'wishlist_session_id=' + sessionId + '; path=/; max-age=31536000'; // 1 year
+        localStorage.setItem('session_id', sessionId);
+        
+        return sessionId;
+    }
     
-    console.log('Initial URL stored:', initialUrl);
-    console.log('Initial category:', initialCategory);
-    console.log('Initial search:', initialSearch);
+    // Helper function to get cookie value
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+    
+    // Initialize session ID on page load to ensure cookie is set
+    getSessionId();
     
     // Initialize Category Carousel
     if ($('.category-carousel').length && typeof $.fn.slick !== 'undefined') {
@@ -671,8 +705,13 @@ $(document).ready(function() {
         
         // Get selected colors (radio buttons)
         $('input[name^="colora8"]:checked').each(function() {
-            // Get color name from data attribute (more reliable)
-            let colorName = $(this).data('color-name') || '';
+            // Get color name from data attribute - use attr() to get exact value
+            let colorName = $(this).attr('data-color-name') || $(this).data('color-name') || '';
+            
+            // Convert to lowercase and trim to ensure consistency
+            if (colorName) {
+                colorName = colorName.toLowerCase().trim();
+            }
             
             // Fallback: Extract color name from radio button ID if data attribute not available
             if (!colorName) {
@@ -705,7 +744,7 @@ $(document).ready(function() {
             
             if (colorName) {
                 filters.colors.push(colorName);
-                console.log('Color filter added:', colorName, 'from ID:', $(this).attr('id'));
+                console.log('Color filter added:', colorName, 'from ID:', $(this).attr('id'), 'data-color-name:', $(this).attr('data-color-name'));
             }
         });
         
@@ -780,6 +819,9 @@ $(document).ready(function() {
         
         console.log('Sending clean filters:', cleanFilters);
         
+        // Add session_id to filters for wishlist check
+        cleanFilters.session_id = getSessionId();
+        
         // Make AJAX request with X-Requested-With header to identify as AJAX
         console.log('Sending AJAX request with filters:', cleanFilters);
         
@@ -787,7 +829,8 @@ $(document).ready(function() {
             url: '{{ route("frontend.shop") }}',
             method: 'GET',
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Session-ID': cleanFilters.session_id
             },
             data: cleanFilters,
             success: function(response) {
@@ -1068,6 +1111,8 @@ $(document).ready(function() {
         }, 500); // Wait 500ms after user stops adjusting slider
     }
     
+   
+
     // Clear all filters
     function clearAllFilters() {
         console.log('Clearing all filters...');
@@ -1215,16 +1260,6 @@ $(document).ready(function() {
         clearAllFilters();
     });
     
-    // Get session ID
-    function getSessionId() {
-        let sessionId = localStorage.getItem('session_id');
-        if (!sessionId) {
-            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('session_id', sessionId);
-        }
-        return sessionId;
-    }
-    
     // Load More Products
     $('#loadMoreProducts').on('click', function(e) {
         e.preventDefault();
@@ -1296,11 +1331,15 @@ $(document).ready(function() {
             badgeHtml = '<div class="badge bg-warning text-white position-absolute ft-regular ab-left text-upper">Hot</div>';
         }
         
-        let colorVariantsHtml = '';
-        if (product.color_variants && product.color_variants.length > 0) {
+        let attributesHtml = '';
+        const hasColor = product.color_variants && product.color_variants.length > 0;
+        
+        if (hasColor) {
+            // Show Color Options Only
+            attributesHtml += '<div class="mb-2">';
             product.color_variants.forEach(function(colorVariant, colorIndex) {
                 const colorId = (colorVariant.color || 'color' + colorIndex).toLowerCase().replace(/\s+/g, '') + (index + 1);
-                colorVariantsHtml += `
+                attributesHtml += `
                     <div class="form-check form-option form-check-inline mb-1">
                         <input class="form-check-input color-option" type="radio" name="color${index + 1}" id="${colorId}"
                             data-price="${colorVariant.display_price || colorVariant.price || 0}"
@@ -1316,6 +1355,37 @@ $(document).ready(function() {
                     </div>
                 `;
             });
+            attributesHtml += '</div>';
+        } else {
+            // Show One Variable Attribute (preferably size)
+            const firstColorVariant = product.color_variants && product.color_variants[0];
+            const availableVariableValues = (firstColorVariant && firstColorVariant.available_variable_values) || product.variable_attributes || {};
+            
+            let attributeToShow = null;
+            if (Object.keys(availableVariableValues).length > 0) {
+                // Prefer size, otherwise get first attribute
+                if (availableVariableValues.size && availableVariableValues.size.length > 0) {
+                    attributeToShow = { key: 'size', values: availableVariableValues.size };
+                } else {
+                    const firstKey = Object.keys(availableVariableValues)[0];
+                    if (firstKey && availableVariableValues[firstKey] && availableVariableValues[firstKey].length > 0) {
+                        attributeToShow = { key: firstKey, values: availableVariableValues[firstKey] };
+                    }
+                }
+            }
+            
+            if (attributeToShow) {
+                attributesHtml += '<div class="mb-2">';
+                attributesHtml += '<div class="d-flex flex-wrap gap-1">';
+                attributeToShow.values.forEach(function(attrValue) {
+                    attributesHtml += `
+                        <span class="badge bg-light text-dark border" style="font-size: 0.7rem; font-weight: normal;">
+                            ${attrValue}
+                        </span>
+                    `;
+                });
+                attributesHtml += '</div></div>';
+            }
         }
         
         const wishlistClass = product.in_wishlist ? 'wishlist-active' : '';
@@ -1354,7 +1424,7 @@ $(document).ready(function() {
                     <div class="card-footer b-0 p-0 pt-2">
                         <div class="d-flex align-items-start justify-content-between">
                             <div class="text-left">
-                                ${colorVariantsHtml}
+                                ${attributesHtml}
                             </div>
                             <div class="text-right">
                                 <button class="btn auto btn_love snackbar-wishlist ${wishlistClass}" data-product-id="${product.id}" ${wishlistData}>

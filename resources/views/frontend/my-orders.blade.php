@@ -41,28 +41,57 @@
 											<h6 class="mb-0 ft-medium">#{{ $order->order_number }}</h6>
 											<p class="m-0 p-0 mt-1"><span class="text-muted small">Placed on {{ $order->created_at->format('M d, Y') }}</span></p>
 										</div>	
-										<div class="olh_flex">
+										<div class="olh_flex d-flex gap-2">
 											<a href="javascript:void(0);" class="btn btn-sm btn-dark">Track Order</a>
+											<a href="{{ route('orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+												<i class="lni lni-download me-1"></i>Invoice
+											</a>
 										</div>	
 									</div>
 									<div class="ord_list_body text-left">
 										@foreach($order->items as $item)
 											@php
-												// Get product image
-												$productImage = asset('frontend/images/product/sample-product.jpg'); // Default
+												// Get variant image only - don't fallback to product image
+												$productImage = asset('assets/images/placeholder.jpg'); // Default placeholder
+												
 												if ($item->variant && $item->variant->images && $item->variant->images->count() > 0) {
-													$variantImage = $item->variant->images->first();
-													$productImage = asset('storage/' . $variantImage->image_path);
-												} elseif ($item->product && $item->product->primaryImage) {
-													$productImage = asset('storage/' . $item->product->primaryImage->image_path);
-												} elseif ($item->product && $item->product->images && $item->product->images->count() > 0) {
-													$productImage = asset('storage/' . $item->product->images->first()->image_path);
+													// Try to get primary variant image first
+													$primaryVariantImage = $item->variant->images->where('is_primary', true)->first();
+													if ($primaryVariantImage) {
+														$productImage = asset('storage/' . $primaryVariantImage->image_path);
+													} else {
+														// Use first variant image
+														$firstVariantImage = $item->variant->images->first();
+														if ($firstVariantImage) {
+															$productImage = asset('storage/' . $firstVariantImage->image_path);
+														}
+													}
 												}
 												
-												// Get variant name for display
-												$variantInfo = '';
-												if ($item->variant_name) {
-													$variantInfo = $item->variant_name;
+												// Parse variant attributes using new structured format - show all attributes
+												$parsed = null;
+												$allAttributes = [];
+												
+												if ($item->variant && $item->variant->attributes) {
+													$parsed = \App\Http\Controllers\FrontendController::parseVariantAttributes($item->variant->attributes);
+													
+													// Build all attributes array for display
+													if ($parsed['color'] && isset($parsed['color']['label'])) {
+														$allAttributes[] = ['label' => 'Color', 'value' => $parsed['color']['label']];
+													}
+													
+													// Add all variable attributes
+													if (isset($parsed['variable']) && is_array($parsed['variable'])) {
+														foreach ($parsed['variable'] as $key => $value) {
+															$attrLabel = ucfirst(str_replace('_', ' ', $key));
+															$attrValue = is_array($value) 
+																? (isset($value['label']) ? $value['label'] : (isset($value['value']) ? $value['value'] : ''))
+																: (string)$value;
+															if ($attrValue) {
+																$allAttributes[] = ['label' => $attrLabel, 'value' => $attrValue];
+															}
+														}
+													}
 												}
 												
 												// Get status badge class
@@ -98,8 +127,12 @@
 																<p class="mb-0"><span class="text-muted small">{{ $item->product->category->name }}</span></p>
 															@endif
 															<h4 class="product_title fs-sm ft-medium mb-1 lh-1">{{ $item->product_name }}</h4>
-															@if($variantInfo)
-																<p class="mb-2"><span class="text-dark medium">{{ $variantInfo }}</span></p>
+															@if(!empty($allAttributes))
+																@foreach($allAttributes as $attr)
+																	<p class="mb-1"><span class="text-dark medium">{{ $attr['label'] }}: {{ $attr['value'] }}</span></p>
+																@endforeach
+															@elseif($item->variant_name)
+																<p class="mb-2"><span class="text-dark medium">{{ $item->variant_name }}</span></p>
 															@endif
 															<p class="mb-1"><span class="text-muted small">Qty: {{ $item->quantity }}</span></p>
 															<h4 class="fs-sm ft-bold mb-0 lh-1">₹{{ number_format($item->total_price, 2) }}</h4>

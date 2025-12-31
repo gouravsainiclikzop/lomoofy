@@ -172,11 +172,7 @@ class Cart extends Model
     public static function mergeGuestCartWithCustomerCart($customerId, $sessionId)
     {
         try {
-            \Log::info('Starting cart merge process', [
-                'customer_id' => $customerId,
-                'session_id' => $sessionId
-            ]);
-
+            
             // Find guest cart (session-based) - try exact match first
             $guestCart = self::where('session_id', $sessionId)
                 ->whereNull('customer_id')
@@ -187,10 +183,7 @@ class Cart extends Model
             // If no exact match found, try to find any recent guest cart for this customer
             // This is a fallback for when session IDs don't match
             if (!$guestCart) {
-                \Log::info('No exact session match found, trying fallback approach', [
-                    'looking_for_session_id' => $sessionId
-                ]);
-
+               
                 // Get all guest carts ordered by most recent
                 $allGuestCarts = self::whereNull('customer_id')
                     ->active()
@@ -205,26 +198,14 @@ class Cart extends Model
                 })->first();
 
                 if ($guestCart) {
-                    \Log::info('Using fallback guest cart', [
-                        'fallback_cart_id' => $guestCart->id,
-                        'fallback_session_id' => $guestCart->session_id,
-                        'items_count' => $guestCart->items->count()
-                    ]);
+                   
                 }
             }
 
             if (!$guestCart || $guestCart->items->isEmpty()) {
-                \Log::info('No guest cart found or cart is empty, skipping merge', [
-                    'guest_cart_found' => $guestCart ? 'yes' : 'no',
-                    'items_count' => $guestCart ? $guestCart->items->count() : 0
-                ]);
+               
                 return null;
             }
-
-            \Log::info('Found guest cart with items', [
-                'guest_cart_id' => $guestCart->id,
-                'items_count' => $guestCart->items->count()
-            ]);
 
             // Find existing customer cart
             $customerCart = self::where('customer_id', $customerId)
@@ -235,7 +216,6 @@ class Cart extends Model
 
             if (!$customerCart) {
                 // No existing customer cart, just convert guest cart to customer cart
-                \Log::info('No existing customer cart, converting guest cart');
                 
                 $guestCart->update([
                     'customer_id' => $customerId,
@@ -244,17 +224,10 @@ class Cart extends Model
                 
                 $guestCart->recalculateTotals();
                 
-                \Log::info('Guest cart converted to customer cart', [
-                    'cart_id' => $guestCart->id
-                ]);
                 
                 return $guestCart;
             }
 
-            \Log::info('Found existing customer cart, merging items', [
-                'customer_cart_id' => $customerCart->id,
-                'existing_items_count' => $customerCart->items->count()
-            ]);
 
             // Merge items from guest cart to customer cart
             foreach ($guestCart->items as $guestItem) {
@@ -271,13 +244,6 @@ class Cart extends Model
                         'total_price' => $newQuantity * $existingItem->unit_price,
                     ]);
                     
-                    \Log::info('Updated existing cart item quantity', [
-                        'product_id' => $guestItem->product_id,
-                        'variant_id' => $guestItem->product_variant_id,
-                        'old_quantity' => $existingItem->quantity - $guestItem->quantity,
-                        'added_quantity' => $guestItem->quantity,
-                        'new_quantity' => $newQuantity
-                    ]);
                 } else {
                     // Create new cart item in customer cart
                     $customerCart->items()->create([
@@ -289,11 +255,6 @@ class Cart extends Model
                         'reserved_stock' => $guestItem->reserved_stock,
                     ]);
                     
-                    \Log::info('Added new item to customer cart', [
-                        'product_id' => $guestItem->product_id,
-                        'variant_id' => $guestItem->product_variant_id,
-                        'quantity' => $guestItem->quantity
-                    ]);
                 }
             }
 
@@ -303,9 +264,6 @@ class Cart extends Model
                     'coupon_code' => $guestCart->coupon_code,
                 ]);
                 
-                \Log::info('Applied guest cart coupon to customer cart', [
-                    'coupon_code' => $guestCart->coupon_code
-                ]);
             }
 
             // Recalculate customer cart totals
@@ -315,20 +273,11 @@ class Cart extends Model
             $guestCart->items()->delete();
             $guestCart->delete();
 
-            \Log::info('Cart merge completed successfully', [
-                'customer_cart_id' => $customerCart->id,
-                'final_items_count' => $customerCart->items()->count()
-            ]);
 
             return $customerCart;
 
         } catch (\Exception $e) {
-            \Log::error('Error during cart merge', [
-                'customer_id' => $customerId,
-                'session_id' => $sessionId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+           
             
             // Don't throw exception to avoid breaking login process
             return null;

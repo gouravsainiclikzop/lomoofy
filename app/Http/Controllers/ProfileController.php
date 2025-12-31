@@ -32,7 +32,7 @@ class ProfileController extends Controller
     public function updateImage(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -202,7 +202,7 @@ class ProfileController extends Controller
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
             'company_logo_text' => 'nullable|string|max:255',
-            'company_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'company_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
             'phone' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
@@ -211,7 +211,7 @@ class ProfileController extends Controller
             'state' => 'nullable|string|max:255',
             'pan_no' => 'nullable|string|max:20|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/',
             'gst_registration_no' => 'nullable|string|max:50|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/',
-            'authorized_signatory' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'authorized_signatory' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
         ], [
             'pan_no.regex' => 'PAN number must be in valid format (e.g., ABCDE1234F)',
             'gst_registration_no.regex' => 'GST registration number must be in valid format (e.g., 22AAAAA0000A1Z5)',
@@ -280,6 +280,25 @@ class ProfileController extends Controller
             'success' => true,
             'message' => 'Company settings updated successfully',
             'settings' => $settings
+        ]);
+    }
+
+    /**
+     * Toggle coming soon setting.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function toggleComingSoon(Request $request)
+    {
+        $settings = CompanySetting::getSettings();
+        $settings->coming_soon = !$settings->coming_soon;
+        $settings->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $settings->coming_soon ? 'Coming soon mode enabled' : 'Coming soon mode disabled',
+            'coming_soon' => $settings->coming_soon
         ]);
     }
 }

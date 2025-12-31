@@ -431,7 +431,7 @@ class FieldManagementSeeder extends Seeder
                 'field_group' => 'qol',
                 'options' => null,
                 'conditional_rules' => null,
-                'validation_rules' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+                'validation_rules' => 'image|mimes:jpeg,png,jpg,gif,webp|max:2048',
                 'help_text' => 'Recommended size: 400x400px (Max: 2MB)',
                 'is_active' => true,
             ],

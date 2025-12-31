@@ -56,10 +56,12 @@
                             <i class='bx bx-purchase-tag me-1'></i>
                             <span>Categories & Tags</span>
                         </a>
+                        {{-- Commented out: Featured Product Images section
                         <a href="#section-images" class="nav-link" data-section="images">
                             <i class='bx bx-image me-1'></i>
                             <span>Featured Product Images</span>
                         </a>
+                        --}}
                     </div>
                 </div>
             </nav>
@@ -80,12 +82,13 @@
                     </div>
                 </section>
 
-                {{-- Section 3: Product Images --}}
+                {{-- Section 3: Product Images - COMMENTED OUT
                 <section id="section-images" class="form-section" data-section="images">
                     <div class="section-content">
                         @include('admin.products.partials.images')
                     </div>
                 </section>
+                --}}
             </div>
                  
             <div class="card mt-4 sticky-bottom">

@@ -286,58 +286,47 @@
                                         $product = $item->product;
                                         $variant = $item->variant;
                                         
-                                        // Get product image
-                                        $imageUrl = asset('frontend/images/product/sample-product.jpg'); // Default
+                                        // Get variant image only - don't fallback to product image
+                                        $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+                                        
                                         if ($variant && $variant->images && $variant->images->count() > 0) {
-                                            $imageUrl = asset('storage/' . $variant->images->first()->image_path);
-                                        } elseif ($product && $product->primaryImage) {
-                                            $imageUrl = asset('storage/' . $product->primaryImage->image_path);
-                                        } elseif ($product && $product->images && $product->images->count() > 0) {
-                                            $imageUrl = asset('storage/' . $product->images->first()->image_path);
+                                            // Try to get primary variant image first
+                                            $primaryVariantImage = $variant->images->where('is_primary', true)->first();
+                                            if ($primaryVariantImage) {
+                                                $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                                            } else {
+                                                // Use first variant image
+                                                $firstVariantImage = $variant->images->first();
+                                                if ($firstVariantImage) {
+                                                    $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                                                }
+                                            }
                                         }
                                         
-                                        // Get variant attributes for display
-                                        $variantAttrs = [];
+                                        // Parse variant attributes using new structured format - show all attributes
+                                        $parsed = null;
+                                        $allAttributes = [];
+                                        
                                         if ($variant && $variant->attributes) {
-                                            $variantAttrs = is_string($variant->attributes) ? json_decode($variant->attributes, true) : $variant->attributes;
-                                        }
-                                        
-                                        // Get color and size from variant attributes
-                                        $colorValue = '';
-                                        $sizeValue = '';
-                                        $colorAttribute = null;
-                                        $sizeAttribute = null;
-                                        
-                                        if ($product && $product->category) {
-                                            $colorAttribute = $product->category->getAllProductAttributes()->where('type', 'color')->first();
-                                            $sizeAttribute = $product->category->getAllProductAttributes()->where('type', 'size')->first();
-                                        }
-                                        if (!$colorAttribute) {
-                                            $colorAttribute = \App\Models\ProductAttribute::where('type', 'color')->first();
-                                        }
-                                        if (!$sizeAttribute) {
-                                            $sizeAttribute = \App\Models\ProductAttribute::where('type', 'size')->first();
-                                        }
-                                        
-                                        foreach($variantAttrs as $key => $value) {
-                                            if ($colorAttribute && $key == $colorAttribute->id) {
-                                                $colorValue = $value;
+                                            $parsed = \App\Http\Controllers\FrontendController::parseVariantAttributes($variant->attributes);
+                                            
+                                            // Build all attributes array for display
+                                            if ($parsed['color'] && isset($parsed['color']['label'])) {
+                                                $allAttributes[] = ['label' => 'Color', 'value' => $parsed['color']['label']];
                                             }
-                                            if ($sizeAttribute && $key == $sizeAttribute->id) {
-                                                $sizeValue = $value;
+                                            
+                                            // Add all variable attributes
+                                            if (isset($parsed['variable']) && is_array($parsed['variable'])) {
+                                                foreach ($parsed['variable'] as $key => $value) {
+                                                    $attrLabel = ucfirst(str_replace('_', ' ', $key));
+                                                    $attrValue = is_array($value) 
+                                                        ? (isset($value['label']) ? $value['label'] : (isset($value['value']) ? $value['value'] : ''))
+                                                        : (string)$value;
+                                                    if ($attrValue) {
+                                                        $allAttributes[] = ['label' => $attrLabel, 'value' => $attrValue];
+                                                    }
+                                                }
                                             }
-                                        }
-                                        
-                                        // Build variant display string
-                                        $variantDisplay = [];
-                                        if ($sizeValue) {
-                                            $variantDisplay[] = 'Size: ' . $sizeValue;
-                                        }
-                                        if ($colorValue) {
-                                            $variantDisplay[] = 'Color: ' . $colorValue;
-                                        }
-                                        if ($item->variant_name && empty($variantDisplay)) {
-                                            $variantDisplay[] = $item->variant_name;
                                         }
                                         
                                         // Check stock availability
@@ -381,13 +370,11 @@
                                                             @endif
                                                         @endif
                                                     </h4>
-                                                    @if($sizeValue)
-                                                        <p class="mb-1 lh-1"><span class="text-dark">Size: {{ $sizeValue }}</span></p>
-                                                    @endif
-                                                    @if($colorValue)
-                                                        <p class="mb-1 lh-1"><span class="text-dark">Color: {{ $colorValue }}</span></p>
-                                                    @endif
-                                                    @if($item->variant_name && empty($sizeValue) && empty($colorValue))
+                                                    @if(!empty($allAttributes))
+                                                        @foreach($allAttributes as $attr)
+                                                            <p class="mb-1 lh-1"><span class="text-dark">{{ $attr['label'] }}: {{ $attr['value'] }}</span></p>
+                                                        @endforeach
+                                                    @elseif($item->variant_name)
                                                         <p class="mb-1 lh-1"><span class="text-dark">{{ $item->variant_name }}</span></p>
                                                     @endif
                                                     @if(!$isInStock && $manageStock)

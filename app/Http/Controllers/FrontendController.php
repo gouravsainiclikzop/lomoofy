@@ -51,14 +51,7 @@ class FrontendController extends Controller
                 $query->where('session_id', $sessionId);
             }
         })->pluck('product_id')->toArray();
-        
-        // Debug logging
-        Log::info('Wishlist Debug', [
-            'customer_id' => $customerId,
-            'session_id' => $sessionId,
-            'wishlist_product_ids' => $wishlistProductIds,
-            'count' => count($wishlistProductIds)
-        ]);
+         
         
         // Get latest products for "New Arrivals" section
         $newArrivals = Product::with([
@@ -102,12 +95,20 @@ class FrontendController extends Controller
             // Determine if product is on sale
             $hasSale = $minSalePrice && $minSalePrice < $minPrice;
             
-            // Get product image
-            $imageUrl = $product->primaryImage 
-                ? asset('storage/' . $product->primaryImage->image_path)
-                : ($product->images->first() 
-                    ? asset('storage/' . $product->images->first()->image_path)
-                    : asset('frontend/images/product/sample-product.jpg'));
+            // Get first variant image - use placeholder if no variant images
+            $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+            $firstVariant = $activeVariants->first();
+            if ($firstVariant && $firstVariant->images && $firstVariant->images->count() > 0) {
+                $primaryVariantImage = $firstVariant->images->where('is_primary', true)->first();
+                if ($primaryVariantImage) {
+                    $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                } else {
+                    $firstVariantImage = $firstVariant->images->first();
+                    if ($firstVariantImage) {
+                        $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                    }
+                }
+            }
             
             // Get all color attributes (from category or global)
             $colorAttributes = collect();
@@ -146,37 +147,13 @@ class FrontendController extends Controller
             $sizeAttributeNameMap = $sizeAttributes->keyBy('name');
             
             // Get color variants for color options
-            $colorVariants = $activeVariants->filter(function($variant) use ($colorAttributeMap, $colorAttributeNameMap) {
+            $colorVariants = $activeVariants->filter(function($variant) {
                 if (!$variant->attributes) {
                     return false;
                 }
-                $attrs = is_string($variant->attributes) 
-                    ? json_decode($variant->attributes, true) 
-                    : $variant->attributes;
-                
-                if (!is_array($attrs)) {
-                    return false;
-                }
-                
-                // Check each attribute in the variant
-                foreach ($attrs as $key => $value) {
-                    if (empty($value)) {
-                        continue;
-                    }
-                    
-                    // Check if key is numeric (attribute_id)
-                    if (is_numeric($key) && isset($colorAttributeMap[$key])) {
-                        return true; // Found color attribute by ID
-                    }
-                    
-                    // Check if key is attribute name
-                    if (isset($colorAttributeNameMap[$key]) || 
-                        isset($colorAttributeNameMap[ucfirst($key)]) ||
-                        strtolower($key) === 'color') {
-                        return true; // Found color attribute by name
-                    }
-                }
-                return false;
+                $parsed = self::parseVariantAttributes($variant->attributes);
+                // Has color if new format has color or old format has color key
+                return $parsed['color'] !== null || isset($parsed['all']['color']);
             });
             
             // Format price display
@@ -210,71 +187,16 @@ class FrontendController extends Controller
                 'is_new' => $product->created_at->isAfter(now()->subDays(30)), // New if created within 30 days
                 'is_featured' => $product->featured,
                 'in_wishlist' => in_array($product->id, $wishlistProductIds), // Check if product is in wishlist
-                'color_variants' => $colorVariants->map(function($variant) use ($colorAttributeMap, $colorAttributeNameMap, $sizeAttributeMap, $sizeAttributeNameMap, $imageUrl, $activeVariants) {
-                    $attrs = is_string($variant->attributes) 
-                        ? json_decode($variant->attributes, true) 
-                        : ($variant->attributes ?? []);
+                'color_variants' => $colorVariants->map(function($variant) use ($imageUrl, $activeVariants) {
+                    // Parse attributes using new helper function
+                    $parsed = self::parseVariantAttributes($variant->attributes);
                     
-                    // Get color value and attribute_id
-                    $colorValue = null;
-                    $colorAttributeId = null;
-                    $sizeValue = null;
-                    $attrs = is_array($attrs) ? $attrs : [];
+                    // Get color from new structured format
+                    $colorValue = $parsed['color'] ? $parsed['color']['label'] : null;
+                    $colorCode = $parsed['color'] ? $parsed['color']['code'] : '#ccc';
                     
-                    foreach ($attrs as $key => $value) {
-                        if (empty($value)) {
-                            continue;
-                        }
-                        
-                        // Check for color attribute
-                        if (is_numeric($key) && isset($colorAttributeMap[$key])) {
-                            $colorValue = $value;
-                            $colorAttributeId = (int)$key;
-                        } elseif (isset($colorAttributeNameMap[$key]) || 
-                                 isset($colorAttributeNameMap[ucfirst($key)]) ||
-                                 strtolower($key) === 'color') {
-                            $colorValue = $value;
-                            $attribute = $colorAttributeNameMap[$key] ?? 
-                                        $colorAttributeNameMap[ucfirst($key)] ?? 
-                                        null;
-                            $colorAttributeId = $attribute ? $attribute->id : null;
-                        }
-                        
-                        // Check for size attribute
-                        if (is_numeric($key) && isset($sizeAttributeMap[$key])) {
-                            $sizeValue = $value;
-                        } elseif (isset($sizeAttributeNameMap[$key]) || 
-                                 isset($sizeAttributeNameMap[ucfirst($key)]) ||
-                                 strtolower($key) === 'size') {
-                            $sizeValue = $value;
-                        }
-                    }
-                    
-                    // Get color code from ProductAttributeValue
-                    $colorCode = '#ccc'; // Default fallback
-                    if ($colorAttributeId && $colorValue) {
-                        // Look up ProductAttributeValue using attribute_id and value
-                        $attributeValue = ProductAttributeValue::where('attribute_id', $colorAttributeId)
-                            ->where('value', $colorValue)
-                            ->first();
-                        
-                        // If not found, try case-insensitive match
-                        if (!$attributeValue) {
-                            $attributeValue = ProductAttributeValue::where('attribute_id', $colorAttributeId)
-                                ->whereRaw('LOWER(value) = ?', [strtolower($colorValue)])
-                                ->first();
-                        }
-                        
-                        if ($attributeValue && $attributeValue->color_code) {
-                            $colorCode = $attributeValue->color_code;
-                        } else {
-                            // Fallback: Generate a basic color code from common color names
-                            $colorCode = self::getColorCodeFromName($colorValue);
-                        }
-                    } elseif ($colorValue) {
-                        // If no attribute_id found but we have a color value, try to get code from name
-                        $colorCode = self::getColorCodeFromName($colorValue);
-                    }
+                    // Get all variable attributes (size, material, pattern, etc.)
+                    $variableAttributes = $parsed['variable'] ?? [];
                     
                     // Get variant image (primary image or first image)
                     $variantImage = $imageUrl; // Fallback to product image
@@ -290,54 +212,24 @@ class FrontendController extends Controller
                         }
                     }
                     
-                    // Get all variants with this color to find available sizes
-                    $variantsWithSameColor = $activeVariants->filter(function($v) use ($colorValue, $colorAttributeMap, $colorAttributeNameMap) {
+                    // Get all variants with this color to find available variable attribute values
+                    $variantsWithSameColor = $activeVariants->filter(function($v) use ($colorValue) {
                         if (!$v->attributes) return false;
-                        $vAttrs = is_string($v->attributes) 
-                            ? json_decode($v->attributes, true) 
-                            : ($v->attributes ?? []);
-                        if (!is_array($vAttrs)) return false;
-                        
-                        foreach ($vAttrs as $k => $val) {
-                            if (empty($val)) continue;
-                            
-                            // Check by attribute ID
-                            if (is_numeric($k) && isset($colorAttributeMap[$k]) && $val === $colorValue) {
-                                return true;
-                            }
-                            
-                            // Check by attribute name
-                            if ((isset($colorAttributeNameMap[$k]) || 
-                                 isset($colorAttributeNameMap[ucfirst($k)]) ||
-                                 strtolower($k) === 'color') && $val === $colorValue) {
-                                return true;
-                            }
-                        }
-                        return false;
+                        $vParsed = self::parseVariantAttributes($v->attributes);
+                        $vColorLabel = $vParsed['color'] ? $vParsed['color']['label'] : null;
+                        return $vColorLabel === $colorValue;
                     });
                     
-                    // Extract available sizes for this color
-                    $availableSizes = [];
+                    // Extract available values for each variable attribute
+                    $availableVariableValues = [];
                     foreach ($variantsWithSameColor as $v) {
-                        $vAttrs = is_string($v->attributes) 
-                            ? json_decode($v->attributes, true) 
-                            : ($v->attributes ?? []);
-                        if (!is_array($vAttrs)) continue;
-                        
-                        foreach ($vAttrs as $k => $val) {
-                            if (empty($val)) continue;
-                            
-                            // Check by size attribute ID
-                            if (is_numeric($k) && isset($sizeAttributeMap[$k])) {
-                                if (!in_array($val, $availableSizes)) {
-                                    $availableSizes[] = $val;
-                                }
-                            } 
-                            // Check by size attribute name
-                            elseif ((isset($sizeAttributeNameMap[$k]) || 
-                                    isset($sizeAttributeNameMap[ucfirst($k)]) ||
-                                    strtolower($k) === 'size') && !in_array($val, $availableSizes)) {
-                                $availableSizes[] = $val;
+                        $vParsed = self::parseVariantAttributes($v->attributes);
+                        foreach ($vParsed['variable'] ?? [] as $varKey => $varValue) {
+                            if (!isset($availableVariableValues[$varKey])) {
+                                $availableVariableValues[$varKey] = [];
+                            }
+                            if (!in_array($varValue, $availableVariableValues[$varKey])) {
+                                $availableVariableValues[$varKey][] = $varValue;
                             }
                         }
                     }
@@ -356,8 +248,8 @@ class FrontendController extends Controller
                         'sale_price' => $salePrice,
                         'has_sale' => $hasSale,
                         'display_price' => $hasSale ? $salePrice : $price,
-                        'size' => $sizeValue, // Size for this specific variant
-                        'available_sizes' => $availableSizes, // All available sizes for this color
+                        'variable_attributes' => $variableAttributes, // All variable attributes for this variant
+                        'available_variable_values' => $availableVariableValues, // All available values for each variable attribute
                         'images' => $variant->images->map(function($img) {
                             return [
                                 'url' => asset('storage/' . $img->image_path),
@@ -366,6 +258,16 @@ class FrontendController extends Controller
                         }),
                     ];
                 })->unique('color')->values()->take(4),
+                'variable_attributes' => $colorVariants->isEmpty() ? collect($activeVariants)->flatMap(function($variant) {
+                    $parsed = self::parseVariantAttributes($variant->attributes);
+                    return $parsed['variable'] ?? [];
+                })->unique()->keys()->mapWithKeys(function($key) use ($activeVariants) {
+                    $values = collect($activeVariants)->flatMap(function($variant) use ($key) {
+                        $parsed = self::parseVariantAttributes($variant->attributes);
+                        return [$parsed['variable'][$key] ?? null];
+                    })->filter()->unique()->values()->toArray();
+                    return [$key => $values];
+                })->toArray() : [],
             ];
         });
         
@@ -402,35 +304,58 @@ class FrontendController extends Controller
             // Use actual sales data - maintain order by sales quantity
             $bestSellersQuery->whereIn('id', $bestSellerProductIds)
                 ->orderByRaw('FIELD(id, ' . implode(',', array_map('intval', $bestSellerProductIds)) . ')');
-        } else {
+        } else { 
             // Fallback to featured products if no sales data yet
-            $bestSellersQuery->where('featured', true)
-                ->orderBy('created_at', 'desc');
+            // Check if there are any featured products first
+            $hasFeaturedProducts = Product::where('status', 'published')
+                ->where('featured', true)
+                ->exists();
+            
+            if ($hasFeaturedProducts) {
+                // Use featured products
+                $bestSellersQuery->where('featured', true)
+                    ->orderBy('created_at', 'desc');
+            } else {
+                // Fall back to recently added published products if no featured products
+                $bestSellersQuery->orderBy('created_at', 'desc');
+            }
         }
         
         $bestSellers = $bestSellersQuery->limit(8)->get()
         ->map(function($product) use ($wishlistProductIds) {
             // Get price range from variants
             $activeVariants = $product->variants->where('is_active', true);
-            $prices = $activeVariants->pluck('price')->filter();
-            $salePrices = $activeVariants->pluck('sale_price')->filter();
             
-            // Calculate display prices
-            $displayPrices = $activeVariants->map(function($variant) {
-                $price = $variant->price ?? 0;
-                $salePrice = $variant->sale_price;
-                return ($salePrice && $salePrice < $price) ? $salePrice : $price;
-            })->filter();
-            
-            $minPrice = $prices->min() ?? 0;
-            $maxPrice = $prices->max() ?? 0;
-            $minDisplayPrice = $displayPrices->min() ?? $minPrice;
-            $maxDisplayPrice = $displayPrices->max() ?? $maxPrice;
-            $minSalePrice = $salePrices->min();
-            $maxSalePrice = $salePrices->max();
-            
-            // Determine if product is on sale
-            $hasSale = $minSalePrice && $minSalePrice < $minPrice;
+            // Handle products with no variants
+            if ($activeVariants->isEmpty()) {
+                $minPrice = 0;
+                $maxPrice = 0;
+                $minDisplayPrice = 0;
+                $maxDisplayPrice = 0;
+                $minSalePrice = null;
+                $maxSalePrice = null;
+                $hasSale = false;
+            } else {
+                $prices = $activeVariants->pluck('price')->filter();
+                $salePrices = $activeVariants->pluck('sale_price')->filter();
+                
+                // Calculate display prices
+                $displayPrices = $activeVariants->map(function($variant) {
+                    $price = $variant->price ?? 0;
+                    $salePrice = $variant->sale_price;
+                    return ($salePrice && $salePrice < $price) ? $salePrice : $price;
+                })->filter();
+                
+                $minPrice = $prices->min() ?? 0;
+                $maxPrice = $prices->max() ?? 0;
+                $minDisplayPrice = $displayPrices->min() ?? $minPrice;
+                $maxDisplayPrice = $displayPrices->max() ?? $maxPrice;
+                $minSalePrice = $salePrices->min();
+                $maxSalePrice = $salePrices->max();
+                
+                // Determine if product is on sale
+                $hasSale = $minSalePrice && $minPrice > 0 && $minSalePrice < $minPrice;
+            }
             
             // Get product image
             $imageUrl = $product->primaryImage 
@@ -441,17 +366,21 @@ class FrontendController extends Controller
             
             // Format price display
             $priceDisplay = '';
-            if ($hasSale && $minSalePrice) {
-                $priceDisplay = '₹' . number_format($minSalePrice, 0);
-                if ($maxSalePrice && $minSalePrice != $maxSalePrice) {
-                    $priceDisplay .= ' - ₹' . number_format($maxSalePrice, 0);
+            if ($minPrice > 0 || $minDisplayPrice > 0) {
+                if ($hasSale && $minSalePrice) {
+                    $priceDisplay = '₹' . number_format($minSalePrice, 0);
+                    if ($maxSalePrice && $minSalePrice != $maxSalePrice) {
+                        $priceDisplay .= ' - ₹' . number_format($maxSalePrice, 0);
+                    }
+                } else {
+                    if ($minPrice != $maxPrice && $maxPrice > 0) {
+                        $priceDisplay = '₹' . number_format($minPrice, 0) . ' - ₹' . number_format($maxPrice, 0);
+                    } else {
+                        $priceDisplay = '₹' . number_format($minPrice > 0 ? $minPrice : $minDisplayPrice, 0);
+                    }
                 }
             } else {
-                if ($minPrice != $maxPrice) {
-                    $priceDisplay = '₹' . number_format($minPrice, 0) . ' - ₹' . number_format($maxPrice, 0);
-                } else {
-                    $priceDisplay = '₹' . number_format($minPrice, 0);
-                }
+                $priceDisplay = 'Price on request';
             }
             
             // Determine badge type
@@ -535,7 +464,7 @@ class FrontendController extends Controller
                     ? asset('storage/' . $product->primaryImage->image_path)
                     : ($product->images->first() 
                         ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('frontend/images/product/sample-product.jpg'));
+                        : asset('assets/images/placeholder.jpg'));
                 
                 // Format price display
                 $priceDisplay = '';
@@ -631,19 +560,6 @@ class FrontendController extends Controller
         $parentCategories = collect([]);
         $breadcrumb = [];
         
-        // Debug: Log request parameters
-        \Log::info('Shop request received', [
-            'category' => $request->input('category'),
-            'search' => $request->input('search'),
-            'sort' => $request->input('sort', '1'),
-            'min_price' => $request->input('min_price'),
-            'max_price' => $request->input('max_price'),
-            'sizes' => $request->input('sizes'),
-            'brands' => $request->input('brands'),
-            'colors' => $request->input('colors'),
-            'is_ajax' => $request->ajax()
-        ]);
-        
         // Get all parent categories (top-level categories) for the category list
         $parentCategories = Category::whereNull('parent_id')
             ->where(function($q) {
@@ -664,11 +580,7 @@ class FrontendController extends Controller
                     $q->where('is_active', true)->orWhereNull('is_active');
                 })
                 ->first();
-            
-            \Log::info('Category lookup', [
-                'requested_slug' => $request->category,
-                'found' => $selectedCategory ? $selectedCategory->name : 'NOT FOUND'
-            ]);
+             
             
             // If category found, get its direct children
             if ($selectedCategory) {
@@ -699,10 +611,40 @@ class FrontendController extends Controller
         // Get wishlist product IDs for current user/session
         $customer = $request->user();
         $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
+        
+        // Get or create session_id for wishlist
         $sessionId = $request->input('session_id') 
                   ?? $request->query('session_id') 
-                  ?? $request->header('X-Session-ID') 
-                  ?? session()->getId();
+                  ?? $request->header('X-Session-ID')
+                  ?? $request->cookie('wishlist_session_id');
+        
+        // If no session_id exists, check if user has any wishlist items and use that session_id
+        $sessionIdGenerated = false;
+        if (!$sessionId && !$customerId) {
+            // Check if there are any wishlist items for this user (guest) with any session_id
+            // This handles the case where wishlist items exist but cookie doesn't
+            $existingWishlist = \App\Models\Wishlist::whereNull('customer_id')
+                ->whereNotNull('session_id')
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            if ($existingWishlist && $existingWishlist->session_id) {
+                // Use the existing session_id from wishlist
+                $sessionId = $existingWishlist->session_id;
+            } else {
+                // Generate new session_id only if no existing wishlist found
+                $sessionId = 'session_' . time() . '_' . substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 9);
+                $sessionIdGenerated = true; // Flag to set cookie in response
+            }
+        } elseif (!$sessionId) {
+            // For logged-in users, we don't need session_id (uses customer_id)
+            $sessionId = null;
+        }
+        
+        // Fallback to Laravel session ID only if we still don't have one and user is not logged in (shouldn't happen)
+        if (!$sessionId && !$customerId) {
+            $sessionId = session()->getId();
+        }
         
         $wishlistProductIds = \App\Models\Wishlist::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
@@ -759,8 +701,7 @@ class FrontendController extends Controller
             $maxPrice = $request->has('max_price') ? (float)$request->max_price : null;
             
             // Apply filter if at least one price parameter is provided
-            if ($minPrice !== null || $maxPrice !== null) {
-                \Log::info('Price filter applied', ['min_price' => $minPrice, 'max_price' => $maxPrice]);
+            if ($minPrice !== null || $maxPrice !== null) { 
                 
                 // Use raw SQL to calculate display price and filter
                 // Display price = CASE WHEN sale_price IS NOT NULL AND sale_price > 0 AND sale_price < price THEN sale_price ELSE price END
@@ -815,7 +756,12 @@ class FrontendController extends Controller
         if ($request->has('brands') && is_array($request->brands) && count($request->brands) > 0) {
             $brandIds = array_filter($request->brands);
             if (count($brandIds) > 0) {
-                $productsQuery->whereIn('brand_id', $brandIds);
+                // Convert to integers to ensure proper matching
+                $brandIds = array_map('intval', $brandIds);
+                $brandIds = array_filter($brandIds); // Remove any invalid values
+                if (count($brandIds) > 0) {
+                    $productsQuery->whereIn('brand_id', $brandIds);
+                }
             }
         }
         
@@ -838,15 +784,38 @@ class FrontendController extends Controller
                               $colorUpper = ucfirst($colorLower);
                               
                               $colorQ->orWhere(function($cq) use ($colorLower, $colorUpper, $color, $colorAttribute) {
-                                  // Method 1: Check by attribute ID (if color attribute exists)
+                                  // Method 1: Check new structured format: attributes->color->label
+                                  // Structure: {"color":{"label":"red","code":"#FF0000"}}
+                                  $cq->whereJsonContains('attributes->color->label', $colorLower)
+                                     ->orWhereJsonContains('attributes->color->label', $colorUpper)
+                                     ->orWhereJsonContains('attributes->color->label', $color)
+                                     ->orWhereJsonContains('attributes->Color->label', $colorLower)
+                                     ->orWhereJsonContains('attributes->Color->label', $colorUpper)
+                                     ->orWhereJsonContains('attributes->Color->label', $color);
+                                  
+                                  // Method 2: Case-insensitive JSON search for color->label using JSON_UNQUOTE
+                                  $cq->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.color.label"))) = ?', [$colorLower])
+                                     ->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.Color.label"))) = ?', [$colorLower]);
+                                  
+                                  // Method 3: Like search for new format: "color":{"label":"red"
+                                  $cq->orWhere('attributes', 'like', '%"color":{"label":"' . $colorLower . '"%')
+                                     ->orWhere('attributes', 'like', '%"Color":{"label":"' . $colorLower . '"%')
+                                     ->orWhere('attributes', 'like', '%"color":{"label":"' . $colorUpper . '"%')
+                                     ->orWhere('attributes', 'like', '%"Color":{"label":"' . $colorUpper . '"%')
+                                     ->orWhere('attributes', 'like', '%"color":{%"label":"' . $colorLower . '"%')
+                                     ->orWhere('attributes', 'like', '%"Color":{%"label":"' . $colorLower . '"%')
+                                     ->orWhere('attributes', 'like', '%"color":{%"label":"' . $colorUpper . '"%')
+                                     ->orWhere('attributes', 'like', '%"Color":{%"label":"' . $colorUpper . '"%');
+                                  
+                                  // Method 4: Check by attribute ID (if color attribute exists) - old format
                                   // Colors might be stored as: {"1": "red"} where 1 is the color attribute ID
                                   if ($colorAttribute) {
-                                      $cq->whereJsonContains('attributes->' . $colorAttribute->id, $colorLower)
+                                      $cq->orWhereJsonContains('attributes->' . $colorAttribute->id, $colorLower)
                                          ->orWhereJsonContains('attributes->' . $colorAttribute->id, $colorUpper)
                                          ->orWhereJsonContains('attributes->' . $colorAttribute->id, $color);
                                   }
                                   
-                                  // Method 2: Check by attribute name (case variations)
+                                  // Method 5: Check old format - direct color string (backward compatibility)
                                   // Colors might be stored as: {"color": "red"} or {"Color": "red"}
                                   $cq->orWhereJsonContains('attributes->color', $colorLower)
                                      ->orWhereJsonContains('attributes->Color', $colorLower)
@@ -858,17 +827,17 @@ class FrontendController extends Controller
                                      ->orWhereJsonContains('attributes->Color', $color)
                                      ->orWhereJsonContains('attributes->COLOR', $color);
                                   
-                                  // Method 3: Case-insensitive JSON search using JSON_UNQUOTE
+                                  // Method 6: Case-insensitive JSON search for direct color (old format)
                                   $cq->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.color"))) = ?', [$colorLower])
                                      ->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.Color"))) = ?', [$colorLower]);
                                   
-                                  // Method 4: Like search for JSON string matching (handles both key formats)
+                                  // Method 7: Like search for old format: "color":"red"
                                   $cq->orWhere('attributes', 'like', '%"color":"' . $colorLower . '"%')
                                      ->orWhere('attributes', 'like', '%"Color":"' . $colorLower . '"%')
                                      ->orWhere('attributes', 'like', '%"color":"' . $colorUpper . '"%')
                                      ->orWhere('attributes', 'like', '%"Color":"' . $colorUpper . '"%');
                                   
-                                  // Method 5: If color attribute exists, also check by ID in JSON
+                                  // Method 8: If color attribute exists, also check by ID in JSON (old format)
                                   if ($colorAttribute) {
                                       $cq->orWhere('attributes', 'like', '%"' . $colorAttribute->id . '":"' . $colorLower . '"%')
                                          ->orWhere('attributes', 'like', '%"' . $colorAttribute->id . '":"' . $colorUpper . '"%');
@@ -883,10 +852,7 @@ class FrontendController extends Controller
         // Get total count before limiting
         $totalProducts = $productsQuery->count();
         
-        \Log::info('Products query result', [
-            'total_count' => $totalProducts,
-            'category' => $selectedCategory ? $selectedCategory->slug : 'none'
-        ]);
+        
         
         // Get sort parameter
         $sort = $request->input('sort', '1');
@@ -914,6 +880,53 @@ class FrontendController extends Controller
             ? $productsQuery->get() 
             : $productsQuery->take(20)->get();
         
+        // If we don't have wishlist items but have products, check if any products are in wishlist with different session_id
+        // This handles the case where cookie doesn't exist or doesn't match the session_id used to store wishlist items
+        if (empty($wishlistProductIds) && !$customerId && $productsToMap->count() > 0 && $sessionId) {
+            $productIds = $productsToMap->pluck('id')->toArray();
+            // Check if any of these products are in wishlist with any session_id (not just current one)
+            $wishlistItems = \App\Models\Wishlist::whereIn('product_id', $productIds)
+                ->whereNull('customer_id')
+                ->whereNotNull('session_id')
+                ->where('session_id', '!=', $sessionId) // Different from current session_id
+                ->get();
+            
+            if ($wishlistItems->count() > 0) {
+                // Use the most common session_id from these wishlist items
+                $sessionIdCounts = $wishlistItems->groupBy('session_id')->map->count();
+                $mostCommonSessionId = $sessionIdCounts->sortDesc()->keys()->first();
+                
+                if ($mostCommonSessionId) {
+                    $sessionId = $mostCommonSessionId;
+                    $sessionIdGenerated = true; // Set cookie so it persists
+                    // Re-fetch wishlist product IDs with the correct session_id
+                    $wishlistProductIds = \App\Models\Wishlist::where('session_id', $sessionId)
+                        ->pluck('product_id')->toArray();
+                }
+            }
+        } elseif (empty($wishlistProductIds) && !$customerId && $productsToMap->count() > 0 && !$sessionId) {
+            // No session_id at all - check if any products are in wishlist
+            $productIds = $productsToMap->pluck('id')->toArray();
+            $wishlistItems = \App\Models\Wishlist::whereIn('product_id', $productIds)
+                ->whereNull('customer_id')
+                ->whereNotNull('session_id')
+                ->get();
+            
+            if ($wishlistItems->count() > 0) {
+                // Use the most common session_id from these wishlist items
+                $sessionIdCounts = $wishlistItems->groupBy('session_id')->map->count();
+                $mostCommonSessionId = $sessionIdCounts->sortDesc()->keys()->first();
+                
+                if ($mostCommonSessionId) {
+                    $sessionId = $mostCommonSessionId;
+                    $sessionIdGenerated = true; // Set cookie so it persists
+                    // Re-fetch wishlist product IDs with the correct session_id
+                    $wishlistProductIds = \App\Models\Wishlist::where('session_id', $sessionId)
+                        ->pluck('product_id')->toArray();
+                }
+            }
+        }
+        
         // Map products to array format
         $products = $productsToMap->map(function($product) use ($wishlistProductIds) {
                 // Get price range from variants
@@ -939,12 +952,20 @@ class FrontendController extends Controller
                 // Determine if product is on sale
                 $hasSale = $minSalePrice && $minSalePrice < $minPrice;
                 
-                // Get product image
-                $imageUrl = $product->primaryImage 
-                    ? asset('storage/' . $product->primaryImage->image_path)
-                    : ($product->images->first() 
-                        ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('frontend/images/product/sample-product.jpg'));
+                // Get first variant image - use placeholder if no variant images (same as new arrivals)
+                $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+                $firstVariant = $activeVariants->first();
+                if ($firstVariant && $firstVariant->images && $firstVariant->images->count() > 0) {
+                    $primaryVariantImage = $firstVariant->images->where('is_primary', true)->first();
+                    if ($primaryVariantImage) {
+                        $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                    } else {
+                        $firstVariantImage = $firstVariant->images->first();
+                        if ($firstVariantImage) {
+                            $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                        }
+                    }
+                }
                 
                 // Get all color attributes (from category or global)
                 $colorAttributes = collect();
@@ -1047,71 +1068,16 @@ class FrontendController extends Controller
                     'is_new' => $product->created_at->isAfter(now()->subDays(30)), // New if created within 30 days
                     'is_featured' => $product->featured,
                     'in_wishlist' => in_array($product->id, $wishlistProductIds), // Check if product is in wishlist
-                    'color_variants' => $colorVariants->map(function($variant) use ($colorAttributeMap, $colorAttributeNameMap, $sizeAttributeMap, $sizeAttributeNameMap, $imageUrl, $activeVariants) {
-                        $attrs = is_string($variant->attributes) 
-                            ? json_decode($variant->attributes, true) 
-                            : ($variant->attributes ?? []);
+                    'color_variants' => $colorVariants->map(function($variant) use ($imageUrl, $activeVariants) {
+                        // Parse attributes using new helper function
+                        $parsed = self::parseVariantAttributes($variant->attributes);
                         
-                        // Get color value and attribute_id
-                        $colorValue = null;
-                        $colorAttributeId = null;
-                        $sizeValue = null;
-                        $attrs = is_array($attrs) ? $attrs : [];
+                        // Get color from new structured format
+                        $colorValue = $parsed['color'] ? $parsed['color']['label'] : null;
+                        $colorCode = $parsed['color'] ? $parsed['color']['code'] : '#ccc';
                         
-                        foreach ($attrs as $key => $value) {
-                            if (empty($value)) {
-                                continue;
-                            }
-                            
-                            // Check for color attribute
-                            if (is_numeric($key) && isset($colorAttributeMap[$key])) {
-                                $colorValue = $value;
-                                $colorAttributeId = (int)$key;
-                            } elseif (isset($colorAttributeNameMap[$key]) || 
-                                     isset($colorAttributeNameMap[ucfirst($key)]) ||
-                                     strtolower($key) === 'color') {
-                                $colorValue = $value;
-                                $attribute = $colorAttributeNameMap[$key] ?? 
-                                            $colorAttributeNameMap[ucfirst($key)] ?? 
-                                            null;
-                                $colorAttributeId = $attribute ? $attribute->id : null;
-                            }
-                            
-                            // Check for size attribute
-                            if (is_numeric($key) && isset($sizeAttributeMap[$key])) {
-                                $sizeValue = $value;
-                            } elseif (isset($sizeAttributeNameMap[$key]) || 
-                                     isset($sizeAttributeNameMap[ucfirst($key)]) ||
-                                     strtolower($key) === 'size') {
-                                $sizeValue = $value;
-                            }
-                        }
-                        
-                        // Get color code from ProductAttributeValue
-                        $colorCode = '#ccc'; // Default fallback
-                        if ($colorAttributeId && $colorValue) {
-                            // Look up ProductAttributeValue using attribute_id and value
-                            $attributeValue = ProductAttributeValue::where('attribute_id', $colorAttributeId)
-                                ->where('value', $colorValue)
-                                ->first();
-                            
-                            // If not found, try case-insensitive match
-                            if (!$attributeValue) {
-                                $attributeValue = ProductAttributeValue::where('attribute_id', $colorAttributeId)
-                                    ->whereRaw('LOWER(value) = ?', [strtolower($colorValue)])
-                                    ->first();
-                            }
-                            
-                            if ($attributeValue && $attributeValue->color_code) {
-                                $colorCode = $attributeValue->color_code;
-                            } else {
-                                // Fallback: Generate a basic color code from common color names
-                                $colorCode = self::getColorCodeFromName($colorValue);
-                            }
-                        } elseif ($colorValue) {
-                            // If no attribute_id found but we have a color value, try to get code from name
-                            $colorCode = self::getColorCodeFromName($colorValue);
-                        }
+                        // Get all variable attributes (size, material, pattern, etc.)
+                        $variableAttributes = $parsed['variable'] ?? [];
                         
                         // Get variant image (primary image or first image)
                         $variantImage = $imageUrl; // Fallback to product image
@@ -1127,54 +1093,24 @@ class FrontendController extends Controller
                             }
                         }
                         
-                        // Get all variants with this color to find available sizes
-                        $variantsWithSameColor = $activeVariants->filter(function($v) use ($colorValue, $colorAttributeMap, $colorAttributeNameMap) {
+                        // Get all variants with this color to find available variable attribute values
+                        $variantsWithSameColor = $activeVariants->filter(function($v) use ($colorValue) {
                             if (!$v->attributes) return false;
-                            $vAttrs = is_string($v->attributes) 
-                                ? json_decode($v->attributes, true) 
-                                : ($v->attributes ?? []);
-                            if (!is_array($vAttrs)) return false;
-                            
-                            foreach ($vAttrs as $k => $val) {
-                                if (empty($val)) continue;
-                                
-                                // Check by attribute ID
-                                if (is_numeric($k) && isset($colorAttributeMap[$k]) && $val === $colorValue) {
-                                    return true;
-                                }
-                                
-                                // Check by attribute name
-                                if ((isset($colorAttributeNameMap[$k]) || 
-                                     isset($colorAttributeNameMap[ucfirst($k)]) ||
-                                     strtolower($k) === 'color') && $val === $colorValue) {
-                                    return true;
-                                }
-                            }
-                            return false;
+                            $vParsed = self::parseVariantAttributes($v->attributes);
+                            $vColorLabel = $vParsed['color'] ? $vParsed['color']['label'] : null;
+                            return $vColorLabel === $colorValue;
                         });
                         
-                        // Extract available sizes for this color
-                        $availableSizes = [];
+                        // Extract available values for each variable attribute
+                        $availableVariableValues = [];
                         foreach ($variantsWithSameColor as $v) {
-                            $vAttrs = is_string($v->attributes) 
-                                ? json_decode($v->attributes, true) 
-                                : ($v->attributes ?? []);
-                            if (!is_array($vAttrs)) continue;
-                            
-                            foreach ($vAttrs as $k => $val) {
-                                if (empty($val)) continue;
-                                
-                                // Check by size attribute ID
-                                if (is_numeric($k) && isset($sizeAttributeMap[$k])) {
-                                    if (!in_array($val, $availableSizes)) {
-                                        $availableSizes[] = $val;
-                                    }
-                                } 
-                                // Check by size attribute name
-                                elseif ((isset($sizeAttributeNameMap[$k]) || 
-                                        isset($sizeAttributeNameMap[ucfirst($k)]) ||
-                                        strtolower($k) === 'size') && !in_array($val, $availableSizes)) {
-                                    $availableSizes[] = $val;
+                            $vParsed = self::parseVariantAttributes($v->attributes);
+                            foreach ($vParsed['variable'] ?? [] as $varKey => $varValue) {
+                                if (!isset($availableVariableValues[$varKey])) {
+                                    $availableVariableValues[$varKey] = [];
+                                }
+                                if (!in_array($varValue, $availableVariableValues[$varKey])) {
+                                    $availableVariableValues[$varKey][] = $varValue;
                                 }
                             }
                         }
@@ -1193,8 +1129,8 @@ class FrontendController extends Controller
                             'sale_price' => $salePrice,
                             'has_sale' => $hasSale,
                             'display_price' => $hasSale ? $salePrice : $price,
-                            'size' => $sizeValue, // Size for this specific variant
-                            'available_sizes' => $availableSizes, // All available sizes for this color
+                            'variable_attributes' => $variableAttributes, // All variable attributes for this variant
+                            'available_variable_values' => $availableVariableValues, // All available values for each variable attribute
                             'images' => $variant->images->map(function($img) {
                                 return [
                                     'url' => asset('storage/' . $img->image_path),
@@ -1203,6 +1139,16 @@ class FrontendController extends Controller
                             }),
                         ];
                     })->unique('color')->values()->take(4),
+                    'variable_attributes' => $colorVariants->isEmpty() ? collect($activeVariants)->flatMap(function($variant) {
+                        $parsed = self::parseVariantAttributes($variant->attributes);
+                        return $parsed['variable'] ?? [];
+                    })->unique()->keys()->mapWithKeys(function($key) use ($activeVariants) {
+                        $values = collect($activeVariants)->flatMap(function($variant) use ($key) {
+                            $parsed = self::parseVariantAttributes($variant->attributes);
+                            return [$parsed['variable'][$key] ?? null];
+                        })->filter()->unique()->values()->toArray();
+                        return [$key => $values];
+                    })->toArray() : [],
                 ];
             });
         
@@ -1282,22 +1228,14 @@ class FrontendController extends Controller
             
             $sizeValues = collect();
             foreach ($variants as $variant) {
-                $attributes = is_string($variant->attributes) 
-                    ? json_decode($variant->attributes, true) 
-                    : ($variant->attributes ?? []);
-                
-                if (is_array($attributes)) {
-                    // Check by attribute ID
-                    if (isset($attributes[$sizeAttribute->id])) {
-                        $sizeValues->push($attributes[$sizeAttribute->id]);
-                    }
-                    // Check by attribute name/slug
-                    if (isset($attributes['size']) || isset($attributes['Size']) || isset($attributes[$sizeAttribute->name]) || isset($attributes[$sizeAttribute->slug])) {
-                        $sizeValue = $attributes['size'] ?? $attributes['Size'] ?? $attributes[$sizeAttribute->name] ?? $attributes[$sizeAttribute->slug];
-                        if ($sizeValue) {
-                            $sizeValues->push($sizeValue);
-                        }
-                    }
+                $parsed = self::parseVariantAttributes($variant->attributes);
+                // Get size from variable attributes
+                if (isset($parsed['variable']['size'])) {
+                    $sizeValues->push($parsed['variable']['size']);
+                }
+                // Fallback: check old format
+                elseif (isset($parsed['all']['size'])) {
+                    $sizeValues->push($parsed['all']['size']);
                 }
             }
             
@@ -1338,38 +1276,26 @@ class FrontendController extends Controller
             
             $colorValuesMap = [];
             foreach ($variants as $variant) {
-                $attributes = is_string($variant->attributes) 
-                    ? json_decode($variant->attributes, true) 
-                    : ($variant->attributes ?? []);
+                $parsed = self::parseVariantAttributes($variant->attributes);
                 
-                if (is_array($attributes)) {
-                    $colorValue = null;
-                    // Check by attribute ID
-                    if (isset($attributes[$colorAttribute->id])) {
-                        $colorValue = trim($attributes[$colorAttribute->id]);
-                    }
-                    // Check by attribute name/slug
-                    elseif (isset($attributes['color']) || isset($attributes['Color']) || isset($attributes[$colorAttribute->name]) || isset($attributes[$colorAttribute->slug])) {
-                        $colorValue = trim($attributes['color'] ?? $attributes['Color'] ?? $attributes[$colorAttribute->name] ?? $attributes[$colorAttribute->slug]);
-                    }
+                // Get color from new structured format
+                if ($parsed['color'] && $parsed['color']['label']) {
+                    $colorValue = trim($parsed['color']['label']);
+                    $colorCode = $parsed['color']['code'] ?? '#ccc';
                     
                     if ($colorValue && !isset($colorValuesMap[$colorValue])) {
-                        // Get color code from ProductAttributeValue
-                        $attributeValue = \App\Models\ProductAttributeValue::where('attribute_id', $colorAttribute->id)
-                            ->where(function($q) use ($colorValue) {
-                                $q->where('value', $colorValue)
-                                  ->orWhereRaw('LOWER(value) = ?', [strtolower($colorValue)]);
-                            })
-                            ->first();
-                        
-                        $colorCode = '#ccc'; // Default fallback
-                        if ($attributeValue && $attributeValue->color_code) {
-                            $colorCode = $attributeValue->color_code;
-                        } else {
-                            // Fallback: Generate a basic color code from common color names
-                            $colorCode = self::getColorCodeFromName($colorValue);
-                        }
-                        
+                        $colorValuesMap[$colorValue] = [
+                            'name' => $colorValue,
+                            'code' => $colorCode,
+                            'id' => strtolower(str_replace(' ', '', $colorValue)) . 'a8'
+                        ];
+                    }
+                }
+                // Fallback: check old format
+                elseif (isset($parsed['all']['color'])) {
+                    $colorValue = trim($parsed['all']['color']);
+                    if ($colorValue && !isset($colorValuesMap[$colorValue])) {
+                        $colorCode = self::getColorCodeFromName($colorValue);
                         $colorValuesMap[$colorValue] = [
                             'name' => $colorValue,
                             'code' => $colorCode,
@@ -1383,16 +1309,120 @@ class FrontendController extends Controller
             $availableColors = collect($colorValuesMap)->values()->sortBy('name');
         }
         
-        // Get brands with product counts (using brand_id only, excluding "other" brand)
+        // Get brands with product counts (respecting current filters except brand filter)
+        // Build a base query that matches current filters (category, sizes, colors, price) but excludes brand filter
+        $brandCountQuery = Product::where('status', 'published');
+        
+        // Apply category filter if selected
+        if ($selectedCategory) {
+            $categoryIds = [$selectedCategory->id];
+            $categoryIds = array_merge($categoryIds, $selectedCategory->getDescendantIds());
+            $brandCountQuery->where(function($query) use ($categoryIds) {
+                $query->whereIn('category_id', $categoryIds)
+                      ->orWhereHas('categories', function($q) use ($categoryIds) {
+                          $q->whereIn('categories.id', $categoryIds);
+                      });
+            });
+        }
+        
+        // Apply search filter if provided
+        if ($request->has('search') && $request->search) {
+            $searchTerm = $request->search;
+            $brandCountQuery->where(function($q) use ($searchTerm) {
+                $q->where('name', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('short_description', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('slug', 'like', '%' . $searchTerm . '%');
+            });
+        }
+        
+        // Apply price filter if provided
+        if ($request->has('min_price') || $request->has('max_price')) {
+            $minPrice = $request->input('min_price');
+            $maxPrice = $request->input('max_price');
+            
+            $brandCountQuery->whereHas('variants', function($q) use ($minPrice, $maxPrice) {
+                $q->where('is_active', true);
+                if ($minPrice !== null) {
+                    $q->where(function($priceQ) use ($minPrice) {
+                        $priceQ->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
+                    });
+                }
+                if ($maxPrice !== null) {
+                    $q->where(function($priceQ) use ($maxPrice) {
+                        $priceQ->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
+                    });
+                }
+            });
+        }
+        
+        // Apply size filter if provided
+        if ($request->has('sizes') && is_array($request->sizes) && count($request->sizes) > 0) {
+            $sizes = array_filter($request->sizes);
+            if (count($sizes) > 0) {
+                $brandCountQuery->whereHas('variants', function($q) use ($sizes) {
+                    $q->where('is_active', true)
+                      ->where(function($sizeQ) use ($sizes) {
+                          foreach ($sizes as $size) {
+                              $sizeQ->orWhereJsonContains('attributes->variable->size', $size)
+                                    ->orWhereJsonContains('attributes->size', $size)
+                                    ->orWhereJsonContains('attributes->Size', $size)
+                                    ->orWhere('attributes', 'like', '%"' . $size . '"%');
+                          }
+                      });
+                });
+            }
+        }
+        
+        // Apply color filter if provided (but not brand filter)
+        if ($request->has('colors') && is_array($request->colors) && count($request->colors) > 0) {
+            $colors = array_filter($request->colors);
+            if (count($colors) > 0) {
+                $colorAttribute = \App\Models\ProductAttribute::where(function($q) {
+                    $q->where('type', 'color')
+                      ->orWhere('slug', 'color')
+                      ->orWhere('name', 'Color');
+                })->first();
+                
+                $brandCountQuery->whereHas('variants', function($q) use ($colors, $colorAttribute) {
+                    $q->where('is_active', true)
+                      ->where(function($colorQ) use ($colors, $colorAttribute) {
+                          foreach ($colors as $color) {
+                              $colorLower = strtolower(trim($color));
+                              $colorUpper = ucfirst($colorLower);
+                              
+                              $colorQ->orWhere(function($cq) use ($colorLower, $colorUpper, $color, $colorAttribute) {
+                                  // Check new structured format: attributes->color->label
+                                  $cq->whereJsonContains('attributes->color->label', $colorLower)
+                                     ->orWhereJsonContains('attributes->color->label', $colorUpper)
+                                     ->orWhereJsonContains('attributes->color->label', $color)
+                                     ->orWhereJsonContains('attributes->Color->label', $colorLower)
+                                     ->orWhereJsonContains('attributes->Color->label', $colorUpper)
+                                     ->orWhereJsonContains('attributes->Color->label', $color)
+                                     ->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.color.label"))) = ?', [$colorLower])
+                                     ->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.Color.label"))) = ?', [$colorLower])
+                                     ->orWhere('attributes', 'like', '%"color":{"label":"' . $colorLower . '"%')
+                                     ->orWhere('attributes', 'like', '%"Color":{"label":"' . $colorLower . '"%')
+                                     ->orWhere('attributes', 'like', '%"color":{"label":"' . $colorUpper . '"%')
+                                     ->orWhere('attributes', 'like', '%"Color":{"label":"' . $colorUpper . '"%')
+                                     ->orWhereJsonContains('attributes->color', $colorLower)
+                                     ->orWhereJsonContains('attributes->Color', $colorLower)
+                                     ->orWhereRaw('LOWER(JSON_UNQUOTE(JSON_EXTRACT(attributes, "$.color"))) = ?', [$colorLower])
+                                     ->orWhere('attributes', 'like', '%"color":"' . $colorLower . '"%');
+                              });
+                          }
+                      });
+                });
+            }
+        }
+        
+        // Get brands with product counts (using filtered query)
         $brands = \App\Models\Brand::where('is_active', true)
             ->where('slug', '!=', 'other')
-            ->whereHas('products', function($query) {
-                $query->where('status', 'published');
-            })
             ->get()
-            ->map(function($brand) {
-                $count = Product::where('brand_id', $brand->id)
-                    ->where('status', 'published')
+            ->map(function($brand) use ($brandCountQuery) {
+                // Count products for this brand using the filtered query
+                $count = (clone $brandCountQuery)
+                    ->where('brand_id', $brand->id)
                     ->count();
                 
                 return [
@@ -1408,7 +1438,14 @@ class FrontendController extends Controller
             ->sortBy('name')
             ->values();
         
-        return view('frontend.shop', compact('selectedCategory', 'childCategories', 'parentCategories', 'breadcrumb', 'products', 'totalProducts', 'hasMoreProducts', 'currentPage', 'minPrice', 'maxPrice', 'availableSizes', 'availableColors', 'brands'));
+        $view = view('frontend.shop', compact('selectedCategory', 'childCategories', 'parentCategories', 'breadcrumb', 'products', 'totalProducts', 'hasMoreProducts', 'currentPage', 'minPrice', 'maxPrice', 'availableSizes', 'availableColors', 'brands'));
+        
+        // If we generated a new session_id, set it as a cookie so JavaScript can sync it
+        if ($sessionIdGenerated) {
+            return response($view)->cookie('wishlist_session_id', $sessionId, 525600); // 1 year in minutes
+        }
+        
+        return $view;
     }
 
     /**
@@ -1432,10 +1469,22 @@ class FrontendController extends Controller
         // Get wishlist product IDs
         $customer = $request->user();
         $customerId = ($customer && $customer instanceof \App\Models\Customer) ? $customer->id : null;
+        
+        // Get or create session_id for wishlist (same logic as shop method)
         $sessionId = $request->input('session_id') 
                   ?? $request->query('session_id') 
-                  ?? $request->header('X-Session-ID') 
-                  ?? session()->getId();
+                  ?? $request->header('X-Session-ID')
+                  ?? $request->cookie('wishlist_session_id');
+        
+        // If no session_id exists, generate one (matches JavaScript format)
+        if (!$sessionId) {
+            $sessionId = 'session_' . time() . '_' . substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 9);
+        }
+        
+        // Fallback to Laravel session ID only if we still don't have one (shouldn't happen)
+        if (!$sessionId) {
+            $sessionId = session()->getId();
+        }
         
         $wishlistProductIds = \App\Models\Wishlist::where(function($query) use ($customerId, $sessionId) {
             if ($customerId) {
@@ -1488,11 +1537,52 @@ class FrontendController extends Controller
         $totalProducts = $productsQuery->count();
         
         // Get products for this page
-        $products = $productsQuery->orderBy('created_at', 'desc')
+        $productsToMap = $productsQuery->orderBy('created_at', 'desc')
             ->skip($offset)
             ->take($perPage)
-            ->get()
-            ->map(function($product) use ($wishlistProductIds) {
+            ->get();
+        
+        // If we don't have wishlist items but have products, check if any products are in wishlist with different session_id
+        // This handles the case where cookie doesn't exist or doesn't match the session_id used to store wishlist items
+        if (empty($wishlistProductIds) && !$customerId && $productsToMap->count() > 0 && $sessionId) {
+            $productIds = $productsToMap->pluck('id')->toArray();
+            $wishlistItems = \App\Models\Wishlist::whereIn('product_id', $productIds)
+                ->whereNull('customer_id')
+                ->whereNotNull('session_id')
+                ->where('session_id', '!=', $sessionId)
+                ->get();
+            
+            if ($wishlistItems->count() > 0) {
+                $sessionIdCounts = $wishlistItems->groupBy('session_id')->map->count();
+                $mostCommonSessionId = $sessionIdCounts->sortDesc()->keys()->first();
+                
+                if ($mostCommonSessionId) {
+                    $sessionId = $mostCommonSessionId;
+                    $wishlistProductIds = \App\Models\Wishlist::where('session_id', $sessionId)
+                        ->pluck('product_id')->toArray();
+                }
+            }
+        } elseif (empty($wishlistProductIds) && !$customerId && $productsToMap->count() > 0 && !$sessionId) {
+            $productIds = $productsToMap->pluck('id')->toArray();
+            $wishlistItems = \App\Models\Wishlist::whereIn('product_id', $productIds)
+                ->whereNull('customer_id')
+                ->whereNotNull('session_id')
+                ->get();
+            
+            if ($wishlistItems->count() > 0) {
+                $sessionIdCounts = $wishlistItems->groupBy('session_id')->map->count();
+                $mostCommonSessionId = $sessionIdCounts->sortDesc()->keys()->first();
+                
+                if ($mostCommonSessionId) {
+                    $sessionId = $mostCommonSessionId;
+                    $wishlistProductIds = \App\Models\Wishlist::where('session_id', $sessionId)
+                        ->pluck('product_id')->toArray();
+                }
+            }
+        }
+        
+        // Map products to array format
+        $products = $productsToMap->map(function($product) use ($wishlistProductIds) {
                 // Same mapping logic as shop method
                 $activeVariants = $product->variants->where('is_active', true);
                 $prices = $activeVariants->pluck('price')->filter();
@@ -1512,11 +1602,22 @@ class FrontendController extends Controller
                 $maxSalePrice = $salePrices->max();
                 $hasSale = $minSalePrice && $minSalePrice < $minPrice;
                 
-                $imageUrl = $product->primaryImage 
-                    ? asset('storage/' . $product->primaryImage->image_path)
-                    : ($product->images->first() 
-                        ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('frontend/images/product/sample-product.jpg'));
+                // Get variant image first, then placeholder (no product image fallback)
+                $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+                
+                // Try to get first variant image
+                $firstVariant = $activeVariants->first();
+                if ($firstVariant && $firstVariant->images && $firstVariant->images->count() > 0) {
+                    $primaryVariantImage = $firstVariant->images->where('is_primary', true)->first();
+                    if ($primaryVariantImage) {
+                        $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                    } else {
+                        $firstVariantImage = $firstVariant->images->first();
+                        if ($firstVariantImage) {
+                            $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                        }
+                    }
+                }
                 
                 // Get color attributes
                 $colorAttributes = collect();
@@ -1576,44 +1677,16 @@ class FrontendController extends Controller
                     'is_new' => $product->created_at->isAfter(now()->subDays(30)),
                     'is_featured' => $product->featured,
                     'in_wishlist' => in_array($product->id, $wishlistProductIds),
-                    'color_variants' => $colorVariants->map(function($variant) use ($colorAttributeMap, $colorAttributeNameMap, $sizeAttributeMap, $sizeAttributeNameMap, $imageUrl, $activeVariants) {
-                        $attrs = is_string($variant->attributes) ? json_decode($variant->attributes, true) : ($variant->attributes ?? []);
-                        $colorValue = null;
-                        $colorAttributeId = null;
-                        $attrs = is_array($attrs) ? $attrs : [];
+                    'color_variants' => $colorVariants->map(function($variant) use ($imageUrl) {
+                        // Parse attributes using new helper function
+                        $parsed = self::parseVariantAttributes($variant->attributes);
                         
-                        foreach ($attrs as $key => $value) {
-                            if (empty($value)) continue;
-                            if (is_numeric($key) && isset($colorAttributeMap[$key])) {
-                                $colorValue = $value;
-                                $colorAttributeId = (int)$key;
-                            } elseif (isset($colorAttributeNameMap[$key]) || isset($colorAttributeNameMap[ucfirst($key)]) || strtolower($key) === 'color') {
-                                $colorValue = $value;
-                                $attribute = $colorAttributeNameMap[$key] ?? $colorAttributeNameMap[ucfirst($key)] ?? null;
-                                $colorAttributeId = $attribute ? $attribute->id : null;
-                            }
-                        }
+                        // Get color from new structured format
+                        $colorValue = $parsed['color'] ? $parsed['color']['label'] : null;
+                        $colorCode = $parsed['color'] ? $parsed['color']['code'] : '#ccc';
                         
-                        $colorCode = '#ccc';
-                        if ($colorAttributeId && $colorValue) {
-                            $attributeValue = ProductAttributeValue::where('attribute_id', $colorAttributeId)
-                                ->where('value', $colorValue)
-                                ->first();
-                            if (!$attributeValue) {
-                                $attributeValue = ProductAttributeValue::where('attribute_id', $colorAttributeId)
-                                    ->whereRaw('LOWER(value) = ?', [strtolower($colorValue)])
-                                    ->first();
-                            }
-                            if ($attributeValue && $attributeValue->color_code) {
-                                $colorCode = $attributeValue->color_code;
-                            } else {
-                                $colorCode = self::getColorCodeFromName($colorValue);
-                            }
-                        } elseif ($colorValue) {
-                            $colorCode = self::getColorCodeFromName($colorValue);
-                        }
-                        
-                        $variantImage = $imageUrl;
+                        // Get variant image only - use placeholder if no variant image
+                        $variantImage = asset('assets/images/placeholder.jpg'); // Default placeholder
                         if ($variant->images && $variant->images->count() > 0) {
                             $primaryVariantImage = $variant->images->where('is_primary', true)->first();
                             if ($primaryVariantImage) {
@@ -1722,9 +1795,43 @@ class FrontendController extends Controller
         // Get active variants
         $activeVariants = $product->variants->where('is_active', true);
         
-        // Get price range
-        $prices = $activeVariants->pluck('price')->filter();
-        $salePrices = $activeVariants->pluck('sale_price')->filter();
+        // Helper function to calculate GST-inclusive price
+        $calculateGstInclusivePrice = function($basePrice, $gstType, $gstPercentage) {
+            if ($basePrice <= 0) return 0;
+            
+            // If gst_type is true, price is already inclusive
+            if ($gstType === true || $gstType === 1 || $gstType === '1') {
+                return $basePrice;
+            }
+            
+            // If gst_type is false, add GST
+            if ($gstType === false || $gstType === 0 || $gstType === '0') {
+                $gstPercent = $gstPercentage ?? 0;
+                if ($gstPercent > 0) {
+                    return $basePrice + ($basePrice * $gstPercent / 100);
+                }
+            }
+            
+            return $basePrice;
+        };
+        
+        // Get GST settings from product
+        $gstType = $product->gst_type ?? true; // Default to inclusive
+        $gstPercentage = $product->gst_percentage ?? 0;
+        
+        // Get price range with GST applied
+        $prices = $activeVariants->map(function($variant) use ($calculateGstInclusivePrice, $gstType, $gstPercentage) {
+            $basePrice = $variant->price ?? 0;
+            return $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
+        })->filter();
+        
+        $salePrices = $activeVariants->map(function($variant) use ($calculateGstInclusivePrice, $gstType, $gstPercentage) {
+            $baseSalePrice = $variant->sale_price;
+            if ($baseSalePrice && $baseSalePrice > 0) {
+                return $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage);
+            }
+            return null;
+        })->filter();
         
         $minPrice = $prices->min() ?? 0;
         $maxPrice = $prices->max() ?? 0;
@@ -1750,7 +1857,7 @@ class FrontendController extends Controller
                 ]);
             } else {
                 $productImages->push([
-                    'url' => asset('frontend/images/product/sample-product.jpg'),
+                    'url' => asset('assets/images/placeholder.jpg'),
                     'alt' => $product->name,
                 ]);
             }
@@ -1784,12 +1891,8 @@ class FrontendController extends Controller
         $sizes = [];
         
         foreach ($activeVariants as $variant) {
-            $attrs = is_string($variant->attributes) 
-                ? json_decode($variant->attributes, true) 
-                : ($variant->attributes ?? []);
-            
-            $colorValue = null;
-            $sizeValue = null;
+            // Parse attributes using new helper function
+            $parsed = self::parseVariantAttributes($variant->attributes);
             
             // Get variant images
             $variantImages = [];
@@ -1802,8 +1905,8 @@ class FrontendController extends Controller
                 })->toArray();
             }
             
-            $imageUrl = $productImages->first()['url'] ?? asset('frontend/images/product/sample-product.jpg');
-            $variantImage = $imageUrl;
+            // Get variant image only - use placeholder if no variant image
+            $variantImage = asset('assets/images/placeholder.jpg'); // Default placeholder
             if ($variant->images && $variant->images->count() > 0) {
                 $primaryVariantImage = $variant->images->where('is_primary', true)->first();
                 if ($primaryVariantImage) {
@@ -1816,111 +1919,114 @@ class FrontendController extends Controller
                 }
             }
             
-            $price = $variant->price ?? 0;
-            $salePrice = $variant->sale_price;
+            $basePrice = $variant->price ?? 0;
+            $baseSalePrice = $variant->sale_price;
+            
+            // Calculate GST-inclusive prices
+            $price = $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
+            $salePrice = $baseSalePrice ? $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage) : null;
             $hasVariantSale = $salePrice && $salePrice < $price;
             
-            // Extract all attribute values from this variant
-            foreach ($attrs as $key => $value) {
-                if (empty($value)) {
-                    continue;
+            // Extract color from new structured format
+            if ($parsed['color']) {
+                $colorValue = $parsed['color']['label'];
+                $colorCode = $parsed['color']['code'];
+                
+                // Populate color arrays
+                if (!isset($colorVariantsMap[$colorValue])) {
+                    $colors[] = $colorValue;
+                    $colorVariantsMap[$colorValue] = [
+                        'color' => $colorValue,
+                        'color_code' => $colorCode,
+                        'image' => $variantImage,
+                        'images' => !empty($variantImages) ? $variantImages : [],
+                        'price' => $price,
+                        'sale_price' => $salePrice,
+                        'has_sale' => $hasVariantSale,
+                        'display_price' => $hasVariantSale ? $salePrice : $price,
+                    ];
                 }
                 
-                $attribute = null;
-                $attributeId = null;
+                // Find color attribute to add to attributeValues
+                $colorAttribute = $allVariantAttributes->first(function($attr) {
+                    return $attr->type === 'color' || strtolower($attr->name) === 'color' || strtolower($attr->slug) === 'color';
+                });
                 
-                // Find attribute by ID, name, or slug
-                if (is_numeric($key)) {
-                    $attribute = $attributeMap->get($key);
-                    $attributeId = $key;
-                } elseif ($attributeNameMap->has($key)) {
-                    $attribute = $attributeNameMap->get($key);
-                    $attributeId = $attribute->id;
-                } elseif ($attributeSlugMap->has($key)) {
-                    $attribute = $attributeSlugMap->get($key);
-                    $attributeId = $attribute->id;
+                if ($colorAttribute) {
+                    if (!isset($attributeValues[$colorAttribute->id])) {
+                        $attributeValues[$colorAttribute->id] = [];
+                    }
+                    if (!isset($attributeVariantsMap[$colorAttribute->id])) {
+                        $attributeVariantsMap[$colorAttribute->id] = [];
+                    }
+                    if (!in_array($colorValue, $attributeValues[$colorAttribute->id])) {
+                        $attributeValues[$colorAttribute->id][] = $colorValue;
+                    }
+                    if (!isset($attributeVariantsMap[$colorAttribute->id][$colorValue])) {
+                        $attributeVariantsMap[$colorAttribute->id][$colorValue] = [
+                            'value' => $colorValue,
+                            'images' => $variantImages,
+                            'color_code' => $colorCode,
+                        ];
+                    }
                 }
+            }
+            
+            // Extract variable attributes (size, material, etc.)
+            foreach ($parsed['variable'] as $varKey => $varValue) {
+                // Find attribute by name or slug
+                $attribute = $allVariantAttributes->first(function($attr) use ($varKey) {
+                    return strtolower($attr->name) === strtolower($varKey) 
+                        || strtolower($attr->slug) === strtolower($varKey);
+                });
                 
                 if ($attribute) {
-                    // Initialize arrays if needed
-                    if (!isset($attributeValues[$attributeId])) {
-                        $attributeValues[$attributeId] = [];
+                    if (!isset($attributeValues[$attribute->id])) {
+                        $attributeValues[$attribute->id] = [];
                     }
-                    if (!isset($attributeVariantsMap[$attributeId])) {
-                        $attributeVariantsMap[$attributeId] = [];
+                    if (!isset($attributeVariantsMap[$attribute->id])) {
+                        $attributeVariantsMap[$attribute->id] = [];
                     }
-                    
-                    // Add unique value
-                    if (!in_array($value, $attributeValues[$attributeId])) {
-                        $attributeValues[$attributeId][] = $value;
+                    if (!in_array($varValue, $attributeValues[$attribute->id])) {
+                        $attributeValues[$attribute->id][] = $varValue;
                     }
-                    
-                    // Store variant data for this attribute value
-                    if (!isset($attributeVariantsMap[$attributeId][$value])) {
-                        $attributeVariantsMap[$attributeId][$value] = [
-                            'value' => $value,
+                    if (!isset($attributeVariantsMap[$attribute->id][$varValue])) {
+                        $attributeVariantsMap[$attribute->id][$varValue] = [
+                            'value' => $varValue,
                             'images' => $variantImages,
                         ];
-                        
-                        // If it's a color attribute, also get color code
-                        if ($attribute->type === 'color') {
-                            $colorAttribute = $attribute;
-                            $attributeValue = ProductAttributeValue::where('attribute_id', $attribute->id)
-                                ->whereRaw('LOWER(value) = ?', [strtolower($value)])
-                                ->first();
-                            $colorCode = $attributeValue && $attributeValue->color_code 
-                                ? $attributeValue->color_code 
-                                : self::getColorCodeFromName($value);
-                            
-                            $attributeVariantsMap[$attributeId][$value]['color_code'] = $colorCode;
-                            
-                            // Also populate legacy color arrays for backward compatibility
-                            if (!isset($colorVariantsMap[$value])) {
-                                $colors[] = $value;
-                                $colorVariantsMap[$value] = [
-                                    'color' => $value,
-                                    'color_code' => $colorCode,
-                                    'image' => $variantImage,
-                                    'images' => !empty($variantImages) ? $variantImages : [],
-                                    'price' => $price,
-                                    'sale_price' => $salePrice,
-                                    'has_sale' => $hasVariantSale,
-                                    'display_price' => $hasVariantSale ? $salePrice : $price,
-                                ];
-                            }
-                        }
-                        
-                        // Legacy size support
-                        if (strtolower($attribute->name) === 'size' || strtolower($attribute->slug) === 'size') {
-                            if (!in_array($value, $sizes)) {
-                                $sizes[] = $value;
-                            }
+                    }
+                    
+                    // Legacy size support
+                    if (strtolower($attribute->name) === 'size' || strtolower($attribute->slug) === 'size') {
+                        if (!in_array($varValue, $sizes)) {
+                            $sizes[] = $varValue;
                         }
                     }
                 } else {
-                    // Fallback for legacy color/size detection
-                    if (strtolower($key) === 'color') {
-                        $colorValue = $value;
-                        if (!isset($colorVariantsMap[$value])) {
-                            $colors[] = $value;
-                            $colorCode = self::getColorCodeFromName($value);
-                            $colorVariantsMap[$value] = [
-                                'color' => $value,
-                                'color_code' => $colorCode,
-                                'image' => $variantImage,
-                                'images' => !empty($variantImages) ? $variantImages : [],
-                                'price' => $price,
-                                'sale_price' => $salePrice,
-                                'has_sale' => $hasVariantSale,
-                                'display_price' => $hasVariantSale ? $salePrice : $price,
-                            ];
-                        }
+                    // Attribute not found in ProductAttribute table - create dynamic entry
+                    // Use a dynamic key to distinguish from real attributes
+                    $dynamicAttributeKey = 'dynamic_' . strtolower($varKey);
+                    
+                    if (!isset($attributeValues[$dynamicAttributeKey])) {
+                        $attributeValues[$dynamicAttributeKey] = [];
+                        $attributeVariantsMap[$dynamicAttributeKey] = [];
                     }
-                    if (strtolower($key) === 'size') {
-                        $sizeValue = $value;
-                        if (!in_array($value, $sizes)) {
-                            $sizes[] = $value;
-                        }
+                    
+                    if (!in_array($varValue, $attributeValues[$dynamicAttributeKey])) {
+                        $attributeValues[$dynamicAttributeKey][] = $varValue;
+                    }
+                    
+                    if (!isset($attributeVariantsMap[$dynamicAttributeKey][$varValue])) {
+                        $attributeVariantsMap[$dynamicAttributeKey][$varValue] = [
+                            'value' => $varValue,
+                            'images' => $variantImages,
+                        ];
+                    }
+                    
+                    // Legacy size support
+                    if (strtolower($varKey) === 'size' && !in_array($varValue, $sizes)) {
+                        $sizes[] = $varValue;
                     }
                 }
             }
@@ -1928,6 +2034,8 @@ class FrontendController extends Controller
         
         // Build attributes structure for frontend
         $attributesData = [];
+        
+        // First, add attributes from ProductAttribute table
         foreach ($allVariantAttributes as $attribute) {
             if (isset($attributeValues[$attribute->id]) && !empty($attributeValues[$attribute->id])) {
                 $values = collect($attributeValues[$attribute->id])->map(function($value) use ($attribute, $attributeVariantsMap) {
@@ -1958,55 +2066,84 @@ class FrontendController extends Controller
             }
         }
         
+        // Then, add dynamic attributes (from variants but not in ProductAttribute table)
+        foreach ($attributeValues as $attrKey => $values) {
+            if (strpos($attrKey, 'dynamic_') === 0 && !empty($values)) {
+                $attrName = str_replace('dynamic_', '', $attrKey);
+                $attrName = ucfirst(str_replace('_', ' ', $attrName));
+                
+                $valueDataArray = collect($values)->map(function($value) use ($attrKey, $attributeVariantsMap) {
+                    $valueData = [
+                        'value' => $value,
+                    ];
+                    
+                    if (isset($attributeVariantsMap[$attrKey][$value])) {
+                        $variantData = $attributeVariantsMap[$attrKey][$value];
+                        if (isset($variantData['images'])) {
+                            $valueData['images'] = $variantData['images'];
+                        }
+                    }
+                    
+                    return $valueData;
+                })->values()->toArray();
+                
+                // Determine type based on attribute name
+                $attrType = 'text';
+                if (stripos($attrName, 'color') !== false) {
+                    $attrType = 'color';
+                } elseif (stripos($attrName, 'size') !== false || stripos($attrName, 'length') !== false) {
+                    $attrType = 'size';
+                }
+                
+                $attributesData[] = [
+                    'id' => $attrKey, // Use dynamic key as ID
+                    'name' => $attrName,
+                    'slug' => strtolower(str_replace(' ', '-', $attrName)),
+                    'type' => $attrType,
+                    'values' => $valueDataArray,
+                ];
+            }
+        }
+        
         // Build variant data map with description and highlights_details for JavaScript
         $variantDataMap = [];
         foreach ($activeVariants as $variant) {
-            $attrs = is_string($variant->attributes) 
-                ? json_decode($variant->attributes, true) 
-                : ($variant->attributes ?? []);
+            // Parse attributes using new helper function
+            $parsed = self::parseVariantAttributes($variant->attributes);
             
             $colorValue = null;
             $sizeValue = null;
             $allAttributeValues = []; // Store all attribute values for key generation
             
-            // Get all attribute values
-            foreach ($attrs as $key => $value) {
-                if (empty($value)) {
-                    continue;
+            // Get color value
+            if ($parsed['color']) {
+                $colorValue = $parsed['color']['label'];
+                // Find color attribute
+                $colorAttribute = $allVariantAttributes->first(function($attr) {
+                    return $attr->type === 'color' || strtolower($attr->name) === 'color' || strtolower($attr->slug) === 'color';
+                });
+                if ($colorAttribute) {
+                    $allAttributeValues[$colorAttribute->id] = $colorValue;
                 }
-                
-                $attribute = null;
-                $attributeId = null;
-                
-                // Find attribute by ID, name, or slug
-                if (is_numeric($key)) {
-                    $attribute = $attributeMap->get($key);
-                    $attributeId = $key;
-                } elseif ($attributeNameMap->has($key)) {
-                    $attribute = $attributeNameMap->get($key);
-                    $attributeId = $attribute->id;
-                } elseif ($attributeSlugMap->has($key)) {
-                    $attribute = $attributeSlugMap->get($key);
-                    $attributeId = $attribute->id;
-                }
+            }
+            
+            // Get variable attributes (size, material, etc.)
+            foreach ($parsed['variable'] as $varKey => $varValue) {
+                // Find attribute by name or slug
+                $attribute = $allVariantAttributes->first(function($attr) use ($varKey) {
+                    return strtolower($attr->name) === strtolower($varKey) 
+                        || strtolower($attr->slug) === strtolower($varKey);
+                });
                 
                 if ($attribute) {
-                    $allAttributeValues[$attributeId] = $value;
-                    
-                    // Legacy color/size support
-                    if ($attribute->type === 'color' || strtolower($attribute->name) === 'color' || strtolower($attribute->slug) === 'color') {
-                        $colorValue = $value;
-                    }
+                    $allAttributeValues[$attribute->id] = $varValue;
                     if (strtolower($attribute->name) === 'size' || strtolower($attribute->slug) === 'size') {
-                        $sizeValue = $value;
+                        $sizeValue = $varValue;
                     }
                 } else {
-                    // Fallback for legacy color/size detection
-                    if (strtolower($key) === 'color') {
-                        $colorValue = $value;
-                    }
-                    if (strtolower($key) === 'size') {
-                        $sizeValue = $value;
+                    // Fallback: treat as size if key is 'size'
+                    if (strtolower($varKey) === 'size') {
+                        $sizeValue = $varValue;
                     }
                 }
             }
@@ -2034,8 +2171,12 @@ class FrontendController extends Controller
                 $key = implode('|', $keyParts);
             }
             
-            $price = $variant->price ?? 0;
-            $salePrice = $variant->sale_price;
+            $basePrice = $variant->price ?? 0;
+            $baseSalePrice = $variant->sale_price;
+            
+            // Calculate GST-inclusive prices
+            $price = $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
+            $salePrice = $baseSalePrice ? $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage) : null;
             $hasVariantSale = $salePrice && $salePrice < $price;
             
             // Get variant images
@@ -2049,6 +2190,16 @@ class FrontendController extends Controller
                 })->toArray();
             }
             
+            // Parse measurements if available
+            $measurements = [];
+            if ($variant->measurements) {
+                if (is_string($variant->measurements)) {
+                    $measurements = json_decode($variant->measurements, true) ?? [];
+                } else {
+                    $measurements = is_array($variant->measurements) ? $variant->measurements : [];
+                }
+            }
+            
             $variantDataMap[$key] = [
                 'id' => $variant->id,
                 'sku' => $variant->sku ?? '',
@@ -2060,6 +2211,7 @@ class FrontendController extends Controller
                 'highlights_details' => $highlightsDetails,
                 'attributes' => $allAttributeValues, // Include all attributes
                 'images' => $variantImages, // Include variant images
+                'measurements' => $measurements, // Include measurements
                 'is_in_stock' => $variant->manage_stock ? ($variant->stock_quantity > 0) : ($variant->stock_status === 'in_stock'),
             ];
         }
@@ -2093,7 +2245,15 @@ class FrontendController extends Controller
         // Get first variant SKU for display
         $firstVariant = $activeVariants->first();
         $displaySku = $firstVariant ? $firstVariant->sku : '';
-        
+ 
+        // Count recent purchases (last 30 days)
+        $recentPurchaseCount = \App\Models\OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('order_items.product_id', $product->id)
+            ->whereIn('orders.status', ['delivered', 'shipped', 'processing', 'completed'])
+            ->where('orders.payment_status', 'paid')
+            ->where('orders.created_at', '>=', now()->subDays(30))
+            ->sum('order_items.quantity');
+         
         // Get similar products (from same category, limit 6)
         $similarProducts = Product::with([
             'primaryImage',
@@ -2119,21 +2279,31 @@ class FrontendController extends Controller
         ->get()
         ->map(function($similarProduct) {
             $activeVariants = $similarProduct->variants->where('is_active', true);
+        
             $prices = $activeVariants->pluck('price')->filter();
             $salePrices = $activeVariants->pluck('sale_price')->filter();
-            
+        
             $minPrice = $prices->min() ?? 0;
             $maxPrice = $prices->max() ?? 0;
             $minSalePrice = $salePrices->min();
             $hasSale = $minSalePrice && $minSalePrice < $minPrice;
-            
-            $imageUrl = asset('frontend/images/product/sample-product.jpg');
-            if ($similarProduct->primaryImage) {
-                $imageUrl = asset('storage/' . $similarProduct->primaryImage->image_path);
-            } elseif ($similarProduct->images->count() > 0) {
-                $imageUrl = asset('storage/' . $similarProduct->images->first()->image_path);
+        
+            $imageUrl = asset('assets/images/placeholder.jpg');
+        
+            $firstSimilarVariant = $activeVariants->first();
+            if ($firstSimilarVariant && $firstSimilarVariant->images && $firstSimilarVariant->images->count() > 0) {
+                $primaryVariantImage = $firstSimilarVariant->images->where('is_primary', true)->first();
+        
+                if ($primaryVariantImage) {
+                    $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                } else {
+                    $firstVariantImage = $firstSimilarVariant->images->first();
+                    if ($firstVariantImage) {
+                        $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                    }
+                }
             }
-            
+        
             return [
                 'id' => $similarProduct->id,
                 'name' => $similarProduct->name,
@@ -2148,6 +2318,7 @@ class FrontendController extends Controller
                     : '$' . number_format($minPrice, 0),
             ];
         });
+        
         
         return view('frontend.product', compact(
             'product',
@@ -2168,7 +2339,10 @@ class FrontendController extends Controller
             'displaySku',
             'activeVariants',
             'similarProducts',
-            'variantDataMap'
+            'variantDataMap',
+            'gstType',
+            'gstPercentage',
+            'recentPurchaseCount'
         ));
     }
 
@@ -2230,9 +2404,43 @@ class FrontendController extends Controller
         // Get active variants
         $activeVariants = $product->variants->where('is_active', true);
         
-        // Get price range
-        $prices = $activeVariants->pluck('price')->filter();
-        $salePrices = $activeVariants->pluck('sale_price')->filter();
+        // Helper function to calculate GST-inclusive price
+        $calculateGstInclusivePrice = function($basePrice, $gstType, $gstPercentage) {
+            if ($basePrice <= 0) return 0;
+            
+            // If gst_type is true, price is already inclusive
+            if ($gstType === true || $gstType === 1 || $gstType === '1') {
+                return $basePrice;
+            }
+            
+            // If gst_type is false, add GST
+            if ($gstType === false || $gstType === 0 || $gstType === '0') {
+                $gstPercent = $gstPercentage ?? 0;
+                if ($gstPercent > 0) {
+                    return $basePrice + ($basePrice * $gstPercent / 100);
+                }
+            }
+            
+            return $basePrice;
+        };
+        
+        // Get GST settings from product
+        $gstType = $product->gst_type ?? true; // Default to inclusive
+        $gstPercentage = $product->gst_percentage ?? 0;
+        
+        // Get price range with GST applied
+        $prices = $activeVariants->map(function($variant) use ($calculateGstInclusivePrice, $gstType, $gstPercentage) {
+            $basePrice = $variant->price ?? 0;
+            return $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
+        })->filter();
+        
+        $salePrices = $activeVariants->map(function($variant) use ($calculateGstInclusivePrice, $gstType, $gstPercentage) {
+            $baseSalePrice = $variant->sale_price;
+            if ($baseSalePrice && $baseSalePrice > 0) {
+                return $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage);
+            }
+            return null;
+        })->filter();
         
         $minPrice = $prices->min() ?? 0;
         $maxPrice = $prices->max() ?? 0;
@@ -2258,7 +2466,7 @@ class FrontendController extends Controller
                 ]);
             } else {
                 $productImages->push([
-                    'url' => asset('frontend/images/product/sample-product.jpg'),
+                    'url' => asset('assets/images/placeholder.jpg'),
                     'alt' => $product->name,
                 ]);
             }
@@ -2292,9 +2500,8 @@ class FrontendController extends Controller
         $sizes = [];
         
         foreach ($activeVariants as $variant) {
-            $attrs = is_string($variant->attributes) 
-                ? json_decode($variant->attributes, true) 
-                : ($variant->attributes ?? []);
+            // Parse attributes using new helper function
+            $parsed = self::parseVariantAttributes($variant->attributes);
             
             // Get variant images
             $variantImages = [];
@@ -2307,77 +2514,101 @@ class FrontendController extends Controller
                 })->toArray();
             }
             
-            // Extract all attribute values from this variant
-            foreach ($attrs as $key => $value) {
-                if (empty($value)) {
-                    continue;
+            // Extract color from new structured format
+            if ($parsed['color']) {
+                $colorValue = $parsed['color']['label'];
+                $colorCode = $parsed['color']['code'];
+                
+                // Populate color arrays
+                if (!in_array($colorValue, $colors)) {
+                    $colors[] = $colorValue;
+                    $colorVariantsMap[$colorValue] = [
+                        'color' => $colorValue,
+                        'color_code' => $colorCode,
+                        'images' => $variantImages,
+                    ];
                 }
                 
-                $attribute = null;
-                $attributeId = null;
+                // Find color attribute to add to attributeValues
+                $colorAttribute = $allVariantAttributes->first(function($attr) {
+                    return $attr->type === 'color' || strtolower($attr->name) === 'color' || strtolower($attr->slug) === 'color';
+                });
                 
-                // Find attribute by ID, name, or slug
-                if (is_numeric($key)) {
-                    $attribute = $attributeMap->get($key);
-                    $attributeId = $key;
-                } elseif ($attributeNameMap->has($key)) {
-                    $attribute = $attributeNameMap->get($key);
-                    $attributeId = $attribute->id;
-                } elseif ($attributeSlugMap->has($key)) {
-                    $attribute = $attributeSlugMap->get($key);
-                    $attributeId = $attribute->id;
+                if ($colorAttribute) {
+                    if (!isset($attributeValues[$colorAttribute->id])) {
+                        $attributeValues[$colorAttribute->id] = [];
+                    }
+                    if (!isset($attributeVariantsMap[$colorAttribute->id])) {
+                        $attributeVariantsMap[$colorAttribute->id] = [];
+                    }
+                    if (!in_array($colorValue, $attributeValues[$colorAttribute->id])) {
+                        $attributeValues[$colorAttribute->id][] = $colorValue;
+                    }
+                    if (!isset($attributeVariantsMap[$colorAttribute->id][$colorValue])) {
+                        $attributeVariantsMap[$colorAttribute->id][$colorValue] = [
+                            'value' => $colorValue,
+                            'images' => $variantImages,
+                            'color_code' => $colorCode,
+                        ];
+                    }
                 }
+            }
+            
+            // Extract variable attributes (size, material, etc.)
+            foreach ($parsed['variable'] as $varKey => $varValue) {
+                // Find attribute by name or slug
+                $attribute = $allVariantAttributes->first(function($attr) use ($varKey) {
+                    return strtolower($attr->name) === strtolower($varKey) 
+                        || strtolower($attr->slug) === strtolower($varKey);
+                });
                 
                 if ($attribute) {
-                    // Initialize arrays if needed
-                    if (!isset($attributeValues[$attributeId])) {
-                        $attributeValues[$attributeId] = [];
+                    if (!isset($attributeValues[$attribute->id])) {
+                        $attributeValues[$attribute->id] = [];
                     }
-                    if (!isset($attributeVariantsMap[$attributeId])) {
-                        $attributeVariantsMap[$attributeId] = [];
+                    if (!isset($attributeVariantsMap[$attribute->id])) {
+                        $attributeVariantsMap[$attribute->id] = [];
                     }
-                    
-                    // Add unique value
-                    if (!in_array($value, $attributeValues[$attributeId])) {
-                        $attributeValues[$attributeId][] = $value;
+                    if (!in_array($varValue, $attributeValues[$attribute->id])) {
+                        $attributeValues[$attribute->id][] = $varValue;
                     }
-                    
-                    // Store variant data for this attribute value
-                    if (!isset($attributeVariantsMap[$attributeId][$value])) {
-                        $attributeVariantsMap[$attributeId][$value] = [
-                            'value' => $value,
+                    if (!isset($attributeVariantsMap[$attribute->id][$varValue])) {
+                        $attributeVariantsMap[$attribute->id][$varValue] = [
+                            'value' => $varValue,
                             'images' => $variantImages,
                         ];
-                        
-                        // If it's a color attribute, also get color code
-                        if ($attribute->type === 'color') {
-                            $colorAttribute = $attribute;
-                            $attributeValue = ProductAttributeValue::where('attribute_id', $attribute->id)
-                                ->whereRaw('LOWER(value) = ?', [strtolower($value)])
-                                ->first();
-                            $colorCode = $attributeValue && $attributeValue->color_code 
-                                ? $attributeValue->color_code 
-                                : self::getColorCodeFromName($value);
-                            
-                            $attributeVariantsMap[$attributeId][$value]['color_code'] = $colorCode;
-                            
-                            // Also populate legacy color arrays for backward compatibility
-                            if (!in_array($value, $colors)) {
-                                $colors[] = $value;
-                                $colorVariantsMap[$value] = [
-                                    'color' => $value,
-                                    'color_code' => $colorCode,
-                                    'images' => $variantImages,
-                                ];
-                            }
+                    }
+                    
+                    // Legacy size support
+                    if (strtolower($attribute->name) === 'size' || strtolower($attribute->slug) === 'size') {
+                        if (!in_array($varValue, $sizes)) {
+                            $sizes[] = $varValue;
                         }
-                        
-                        // Legacy size support
-                        if (strtolower($attribute->name) === 'size' || strtolower($attribute->slug) === 'size') {
-                            if (!in_array($value, $sizes)) {
-                                $sizes[] = $value;
-                            }
-                        }
+                    }
+                } else {
+                    // Attribute not found in ProductAttribute table - create dynamic entry
+                    // Use a dynamic key to distinguish from real attributes
+                    $dynamicAttributeKey = 'dynamic_' . strtolower($varKey);
+                    
+                    if (!isset($attributeValues[$dynamicAttributeKey])) {
+                        $attributeValues[$dynamicAttributeKey] = [];
+                        $attributeVariantsMap[$dynamicAttributeKey] = [];
+                    }
+                    
+                    if (!in_array($varValue, $attributeValues[$dynamicAttributeKey])) {
+                        $attributeValues[$dynamicAttributeKey][] = $varValue;
+                    }
+                    
+                    if (!isset($attributeVariantsMap[$dynamicAttributeKey][$varValue])) {
+                        $attributeVariantsMap[$dynamicAttributeKey][$varValue] = [
+                            'value' => $varValue,
+                            'images' => $variantImages,
+                        ];
+                    }
+                    
+                    // Legacy size support
+                    if (strtolower($varKey) === 'size' && !in_array($varValue, $sizes)) {
+                        $sizes[] = $varValue;
                     }
                 }
             }
@@ -2385,6 +2616,8 @@ class FrontendController extends Controller
         
         // Build attributes structure for frontend
         $attributesData = [];
+        
+        // First, add attributes from ProductAttribute table
         foreach ($allVariantAttributes as $attribute) {
             if (isset($attributeValues[$attribute->id]) && !empty($attributeValues[$attribute->id])) {
                 $values = collect($attributeValues[$attribute->id])->map(function($value) use ($attribute, $attributeVariantsMap) {
@@ -2411,6 +2644,45 @@ class FrontendController extends Controller
                     'slug' => $attribute->slug,
                     'type' => $attribute->type,
                     'values' => $values,
+                ];
+            }
+        }
+        
+        // Then, add dynamic attributes (from variants but not in ProductAttribute table)
+        foreach ($attributeValues as $attrKey => $values) {
+            if (strpos($attrKey, 'dynamic_') === 0 && !empty($values)) {
+                $attrName = str_replace('dynamic_', '', $attrKey);
+                $attrName = ucfirst(str_replace('_', ' ', $attrName));
+                
+                $valueDataArray = collect($values)->map(function($value) use ($attrKey, $attributeVariantsMap) {
+                    $valueData = [
+                        'value' => $value,
+                    ];
+                    
+                    if (isset($attributeVariantsMap[$attrKey][$value])) {
+                        $variantData = $attributeVariantsMap[$attrKey][$value];
+                        if (isset($variantData['images'])) {
+                            $valueData['images'] = $variantData['images'];
+                        }
+                    }
+                    
+                    return $valueData;
+                })->values()->toArray();
+                
+                // Determine type based on attribute name
+                $attrType = 'text';
+                if (stripos($attrName, 'color') !== false) {
+                    $attrType = 'color';
+                } elseif (stripos($attrName, 'size') !== false || stripos($attrName, 'length') !== false) {
+                    $attrType = 'size';
+                }
+                
+                $attributesData[] = [
+                    'id' => $attrKey, // Use dynamic key as ID
+                    'name' => $attrName,
+                    'slug' => strtolower(str_replace(' ', '-', $attrName)),
+                    'type' => $attrType,
+                    'values' => $valueDataArray,
                 ];
             }
         }
@@ -2443,66 +2715,73 @@ class FrontendController extends Controller
                 'max_sale_price' => $maxSalePrice,
                 'has_sale' => $hasSale,
                 'price_display' => $minPrice != $maxPrice 
-                    ? '₹' . number_format($minPrice, 0) . ' - ₹' . number_format($maxPrice, 0)
-                    : '₹' . number_format($minPrice, 0),
+                    ? '₹' . number_format($minPrice, 2) . ' - ₹' . number_format($maxPrice, 2)
+                    : '₹' . number_format($minPrice, 2),
                 'colors' => array_values($colors), // Legacy support
                 'sizes' => array_values($sizes), // Legacy support
                 'color_variants' => $colorVariantsMap, // Legacy support
                 'attributes' => $attributesData, // New: All variant attributes dynamically
                 'in_stock' => $inStock,
-                'variants' => $activeVariants->map(function($variant) use ($allVariantAttributes, $attributeMap, $attributeNameMap, $attributeSlugMap, $colorAttribute) {
-                    $attrs = is_string($variant->attributes) 
-                        ? json_decode($variant->attributes, true) 
-                        : ($variant->attributes ?? []);
+                'variants' => $activeVariants->map(function($variant) use ($allVariantAttributes, $calculateGstInclusivePrice, $gstType, $gstPercentage) {
+                    // Parse attributes using new helper function
+                    $parsed = self::parseVariantAttributes($variant->attributes);
                     
                     $colorValue = null;
                     $sizeValue = null;
                     $allAttributes = []; // New: All attributes for this variant
                     
-                    foreach ($attrs as $key => $value) {
-                        if (empty($value)) {
-                            continue;
+                    // Get color value
+                    if ($parsed['color']) {
+                        $colorValue = $parsed['color']['label'];
+                        // Find color attribute
+                        $colorAttribute = $allVariantAttributes->first(function($attr) {
+                            return $attr->type === 'color' || strtolower($attr->name) === 'color' || strtolower($attr->slug) === 'color';
+                        });
+                        if ($colorAttribute) {
+                            $allAttributes[] = [
+                                'attribute_id' => $colorAttribute->id,
+                                'attribute_name' => $colorAttribute->name,
+                                'attribute_slug' => $colorAttribute->slug,
+                                'attribute_type' => $colorAttribute->type,
+                                'value' => $colorValue,
+                            ];
                         }
-                        
-                        $attribute = null;
-                        $attributeId = null;
-                        
-                        // Find attribute by ID, name, or slug
-                        if (is_numeric($key)) {
-                            $attribute = $attributeMap->get($key);
-                            $attributeId = $key;
-                        } elseif ($attributeNameMap->has($key)) {
-                            $attribute = $attributeNameMap->get($key);
-                            $attributeId = $attribute->id;
-                        } elseif ($attributeSlugMap->has($key)) {
-                            $attribute = $attributeSlugMap->get($key);
-                            $attributeId = $attribute->id;
-                        }
+                    }
+                    
+                    // Get variable attributes (size, material, etc.)
+                    foreach ($parsed['variable'] as $varKey => $varValue) {
+                        // Find attribute by name or slug
+                        $attribute = $allVariantAttributes->first(function($attr) use ($varKey) {
+                            return strtolower($attr->name) === strtolower($varKey) 
+                                || strtolower($attr->slug) === strtolower($varKey);
+                        });
                         
                         if ($attribute) {
-                            // Store all attributes
                             $allAttributes[] = [
                                 'attribute_id' => $attribute->id,
                                 'attribute_name' => $attribute->name,
                                 'attribute_slug' => $attribute->slug,
                                 'attribute_type' => $attribute->type,
-                                'value' => $value,
+                                'value' => $varValue,
                             ];
-                            
-                            // Legacy color/size support
-                            if ($attribute->type === 'color' || strtolower($attribute->name) === 'color' || strtolower($attribute->slug) === 'color') {
-                                $colorValue = $value;
-                            }
                             if (strtolower($attribute->name) === 'size' || strtolower($attribute->slug) === 'size') {
-                                $sizeValue = $value;
+                                $sizeValue = $varValue;
                             }
                         } else {
-                            // Fallback for legacy color/size detection
-                            if (strtolower($key) === 'color') {
-                                $colorValue = $value;
-                            }
-                            if (strtolower($key) === 'size') {
-                                $sizeValue = $value;
+                            // Dynamic attribute (not in ProductAttribute table)
+                            // Add it to allAttributes with dynamic key as attribute_id
+                            $dynamicKey = 'dynamic_' . strtolower($varKey);
+                            $allAttributes[] = [
+                                'attribute_id' => $dynamicKey, // Use dynamic key as ID
+                                'attribute_name' => ucfirst(str_replace('_', ' ', $varKey)),
+                                'attribute_slug' => strtolower(str_replace('_', '-', $varKey)),
+                                'attribute_type' => (stripos($varKey, 'size') !== false || stripos($varKey, 'length') !== false) ? 'size' : 'text',
+                                'value' => $varValue,
+                            ];
+                            
+                            // Fallback: treat as size if key is 'size'
+                            if (strtolower($varKey) === 'size') {
+                                $sizeValue = $varValue;
                             }
                         }
                     }
@@ -2528,11 +2807,29 @@ class FrontendController extends Controller
                         }
                     }
                     
+                    // Parse measurements if available
+                    $measurements = [];
+                    if ($variant->measurements) {
+                        if (is_string($variant->measurements)) {
+                            $measurements = json_decode($variant->measurements, true) ?? [];
+                        } else {
+                            $measurements = is_array($variant->measurements) ? $variant->measurements : [];
+                        }
+                    }
+                    
+                    // Calculate GST-inclusive prices
+                    $basePrice = $variant->price ?? 0;
+                    $baseSalePrice = $variant->sale_price;
+                    $price = $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
+                    $salePrice = $baseSalePrice ? $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage) : null;
+                    $hasSale = $salePrice && $salePrice < $price;
+                    
                     return [
                         'id' => $variant->id,
                         'sku' => $variant->sku,
-                        'price' => $variant->price,
-                        'sale_price' => $variant->sale_price,
+                        'price' => $price,
+                        'sale_price' => $salePrice,
+                        'has_sale' => $hasSale,
                         'color' => $colorValue, // Legacy support
                         'size' => $sizeValue, // Legacy support
                         'attributes' => $allAttributes, // New: All attributes for this variant
@@ -2542,6 +2839,7 @@ class FrontendController extends Controller
                         'manage_stock' => $variant->manage_stock,
                         'is_in_stock' => $variant->manage_stock ? $variant->stock_quantity > 0 : $variant->stock_status === 'in_stock',
                         'highlights_details' => $highlightsDetails,
+                        'measurements' => $measurements, // Include measurements
                     ];
                 }),
                 'default_sku' => $activeVariants->first() ? $activeVariants->first()->sku : '',
@@ -2586,7 +2884,7 @@ class FrontendController extends Controller
                     }]);
                 }, 'variant' => function($q) {
                     $q->with(['images' => function($imgQ) {
-                        $imgQ->orderBy('sort_order')->orderBy('id')->limit(1);
+                        $imgQ->orderBy('is_primary', 'desc')->orderBy('sort_order')->orderBy('id');
                     }]);
                 }]);
             }])
@@ -2682,6 +2980,7 @@ class FrontendController extends Controller
                 foreach ($attrs as $key => $value) {
                     if (empty($value)) continue;
                     if (is_numeric($key) && isset($colorAttributeMap[$key])) return true;
+                    if (!is_string($key)) continue; // Skip non-string keys
                     if (isset($colorAttributeNameMap[$key]) || 
                         isset($colorAttributeNameMap[ucfirst($key)]) ||
                         strtolower($key) === 'color') return true;
@@ -2702,24 +3001,33 @@ class FrontendController extends Controller
                 foreach ($attrs as $key => $value) {
                     if (empty($value)) continue;
                     if (is_numeric($key) && isset($colorAttributeMap[$key])) {
-                        $colorValue = $value;
+                        // Handle array values (new structured format)
+                        $colorValue = is_array($value) ? ($value['label'] ?? $value['value'] ?? '') : (string)$value;
                         $colorAttributeId = (int)$key;
                         break;
                     }
+                    if (!is_string($key)) continue; // Skip non-string keys
                     $attribute = $colorAttributeNameMap[$key] ?? 
                                 $colorAttributeNameMap[ucfirst($key)] ?? 
                                 null;
                     if ($attribute) {
-                        $colorValue = $value;
+                        // Handle array values (new structured format)
+                        $colorValue = is_array($value) ? ($value['label'] ?? $value['value'] ?? '') : (string)$value;
                         $colorAttributeId = $attribute->id;
                         break;
                     }
                     if (strtolower($key) === 'color') {
-                        $colorValue = $value;
+                        // Handle array values (new structured format)
+                        $colorValue = is_array($value) ? ($value['label'] ?? $value['value'] ?? '') : (string)$value;
                         $attribute = $colorAttributeNameMap->first();
                         $colorAttributeId = $attribute ? $attribute->id : null;
                         break;
                     }
+                }
+                
+                // Normalize colorValue to always be a string
+                if ($colorValue) {
+                    $colorValue = is_array($colorValue) ? ($colorValue['label'] ?? $colorValue['value'] ?? '') : (string)$colorValue;
                 }
                 
                 $colorCode = '#ccc';
@@ -2796,49 +3104,31 @@ class FrontendController extends Controller
     public function profileInfo(Request $request)
     {
         $customer = Auth::guard('customer')->user();
-        
-        \Log::info('=== PROFILE INFO PAGE LOAD ===');
-        \Log::info('Customer ID: ' . ($customer ? $customer->id : 'NULL'));
+         
         
         if ($customer) {
-            \Log::info('Customer Data from Auth: ' . json_encode([
-                'id' => $customer->id,
-                'full_name' => $customer->full_name,
-                'email' => $customer->email,
-                'profile_image' => $customer->profile_image,
-            ]));
+            
             
             // Verify database directly
             $dbCustomer = \DB::table('customers')->where('id', $customer->id)->first();
             if ($dbCustomer) {
-                \Log::info('Database Direct Query Result: ' . json_encode([
-                    'id' => $dbCustomer->id,
-                    'full_name' => $dbCustomer->full_name,
-                    'email' => $dbCustomer->email,
-                    'profile_image' => $dbCustomer->profile_image,
-                ]));
+                 
                 
                 // Check if profile_image file exists and sync if needed
                 if ($dbCustomer->profile_image) {
                     $fullPath = storage_path('app/public/' . $dbCustomer->profile_image);
                     $publicPath = public_path('storage/' . $dbCustomer->profile_image);
-                    \Log::info('Profile Image Storage Path: ' . $fullPath);
-                    \Log::info('Profile Image Exists (storage): ' . (file_exists($fullPath) ? 'Yes' : 'No'));
-                    \Log::info('Profile Image Public Path: ' . $publicPath);
-                    \Log::info('Profile Image Exists (public): ' . (file_exists($publicPath) ? 'Yes' : 'No'));
+                    
                     
                     // Sync file to public/storage if it exists in storage but not in public
                     if (file_exists($fullPath) && !file_exists($publicPath)) {
                         $destinationDir = dirname($publicPath);
                         if (!is_dir($destinationDir)) {
                             File::makeDirectory($destinationDir, 0755, true);
-                            \Log::info('Created directory for sync: ' . $destinationDir);
                         }
                         
                         if (File::copy($fullPath, $publicPath)) {
-                            \Log::info('Synced existing file to public/storage: ' . $publicPath);
                         } else {
-                            \Log::error('Failed to sync file to public/storage: ' . $publicPath);
                         }
                     }
                 }
@@ -2859,31 +3149,18 @@ class FrontendController extends Controller
             ->ordered()
             ->get();
         
-        \Log::info('=== PROFILE INFO PAGE LOAD END ===');
         
         return view('frontend.profile-info', compact('customer', 'fields', 'qolFields'));
     }
 
     public function updateProfileInfo(Request $request)
     {
-        \Log::info('=== PROFILE UPDATE START ===');
-        \Log::info('Request Method: ' . $request->method());
-        \Log::info('Is AJAX: ' . ($request->ajax() ? 'Yes' : 'No'));
-        \Log::info('Request Data: ' . json_encode($request->except(['password', 'password_confirmation'])));
-        
+       
         $customer = Auth::guard('customer')->user();
         
         if (!$customer) {
-            \Log::error('No authenticated customer found');
             return redirect()->route('frontend.index')->with('error', 'Please login to update your profile.');
         }
-        
-        \Log::info('Customer ID: ' . $customer->id);
-        \Log::info('Customer Current Data: ' . json_encode([
-            'full_name' => $customer->full_name,
-            'email' => $customer->email,
-            'profile_image' => $customer->profile_image,
-        ]));
         
         // Get fields for validation (basic_info and qol groups)
         $fields = FieldManagement::whereIn('field_group', ['basic_info', 'qol'])
@@ -2892,7 +3169,6 @@ class FrontendController extends Controller
             ->ordered()
             ->get();
         
-        \Log::info('Fields Count: ' . $fields->count());
         
         // Build validation rules
         $rules = [];
@@ -2947,26 +3223,19 @@ class FrontendController extends Controller
             }
         }
         
-        \Log::info('Validation Rules: ' . json_encode($rules));
+      
         
         // Validate request
         try {
             $validated = $request->validate($rules);
-            \Log::info('Validation Passed. Validated Data: ' . json_encode(array_keys($validated)));
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Validation Failed: ' . json_encode($e->errors()));
             throw $e;
         }
         
         // Handle file uploads first
         foreach ($fields as $field) {
             if ($field->input_type === 'file' && $request->hasFile($field->field_key)) {
-                $file = $request->file($field->field_key);
-                
-                \Log::info('File Upload Detected for: ' . $field->field_key);
-                \Log::info('File Name: ' . $file->getClientOriginalName());
-                \Log::info('File Size: ' . $file->getSize());
-                \Log::info('File MIME: ' . $file->getMimeType());
+                $file = $request->file($field->field_key); 
                 
                 // Generate unique filename
                 $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -2974,15 +3243,12 @@ class FrontendController extends Controller
                 // Store in storage/app/public/customers/profile_images
                 $path = $file->storeAs('customers/profile_images', $filename, 'public');
                 
-                \Log::info('File Stored Path: ' . $path);
-                \Log::info('Full Storage Path: ' . storage_path('app/public/' . $path));
-                \Log::info('File Exists: ' . (file_exists(storage_path('app/public/' . $path)) ? 'Yes' : 'No'));
+               
                 
                 // Check if storage link exists
                 $publicStoragePath = public_path('storage');
                 $storageLinkExists = is_link($publicStoragePath) || is_dir($publicStoragePath);
-                \Log::info('Storage Link Exists: ' . ($storageLinkExists ? 'Yes' : 'No'));
-                \Log::info('Public Storage Path: ' . $publicStoragePath);
+               
                 
                 // Ensure file is copied to public/storage for immediate access
                 $sourceFile = storage_path('app/public/' . $path);
@@ -2993,35 +3259,28 @@ class FrontendController extends Controller
                     // Create destination directory if it doesn't exist
                     if (!is_dir($destinationDir)) {
                         File::makeDirectory($destinationDir, 0755, true);
-                        \Log::info('Created directory: ' . $destinationDir);
                     }
                     
                     // Copy file to public/storage
                     if (File::copy($sourceFile, $destinationFile)) {
-                        \Log::info('File copied to public/storage: ' . $destinationFile);
-                        \Log::info('Public file exists: ' . (file_exists($destinationFile) ? 'Yes' : 'No'));
                     } else {
-                        \Log::error('Failed to copy file to public/storage: ' . $destinationFile);
                     }
                 } else {
-                    \Log::error('Source file does not exist: ' . $sourceFile);
                 }
                 
                 // Delete old image if exists
                 if ($customer->{$field->field_key}) {
                     $oldPath = storage_path('app/public/' . $customer->{$field->field_key});
-                    \Log::info('Old Image Path: ' . $oldPath);
-                    \Log::info('Old Image Exists: ' . (file_exists($oldPath) ? 'Yes' : 'No'));
+                     
                     if (file_exists($oldPath)) {
                         @unlink($oldPath);
-                        \Log::info('Old Image Deleted');
+                        
                     }
                 }
                 
                 // Save relative path (normalize to forward slashes for cross-platform compatibility)
                 $normalizedPath = str_replace('\\', '/', $path);
                 $customer->{$field->field_key} = $normalizedPath;
-                \Log::info('Setting ' . $field->field_key . ' to: ' . $normalizedPath);
             }
         }
         
@@ -3058,46 +3317,30 @@ class FrontendController extends Controller
                     // Ensure date is in Y-m-d format
                     $dateValue = Carbon::parse($fieldValue)->format('Y-m-d');
                     $fieldValue = $dateValue;
-                    \Log::info('Date field ' . $field->field_key . ' formatted to: ' . $fieldValue);
                 } catch (\Exception $e) {
-                    \Log::error('Invalid date format for ' . $field->field_key . ': ' . $fieldValue . ' - Error: ' . $e->getMessage());
                     continue;
                 }
             }
             
             $oldValue = $customer->{$field->field_key};
             $customer->{$field->field_key} = $fieldValue;
-            \Log::info('Updating ' . $field->field_key . ': ' . ($oldValue ?? 'NULL') . ' -> ' . ($fieldValue ?? 'NULL'));
+         
         }
         
-        \Log::info('Customer Data Before Save: ' . json_encode($customer->getAttributes()));
+       
         
         $saved = $customer->save();
         
-        \Log::info('Save Result: ' . ($saved ? 'Success' : 'Failed'));
+         
         
         // Refresh customer data
         $customer->refresh();
         
-        \Log::info('Customer Data After Refresh: ' . json_encode([
-            'id' => $customer->id,
-            'full_name' => $customer->full_name,
-            'email' => $customer->email,
-            'date_of_birth' => $customer->date_of_birth,
-            'gender' => $customer->gender,
-            'profile_image' => $customer->profile_image,
-        ]));
+        
         
         // Verify database directly
         $dbCustomer = \DB::table('customers')->where('id', $customer->id)->first();
-        \Log::info('Database Direct Query Result: ' . json_encode([
-            'id' => $dbCustomer->id ?? 'NULL',
-            'full_name' => $dbCustomer->full_name ?? 'NULL',
-            'email' => $dbCustomer->email ?? 'NULL',
-            'date_of_birth' => $dbCustomer->date_of_birth ?? 'NULL',
-            'gender' => $dbCustomer->gender ?? 'NULL',
-            'profile_image' => $dbCustomer->profile_image ?? 'NULL',
-        ]));
+         
         
         // Return JSON response for AJAX requests
         if ($request->ajax() || $request->wantsJson()) {
@@ -3105,12 +3348,10 @@ class FrontendController extends Controller
             if ($customer->profile_image) {
                 // Use Storage facade to get the URL, which handles path correctly
                 $profileImageUrl = Storage::disk('public')->url($customer->profile_image);
-                \Log::info('Profile Image Path: ' . $customer->profile_image);
-                \Log::info('Profile Image URL: ' . $profileImageUrl);
-                \Log::info('Storage File Exists: ' . (Storage::disk('public')->exists($customer->profile_image) ? 'Yes' : 'No'));
+                 
             }
             
-            \Log::info('=== PROFILE UPDATE END (AJAX) ===');
+             
             
             // Build response data with all updated fields
             $responseData = [
@@ -3161,8 +3402,7 @@ class FrontendController extends Controller
             ]);
         }
         
-        \Log::info('=== PROFILE UPDATE END (REDIRECT) ===');
-        
+         
         // Return redirect for regular form submissions
         return redirect()->route('frontend.profile-info')->with('success', 'Profile updated successfully!');
     }
@@ -3272,15 +3512,12 @@ class FrontendController extends Controller
             $customer->password = $request->password; // Will be hashed by model mutator
             $customer->save();
             
-            \Log::info('Password changed for customer ID: ' . $customer->id);
-            
+             
             return redirect()->route('frontend.change-password')
                 ->with('success', 'Password changed successfully!');
                 
         } catch (\Exception $e) {
-            \Log::error('Error changing password: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+             
             return redirect()->route('frontend.change-password')
                 ->with('error', 'Error changing password: ' . $e->getMessage())
                 ->withInput();
@@ -3354,7 +3591,6 @@ class FrontendController extends Controller
             foreach ($patterns as $pattern) {
                 if (preg_match($pattern, $buffer, $matches, PREG_OFFSET_CAPTURE)) {
                     $matchPosition = $filePosition + $matches[0][1];
-                    \Log::info('Pincode match found at position: ' . $matchPosition . ' with pattern: ' . $pattern);
                     break 2;
                 }
             }
@@ -3394,7 +3630,6 @@ class FrontendController extends Controller
         
         // If we didn't find an opening brace, the context might be too small
         if ($objectStart === 0 && $context[0] !== '{') {
-            \Log::info('Could not find opening brace, increasing context size');
             // Try with larger context
             $contextSize = 20000; // 20KB context
             $startPos = max(0, $matchPosition - $contextSize);
@@ -3433,13 +3668,10 @@ class FrontendController extends Controller
                     if ($braceCount === 0) {
                         // Found complete object
                         $objectJson = substr($context, $objectStart, $objectEnd - $objectStart + 1);
-                        \Log::info('Extracted JSON object: ' . substr($objectJson, 0, 200));
                         $pincodeData = json_decode($objectJson, true);
                         if ($pincodeData && is_array($pincodeData)) {
-                            \Log::info('Successfully decoded pincode data');
                             return $pincodeData;
                         } else {
-                            \Log::info('Failed to decode JSON: ' . json_last_error_msg());
                             return null;
                         }
                     }
@@ -3448,7 +3680,6 @@ class FrontendController extends Controller
             $objectEnd++;
         }
         
-        \Log::info('Could not find closing brace, object might be too large or context insufficient');
         return null;
     }
 
@@ -3651,7 +3882,6 @@ class FrontendController extends Controller
         try {
             $pincode = $request->get('pincode');
             
-            \Log::info('Pincode lookup request: ' . $pincode);
             
             if (!$pincode || strlen(trim($pincode)) < 4) {
                 return response()->json([
@@ -3664,8 +3894,6 @@ class FrontendController extends Controller
             
             // Load pincodes JSON (new format)
             $pincodesPath = public_path('location-json/pincodes.json');
-            \Log::info('Pincodes path: ' . $pincodesPath);
-            \Log::info('Pincodes file exists: ' . (file_exists($pincodesPath) ? 'Yes' : 'No'));
             
             if (!file_exists($pincodesPath)) {
                 return response()->json([
@@ -3678,14 +3906,12 @@ class FrontendController extends Controller
             $foundPincode = $this->searchPincodeInPincodesJson($pincodesPath, $pincode);
             
             if (!$foundPincode) {
-                \Log::info('Pincode not found: ' . $pincode);
                 return response()->json([
                     'success' => false,
                     'message' => 'Location not found for this pincode'
                 ], 404);
             }
             
-            \Log::info('Found pincode data: ' . json_encode($foundPincode));
             
             // Extract data from pincodes.json format
             // Format: {"officeName":"Ada B.O","pincode":504293,"taluk":"Asifabad","districtName":"Adilabad","stateName":"ANDHRA PRADESH"}
@@ -3700,7 +3926,7 @@ class FrontendController extends Controller
             // Use districtName as city, fallback to taluk
             $cityName = $districtName ?: $taluk;
             
-            \Log::info('Found pincode data - District: ' . $districtName . ', Taluk: ' . $taluk . ', State: ' . $stateName);
+           
             
             // Look up state in states.json to get state ID and proper name
             $stateId = null;
@@ -3723,7 +3949,7 @@ class FrontendController extends Controller
                                 stripos($stateNameRawUpper, $stateNameInFile) !== false) {
                                 $stateId = $state['id'] ?? null;
                                 $stateNameFinal = $state['name'] ?? $stateName;
-                                \Log::info('Found state in states.json: ID=' . $stateId . ', Name=' . $stateNameFinal);
+                               
                                 break;
                             }
                         }
@@ -3777,7 +4003,6 @@ class FrontendController extends Controller
                                             $cityId = $cityMatch[1];
                                             $cityNameFinal = $matchedCityName;
                                             $found = true;
-                                            \Log::info('Found city in cities.json: ID=' . $cityId . ', Name=' . $cityNameFinal);
                                             break 2;
                                         }
                                     }
@@ -3800,7 +4025,7 @@ class FrontendController extends Controller
                 $cityNameFinal = $cityName;
             }
             
-            \Log::info('Location lookup result: City=' . $cityNameFinal . ', State=' . $stateNameFinal . ', Country=' . $countryName);
+           
             
             return response()->json([
                 'success' => true,
@@ -3819,8 +4044,7 @@ class FrontendController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Error fetching location by pincode: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+           
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching location data: ' . $e->getMessage()
@@ -3961,13 +4185,12 @@ class FrontendController extends Controller
                 }
             }
             
-            \Log::info('Address saved for customer ID: ' . $customer->id, $addressData);
+           
             
             return redirect()->route('frontend.addresses')->with('success', $message);
             
         } catch (\Exception $e) {
-            \Log::error('Error saving address: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+           
             
             return redirect()->route('frontend.addresses')
                 ->with('error', 'Error saving address: ' . $e->getMessage())
@@ -4007,7 +4230,7 @@ class FrontendController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Error getting address: ' . $e->getMessage());
+           
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching address: ' . $e->getMessage()
@@ -4043,15 +4266,14 @@ class FrontendController extends Controller
             
             $address->delete();
             
-            \Log::info('Address deleted: ' . $id . ' for customer: ' . $customer->id);
+           
             
             return response()->json([
                 'success' => true,
                 'message' => 'Address deleted successfully.'
             ]);
             
-        } catch (\Exception $e) {
-            \Log::error('Error deleting address: ' . $e->getMessage());
+        } catch (\Exception $e) { 
             return response()->json([
                 'success' => false,
                 'message' => 'Error deleting address: ' . $e->getMessage()
@@ -4174,10 +4396,7 @@ class FrontendController extends Controller
         
         // Safety check - if middleware didn't provide data, redirect back
         if (!$cart || !$customer) {
-            \Log::error('Checkout controller: Missing cart or customer data', [
-                'cart' => $cart ? 'exists' : 'null',
-                'customer' => $customer ? 'exists' : 'null'
-            ]);
+           
             return redirect()->route('frontend.shoping-cart')
                 ->with('error', 'Unable to proceed to checkout. Please try again.');
         }
@@ -4233,18 +4452,13 @@ class FrontendController extends Controller
         $cart = $request->attributes->get('validated_cart');
         $customer = $request->attributes->get('authenticated_customer');
         
-        \Log::info('Process checkout started', [
-            'cart_id' => $cart ? $cart->id : null,
-            'customer_id' => $customer ? $customer->id : null,
-            'request_data' => $request->all()
-        ]);
+       
         
         try {
             $checkoutService = app(CheckoutService::class);
             
             // Validate request data
             $validatedData = $checkoutService->validateCheckoutRequest($request->all());
-            \Log::info('Request validation passed', ['validated_data' => $validatedData]);
             
             // Validate addresses
             $addressValidation = $checkoutService->validateAddresses(
@@ -4268,13 +4482,9 @@ class FrontendController extends Controller
             
             // Validate cart stock before creating order
             $cartValidation = $checkoutService->validateCart($cart);
-            \Log::info('Cart validation result', [
-                'valid' => $cartValidation['valid'],
-                'errors' => $cartValidation['errors'] ?? []
-            ]);
-            
+           
             if (!$cartValidation['valid']) {
-                \Log::warning('Cart validation failed', ['errors' => $cartValidation['errors']]);
+               
                 // Convert errors array to key-value pairs for proper display
                 $errorBag = [];
                 foreach ($cartValidation['errors'] as $index => $error) {
@@ -4286,7 +4496,6 @@ class FrontendController extends Controller
                     ->with('error', 'Please review the following errors and try again.');
             }
             
-            \Log::info('Creating order...');
             // Create order
             $order = $checkoutService->createOrder(
                 $cart,
@@ -4308,22 +4517,11 @@ class FrontendController extends Controller
                 ->with('success', 'Order placed successfully!');
                 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Checkout validation exception', [
-                'errors' => $e->errors(),
-                'request_data' => $request->all()
-            ]);
             return redirect()->route('frontend.checkout')
                 ->withInput()
                 ->withErrors($e->errors());
         } catch (\Exception $e) {
-            \Log::error('Checkout processing failed: ' . $e->getMessage(), [
-                'customer_id' => $customer ? $customer->id : null,
-                'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-            
+           
             return redirect()->route('frontend.checkout')
                 ->withInput()
                 ->with('error', 'Checkout failed: ' . $e->getMessage());
@@ -4340,7 +4538,11 @@ class FrontendController extends Controller
             if ($customer) {
                 $order = \App\Models\Order::where('order_number', $orderNumber)
                     ->where('customer_id', $customer->id)
-                    ->with('items.product')
+                    ->with(['items.product', 'items.variant' => function($q) {
+                        $q->with(['images' => function($imgQ) {
+                            $imgQ->orderBy('is_primary', 'desc')->orderBy('sort_order')->orderBy('id');
+                        }]);
+                    }])
                     ->first();
             }
         }
@@ -4350,6 +4552,81 @@ class FrontendController extends Controller
         ]);
     }
 
+    
+    /**
+     * Parse variant attributes (handles both new structured format and old format)
+     * New format: {"color": {"label": "black", "code": "#000000"}, "variable": {"size": "S", "material": "cotton"}}
+     * Old format: {"1": "red", "size": "M"} or {"color": "red", "size": "M"}
+     * 
+     * Returns: ['color' => ['label' => 'black', 'code' => '#000000'], 'variable' => ['size' => 'S'], 'all' => [...]]
+     */
+    public static function parseVariantAttributes($attributes)
+    {
+        if (empty($attributes)) {
+            return ['color' => null, 'variable' => [], 'all' => []];
+        }
+        
+        // Decode if string
+        $attrs = is_string($attributes) 
+            ? json_decode($attributes, true) 
+            : ($attributes ?? []);
+        
+        if (!is_array($attrs)) {
+            return ['color' => null, 'variable' => [], 'all' => []];
+        }
+        
+        $result = [
+            'color' => null,
+            'variable' => [],
+            'all' => []
+        ];
+        
+        // Check for new structured format
+        if (isset($attrs['color']) && is_array($attrs['color'])) {
+            $result['color'] = [
+                'label' => $attrs['color']['label'] ?? '',
+                'code' => $attrs['color']['code'] ?? '#ccc'
+            ];
+        }
+        
+        if (isset($attrs['variable']) && is_array($attrs['variable'])) {
+            $result['variable'] = $attrs['variable'];
+        }
+        
+        // If new format found, return it
+        if ($result['color'] !== null || !empty($result['variable'])) {
+            // Build 'all' array for backward compatibility
+            if ($result['color']) {
+                $result['all']['color'] = $result['color']['label'];
+            }
+            foreach ($result['variable'] as $key => $value) {
+                $result['all'][$key] = $value;
+            }
+            return $result;
+        }
+        
+        // Fallback to old format parsing
+        foreach ($attrs as $key => $value) {
+            if (empty($value)) {
+                continue;
+            }
+            
+            // Check if it's a color (by key name)
+            if (strtolower($key) === 'color' || strtolower($key) === 'colour') {
+                $result['color'] = [
+                    'label' => is_array($value) ? ($value['label'] ?? $value['value'] ?? '') : (string)$value,
+                    'code' => (is_array($value) && isset($value['code'])) ? $value['code'] : self::getColorCodeFromName($value)
+                ];
+                $result['all']['color'] = $result['color']['label'];
+            } else {
+                // Treat as variable attribute
+                $result['variable'][$key] = is_array($value) ? ($value['value'] ?? $value['label'] ?? '') : (string)$value;
+                $result['all'][$key] = $result['variable'][$key];
+            }
+        }
+        
+        return $result;
+    }
     
     /**
      * Get color code from common color names (fallback when not in database)

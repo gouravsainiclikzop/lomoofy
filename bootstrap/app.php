@@ -24,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer.auth' => \App\Http\Middleware\EnsureCustomerIsAuthenticated::class,
             'checkout.prerequisites' => \App\Http\Middleware\CheckoutPrerequisites::class,
             'simple.checkout.prerequisites' => \App\Http\Middleware\SimpleCheckoutPrerequisites::class,
+            'coming.soon' => \App\Http\Middleware\CheckComingSoon::class,
+        ]);
+        
+        // Apply coming soon middleware globally to web routes
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckComingSoon::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

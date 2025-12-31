@@ -79,15 +79,22 @@
 										</div>
 										<div class="elis_rty" id="product-price">
 											@if($hasSale && $minSalePrice)
-												<span class="ft-medium text-muted line-through fs-md me-2">₹{{ number_format($minPrice, 0) }}</span>
-												<span class="ft-bold theme-cl fs-lg">₹{{ number_format($minSalePrice, 0) }}</span>
+												<span class="ft-medium text-muted line-through fs-md me-2">₹{{ number_format($minPrice, 2) }}</span>
+												<span class="ft-bold theme-cl fs-lg">₹{{ number_format($minSalePrice, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>
 											@else
-												<span class="ft-bold theme-cl fs-lg">₹{{ number_format($minPrice, 0) }}</span>
+												<span class="ft-bold theme-cl fs-lg">₹{{ number_format($minPrice, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>
 												@if($minPrice != $maxPrice && $maxPrice > 0)
 													<span class="ft-bold theme-cl fs-lg"> - ₹{{ number_format($maxPrice, 0) }}</span>
 												@endif
 											@endif
 										</div>
+										@if($recentPurchaseCount > 0)
+										<div class="mt-2">
+											<span class="text-success fs-sm ft-medium">
+												<i class="fas fa-shopping-bag me-1"></i>{{ $recentPurchaseCount }}+ bought recently
+											</span>
+										</div>
+										@endif
 									</div>
 								</div>
 								
@@ -179,7 +186,7 @@
 										</div>
 									@endif
 									@if(count($sizes) > 0)
-										<div class="prt_04 mb-4">
+										<div class="prt_04 ">
 											<p class="d-flex align-items-center mb-0 text-dark ft-medium">Size:</p>
 											<div class="text-left pb-0 pt-2">
 												@foreach($sizes as $sizeIndex => $sizeValue)
@@ -198,7 +205,7 @@
 
             
 
-								<div class="prt_04 mb-4">
+								<div class="prt_04 ">
 									@if($primaryCategory)
 									<p class="d-flex align-items-center mb-1">Category:<strong class="fs-sm text-dark ft-medium ms-1">
 										{{ $primaryCategory->name }}{{ $primaryCategory->parent ? ', ' . $primaryCategory->parent->name : '' }}
@@ -210,9 +217,39 @@
 									</strong></p>
 									@endif
 									<p class="d-flex align-items-center mb-0">SKU:<strong class="fs-sm text-dark ft-medium ms-1" id="variant-sku">{{ $displaySku ?? '' }}</strong></p>
+									
+@php
+    $hasMeasurements = false;
+    if ($activeVariants && $activeVariants->count() > 0) {
+        foreach ($activeVariants as $variant) {
+            if ($variant->measurements) {
+                $measurements = is_string($variant->measurements) 
+                    ? json_decode($variant->measurements, true) 
+                    : $variant->measurements;
+                if (is_array($measurements) && count($measurements) > 0) {
+                    $hasMeasurements = true;
+                    break;
+                }
+            }
+        }
+    }
+@endphp
+
+@if($hasMeasurements)
+<div class="mt-2">
+    <button 
+        type="button" 
+        class="btn btn-sm btn-outline-secondary" 
+        data-bs-toggle="modal" 
+        data-bs-target="#measurementChartModal"
+    >
+    Measurements
+    </button>
+</div>
+@endif
 								</div>
 								
-								<div class="prt_05 mb-4">
+								<div class="prt_05 mb-4 mt-4">
 									<div class="form-row row g-3 mb-7">
 										<div class="col-12 col-md-6 col-lg-3">
 											<!-- Quantity -->
@@ -658,6 +695,36 @@
             if (variantDataMap[key]) {
                 return variantDataMap[key];
             }
+            
+            // If exact match not found, try to find variant by matching all attributes
+            // This handles dynamic attributes that might not be in the key
+            for (let variantKey in variantDataMap) {
+                const variant = variantDataMap[variantKey];
+                if (variant.attributes) {
+                    let allMatch = true;
+                    for (let attrId in selectedAttributes) {
+                        const selectedValue = selectedAttributes[attrId];
+                        const variantAttr = variant.attributes.find(function(attr) {
+                            // Match by attribute_id, attribute_name, or attribute_slug
+                            // Also handle dynamic attributes
+                            const attrIdMatch = String(attr.attribute_id) === String(attrId) || 
+                                               String(attr.attribute_name) === String(attrId) ||
+                                               String(attr.attribute_slug) === String(attrId) ||
+                                               (attrId.startsWith('dynamic_') && String(attr.attribute_name).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase()) ||
+                                               (attrId.startsWith('dynamic_') && String(attr.attribute_slug).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase());
+                            const valueMatch = String(attr.value) === String(selectedValue);
+                            return attrIdMatch && valueMatch;
+                        });
+                        if (!variantAttr) {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+                    if (allMatch && Object.keys(selectedAttributes).length > 0) {
+                        return variant;
+                    }
+                }
+            }
         }
         
         // Fallback to legacy color/size selection
@@ -879,6 +946,11 @@
         
         if (!priceElement) return;
         
+        // Helper function to format price with 2 decimal places
+        const formatPrice = (price) => {
+            return parseFloat(price).toFixed(2);
+        };
+        
         let priceHtml = '';
         if (variant && variant.price !== undefined) {
             const price = variant.price || 0;
@@ -887,10 +959,12 @@
             
             if (hasSale && salePrice) {
                 priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2">₹' + 
-                           Math.round(price) + '</span>' +
-                           '<span class="ft-bold theme-cl fs-lg">₹' + Math.round(salePrice) + '</span>';
+                           formatPrice(price) + '</span>' +
+                           '<span class="ft-bold theme-cl fs-lg">₹' + formatPrice(salePrice) + 
+                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
             } else {
-                priceHtml = '<span class="ft-bold theme-cl fs-lg">₹' + Math.round(price) + '</span>';
+                priceHtml = '<span class="ft-bold theme-cl fs-lg">₹' + formatPrice(price) + 
+                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
             }
         } else {
             // Fallback to product price range
@@ -901,12 +975,15 @@
             
             if (hasSale && minSalePrice) {
                 priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2">₹' + 
-                           Math.round(minPrice) + '</span>' +
-                           '<span class="ft-bold theme-cl fs-lg">₹' + Math.round(minSalePrice) + '</span>';
+                           formatPrice(minPrice) + '</span>' +
+                           '<span class="ft-bold theme-cl fs-lg">₹' + formatPrice(minSalePrice) + 
+                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
             } else {
-                priceHtml = '<span class="ft-bold theme-cl fs-lg">₹' + Math.round(minPrice) + '</span>';
+                priceHtml = '<span class="ft-bold theme-cl fs-lg">₹' + formatPrice(minPrice) + 
+                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
                 if (minPrice != maxPrice && maxPrice > 0) {
-                    priceHtml += '<span class="ft-bold theme-cl fs-lg"> - ₹' + Math.round(maxPrice) + '</span>';
+                    priceHtml += '<span class="ft-bold theme-cl fs-lg"> - ₹' + formatPrice(maxPrice) + 
+                                ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
                 }
             }
         }

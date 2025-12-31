@@ -272,11 +272,7 @@ class ProductController extends Controller
         $this->prepareProductRequestDefaults($request);
         $resolvedType = $request->input('type');
 
-        Log::info('ProductController@store - Incoming request data', [
-            'payload' => $request->except(['images', 'variants']),
-            'has_images' => $request->hasFile('images'),
-            'has_variants' => $request->has('variants'),
-        ]);
+       
         
         // Calculate the slug that will be saved (for validation)
         $slugToValidate = $request->filled('seo_url_slug')
@@ -463,11 +459,7 @@ class ProductController extends Controller
                 $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
                 $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
 
-                Log::info('ProductController@store - Filtered variant payload', [
-                    'product_id' => $product->id,
-                    'variants' => $this->sanitizeVariantsForLog($variantsPayload),
-                ]);
-
+               
                 if (!empty($variantsPayload)) {
                     $this->synchronizeVariants($product, $variantsPayload);
                 }
@@ -478,27 +470,6 @@ class ProductController extends Controller
             $this->synchronizeStaticAttributes($product, $request);
 
             $product->load(['variants.images', 'category.parent']);
-            Log::info('ProductController@store - Persisted product snapshot', [
-                'product_id' => $product->id,
-                'variants' => $product->variants->map(function ($variant) {
-                    return [
-                        'id' => $variant->id,
-                        'sku' => $variant->sku,
-                        'price' => $variant->price,
-                        'sale_price' => $variant->sale_price,
-                        'discount_type' => $variant->discount_type,
-                        'discount_value' => $variant->discount_value,
-                        'discount_active' => $variant->discount_active,
-                        'measurements' => $variant->measurements,
-                        'images' => $variant->images->pluck('image_path'),
-                    ];
-                }),
-                'category' => $product->category ? [
-                    'id' => $product->category->id,
-                    'name' => $product->category->name,
-                    'path' => $product->category_path,
-                ] : null,
-            ]);
 
             DB::commit();
 
@@ -633,11 +604,7 @@ class ProductController extends Controller
         $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
         $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
 
-        Log::info('ProductController@updateVariants - Filtered variant payload', [
-            'product_id' => $product->id,
-            'variants' => $this->sanitizeVariantsForLog($variantsPayload),
-        ]);
-
+        
         DB::beginTransaction();
 
         try {
@@ -686,13 +653,6 @@ class ProductController extends Controller
         $this->prepareProductRequestDefaults($request, $product->type);
         $primaryImageIndex = $request->input('primary_image_index');
 
-        Log::info('ProductController@update - Incoming request data', [
-            'product_id' => $product->id,
-            'payload' => $request->except(['images', 'variants', 'remove_images']),
-            'has_images' => $request->hasFile('images'),
-            'has_variants' => $request->has('variants'),
-            'remove_images' => $request->input('remove_images', []),
-        ]);
         
         // Calculate the slug that will be saved (for validation)
         $slugToValidate = $request->filled('seo_url_slug')
@@ -894,11 +854,6 @@ class ProductController extends Controller
                 $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
                 $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
 
-                Log::info('ProductController@update - Filtered variant payload', [
-                    'product_id' => $product->id,
-                    'variants' => $this->sanitizeVariantsForLog($variantsPayload),
-                ]);
-
                 if (!empty($variantsPayload)) {
                     $this->synchronizeVariants($product, $variantsPayload);
                 }
@@ -907,29 +862,7 @@ class ProductController extends Controller
             // Handle static attributes
             $this->synchronizeStaticAttributes($product, $request);
 
-            $product->load(['variants.images', 'category.parent']);
-            Log::info('ProductController@update - Persisted product snapshot', [
-                'product_id' => $product->id,
-                'variants' => $product->variants->map(function ($variant) {
-                    return [
-                        'id' => $variant->id,
-                        'sku' => $variant->sku,
-                        'price' => $variant->price,
-                        'sale_price' => $variant->sale_price,
-                        'discount_type' => $variant->discount_type,
-                        'discount_value' => $variant->discount_value,
-                        'discount_active' => $variant->discount_active,
-                        'measurements' => $variant->measurements,
-                        'highlights_details' => $variant->highlights_details,
-                        'images' => $variant->images->pluck('image_path'),
-                    ];
-                }),
-                'category' => $product->category ? [
-                    'id' => $product->category->id,
-                    'name' => $product->category->name,
-                    'path' => $product->category_path,
-                ] : null,
-            ]);
+            $product->load(['variants.images', 'category.parent']); 
 
             DB::commit();
 
@@ -1093,6 +1026,7 @@ class ProductController extends Controller
                 $q->select('id', 'product_id', 'sku', 'price', 'sale_price', 'stock_quantity', 'stock_status', 'manage_stock', 'measurements', 'discount_active', 'discount_type', 'discount_value')
                   ->with(['images' => function($imgQ) {
                       $imgQ->select('id', 'product_variant_id', 'image_path', 'is_primary', 'sort_order')
+                           ->orderBy('is_primary', 'desc')
                            ->orderBy('sort_order')
                            ->orderBy('id');
                   }]);
@@ -1237,11 +1171,22 @@ class ProductController extends Controller
                 'variant_stock_label' => $stockStatusLabel,
                 'stock_quantity' => $stockTotal,
                 'variants' => $variants->map(function($variant) use ($product) {
-                    // Get variant image or fallback to product image
-                    $variantImage = $variant->images->first();
-                    $imageUrl = $variantImage 
-                        ? asset('storage/' . $variantImage->image_path)
-                        : ($product->image_url ?? asset('assets/images/placeholder.jpg'));
+                    // Get variant image only - don't fallback to product image
+                    $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+                    
+                    if ($variant->images && $variant->images->count() > 0) {
+                        // Try to get primary variant image first
+                        $primaryVariantImage = $variant->images->where('is_primary', true)->first();
+                        if ($primaryVariantImage) {
+                            $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                        } else {
+                            // Use first variant image
+                            $firstVariantImage = $variant->images->first();
+                            if ($firstVariantImage) {
+                                $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                            }
+                        }
+                    }
                     
                     return [
                         'id' => $variant->id,
@@ -1256,12 +1201,8 @@ class ProductController extends Controller
                 }),
                 'status' => ucfirst($product->status),
                 'featured' => $product->featured ? 'Yes' : 'No',
-                'image_url' => $product->image_url,
-                'thumbnail_url' => $product->primaryImage
-                    ? asset('storage/' . $product->primaryImage->image_path)
-                    : ($product->images->first()
-                        ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('assets/images/placeholder.jpg')),
+                'image_url' => $this->getProductThumbnailUrl($product), // Use variant image first, then product image
+                'thumbnail_url' => $this->getProductThumbnailUrl($product),
                 'tags' => $tags,
                 'category' => $product->category ? [
                     'id' => $product->category->id,
@@ -1346,6 +1287,47 @@ class ProductController extends Controller
         $this->applyPrimaryImageSelection($product, $primaryImageIndex, $newlyCreatedImageIds);
     }
 
+    /**
+     * Get product thumbnail URL - prioritize first variant image over product image
+     */
+    private function getProductThumbnailUrl(Product $product): string
+    {
+        // Get variant image only - don't fallback to product image
+        // Use already loaded variants if available
+        $variants = $product->relationLoaded('variants') 
+            ? $product->variants 
+            : $product->variants()->with(['images' => function($imgQ) {
+                $imgQ->orderBy('is_primary', 'desc')->orderBy('sort_order')->orderBy('id');
+            }])->get();
+        
+        // Find first variant with images
+        $firstVariant = $variants
+            ->filter(function($variant) {
+                return $variant->relationLoaded('images') && $variant->images->count() > 0;
+            })
+            ->sortBy(function($variant) {
+                return [$variant->sort_order ?? 999, $variant->id];
+            })
+            ->first();
+        
+        if ($firstVariant && $firstVariant->images->count() > 0) {
+            // Try to get primary variant image first
+            $primaryVariantImage = $firstVariant->images->where('is_primary', true)->first();
+            if ($primaryVariantImage) {
+                return asset('storage/' . $primaryVariantImage->image_path);
+            }
+            
+            // Use first variant image
+            $firstVariantImage = $firstVariant->images->first();
+            if ($firstVariantImage) {
+                return asset('storage/' . $firstVariantImage->image_path);
+            }
+        }
+        
+        // No variant image available - use placeholder
+        return asset('assets/images/placeholder.jpg');
+    }
+
     private function applyPrimaryImageSelection(Product $product, $primaryImageIndex, array $newlyCreatedImageIds = []): void
     {
         if ($primaryImageIndex === null || $primaryImageIndex === '') {
@@ -1402,20 +1384,7 @@ class ProductController extends Controller
             ->with('values')
             ->get();
 
-        // Log for debugging
-        Log::info('getAttributes - Returning all attributes', [
-            'total' => $attributes->count(),
-            'attributes' => $attributes->map(function($attr) {
-                return [
-                    'id' => $attr->id,
-                    'name' => $attr->name,
-                    'is_variation' => $attr->is_variation,
-                    'is_variation_type' => gettype($attr->is_variation),
-                    'is_visible' => $attr->is_visible,
-                ];
-            })->toArray()
-        ]);
-
+       
         return response()->json([
             'success' => true,
             'attributes' => $attributes
@@ -1479,10 +1448,7 @@ class ProductController extends Controller
             
             // Verify the method exists before calling it
             if (!method_exists($category, 'getAllProductAttributes')) {
-                Log::error('getAllProductAttributes method not found on Category', [
-                    'category_id' => $categoryId,
-                    'category_class' => get_class($category)
-                ]);
+                
                 return response()->json([
                     'success' => false,
                     'message' => 'Category model does not have getAllProductAttributes method'
@@ -1494,19 +1460,7 @@ class ProductController extends Controller
             $allAttributes = $category->getAllProductAttributes();
             
             // Log for debugging
-            Log::info('getAttributesByCategory - Category ID: ' . $categoryId, [
-                'category_name' => $category->name,
-                'total_attributes' => $allAttributes->count(),
-                'attributes' => $allAttributes->map(function($attr) {
-                    return [
-                        'id' => $attr->id,
-                        'name' => $attr->name,
-                        'is_variation' => $attr->is_variation,
-                        'is_variation_type' => gettype($attr->is_variation)
-                    ];
-                })->toArray()
-            ]);
-            
+         
             // Ensure we got a collection back
             if (!$allAttributes instanceof \Illuminate\Support\Collection && !$allAttributes instanceof \Illuminate\Database\Eloquent\Collection) {
                 return response()->json([
@@ -1567,16 +1521,7 @@ class ProductController extends Controller
                     })->values()
                 ];
             })->values();
-            
-            // Log filtered results for debugging
-            Log::info('getAttributesByCategory - Filtered Results', [
-                'category_id' => $categoryId,
-                'total_attributes' => $allAttributes->count(),
-                'variant_attributes_count' => $variantAttributes->count(),
-                'static_attributes_count' => $staticAttributes->count(),
-                'variant_attribute_ids' => $variantAttributes->pluck('id')->toArray(),
-                'static_attribute_ids' => $staticAttributes->pluck('id')->toArray(),
-            ]);
+             
             
             return response()->json([
                 'success' => true,
@@ -1590,11 +1535,7 @@ class ProductController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in getAttributesByCategory', [
-                'category_id' => $request->get('category_id'),
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+           
             
             return response()->json([
                 'success' => false,
@@ -1608,10 +1549,7 @@ class ProductController extends Controller
      * Categories are now independent of brands, so this returns all active categories.
      */
     public function getCategoriesByBrand(Request $request)
-    {
-        Log::info('=== getCategoriesByBrand DEBUG ===');
-        Log::info('Request data:', $request->all());
-        
+    {  
         // Categories are now independent of brands, return all active categories
         $allCategories = Category::active()
             ->with(['parent'])
@@ -1764,12 +1702,32 @@ class ProductController extends Controller
     private function generateVariantName(array $attributes)
     {
         $parts = [];
-        foreach ($attributes as $attributeId => $value) {
-            $attribute = ProductAttribute::find($attributeId);
-            if ($attribute) {
-                $parts[] = $value;
+        
+        // Handle new format: { "color": {"label": "blue", "code": "#0000FF"}, "variable": {"size": "s"} }
+        if (isset($attributes['color']) || isset($attributes['variable'])) {
+            // New format
+            if (isset($attributes['color']) && is_array($attributes['color']) && isset($attributes['color']['label'])) {
+                $parts[] = $attributes['color']['label'];
+            }
+            
+            if (isset($attributes['variable']) && is_array($attributes['variable'])) {
+                foreach ($attributes['variable'] as $key => $value) {
+                    $parts[] = $value;
+                }
+            }
+        } else {
+            // Old format: { "attribute_id": "value" }
+            foreach ($attributes as $attributeId => $value) {
+                $attribute = ProductAttribute::find($attributeId);
+                if ($attribute) {
+                    $parts[] = $value;
+                } else {
+                    // If attribute not found, just use the value
+                    $parts[] = $value;
+                }
             }
         }
+        
         return implode(' - ', $parts);
     }
 
@@ -2006,12 +1964,7 @@ class ProductController extends Controller
     private function normalizeHighlightsDetails($highlightsDetails)
     {
         // Log incoming data for debugging
-        Log::info('normalizeHighlightsDetails - Input', [
-            'type' => gettype($highlightsDetails),
-            'value' => $highlightsDetails,
-            'is_string' => is_string($highlightsDetails),
-            'is_array' => is_array($highlightsDetails),
-        ]);
+       
 
         if (is_string($highlightsDetails)) {
             // Handle JSON string from form input
@@ -2024,19 +1977,13 @@ class ProductController extends Controller
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 $highlightsDetails = $decoded;
             } else {
-                Log::warning('normalizeHighlightsDetails - JSON decode failed', [
-                    'input' => $highlightsDetails,
-                    'error' => json_last_error_msg(),
-                ]);
+               
                 return [];
             }
         }
 
         if (!is_array($highlightsDetails)) {
-            Log::warning('normalizeHighlightsDetails - Not an array after processing', [
-                'type' => gettype($highlightsDetails),
-                'value' => $highlightsDetails,
-            ]);
+           
             return [];
         }
 
@@ -2067,11 +2014,7 @@ class ProductController extends Controller
                 'bullet_points' => $bulletPoints,
             ];
         }
-
-        Log::info('normalizeHighlightsDetails - Output', [
-            'normalized' => $normalized,
-            'count' => count($normalized),
-        ]);
+ 
 
         return $normalized;
     }

@@ -97,7 +97,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,id'
         ]);
@@ -150,7 +150,7 @@ class UserController extends Controller
                 Rule::unique('users')->ignore($user->id)
             ],
             'password' => 'nullable|string|min:8|confirmed',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,id'
         ]);

@@ -178,10 +178,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-4">
-                  
+                <div class="mb-4"> 
                     <div class="row g-2">
-                        <div class="col-12">
+                        <div class="col-12 d-none">
                             <div class="card border-primary">
                                 <div class="card-body p-3">
                                     <h6 class="card-title mb-2">
@@ -196,7 +195,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="card border-secondary">
                                 <div class="card-body p-3">
                                     <h6 class="card-title mb-2">
@@ -208,7 +207,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="card border-secondary">
                                 <div class="card-body p-3">
                                     <h6 class="card-title mb-2">
@@ -220,7 +219,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 d-none">
                             <div class="card border-secondary">
                                 <div class="card-body p-3">
                                     <h6 class="card-title mb-2">
@@ -234,18 +233,16 @@
                         </div>
                     </div>
                 </div> 
-
-               
-
+ 
                 <form id="productImportForm" action="{{ route('products.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
                         <label for="productImportFile" class="form-label">Upload Completed File</label>
                         <input class="form-control" type="file" id="productImportFile" name="product_import_file" accept=".xlsx,.csv" required>
-                        <div class="form-text">
+                        <!-- <div class="form-text">
                             <strong>Recommended:</strong> Use the Excel template (.xlsx) with all sheets (Products, Variants, Images) for complete import.<br>
                          
-                        </div>
+                        </div> -->
                     </div> 
                 </form>
 

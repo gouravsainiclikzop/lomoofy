@@ -78,6 +78,8 @@ class CartApiController extends Controller
         ]);
         
         // Automatically adjust cart item quantities to match available stock
+        // IMPORTANT: We NEVER delete items when stock is 0 - items are marked as out of stock instead
+        // This allows users to see what was in their cart and decide whether to remove items manually
         $quantityAdjusted = false;
         foreach ($cart->items as $item) {
             $product = $item->product;
@@ -90,17 +92,24 @@ class CartApiController extends Controller
                     ? ($variant->stock_quantity ?? 0)
                     : ($product->stock_quantity ?? 0);
                 
-                // If cart quantity exceeds available stock, adjust it
-                if ($item->quantity > $availableStock && $availableStock > 0) {
+                // Check stock_status as well
+                $stockStatus = $variant 
+                    ? ($variant->stock_status ?? 'in_stock')
+                    : ($product->stock_status ?? 'in_stock');
+                
+                // Mark as out of stock if stock is 0 or stock_status is out_of_stock
+                $isOutOfStock = ($availableStock <= 0) || ($stockStatus === 'out_of_stock');
+                
+                // If cart quantity exceeds available stock, adjust it (but only if stock is available)
+                // Do NOT adjust if stock is 0 - keep the item quantity so it shows as out of stock
+                if ($item->quantity > $availableStock && $availableStock > 0 && !$isOutOfStock) {
                     $item->quantity = $availableStock;
                     $item->total_price = $item->unit_price * $availableStock;
                     $item->save();
                     $quantityAdjusted = true;
-                } elseif ($availableStock <= 0) {
-                    // Remove item if completely out of stock
-                    $item->delete();
-                    $quantityAdjusted = true;
                 }
+                // Items with stock 0 are kept in cart and marked as out of stock in the response
+                // Users can manually remove them if they want
             }
         }
         
@@ -140,12 +149,12 @@ class CartApiController extends Controller
                     'quantity' => $item->quantity,
                     'unit_price' => (float)$item->unit_price,
                     'total_price' => (float)$item->total_price,
-                    'image_url' => asset('frontend/images/product/sample-product.jpg'),
+                    'image_url' => asset('assets/images/placeholder.jpg'),
                 ];
             }
         
-            // Get variant image first (primary or first), fallback to product image
-            $imageUrl = asset('frontend/images/product/sample-product.jpg'); // Default fallback
+            // Get variant image only - don't fallback to product image
+            $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
             
             if ($variant && $variant->images && $variant->images->count() > 0) {
                 // Try to get primary variant image first
@@ -159,13 +168,6 @@ class CartApiController extends Controller
                         $imageUrl = asset('storage/' . $firstVariantImage->image_path);
                     }
                 }
-            } else {
-                // Fallback to product image if no variant image
-                $imageUrl = $product->primaryImage
-                    ? asset('storage/' . $product->primaryImage->image_path)
-                    : ($product->images && $product->images->count() > 0
-                        ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('frontend/images/product/sample-product.jpg'));
             }
         
             // Check stock availability
@@ -173,6 +175,7 @@ class CartApiController extends Controller
             $isInStock = true;
             $availableStock = null;
             $manageStock = false;
+            $isOutOfStock = false;
             
             if ($stockSource && $stockSource->manage_stock) {
                 $manageStock = true;
@@ -180,7 +183,70 @@ class CartApiController extends Controller
                 $availableStock = $variant 
                     ? ($variant->stock_quantity ?? 0)
                     : ($product->stock_quantity ?? 0);
-                $isInStock = $availableStock >= $item->quantity;
+                
+                // Check stock_status as well
+                $stockStatus = $variant 
+                    ? ($variant->stock_status ?? 'in_stock')
+                    : ($product->stock_status ?? 'in_stock');
+                
+                // Mark as out of stock if stock is 0 or stock_status is out_of_stock
+                $isOutOfStock = ($availableStock <= 0) || ($stockStatus === 'out_of_stock');
+                
+                // Item is in stock only if available stock meets quantity requirement AND not out of stock
+                $isInStock = !$isOutOfStock && ($availableStock >= $item->quantity);
+            }
+            
+            // Parse variant attributes for display - get ALL attributes
+            $colorValue = '';
+            $sizeValue = '';
+            $allAttributes = [];
+            
+            if ($variant && $variant->attributes) {
+                $parsed = \App\Http\Controllers\FrontendController::parseVariantAttributes($variant->attributes);
+                
+                // Get color value from new format
+                if ($parsed['color'] && isset($parsed['color']['label'])) {
+                    $colorValue = $parsed['color']['label'];
+                    $allAttributes[] = ['label' => 'Color', 'value' => $colorValue];
+                }
+                
+                // Get ALL variable attributes (size, length, material, etc.)
+                if (isset($parsed['variable']) && is_array($parsed['variable'])) {
+                    foreach ($parsed['variable'] as $key => $value) {
+                        $attrLabel = ucfirst(str_replace('_', ' ', $key));
+                        $attrValue = is_array($value) 
+                            ? (isset($value['label']) ? $value['label'] : (isset($value['value']) ? $value['value'] : ''))
+                            : (string)$value;
+                        
+                        if ($attrValue) {
+                            $allAttributes[] = ['label' => $attrLabel, 'value' => $attrValue];
+                            
+                            // Also set sizeValue for backward compatibility
+                            if (strtolower($key) === 'size' && empty($sizeValue)) {
+                                $sizeValue = $attrValue;
+                            }
+                            // Also check for length
+                            elseif (strtolower($key) === 'length' && empty($sizeValue)) {
+                                $sizeValue = $attrValue;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Build variant display name with attributes
+            $variantDisplayName = $variant ? $variant->name : null;
+            if ($variantDisplayName && ($colorValue || $sizeValue)) {
+                $attrParts = [];
+                if ($colorValue) {
+                    $attrParts[] = 'Color: ' . $colorValue;
+                }
+                if ($sizeValue) {
+                    $attrParts[] = 'Size: ' . $sizeValue;
+                }
+                if (!empty($attrParts)) {
+                    $variantDisplayName .= ' (' . implode(', ', $attrParts) . ')';
+                }
             }
             
             return [
@@ -189,12 +255,16 @@ class CartApiController extends Controller
                 'product_name' => $product->name,
                 'product_slug' => $product->slug,
                 'variant_id' => $variant ? $variant->id : null,
-                'variant_name' => $variant ? $variant->name : null,
+                'variant_name' => $variantDisplayName ?: ($variant ? $variant->name : null),
+                'color_value' => $colorValue,
+                'size_value' => $sizeValue,
+                'all_attributes' => $allAttributes, // All variant attributes for complete display
                 'quantity' => $item->quantity,
                 'unit_price' => (float)$item->unit_price,
                 'total_price' => (float)$item->total_price,
                 'image_url' => $imageUrl,
                 'in_stock' => $isInStock,
+                'out_of_stock' => $isOutOfStock,
                 'available_stock' => $availableStock,
                 'manage_stock' => $manageStock,
             ];

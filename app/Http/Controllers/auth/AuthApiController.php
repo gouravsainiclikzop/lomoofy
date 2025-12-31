@@ -270,14 +270,7 @@ class AuthApiController extends Controller
         $loginField = $request->input('email') ?: $request->input('phone');
         $loginFieldType = $request->has('email') && $request->email ? 'email' : 'phone';
         
-        // Debug logging
-        \Log::info('Customer Login Attempt', [
-            'login_field' => $loginField,
-            'login_field_type' => $loginFieldType,
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'timestamp' => now(),
-        ]);
+        
 
         $rules = [
             'password' => 'required|string',
@@ -292,12 +285,7 @@ class AuthApiController extends Controller
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
-            \Log::warning('Customer Login Validation Failed', [
-                'errors' => $validator->errors()->toArray(),
-                'login_field' => $loginField,
-                'login_field_type' => $loginFieldType,
-            ]);
-            
+             
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -325,11 +313,6 @@ class AuthApiController extends Controller
                 
                 $customer = Auth::guard('customer')->user();
 
-                \Log::info('Customer Login Successful', [
-                    'customer_id' => $customer->id,
-                    'email' => $customer->email,
-                ]);
-
                 // Merge guest cart with customer cart after successful login
                 $sessionId = $request->input('session_id') 
                           ?? $request->query('session_id') 
@@ -354,11 +337,7 @@ class AuthApiController extends Controller
                     ],
                 ]);
             }
-
-            \Log::warning('Customer Login Failed', [
-                'login_field' => $loginField,
-                'login_field_type' => $loginFieldType
-            ]);
+ 
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -367,12 +346,7 @@ class AuthApiController extends Controller
                 ],
             ], 401);
         } catch (\Exception $e) {
-            \Log::error('Customer Login Exception', [
-                'login_field' => $loginField ?? 'unknown',
-                'login_field_type' => $loginFieldType ?? 'unknown',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
+            
             
             return response()->json([
                 'success' => false,

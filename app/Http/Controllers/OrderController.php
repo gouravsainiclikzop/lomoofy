@@ -1097,4 +1097,98 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Generate and view invoice for an order
+     */
+    public function invoice($id)
+    {
+        $order = Order::with(['customer.addresses', 'items.product'])->findOrFail($id);
+
+        // Check if customer is accessing their own order
+        if (auth()->guard('customer')->check()) {
+            $customer = auth()->guard('customer')->user();
+            if ($order->customer_id !== $customer->id) {
+                abort(403, 'Unauthorized access to this order');
+            }
+        }
+        
+        // Get shipping address - try order's shipping_address first, then customer addresses
+        $shippingAddress = null;
+        if ($order->shipping_address && is_array($order->shipping_address)) {
+            $shippingAddress = (object) $order->shipping_address;
+        } elseif ($order->customer && $order->customer->addresses) {
+            $shippingAddress = $order->customer->addresses->where('is_default', true)->first() 
+                            ?? $order->customer->addresses->first();
+        }
+        
+        // For online orders, check if address is stored in notes
+        if (!$shippingAddress && $order->source === 'online' && $order->notes) {
+            $notesData = json_decode($order->notes, true);
+            if (isset($notesData['shipping_address'])) {
+                $shippingAddress = (object) $notesData['shipping_address'];
+            }
+        }
+        
+        // Get company settings
+        $companySettings = \App\Models\CompanySetting::getSettings();
+        
+        // Prepare order data same as show() method
+        $orderData = [
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'status' => $order->status,
+            'customer' => [
+                'id' => $order->customer ? $order->customer->id : null,
+                'full_name' => $order->customer ? $order->customer->full_name : 'N/A',
+                'email' => $order->customer ? $order->customer->email : 'N/A',
+                'phone' => $order->customer ? ($order->customer->phone ?? 'N/A') : 'N/A',
+            ],
+            'shipping_address' => $shippingAddress,
+            'company_settings' => [
+                'company_name' => $companySettings->company_name ?? '',
+                'company_logo_text' => $companySettings->company_logo_text ?? '',
+                'company_logo' => $companySettings->company_logo ? asset('storage/' . $companySettings->company_logo) : null,
+                'phone' => $companySettings->phone ?? '',
+                'email' => $companySettings->email ?? '',
+                'address' => $companySettings->address ?? '',
+                'pincode' => $companySettings->pincode ?? '',
+                'city' => $companySettings->city ?? '',
+                'state' => $companySettings->state ?? '',
+                'pan_no' => $companySettings->pan_no ?? '',
+                'gst_registration_no' => $companySettings->gst_registration_no ?? '',
+                'authorized_signatory' => $companySettings->authorized_signatory ? asset('storage/' . $companySettings->authorized_signatory) : null,
+            ],
+            'items' => $order->items->map(function($item) {
+                $product = $item->product;
+                // Get GST type: true = Inclusive, false = Exclusive
+                $gstType = $product ? ($product->gst_type !== null ? (bool)$product->gst_type : true) : true;
+                // Get GST percentage, default to 18 if not set
+                $gstPercentage = $product ? ($product->gst_percentage !== null ? (float)$product->gst_percentage : 18) : 18;
+                
+                return [
+                    'product_name' => $item->product_name,
+                    'variant_name' => $item->variant_name,
+                    'unit_price' => $item->unit_price,
+                    'quantity' => $item->quantity,
+                    'total_price' => $item->total_price,
+                    'gst_type' => $gstType,
+                    'gst_percentage' => $gstPercentage,
+                    'hsn_code' => $product && $product->hsn_code ? $product->hsn_code : '4202',
+                ];
+            }),
+            'subtotal' => $order->subtotal,
+            'discount_amount' => $order->discount_amount,
+            'shipping_amount' => $order->shipping_amount,
+            'tax_amount' => $order->tax_amount,
+            'total_amount' => $order->total_amount,
+            'payment_method' => $order->payment_method,
+            'created_at' => $order->created_at->format('Y-m-d H:i:s'),
+        ];
+
+        return view('admin.orders.invoice', [
+            'order' => $order,
+            'orderData' => $orderData
+        ]);
+    }
 }

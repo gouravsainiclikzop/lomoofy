@@ -52,6 +52,11 @@
 									Brand:<strong class="fs-sm text-dark ft-medium ms-1" id="quickViewBrandText"></strong>
 								</p>
 								<p class="d-flex align-items-center mb-0">SKU:<strong class="fs-sm text-dark ft-medium ms-1" id="quickViewSku">—</strong></p>
+								<div class="mt-2" id="quickViewMeasurementButton" style="display: none;">
+									<button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#measurementChartModal">
+										<i class="fas fa-ruler me-1"></i>Measurement Chart
+									</button>
+								</div>
 							</div>
 							
 							<div class="prt_04 mb-4" id="quickViewProductInfo" style="display: none;">
@@ -78,7 +83,7 @@
 								</div>
 							</div>
 							
-							<div class="prt_04 mb-4" id="quickViewSizesContainer" style="display: none;">
+							<div class="prt_04 " id="quickViewSizesContainer" style="display: none;">
 								<p class="d-flex align-items-center mb-0 text-dark ft-medium">Size:</p>
 								<div class="text-left pb-0 pt-2" id="quickViewSizes">
 									<!-- Sizes will be populated dynamically -->
@@ -337,6 +342,28 @@
 		</div>
 	</div>
 </div>
+
+<!-- Measurement Chart Modal -->
+<div class="modal fade" id="measurementChartModal" tabindex="-1" role="dialog" aria-labelledby="measurementChartModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="measurementChartModalLabel">Measurement Chart</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<div id="measurementChartContent">
+					<div class="text-center py-4">
+						<div class="spinner-border text-primary" role="status">
+							<span class="visually-hidden">Loading...</span>
+						</div>
+					</div>
+				</div>
+			</div> 
+		</div>
+	</div>
+</div>
+<!-- End Measurement Chart Modal -->
 
 @push('styles')
 <style>
@@ -782,7 +809,7 @@ $(document).ready(function() {
                 let $container = $('#' + containerId);
                 if ($container.length === 0) {
                     // Insert before quantity selector
-                    const containerHtml = '<div class="prt_04 mb-4" id="' + containerId + '">' +
+                    const containerHtml = '<div class="prt_04 " id="' + containerId + '">' +
                         '<p class="d-flex align-items-center mb-0 text-dark ft-medium">' + attributeName + ':</p>' +
                         '<div class="text-left pb-0 pt-2" id="' + optionsId + '"></div>' +
                         '</div>';
@@ -959,6 +986,9 @@ $(document).ready(function() {
         // Initialize SKU and Highlights on load
         updateQuickViewSku();
         updateQuickViewHighlights();
+        
+        // Update measurement button visibility
+        updateQuickViewMeasurementButton();
         
         // Update buttons
         $('#quickViewAddToCart').attr('data-product-slug', product.slug);
@@ -1283,9 +1313,12 @@ $(document).ready(function() {
                         const selectedValue = window.selectedAttributeValues[attrId];
                         const variantAttr = variant.attributes.find(function(attr) {
                             // Compare both attribute_id and value as strings
+                            // Also handle dynamic attributes (dynamic_length, etc.)
                             const attrIdMatch = String(attr.attribute_id) === String(attrId) || 
                                                String(attr.attribute_name) === String(attrId) ||
-                                               String(attr.attribute_slug) === String(attrId);
+                                               String(attr.attribute_slug) === String(attrId) ||
+                                               (attrId.startsWith('dynamic_') && String(attr.attribute_name).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase()) ||
+                                               (attrId.startsWith('dynamic_') && String(attr.attribute_slug).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase());
                             const valueMatch = String(attr.value) === String(selectedValue);
                             return attrIdMatch && valueMatch;
                         });
@@ -1327,6 +1360,11 @@ $(document).ready(function() {
         // Update Highlights
         updateQuickViewHighlights(matchingVariant);
         
+        // Helper function to format price with 2 decimal places
+        const formatPrice = (price) => {
+            return parseFloat(price).toFixed(2);
+        };
+        
         // Update price
         let priceHtml = '';
         if (matchingVariant) {
@@ -1335,11 +1373,13 @@ $(document).ready(function() {
             const hasSale = salePrice && salePrice < price;
             
             if (hasSale && salePrice) {
-                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2">₹' + 
-                           Math.round(price) + '</span>' +
-                           '<span class="ft-bold theme-cl fs-lg me-2">₹' + Math.round(salePrice) + '</span>';
+                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2"> ₹' + 
+                           formatPrice(price) + '</span>' +
+                           '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(salePrice) + 
+                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
             } else {
-                priceHtml = '<span class="ft-bold theme-cl fs-lg me-2">₹' + Math.round(price) + '</span>';
+                priceHtml = '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(price) + 
+                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
             }
             
             // Stock status
@@ -1350,16 +1390,19 @@ $(document).ready(function() {
         } else {
             // Fallback to product price range
             if (currentProductData.has_sale && currentProductData.min_sale_price) {
-                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2">₹' + 
-                           Math.round(currentProductData.min_price) + '</span>' +
-                           '<span class="ft-bold theme-cl fs-lg me-2">₹' + 
-                           Math.round(currentProductData.min_sale_price);
+                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2"> ₹' + 
+                           formatPrice(currentProductData.min_price) + '</span>' +
+                           '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + 
+                           formatPrice(currentProductData.min_sale_price);
                 if (currentProductData.max_sale_price && currentProductData.min_sale_price != currentProductData.max_sale_price) {
-                    priceHtml += ' - ₹' + Math.round(currentProductData.max_sale_price);
+                    priceHtml += ' - ₹' + formatPrice(currentProductData.max_sale_price);
                 }
-                priceHtml += '</span>';
+                priceHtml += ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
             } else {
-                priceHtml = '<span class="ft-bold theme-cl fs-lg me-2">' + currentProductData.price_display + '</span>';
+                // Parse price_display and add tax text
+                const priceDisplay = currentProductData.price_display || '₹0.00';
+                priceHtml = '<span class="ft-bold theme-cl fs-lg me-2"> ' + priceDisplay.replace('₹', '₹') + 
+                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
             }
             
             if (!currentProductData.in_stock) {
@@ -1467,7 +1510,15 @@ $(document).ready(function() {
                     for (let attrId in window.selectedAttributeValues) {
                         const selectedValue = window.selectedAttributeValues[attrId];
                         const variantAttr = variant.attributes.find(function(attr) {
-                            return String(attr.attribute_id) === String(attrId) && String(attr.value) === String(selectedValue);
+                            // Compare both attribute_id and value as strings
+                            // Also handle dynamic attributes (dynamic_length, etc.)
+                            const attrIdMatch = String(attr.attribute_id) === String(attrId) || 
+                                               String(attr.attribute_name) === String(attrId) ||
+                                               String(attr.attribute_slug) === String(attrId) ||
+                                               (attrId.startsWith('dynamic_') && String(attr.attribute_name).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase()) ||
+                                               (attrId.startsWith('dynamic_') && String(attr.attribute_slug).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase());
+                            const valueMatch = String(attr.value) === String(selectedValue);
+                            return attrIdMatch && valueMatch;
                         });
                         if (!variantAttr) {
                             allMatch = false;
@@ -1584,14 +1635,14 @@ $(document).ready(function() {
                     return img && img.url && img.url !== 'undefined' && img.url !== 'null';
                 });
             } else {
-                imagesToLoad = [{url: '{{ asset("frontend/images/product/sample-product.jpg") }}', alt: currentProductData.name}];
+                imagesToLoad = [{url: '{{ asset("assets/images/placeholder.jpg") }}', alt: currentProductData.name}];
             }
         }
         
         // Build HTML with images
         let imagesHtml = '';
         imagesToLoad.forEach(function(image) {
-            imagesHtml += '<div class="single_view_slide"><img src="' + image.url + '" class="img-fluid w-100" alt="' + (image.alt || currentProductData.name) + '" /></div>';
+            imagesHtml += '<div  class="single_view_slide"><img style="max-width: 450px; height:auto;max-height: 580px; object-fit: contain;"  src="' + image.url + '" class="img-fluid mx-auto w-100" alt="' + (image.alt || currentProductData.name) + '" /></div>';
         });
         $('#quickViewImages').html(imagesHtml);
         
@@ -2437,5 +2488,188 @@ if (passwordField || confirmPasswordField) {
     @endif
     
 });
+
+// Measurement Chart Modal
+// Store product measurements data globally
+let productMeasurementsData = null;
+
+// Function to build measurement chart table
+function buildMeasurementChart(variants) {
+    if (!variants || variants.length === 0) {
+        return '<p class="text-muted text-center py-4">No measurement data available.</p>';
+    }
+    
+    // Collect all unique measurement attributes across all variants
+    const measurementAttributes = new Set();
+    const variantsWithMeasurements = [];
+    
+    variants.forEach(variant => {
+        if (variant.measurements && Array.isArray(variant.measurements) && variant.measurements.length > 0) {
+            const variantData = {
+                variant: variant,
+                measurements: {}
+            };
+            
+            variant.measurements.forEach(measurement => {
+                const attrName = measurement.attribute_name || measurement.name || 'Unknown';
+                measurementAttributes.add(attrName);
+                variantData.measurements[attrName] = {
+                    value: measurement.value || '',
+                    unit: measurement.unit_symbol || measurement.unit_name || measurement.unit || '',
+                    unitName: measurement.unit_name || measurement.unit || ''
+                };
+            });
+            
+            variantsWithMeasurements.push(variantData);
+        }
+    });
+    
+    if (variantsWithMeasurements.length === 0) {
+        return '<p class="text-muted text-center py-4">No measurement data available.</p>';
+    }
+    
+    // Build table HTML
+    let tableHtml = '<div class="table-responsive"><table class="table table-bordered table-striped">';
+    
+    // Header row - Measurement attributes
+    tableHtml += '<thead><tr>';
+    tableHtml += '<th class="bg-light">Variant</th>';
+    Array.from(measurementAttributes).sort().forEach(attrName => {
+        tableHtml += '<th class="bg-light">' + escapeHtml(attrName) + '</th>';
+    });
+    tableHtml += '</tr></thead>';
+    
+    // Body rows - Variant measurements
+    tableHtml += '<tbody>';
+    variantsWithMeasurements.forEach(variantData => {
+        const variant = variantData.variant;
+        
+        // Build variant identifier (color, size, etc.)
+        let variantIdentifier = '';
+        const identifierParts = [];
+        
+        // Try to get color and size first (legacy support)
+        if (variant.color) {
+            identifierParts.push(variant.color);
+        }
+        if (variant.size && variant.size !== variant.color) {
+            identifierParts.push(variant.size);
+        }
+        
+        // If we have attributes object (from variantDataMap), extract values
+        if (variant.attributes && typeof variant.attributes === 'object') {
+            // variant.attributes is a map of attribute_id => value
+            // Get all unique values (excluding color/size if already added)
+            const attrValues = Object.values(variant.attributes).filter(val => 
+                val && val !== variant.color && val !== variant.size
+            );
+            identifierParts.push(...attrValues);
+        }
+        
+        // If still no identifier, use SKU or variant ID
+        if (identifierParts.length > 0) {
+            variantIdentifier = identifierParts.join(' - ');
+        } else if (variant.sku) {
+            variantIdentifier = 'SKU: ' + variant.sku;
+        } else {
+            variantIdentifier = 'Variant #' + variant.id;
+        }
+        
+        tableHtml += '<tr>';
+        tableHtml += '<td><strong>' + escapeHtml(variantIdentifier) + '</strong></td>';
+        
+        Array.from(measurementAttributes).sort().forEach(attrName => {
+            const measurement = variantData.measurements[attrName];
+            if (measurement) {
+                const displayValue = measurement.value + (measurement.unit ? ' ' + measurement.unit : '');
+                tableHtml += '<td>' + escapeHtml(displayValue) + '</td>';
+            } else {
+                tableHtml += '<td class="text-muted">—</td>';
+            }
+        });
+        
+        tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table></div>';
+    
+    return tableHtml;
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+// Handle measurement chart modal open for product page
+$(document).on('show.bs.modal', '#measurementChartModal', function() {
+    const $content = $('#measurementChartContent');
+    
+    // Check if we have variantDataMap (product page) or currentProductData (quick view)
+    if (typeof window.variantDataMap !== 'undefined' && window.variantDataMap) {
+        // Product page - get variants from variantDataMap
+        const variants = Object.values(window.variantDataMap).map(variant => {
+            // Extract color and size from attributes if available
+            let color = null;
+            let size = null;
+            
+            if (variant.attributes && typeof variant.attributes === 'object') {
+                const attrValues = Object.values(variant.attributes);
+                // Try to identify color and size (first two values, or use all)
+                if (attrValues.length > 0) {
+                    color = attrValues[0];
+                }
+                if (attrValues.length > 1) {
+                    size = attrValues[1];
+                }
+            }
+            
+            return {
+                id: variant.id,
+                sku: variant.sku,
+                color: color,
+                size: size,
+                attributes: variant.attributes,
+                measurements: variant.measurements || []
+            };
+        });
+        
+        const chartHtml = buildMeasurementChart(variants);
+        $content.html(chartHtml);
+    } else if (typeof currentProductData !== 'undefined' && currentProductData && currentProductData.variants) {
+        // Quick view - use currentProductData
+        const chartHtml = buildMeasurementChart(currentProductData.variants);
+        $content.html(chartHtml);
+    } else if (productMeasurementsData) {
+        // Use stored data
+        const chartHtml = buildMeasurementChart(productMeasurementsData);
+        $content.html(chartHtml);
+    } else {
+        $content.html('<p class="text-muted text-center py-4">No measurement data available.</p>');
+    }
+});
+
+// Update quick view measurement button visibility
+function updateQuickViewMeasurementButton() {
+    if (typeof currentProductData !== 'undefined' && currentProductData && currentProductData.variants) {
+        const hasMeasurements = currentProductData.variants.some(variant => 
+            variant.measurements && Array.isArray(variant.measurements) && variant.measurements.length > 0
+        );
+        
+        if (hasMeasurements) {
+            $('#quickViewMeasurementButton').show();
+        } else {
+            $('#quickViewMeasurementButton').hide();
+        }
+    } else {
+        $('#quickViewMeasurementButton').hide();
+    }
+}
 </script>
 @endpush

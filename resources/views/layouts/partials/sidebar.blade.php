@@ -88,11 +88,11 @@
                                         <span class="sa-nav__title">Categories</span>
                                     </a>
                                 </li>
-                                <li class="sa-nav__menu-item {{ request()->routeIs('attributes.*') ? 'sa-nav__menu-item--active' : '' }}">
+                                <!-- <li class="sa-nav__menu-item {{ request()->routeIs('attributes.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('attributes.index') }}" class="sa-nav__link"> 
                                         <span class="sa-nav__title">Attributes</span>
                                     </a>
-                                </li>
+                                </li> -->
                                 <li class="sa-nav__menu-item {{ request()->routeIs('units.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('units.index') }}" class="sa-nav__link"> 
                                         <span class="sa-nav__title">Units</span>
@@ -259,62 +259,7 @@
                     </ul>
                 </li>
                 
-                <!-- Website Menu -->
-                <li class="sa-nav__section">
-                    <div class="sa-nav__section-title"><span>Website</span></div>
-                    <ul class="sa-nav__menu sa-nav__menu--root">
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('featured-category-style.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('featured-category-style.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8,0C3.6,0,0,3.6,0,8s3.6,8,8,8s8-3.6,8-8S12.4,0,8,0z M8,14c-3.3,0-6-2.7-6-6s2.7-6,6-6s6,2.7,6,6S11.3,14,8,14z M8,3C6.3,3,5,4.3,5,6s1.3,3,3,3s3-1.3,3-3S9.7,3,8,3z M8,8c-1.1,0-2-0.9-2-2s0.9-2,2-2s2,0.9,2,2S9.1,8,8,8z"></path>
-                                    </svg>
-                                </span>
-                                <span class="sa-nav__title">Featured Category Style</span>
-                            </a>
-                        </li>
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('our-collection.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('our-collection.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8,0C3.6,0,0,3.6,0,8s3.6,8,8,8s8-3.6,8-8S12.4,0,8,0z M8,14c-3.3,0-6-2.7-6-6s2.7-6,6-6s6,2.7,6,6S11.3,14,8,14z M8,3C6.3,3,5,4.3,5,6s1.3,3,3,3s3-1.3,3-3S9.7,3,8,3z M8,8c-1.1,0-2-0.9-2-2s0.9-2,2-2s2,0.9,2,2S9.1,8,8,8z"></path>
-                                    </svg>
-                                </span>
-                                <span class="sa-nav__title">Our Collection</span>
-                            </a>
-                        </li>
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('testimonials.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('testimonials.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8,0C3.6,0,0,3.6,0,8s3.6,8,8,8s8-3.6,8-8S12.4,0,8,0z M8,14c-3.3,0-6-2.7-6-6s2.7-6,6-6s6,2.7,6,6S11.3,14,8,14z M8,3C6.3,3,5,4.3,5,6s1.3,3,3,3s3-1.3,3-3S9.7,3,8,3z M8,8c-1.1,0-2-0.9-2-2s0.9-2,2-2s2,0.9,2,2S9.1,8,8,8z"></path>
-                                    </svg>
-                                </span>
-                                <span class="sa-nav__title">Testimonials</span>
-                            </a>
-                        </li>
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('home-sliders.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('home-sliders.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8,0C3.6,0,0,3.6,0,8s3.6,8,8,8s8-3.6,8-8S12.4,0,8,0z M8,14c-3.3,0-6-2.7-6-6s2.7-6,6-6s6,2.7,6,6S11.3,14,8,14z M8,3C6.3,3,5,4.3,5,6s1.3,3,3,3s3-1.3,3-3S9.7,3,8,3z M8,8c-1.1,0-2-0.9-2-2s0.9-2,2-2s2,0.9,2,2S9.1,8,8,8z"></path>
-                                    </svg>
-                                </span>
-                                <span class="sa-nav__title">Home Sliders</span>
-                            </a>
-                        </li>
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('service-highlights.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('service-highlights.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8,0C3.6,0,0,3.6,0,8s3.6,8,8,8s8-3.6,8-8S12.4,0,8,0z M8,14c-3.3,0-6-2.7-6-6s2.7-6,6-6s6,2.7,6,6S11.3,14,8,14z M8,3C6.3,3,5,4.3,5,6s1.3,3,3,3s3-1.3,3-3S9.7,3,8,3z M8,8c-1.1,0-2-0.9-2-2s0.9-2,2-2s2,0.9,2,2S9.1,8,8,8z"></path>
-                                    </svg>
-                                </span>
-                                <span class="sa-nav__title">Service Highlights</span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
+              
                 
              
                 <!-- User Management Menu -->
@@ -355,11 +300,66 @@
                                         <path d="M8,9c2.206,0,4-1.794,4-4s-1.794-4-4-4S4,2.794,4,5S5.794,9,8,9z M8,3c1.103,0,2,0.897,2,2s-0.897,2-2,2S6,6.103,6,5 S6.897,3,8,3z M8,10c-3.314,0-6,2.686-6,6h2c0-2.206,1.794-4,4-4s4,1.794,4,4h2C14,12.686,11.314,10,8,10z"></path>
                                     </svg>
                                 </span>
-                                <span class="sa-nav__title">Profile</span>
+                                <span class="sa-nav__title">Company Profile</span>
                             </a>
                         </li>
                     </ul>
                 </li>
+
+                <!-- Website Management Menu -->
+                <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('website.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open" style="margin-bottom: 8px;">
+                    <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
+                        <span class="sa-nav__icon">
+                            <i class='bx bx-globe'></i>
+                        </span>
+                        <span class="sa-nav__title">Website Management</span>
+                        <span class="sa-nav__arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="6" height="9" viewBox="0 0 6 9" fill="currentColor">
+                                <path d="M5.605,0.213 C6.007,0.613 6.107,1.212 5.706,1.612 L2.696,4.511 L5.706,7.409 C6.107,7.809 6.107,8.509 5.605,8.808 C5.204,9.108 4.702,9.108 4.301,8.709 L-0.013,4.511 L4.401,0.313 C4.702,-0.087 5.304,-0.087 5.605,0.213 Z"></path>
+                            </svg>
+                        </span>
+                    </a>
+
+                    <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content="">
+                        <li class="sa-nav__menu-item {{ request()->routeIs('featured-category-style.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('featured-category-style.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__menu-item-padding"></span>
+                                <span class="sa-nav__title">Featured Category Style</span>
+                            </a>
+                        </li>
+
+                        <li class="sa-nav__menu-item {{ request()->routeIs('our-collection.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('our-collection.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__menu-item-padding"></span>
+                                <span class="sa-nav__title">Our Collection</span>
+                            </a>
+                        </li>
+
+                        <li class="sa-nav__menu-item {{ request()->routeIs('testimonials.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('testimonials.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__menu-item-padding"></span>
+                                <span class="sa-nav__title">Testimonials</span>
+                            </a>
+                        </li>
+
+                        <li class="sa-nav__menu-item {{ request()->routeIs('home-sliders.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('home-sliders.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__menu-item-padding"></span>
+                                <span class="sa-nav__title">Home Sliders</span>
+                            </a>
+                        </li>
+
+                        <li class="sa-nav__menu-item {{ request()->routeIs('service-highlights.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('service-highlights.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__menu-item-padding"></span>
+                                <span class="sa-nav__title">Service Highlights</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+
+                
             </ul>
         </div>
     </div>

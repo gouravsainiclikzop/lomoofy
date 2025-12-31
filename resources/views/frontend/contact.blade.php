@@ -9,6 +9,9 @@
 @endsection
 			
 @section('content')
+@php
+	$settings = \App\Models\CompanySetting::getSettings();
+@endphp
 			<!-- ======================= Contact Page Detail ======================== -->
 			<section class="middle">
 				<div class="container">
@@ -27,23 +30,23 @@
 						<div class="col-xl-4 col-lg-4 col-md-12 col-sm-12">
 							<div class="card-wrap-body mb-4">
 								<h4 class="ft-medium mb-3 theme-cl">Make a Call</h4>
-								<p>1354 Lorem ipsum dolor sit amet,<br> KS 67801 Delhi, India</p>
-								<p class="lh-1"><span class="text-dark ft-medium">Email:</span> help@lomoofyindustries.com</p>
+								<p>{{ $settings->address }}</p>
+								<p class="lh-1"><span class="text-dark ft-medium">Email:</span> {{ $settings->email }}</p>
 							</div>
 							
 							<div class="card-wrap-body mb-3">
 								<h4 class="ft-medium mb-3 theme-cl">Make a Call</h4>
 								<h6 class="ft-medium mb-1">Customer Care:</h6>
-								<p class="mb-2">+91 9876543210</p>
+								<p class="mb-2">{{ $settings->phone }}</p>
 								<h6 class="ft-medium mb-1">Careers::</h6>
-								<p>+91 9876543210</p>
+								<p>{{ $settings->phone }}</p>
 							</div>
 							
 							<div class="card-wrap-body mb-3">
 								<h4 class="ft-medium mb-3 theme-cl">Drop A Mail</h4>
 								<p>Fill out our form and we will contact you within 24 hours.</p>
-								<p class="lh-1 text-dark">help@lomoofyindustries.com</p>
-								<p class="lh-1 text-dark">support@lomoofyindustries.com</p>
+								<p class="lh-1 text-dark">{{ $settings->email }}</p>
+								<p class="lh-1 text-dark">{{ $settings->email }}</p>
 							</div>
 						</div>
 						
@@ -74,7 +77,7 @@
 								<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 									<div class="form-group">
 										<label class="small text-dark ft-medium mb-2">Message</label>
-										<textarea class="form-control ht-80">At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias</textarea>
+										<textarea class="form-control ht-80"></textarea>
 									</div>
 								</div>
 								

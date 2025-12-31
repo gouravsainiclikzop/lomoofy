@@ -278,6 +278,13 @@
                                     <canvas id="topProductsChart" height="300"></canvas>
                                 </div>
                                 
+                                <!-- Top Products List -->
+                                <div id="topProductsList" class="mt-4" style="display: none;">
+                                    <ul class="list-group list-group-flush" id="topProductsListItems">
+                                        <!-- Products will be populated here -->
+                                    </ul>
+                                </div>
+                                
                                 <!-- Summary KPIs -->
                                 <div id="topProductsSummary" class="mt-4 pt-3 border-top" style="display: none;">
                                     <div class="row g-3 text-center">
@@ -1221,6 +1228,56 @@ $(document).ready(function() {
                 $('#topProductsSummary').hide();
             }
         });
+    }
+
+    /**
+     * Populate top products list
+     */
+    function populateTopProductsList(products) {
+        const listContainer = $('#topProductsListItems');
+        const listWrapper = $('#topProductsList');
+        
+        if (!products || products.length === 0) {
+            listWrapper.hide();
+            return;
+        }
+        
+        listContainer.empty();
+        
+        products.forEach(function(product, index) {
+            const imageUrl = product.image || '{{ asset("assets/images/placeholder.jpg") }}';
+            const trendIcon = product.mom_trend !== null 
+                ? (product.mom_trend >= 0 
+                    ? '<i class="bx bx-trending-up text-success"></i>' 
+                    : '<i class="bx bx-trending-down text-danger"></i>')
+                : '';
+            const trendText = product.mom_trend !== null 
+                ? `<span class="badge ${product.mom_trend >= 0 ? 'bg-success' : 'bg-danger'} bg-opacity-10 text-${product.mom_trend >= 0 ? 'success' : 'danger'}">
+                    ${trendIcon} ${Math.abs(product.mom_trend).toFixed(1)}%
+                   </span>`
+                : '';
+            
+            const listItem = `
+                <li class="list-group-item d-flex align-items-center px-0">
+                    <div class="d-flex align-items-center flex-grow-1">
+                        <span class="badge bg-primary me-3" style="min-width: 30px;">${product.rank}</span>
+                        <img src="${imageUrl}" alt="${product.name}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.src='{{ asset('assets/images/placeholder.jpg') }}'">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${product.name}</h6>
+                            <div class="d-flex gap-3 align-items-center">
+                                <small class="text-muted">Qty: <strong>${product.quantity}</strong></small>
+                                <small class="text-muted">Revenue: <strong>₹${product.revenue}</strong></small>
+                                ${trendText}
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            `;
+            
+            listContainer.append(listItem);
+        });
+        
+        listWrapper.show();
     }
 
     /**

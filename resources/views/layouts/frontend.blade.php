@@ -6,9 +6,17 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="csrf-token" content="{{ csrf_token() }}">
 	
-	<title>@yield('title', 'Lomoofy Industries')</title>
-	<link	favicon href="{{ asset('frontend/images/logo.png') }}" rel="icon">
+		
+	@php 
+	 $settings = \App\Models\CompanySetting::getSettings();
+ 
+		@endphp
+
+	<title>@yield('title', $settings->company_name ?? 'Lomoofy Industries')</title>
 	 
+
+	<link rel="icon" type="image/png" href="{{ $settings->company_logo ? asset('storage/' . $settings->company_logo) : asset('assets/images/favicon.png') }}">
+	
 	<!-- Custom CSS -->
 	<link href="{{ asset('frontend/css/styles.css') }}" rel="stylesheet">
 	<link href="{{ asset('frontend/css/customstyle.css') }}" rel="stylesheet">

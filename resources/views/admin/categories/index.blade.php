@@ -702,7 +702,7 @@
                     </div>
                     
                     <!-- Product Attributes Assignment -->
-                    <div class="mb-3">
+                    <div class="mb-3 d-none">
                         <label class="form-label">
                             <i class="fas fa-tags me-1 text-primary"></i>Assigned Product Attributes
                         </label>

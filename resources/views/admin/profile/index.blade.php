@@ -11,8 +11,8 @@
                 <div class="card">
                     <div class="card-body p-4 text-center">
                         <div class="mb-3">
-                            <div class="sa-symbol sa-symbol--shape--rounded" style="--sa-symbol-size: 8rem; margin: 0 auto;">
-                                <img id="profileImagePreview" src="{{ Auth::user()->image ? asset('storage/' . Auth::user()->image) : asset('assets/images/customers/customer-4-64x64.jpg') }}" alt="{{ Auth::user()->name }}" style="width: 100%; height: 100%; object-fit: cover;"/>
+                            <div class="sa-symbol sa-symbol--shape--rounded" style="/*! --sa-symbol-size: 48rem; */ margin: 0 auto;width: 100px;height: 100px;">
+                                <img id="profileImagePreview" src="{{ Auth::user()->image ? asset('storage/' . Auth::user()->image) : asset('assets/images/customers/customer-4-64x64.jpg') }}" alt="{{ Auth::user()->name }}" style="width: 100%; height: 100%; object-fit: fill;"/>
                             </div>
                         </div>
                         <h5 class="mb-1" id="profileName">{{ Auth::user()->name }}</h5>
@@ -160,6 +160,34 @@
                                         <span class="text-muted">No signature uploaded</span>
                                     @endif
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Site Settings Card -->
+                <div class="card mt-4">
+                    <div class="card-body p-4">
+                        <h5 class="card-title mb-4">Site Settings</h5>
+                        
+                        <div class="border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <label class="form-label text-muted mb-1">Coming Soon Mode</label>
+                                    <div class="fw-medium" id="displayComingSoon">
+                                        @if($companySettings->coming_soon ?? false)
+                                            <span class="badge bg-danger">Enabled</span>
+                                            <small class="text-muted d-block mt-1">Website visitors will see a coming soon page</small>
+                                        @else
+                                            <span class="badge bg-success">Disabled</span>
+                                            <small class="text-muted d-block mt-1">Website is accessible to all visitors</small>
+                                        @endif
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-secondary" id="toggleComingSoonBtn">
+                                    <i class='fas fa-toggle-{{ $companySettings->coming_soon ?? false ? "on" : "off" }}'></i> 
+                                    <span id="toggleComingSoonText">{{ ($companySettings->coming_soon ?? false) ? 'Disable' : 'Enable' }}</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -882,6 +910,52 @@ $(document).ready(function() {
         
         // Clear file inputs (they can't be pre-populated for security reasons)
         form.find('input[type="file"]').val('');
+    });
+
+    // Toggle Coming Soon
+    $('#toggleComingSoonBtn').on('click', function() {
+        const btn = $(this);
+        const originalText = btn.find('#toggleComingSoonText').text();
+        
+        // Disable button during request
+        btn.prop('disabled', true);
+        btn.find('#toggleComingSoonText').text('Processing...');
+        
+        $.ajax({
+            url: '{{ route("profile.toggleComingSoon") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Update display
+                    if (response.coming_soon) {
+                        $('#displayComingSoon').html(`
+                            <span class="badge bg-danger">Enabled</span>
+                            <small class="text-muted d-block mt-1">Website visitors will see a coming soon page</small>
+                        `);
+                        btn.find('#toggleComingSoonText').text('Disable');
+                        btn.find('i').removeClass('fa-toggle-off').addClass('fa-toggle-on');
+                    } else {
+                        $('#displayComingSoon').html(`
+                            <span class="badge bg-success">Disabled</span>
+                            <small class="text-muted d-block mt-1">Website is accessible to all visitors</small>
+                        `);
+                        btn.find('#toggleComingSoonText').text('Enable');
+                        btn.find('i').removeClass('fa-toggle-on').addClass('fa-toggle-off');
+                    }
+                    
+                    showToast('success', response.message);
+                }
+            },
+            error: function(xhr) {
+                showToast('error', 'An error occurred. Please try again.');
+            },
+            complete: function() {
+                btn.prop('disabled', false);
+            }
+        });
     });
 
     // Toast notification function

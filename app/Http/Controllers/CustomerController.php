@@ -296,7 +296,7 @@ class CustomerController extends Controller
                         $rule[] = 'file';
                     }
                     if ($field->field_key === 'profile_image' && !in_array('image', $rule)) {
-                        $rule[] = 'image|mimes:jpeg,png,jpg,gif|max:2048';
+                        $rule[] = 'image|mimes:jpeg,png,jpg,gif,webp|max:2048';
                     }
                     break;
                 case 'date':
@@ -629,14 +629,7 @@ class CustomerController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // Debug: Log raw request data
-        Log::info('Customer update request received', [
-            'customer_id' => $id,
-            'has_addresses' => $request->has('addresses'),
-            'addresses_type' => gettype($request->input('addresses')),
-            'addresses_value' => $request->input('addresses'),
-            'all_request_data' => $request->all()
-        ]);
+        
         
         $customer = Customer::findOrFail($id);
         $fields = FieldManagement::active()->visible()->get();
@@ -723,7 +716,7 @@ class CustomerController extends Controller
                         $rule[] = 'file';
                     }
                     if ($field->field_key === 'profile_image' && !in_array('image', $rule)) {
-                        $rule[] = 'image|mimes:jpeg,png,jpg,gif|max:2048';
+                        $rule[] = 'image|mimes:jpeg,png,jpg,gif,webp|max:2048';
                     }
                     break;
                 case 'date':
@@ -933,13 +926,7 @@ class CustomerController extends Controller
                 $addressesToUpdate = [];
                 $addressesToCreate = [];
                 
-                // Debug: Log the addresses from request
-                Log::info('Processing addresses in update', [
-                    'customer_id' => $customer->id,
-                    'addresses_count' => count($addresses),
-                    'addresses_data' => $addresses,
-                    'existing_addresses_in_db' => $customer->addresses->pluck('id')->toArray()
-                ]);
+                
                 
                 foreach ($addresses as $index => $addressInput) {
                     // Check if address has any meaningful data
@@ -967,12 +954,7 @@ class CustomerController extends Controller
                         $hasAddressData = true;
                     }
                     
-                    // Debug: Log each address check
-                    Log::info('Address data check', [
-                        'index' => $index,
-                        'hasAddressData' => $hasAddressData,
-                        'addressInput' => $addressInput
-                    ]);
+                    
                     
                     if ($hasAddressData) {
                         // Check if this address should be set as default
@@ -1001,15 +983,10 @@ class CustomerController extends Controller
                         if (isset($addressInput['id']) && !empty($addressInput['id'])) {
                             $existingAddressIds[] = $addressInput['id'];
                             $addressesToUpdate[$addressInput['id']] = $addressData;
-                            Log::info('Address marked for update', [
-                                'address_id' => $addressInput['id'],
-                                'address_data' => $addressData
-                            ]);
+                           
                         } else {
                             $addressesToCreate[] = array_merge($addressData, ['customer_id' => $customer->id]);
-                            Log::info('Address marked for create', [
-                                'address_data' => array_merge($addressData, ['customer_id' => $customer->id])
-                            ]);
+                             
                         }
                     }
                 }
@@ -1022,10 +999,7 @@ class CustomerController extends Controller
                     if ($address) {
                         try {
                             $address->update($addressData);
-                            Log::info('Address updated successfully', [
-                                'address_id' => $addressId,
-                                'customer_id' => $customer->id
-                            ]);
+                            
                         } catch (\Exception $e) {
                             Log::error('Error updating customer address: ' . $e->getMessage(), [
                                 'customer_id' => $customer->id,
@@ -1049,11 +1023,7 @@ class CustomerController extends Controller
                     try {
                         $newAddress = CustomerAddress::create($addressData);
                         $newlyCreatedAddressIds[] = $newAddress->id;
-                        Log::info('Address created successfully', [
-                            'address_id' => $newAddress->id,
-                            'customer_id' => $customer->id,
-                            'address_data' => $addressData
-                        ]);
+                        
                     } catch (\Exception $e) {
                         Log::error('Error creating customer address: ' . $e->getMessage(), [
                             'customer_id' => $customer->id,
@@ -1066,15 +1036,7 @@ class CustomerController extends Controller
                 
                 // Combine existing and newly created address IDs - these should NOT be deleted
                 $addressIdsToKeep = array_merge($existingAddressIds, $newlyCreatedAddressIds);
-                
-                Log::info('Address processing summary', [
-                    'customer_id' => $customer->id,
-                    'addresses_to_update_count' => count($addressesToUpdate),
-                    'addresses_to_create_count' => count($addressesToCreate),
-                    'existing_address_ids' => $existingAddressIds,
-                    'newly_created_address_ids' => $newlyCreatedAddressIds,
-                    'address_ids_to_keep' => $addressIdsToKeep
-                ]);
+               
                 
                 // Delete addresses that were removed (not in the request)
                 // Only delete addresses that are not in our keep list
@@ -1084,18 +1046,12 @@ class CustomerController extends Controller
                     $deletedCount = CustomerAddress::where('customer_id', $customer->id)
                         ->whereNotIn('id', $addressIdsToKeep)
                         ->delete();
-                    Log::info('Deleted removed addresses', [
-                        'customer_id' => $customer->id,
-                        'deleted_count' => $deletedCount,
-                        'address_ids_to_keep' => $addressIdsToKeep
-                    ]);
+                   
                 } else {
                     // If no addresses to keep but we're processing addresses,
                     // it means all addresses in request were invalid/empty
                     // Don't delete existing addresses in this case
-                    Log::info('No valid addresses to keep, skipping deletion', [
-                        'customer_id' => $customer->id
-                    ]);
+                   
                 }
                 
                 // Ensure only one address is set as default
@@ -1110,19 +1066,13 @@ class CustomerController extends Controller
                         ->where('is_default', true)
                         ->where('id', '!=', $firstDefault->id)
                         ->update(['is_default' => false]);
-                    Log::info('Multiple default addresses found, kept first one as default', [
-                        'customer_id' => $customer->id,
-                        'kept_address_id' => $firstDefault->id
-                    ]);
+                    
                 } elseif ($defaultAddresses->count() === 0) {
                     // No default address - set the first address as default
                     $firstAddress = CustomerAddress::where('customer_id', $customer->id)->first();
                     if ($firstAddress) {
                         $firstAddress->update(['is_default' => true]);
-                        Log::info('No default address found, set first address as default', [
-                            'customer_id' => $customer->id,
-                            'address_id' => $firstAddress->id
-                        ]);
+                       
                     }
                 }
             } elseif ($request->has('address_type')) {

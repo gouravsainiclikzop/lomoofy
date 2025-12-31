@@ -312,11 +312,7 @@ class CategoryController extends Controller
             return $category->getDepth() < 4; // Only level 0, 1, 2, or 3 can be parents
         })->values();
         
-        // Log for debugging (remove in production if needed)
-        Log::info('Parent categories query result', [
-            'count' => $parents->count(),
-            'exclude_id' => $excludeId
-        ]);
+       
         
         // Get all children counts in one query to avoid N+1
         $parentIds = $parents->pluck('id')->toArray();
@@ -504,14 +500,10 @@ class CategoryController extends Controller
      * Get single category for edit (AJAX JSON).
      */
 public function edit(Request $request)
-    {
-        Log::info('=== CATEGORY EDIT REQUEST ===');
-        Log::info('Request ID: ' . $request->id);
-        
+    { 
         $category = Category::find($request->id);
 
-        if (!$category) {
-            Log::error('Category not found for ID: ' . $request->id);
+        if (!$category) { 
             return response()->json([
                 'success' => false,
                 'message' => 'Category not found'
@@ -530,8 +522,7 @@ public function edit(Request $request)
         $categoryData['product_attribute_ids'] = $category->productAttributes->pluck('id')->toArray();
         $categoryData['inherited_product_attributes'] = $inheritedAttributes->toArray();
 
-        Log::info('Category found: ' . json_encode($categoryData));
-
+      
         return response()->json([
             'success' => true,
             'data' => $categoryData

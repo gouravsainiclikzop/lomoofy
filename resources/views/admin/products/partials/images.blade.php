@@ -29,11 +29,14 @@
                                 <u>browse</u>
                             </label>
                         </p>
-                        <small class="text-muted">Supports JPG, PNG, GIF. Multiple files allowed.</small>
-                        <small class="text-info d-block mt-1">
+                        <small class="text-muted">
+                            <!-- Supports JPG, PNG, GIF. Multiple files allowed. -->
+                            Recommended:  620 × 780 pixels
+                        </small>
+                        <!-- <small class="text-info d-block mt-1">
                             <i class="fas fa-info-circle me-1"></i>
                             <strong>Recommended dimensions:</strong> 620 × 780 pixels
-                        </small>
+                        </small> -->
                     </div>
                 </div>
                 <small class="text-muted small mt-2">

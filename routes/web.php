@@ -7,6 +7,16 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\FrontendController;
+use Illuminate\Support\Facades\Log;
+
+Route::get('/debug-log', function () {
+    Log::info('Manual log trigger executed', [
+        'source' => 'debug-route',
+        'timestamp' => now()->toDateTimeString(),
+    ]);
+
+    return 'Log entry created.';
+});
 
 // Frontend Routes
 //assets for this are located in "public/frontend/"
@@ -225,6 +235,7 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/profile/update-email', [\App\Http\Controllers\ProfileController::class, 'updateEmail'])->name('profile.updateEmail');
     Route::post('/profile/update-password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.updatePassword');
     Route::post('/profile/update-company-settings', [\App\Http\Controllers\ProfileController::class, 'updateCompanySettings'])->name('profile.updateCompanySettings');
+    Route::post('/profile/toggle-coming-soon', [\App\Http\Controllers\ProfileController::class, 'toggleComingSoon'])->name('profile.toggleComingSoon');
     
     // Roles (GET and POST only)
     Route::get('/roles', [\App\Http\Controllers\RoleController::class, 'index'])->name('roles.index');
@@ -484,6 +495,7 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::get('/orders/stock-availability', [\App\Http\Controllers\OrderController::class, 'getStockAvailability'])->name('orders.stock-availability');
     Route::get('/orders/{id}', [\App\Http\Controllers\OrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{id}/edit', [\App\Http\Controllers\OrderController::class, 'edit'])->name('orders.edit');
+    Route::get('/orders/{id}/invoice', [\App\Http\Controllers\OrderController::class, 'invoice'])->name('orders.invoice');
     Route::post('/orders', [\App\Http\Controllers\OrderController::class, 'store'])->name('orders.store');
     Route::post('/orders/{id}/status', [\App\Http\Controllers\OrderController::class, 'updateStatus'])->name('orders.update-status');
     Route::match(['post', 'put'], '/orders/{id}', [\App\Http\Controllers\OrderController::class, 'update'])->name('orders.update');

@@ -39,7 +39,7 @@ class InventoryController extends Controller
                 $q->with(['primaryImage', 'images', 'defaultWarehouse']);
             },
             'images' => function($q) {
-                $q->orderBy('sort_order')->orderBy('id');
+                $q->orderBy('is_primary', 'desc')->orderBy('sort_order')->orderBy('id');
             },
             'inventoryStocks.warehouse',
             'inventoryStocks.warehouseLocation'
@@ -137,11 +137,21 @@ class InventoryController extends Controller
                 ];
             })->values()->toArray();
             
-            // Get variant image or product image
-            $variantImage = $variant->images->first();
-            $imageUrl = $variantImage 
-                ? asset('storage/' . $variantImage->image_path)
-                : ($product->image_url ?? asset('assets/images/placeholder.jpg'));
+            // Get variant image only - don't fallback to product image
+            $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+            if ($variant->images && $variant->images->count() > 0) {
+                // Try to get primary variant image first
+                $primaryVariantImage = $variant->images->where('is_primary', true)->first();
+                if ($primaryVariantImage) {
+                    $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                } else {
+                    // Use first variant image
+                    $firstVariantImage = $variant->images->first();
+                    if ($firstVariantImage) {
+                        $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                    }
+                }
+            }
             
             // Calculate low stock: stock quantity <= low stock threshold (and > 0, otherwise it's out of stock)
             $lowStockThreshold = $variant->low_stock_threshold ?? 0;

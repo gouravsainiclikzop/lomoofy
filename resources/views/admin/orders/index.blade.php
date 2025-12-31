@@ -892,6 +892,9 @@ $(document).ready(function() {
                                     <button class="btn btn-outline-info view-order" data-id="${order.id}" title="View">
                                         <i class='bx bx-show'></i>
                                     </button>
+                                    <a href="/orders/${order.id}/invoice" target="_blank" class="btn btn-outline-success" title="Download Invoice">
+                                        <i class='bx bx-download'></i>
+                                    </a>
                                     <button class="btn btn-outline-primary edit-order" data-id="${order.id}" title="Edit">
                                         <i class='bx bx-edit'></i>
                                     </button>
@@ -906,6 +909,9 @@ $(document).ready(function() {
                                     <button class="btn btn-outline-info view-order" data-id="${order.id}" title="View">
                                         <i class='bx bx-show'></i>
                                     </button>
+                                    <a href="/orders/${order.id}/invoice" target="_blank" class="btn btn-outline-success" title="Download Invoice">
+                                        <i class='bx bx-download'></i>
+                                    </a>
                                 </div>
                             `;
                         }

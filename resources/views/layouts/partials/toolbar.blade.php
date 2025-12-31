@@ -40,8 +40,8 @@
         
         <div class="dropdown sa-toolbar__item">
             <button class="sa-toolbar-user" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" data-bs-offset="0,1" aria-expanded="false">
-                <span class="sa-toolbar-user__avatar sa-symbol sa-symbol--shape--rounded">
-                    <img src="{{ asset('assets/images/customers/customer-4-64x64.jpg') }}" width="64" height="64" alt=""/>
+                <span class="sa-toolbar-user__avatar sa-symbol sa-symbol--shape--rounded"> 
+                    <img src="{{ Auth::user()->image ? asset('storage/' . Auth::user()->image) : asset('assets/images/customers/customer-4-64x64.jpg') }}" alt="{{ Auth::user()->name }}" width="64" height="64" alt=""/>
                 </span>
                 <span class="sa-toolbar-user__info">
                     <span class="sa-toolbar-user__title">{{ Auth::user()?->name ?? 'Guest' }}</span>

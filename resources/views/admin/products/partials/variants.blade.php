@@ -35,15 +35,15 @@
 
 {{-- Variants Section for Configurable Products --}}
 <div class="card mb-3">
-    <div class="card-header py-2">
+    <!-- <div class="card-header py-2">
         <h6 class="card-title mb-0">
             <i class="fas fa-layer-group me-2"></i>Product Variants
         </h6>
-    </div>
+    </div> -->
     <div class="card-body py-3">
-        {{-- Attribute Selection and Add Variant Form Side by Side --}}
+        {{-- OLD UI COMMENTED OUT - Dynamic Attributes Approach --}}
+        {{--
         <div class="row g-2 mb-3">
-            {{-- Available Attributes Section --}}
             <div class="col-md-6"> 
                 <div id="attributeSelection">
                     <div class="row g-2">
@@ -93,7 +93,6 @@
                 </div>
             </div>
 
-            {{-- Add Variant Form Section --}}
             <div class="col-md-6">
                 <div id="addVariantForm" class="card" style="display: none;">
                     <div class="card-header py-2">
@@ -104,8 +103,6 @@
                     <div class="card-body py-2">
                         <div class="row g-2">
                             <div id="variantAttributeSelectors" class="col-12">
-                                <!-- Dynamic attribute value selectors will be inserted here -->
-                                 
                             </div>
                             <div class="col-12 text-end">
                                 <button type="button" class="btn btn-primary" id="addVariantBtn">
@@ -121,6 +118,65 @@
         </div>
     </div>
 </div>
+        --}}
+
+        {{-- NEW UI - Combination Based Variant Generation --}}
+        <!-- <div class="row g-2 mb-3"> -->
+        <div class="  g-2 mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h6 class="mb-0 form-label-sm">
+                            Generate Variants by Combinations
+                        </h6>
+                    </div>
+                    <div class="card-body py-3">
+                        {{-- Step 1: Select Number of Combinations --}}
+                        <div id="step1SelectCombinations" class="mb-4">
+                            <label class="form-label form-label-sm mb-3">
+                                <strong>Step 1:</strong> How many combinations do you want to create?
+                            </label>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="0">None</button>
+                                <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="1">One</button>
+                                <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="2">Two</button>
+                                <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="3">Three</button>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Select "None" to create a variant without attribute combinations (attributes will be empty)
+                            </small>
+                        </div>
+
+                        {{-- Step 2: Configure Each Combination --}}
+                        <div id="step2ConfigureCombinations" style="display: none;">
+                            <label class="form-label form-label-sm mb-3">
+                                <strong>Step 2:</strong> Configure each combination
+                            </label>
+                            <div id="combinationsContainer"></div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-primary" id="proceedToValuesBtn">
+                                    <i class="fas fa-arrow-right me-1"></i> Proceed to Add Values
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Step 3: Add Values for Each Combination --}}
+                        <div id="step3AddValues" style="display: none;">
+                            <label class="form-label form-label-sm mb-3">
+                                <strong>Step 3:</strong> Add values for each combination
+                            </label>
+                            <div id="valuesContainer"></div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-success" id="generateVariantsBtn">
+                                    <i class="fas fa-magic me-1"></i> Generate Variants
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 <!-- Modal for Adding New Attribute Value -->
 <div class="modal fade" id="addAttributeValueModal" tabindex="-1" aria-labelledby="addAttributeValueModalLabel" aria-hidden="true">
@@ -264,7 +320,8 @@
         {{-- Variants Table -- Always Visible --}}
         <div id="variantsTableContainer" class="variants-table-container">
             <h6 class="form-label-sm mb-2">Product Variants</h6>
-            <div class="table-responsive" style=" overflow-x: auto; white-space: nowrap;">
+            <!-- <div class="table-responsive" style=" overflow-x: auto; white-space: nowrap;"> -->
+            <div class="" style=" overflow-x: auto; white-space: nowrap;">
                 <table class="table table-bordered" id="variantsTable">
                     <thead>
                         <tr>
@@ -298,6 +355,9 @@
                 <div class="vr"></div>
                 <button type="button" class="btn btn-outline-primary btn-sm" id="bulkEditBtn">
                     <i data-feather="edit" class="me-1"></i> Bulk Edit
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm" id="bulkImageUploadBtn">
+                    <i data-feather="image" class="me-1"></i> Bulk Upload Images
                 </button>
                 <button type="button" class="btn btn-outline-success btn-sm" id="bulkActivateBtn">
                     <i data-feather="check" class="me-1"></i> Activate Selected
@@ -616,6 +676,36 @@
         </div>
     </div>
 </div>
+
+<!-- Bulk Image Upload Modal -->
+<div class="modal fade" id="bulkImageUploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Bulk Upload Images to Variants</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="bulkImageUploadForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm">Select Images</label>
+                        <input type="file" class="form-control form-control-sm" id="bulkVariantImages" accept="image/*" multiple>
+                        <small class="text-muted">Select images to apply to all selected variants. First image will be marked as primary.</small>
+                    </div>
+                    <div id="bulkVariantImagesPreview" class="d-flex flex-wrap gap-2 mt-3"></div>
+                    <div class="alert alert-info mt-3 mb-0">
+                        <small><i class="fas fa-info-circle me-1"></i> Selected images will be applied to <strong id="bulkImageVariantCount">0</strong> variant(s).</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="bulkImageUploadApplyBtn">Apply Images</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- jsDelivr -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 
@@ -1093,6 +1183,16 @@ $(document).ready(function() {
     const bulkEditModal = bulkEditModalElement ? new bootstrap.Modal(bulkEditModalElement) : null;
     const $bulkEditForm = $bulkEditModalElement.find('form');
     const bulkEditForm = $bulkEditForm.length ? $bulkEditForm[0] : null;
+    
+    // Bulk Image Upload Modal
+    const $bulkImageUploadModalElement = $('#bulkImageUploadModal');
+    const bulkImageUploadModalElement = $bulkImageUploadModalElement.length ? $bulkImageUploadModalElement[0] : null;
+    const bulkImageUploadModal = bulkImageUploadModalElement ? new bootstrap.Modal(bulkImageUploadModalElement) : null;
+    const $bulkImageUploadForm = $bulkImageUploadModalElement.find('form');
+    const bulkImageUploadForm = $bulkImageUploadForm.length ? $bulkImageUploadForm[0] : null;
+    const bulkVariantImagesInput = document.getElementById('bulkVariantImages');
+    const bulkVariantImagesPreview = document.getElementById('bulkVariantImagesPreview');
+    let bulkImageUploadTargets = [];
     const $bulkPriceValue = $('#bulkPriceValue');
     const $bulkSalePriceValue = $('#bulkSalePriceValue');
     const $bulkStatusValue = $('#bulkStatusValue');
@@ -3338,10 +3438,423 @@ $(document).ready(function() {
         });
     }
 
-    // OLD: Generate variants (kept for backward compatibility but not used)
-    const $generateVariantsBtn = $('#generateVariantsBtn');
-    if ($generateVariantsBtn.length) {
-        $generateVariantsBtn.on('click', function() {
+    // NEW: Combination-based variant generation
+    let combinationConfig = [];
+    let combinationCount = 0;
+
+    // Step 1: Select number of combinations
+    $('.combination-count-btn').on('click', function() {
+        combinationCount = parseInt($(this).data('count'));
+        combinationConfig = [];
+        
+        // If "None" is selected (count = 0), generate variant directly with empty attributes
+        if (combinationCount === 0) {
+            generateVariantWithoutCombinations();
+            return;
+        }
+        
+        // Hide step 1, show step 2
+        $('#step1SelectCombinations').hide();
+        $('#step2ConfigureCombinations').show();
+        
+        // Generate combination configuration UI
+        renderCombinationConfig();
+    });
+
+    function generateVariantWithoutCombinations() {
+        // Create a variant with empty attributes
+        const variant = {
+            attributes: {},
+            name: 'Variant',
+            sku: '',
+            price: '',
+            sale_price: '',
+            is_active: '1',
+            stock_quantity: 0,
+            stock_status: 'in_stock',
+            manage_stock: false,
+            images: [],
+            measurements: [],
+            highlights_details: [],
+            description: '',
+            additional_information: ''
+        };
+        
+        // Check if variant already exists (by empty attributes)
+        const exists = generatedVariants.some(v => {
+            const vAttrs = v.attributes || {};
+            return Object.keys(vAttrs).length === 0 && JSON.stringify(vAttrs) === JSON.stringify({});
+        });
+        
+        if (!exists) {
+            generatedVariants.push(variant);
+            
+            // Display variants
+            if (typeof displayVariants === 'function') {
+                displayVariants();
+            }
+            
+            // Show success message
+            if (typeof showToast === 'function') {
+                showToast('success', 'Variant without combinations created successfully.');
+            } else {
+                alert('Variant without combinations created successfully.');
+            }
+            
+            // Persist draft
+            if (!isRestoringVariantDraft) {
+                persistVariantDraft();
+            }
+        } else {
+            // Show info message if variant already exists
+            if (typeof showToast === 'function') {
+                showToast('info', 'A variant without combinations already exists.');
+            } else {
+                alert('A variant without combinations already exists.');
+            }
+        }
+        
+        // Reset UI
+        $('#step1SelectCombinations').show();
+        $('#step2ConfigureCombinations').hide();
+        $('#step3AddValues').hide();
+    }
+
+    function renderCombinationConfig() {
+        const container = $('#combinationsContainer');
+        container.empty();
+        
+        for (let i = 0; i < combinationCount; i++) {
+            const comboIndex = i + 1;
+            const comboHtml = `
+                <div class="card mb-3 combination-config-item" data-index="${i}">
+                    <div class="card-body">
+                        <h6 class="mb-3">Combination ${comboIndex}</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label form-label-sm">Type</label>
+                                <select class="form-select combination-type" data-index="${i}">
+                                    <option value="">Select Type</option>
+                                    <option value="color">Color</option>
+                                    <option value="variable">Variable</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label form-label-sm">Name</label>
+                                <input type="text" class="form-control combination-name" data-index="${i}" placeholder="e.g., color, size, pattern">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.append(comboHtml);
+        }
+    }
+
+    // Step 2: Proceed to values
+    $('#proceedToValuesBtn').on('click', function() {
+        // Validate all combinations are configured
+        combinationConfig = [];
+        let isValid = true;
+        
+        $('.combination-config-item').each(function() {
+            const index = $(this).data('index');
+            const type = $(this).find('.combination-type').val();
+            const name = $(this).find('.combination-name').val().trim();
+            
+            if (!type || !name) {
+                isValid = false;
+                if (typeof showToast === 'function') {
+                    showToast('error', 'Please configure all combinations with type and name.');
+                } else {
+                    alert('Please configure all combinations with type and name.');
+                }
+                return false;
+            }
+            
+            combinationConfig.push({
+                index: index,
+                type: type,
+                name: name,
+                values: []
+            });
+        });
+        
+        if (!isValid) return;
+        
+        // Hide step 2, show step 3
+        $('#step2ConfigureCombinations').hide();
+        $('#step3AddValues').show();
+        
+        // Render values UI
+        renderValuesUI();
+    });
+
+    function renderValuesUI() {
+        const container = $('#valuesContainer');
+        container.empty();
+        
+        combinationConfig.forEach((combo, idx) => {
+            const comboHtml = `
+                <div class="card mb-3 values-config-item" data-index="${idx}">
+                    <div class="card-body">
+                        <h6 class="mb-3">${combo.name} (${combo.type === 'color' ? 'Color' : 'Variable'})</h6>
+                        <div class="values-list" id="valuesList_${idx}"></div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary add-value-btn" data-index="${idx}" data-type="${combo.type}">
+                                <i class="fas fa-plus me-1"></i> Add Value
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.append(comboHtml);
+        });
+        
+        // Attach add value button handlers (use event delegation for dynamically added buttons)
+        $(document).off('click', '.add-value-btn').on('click', '.add-value-btn', function() {
+            const index = parseInt($(this).data('index'));
+            const type = $(this).data('type');
+            addValueInput(index, type);
+        });
+        
+        // Attach remove value button handlers (use event delegation)
+        $(document).off('click', '.remove-value-btn').on('click', '.remove-value-btn', function() {
+            $(this).closest('.value-item').remove();
+        });
+    }
+
+    function addValueInput(comboIndex, type) {
+        const valuesList = $(`#valuesList_${comboIndex}`);
+        const valueIndex = combinationConfig[comboIndex].values.length;
+        const valueId = `value_${comboIndex}_${valueIndex}`;
+        
+        let valueHtml = '';
+        if (type === 'color') {
+            const colorInputId = `colorInput_${comboIndex}_${valueIndex}`;
+            valueHtml = `
+                <div class="row g-2 mb-2 value-item" data-value-index="${valueIndex}">
+                    <div class="col-md-5">
+                        <input type="text" class="form-control form-control-sm value-label" placeholder="Color name (e.g., Blue)" data-combo-index="${comboIndex}" data-value-index="${valueIndex}">
+                    </div>
+                    <div class="col-md-5">
+                        <input type="hidden" class="form-control color-input-hidden" id="${colorInputId}" value="#000000">
+                        <button type="button" class="btn btn-sm w-100 color-picker-btn" data-color-input="${colorInputId}" style="background-color: #000000; height: 38px; border: 1px solid #ced4da; border-radius: 0.375rem; cursor: pointer;"></button>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-value-btn" data-combo-index="${comboIndex}" data-value-index="${valueIndex}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            valueHtml = `
+                <div class="row g-2 mb-2 value-item" data-value-index="${valueIndex}">
+                    <div class="col-md-10">
+                        <input type="text" class="form-control form-control-sm value-label" placeholder="Value (e.g., S, M, L)" data-combo-index="${comboIndex}" data-value-index="${valueIndex}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-value-btn" data-combo-index="${comboIndex}" data-value-index="${valueIndex}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        valuesList.append(valueHtml);
+        
+        // Initialize color picker if it's a color type
+        if (type === 'color') {
+            setTimeout(() => {
+                const $colorBtn = $(`#${colorInputId}`).siblings('.color-picker-btn');
+                if ($colorBtn.length && typeof initializeVariantColorPicker === 'function') {
+                    const hiddenInput = document.getElementById(colorInputId);
+                    const btnElement = $colorBtn[0];
+                    if (hiddenInput && btnElement) {
+                        initializeVariantColorPicker(colorInputId, btnElement, hiddenInput, '#000000');
+                    }
+                }
+            }, 100);
+        }
+    }
+
+    // Step 3: Generate variants
+    $('#generateVariantsBtn').on('click', function() {
+        // Collect all values
+        let allValuesCollected = true;
+        
+        combinationConfig.forEach((combo, comboIdx) => {
+            combo.values = [];
+            const valuesList = $(`#valuesList_${comboIdx}`);
+            
+            valuesList.find('.value-item').each(function() {
+                const valueIndex = $(this).data('value-index');
+                const labelInput = $(this).find('.value-label');
+                const label = labelInput.val().trim();
+                
+                if (!label) {
+                    allValuesCollected = false;
+                    return false;
+                }
+                
+                let valueData = { label: label };
+                
+                if (combo.type === 'color') {
+                    const colorInputId = `colorInput_${comboIdx}_${valueIndex}`;
+                    const colorCode = $(`#${colorInputId}`).val() || '#000000';
+                    valueData.code = colorCode;
+                }
+                
+                combo.values.push(valueData);
+            });
+            
+            if (combo.values.length === 0) {
+                allValuesCollected = false;
+            }
+        });
+        
+        if (!allValuesCollected) {
+            if (typeof showToast === 'function') {
+                showToast('error', 'Please add at least one value for each combination.');
+            } else {
+                alert('Please add at least one value for each combination.');
+            }
+            return;
+        }
+        
+        // Generate all combinations
+        const variants = generateCombinationVariants();
+        
+        if (variants.length === 0) {
+            if (typeof showToast === 'function') {
+                showToast('error', 'No variants could be generated.');
+            } else {
+                alert('No variants could be generated.');
+            }
+            return;
+        }
+        
+        // Add to generatedVariants array
+        variants.forEach(variant => {
+            // Check if variant already exists
+            const exists = generatedVariants.some(v => {
+                const vAttrs = v.attributes || {};
+                const newAttrs = variant.attributes || {};
+                return JSON.stringify(vAttrs) === JSON.stringify(newAttrs);
+            });
+            
+            if (!exists) {
+                generatedVariants.push({
+                    ...variant,
+                    sku: '',
+                    price: '',
+                    sale_price: '',
+                    is_active: '1',
+                    stock_quantity: 0,
+                    stock_status: 'in_stock',
+                    manage_stock: false,
+                    images: [],
+                    measurements: [],
+                    highlights_details: [],
+                    description: '',
+                    additional_information: ''
+                });
+            }
+        });
+        
+        // Display variants
+        if (typeof displayVariants === 'function') {
+            displayVariants();
+        }
+        
+        // Show success message
+        if (typeof showToast === 'function') {
+            showToast('success', `Generated ${variants.length} variant(s).`);
+        }
+        
+        // Persist draft
+        if (!isRestoringVariantDraft) {
+            persistVariantDraft();
+        }
+    });
+
+    function generateCombinationVariants() {
+        if (combinationConfig.length === 0) return [];
+        
+        // Generate cartesian product of all values
+        const valueArrays = combinationConfig.map(combo => combo.values);
+        
+        function cartesianProduct(arrays) {
+            if (arrays.length === 0) return [[]];
+            if (arrays.length === 1) return arrays[0].map(v => [v]);
+            
+            const [first, ...rest] = arrays;
+            const restProduct = cartesianProduct(rest);
+            const result = [];
+            
+            for (const value of first) {
+                for (const combination of restProduct) {
+                    result.push([value, ...combination]);
+                }
+            }
+            
+            return result;
+        }
+        
+        const combinations = cartesianProduct(valueArrays);
+        
+        // Convert to variant format with new structure
+        return combinations.map(combination => {
+            const attributes = {
+                variable: {}
+            };
+            
+            let hasColor = false;
+            let colorData = null;
+            
+            combinationConfig.forEach((combo, idx) => {
+                const value = combination[idx];
+                
+                if (combo.type === 'color') {
+                    hasColor = true;
+                    colorData = {
+                        label: value.label,
+                        code: value.code || '#000000'
+                    };
+                } else {
+                    attributes.variable[combo.name] = value.label;
+                }
+            });
+            
+            if (hasColor) {
+                attributes.color = colorData;
+            }
+            
+            // Generate variant name
+            const nameParts = combination.map((val, idx) => {
+                const combo = combinationConfig[idx];
+                if (combo.type === 'color') {
+                    return val.label;
+                } else {
+                    return `${combo.name}: ${val.label}`;
+                }
+            });
+            const variantName = nameParts.join(' - ');
+            
+            return {
+                attributes: attributes,
+                name: variantName
+            };
+        });
+    }
+
+    // OLD: Generate variants (COMMENTED OUT - replaced with new combination-based approach)
+    /*
+    const $generateVariantsBtnOld = $('#generateVariantsBtn');
+    if ($generateVariantsBtnOld.length) {
+        $generateVariantsBtnOld.on('click', function() {
         console.log('Selected attribute IDs:', selectedAttributeIds);
         console.log('Current attributeValues object:', attributeValues);
         console.log('Current selectedAttributeValues object:', selectedAttributeValues);
@@ -3410,6 +3923,7 @@ $(document).ready(function() {
         }
         });
     }
+    */
 
     function generateCombinations(attributeValues) {
         const attributes = Object.keys(attributeValues);
@@ -3646,11 +4160,9 @@ ${variantName}
                         <div class="d-flex gap-2 align-items-start">
                             <div class="flex-grow-1">
                                 <input type="file" class="form-control form-control-sm variant-image-input" name="variants[${index}][images][]" accept="image/*" multiple data-variant-index="${index}">
-                                <div class="small text-muted mt-1">Supported: multiple images (jpeg, png, webp)</div>
-                                <div class="small text-info mt-1">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    <strong>Recommended dimensions:</strong> 620 × 780 pixels
-                                </div>
+                                <div class="small text-muted mt-1"> 
+                                 Recommended:  620 × 780 pixels
+                                </div> 
                             </div>
                             <button type="button" class="btn btn-sm ${normalizedImages && normalizedImages.length > 0 ? 'btn-outline-success' : 'btn-outline-info'} view-variant-images-btn" data-variant-index="${index}" title="View Images" style="flex-shrink: 0;">
                                 <i class="fas fa-images"></i>
@@ -5319,6 +5831,79 @@ ${variantName}
             }
         });
     }
+    
+    // Bulk Image Upload Functionality
+    const bulkImageUploadBtn = document.getElementById('bulkImageUploadBtn');
+    if (bulkImageUploadBtn) {
+        bulkImageUploadBtn.addEventListener('click', function() {
+            const selectedRows = getSelectedVariantRows();
+            if (selectedRows.length === 0) {
+                alert('Please select variants to upload images');
+                return;
+            }
+
+            bulkImageUploadTargets = selectedRows;
+            resetBulkImageUploadModal();
+            
+            // Update variant count
+            if (document.getElementById('bulkImageVariantCount')) {
+                document.getElementById('bulkImageVariantCount').textContent = selectedRows.length;
+            }
+            
+            if (bulkImageUploadModal) {
+                bulkImageUploadModal.show();
+            }
+        });
+    }
+    
+    // Apply bulk images
+    const bulkImageUploadApplyBtn = document.getElementById('bulkImageUploadApplyBtn');
+    if (bulkImageUploadApplyBtn) {
+        bulkImageUploadApplyBtn.addEventListener('click', function() {
+            applyBulkImageUpload();
+        });
+    }
+    
+    function applyBulkImageUpload() {
+        if (!bulkImageUploadTargets || bulkImageUploadTargets.length === 0) {
+            if (bulkImageUploadModal) {
+                bulkImageUploadModal.hide();
+            }
+            return;
+        }
+        
+        if (!bulkVariantImagesInput || !bulkVariantImagesInput.files || bulkVariantImagesInput.files.length === 0) {
+            alert('Please select at least one image to upload');
+            return;
+        }
+
+        bulkImageUploadTargets.forEach(function(row) {
+            const $row = row.jquery ? row : $(row);
+            
+            // Handle bulk image uploads
+            const $rowImageInput = $row.find('.variant-image-input');
+            if ($rowImageInput.length) {
+                // Create a new DataTransfer object to copy files
+                const dataTransfer = new DataTransfer();
+                for (let i = 0; i < bulkVariantImagesInput.files.length; i++) {
+                    dataTransfer.items.add(bulkVariantImagesInput.files[i]);
+                }
+                $rowImageInput[0].files = dataTransfer.files;
+                
+                // Trigger change event to update preview if needed
+                $rowImageInput.trigger('change');
+            }
+        });
+
+        showToast('success', `Images applied to ${bulkImageUploadTargets.length} variant(s). Don't forget to save the form.`);
+        bulkImageUploadTargets = [];
+        if (bulkImageUploadModal) {
+            bulkImageUploadModal.hide();
+        }
+        if (!isRestoringVariantDraft) {
+            persistVariantDraft();
+        }
+    }
 
     document.getElementById('bulkActivateBtn').addEventListener('click', function() {
         const selectedRows = getSelectedVariantRows();
@@ -5885,6 +6470,24 @@ ${variantName}
 
         updateBulkDiscountPrefix();
     }
+    
+    function resetBulkImageUploadModal() {
+        if (!bulkImageUploadForm) {
+            return;
+        }
+        bulkImageUploadForm.reset();
+        
+        // Clear bulk images
+        if (bulkVariantImagesInput) {
+            bulkVariantImagesInput.value = '';
+        }
+        if (bulkVariantImagesPreview) {
+            bulkVariantImagesPreview.innerHTML = '';
+        }
+        if (document.getElementById('bulkImageVariantCount')) {
+            document.getElementById('bulkImageVariantCount').textContent = '0';
+        }
+    }
 
     function updateBulkDiscountPrefix() {
         if (!bulkDiscountPrefix) {
@@ -5977,6 +6580,55 @@ ${variantName}
         bulkEditModalElement.addEventListener('hidden.bs.modal', function() {
             bulkEditTargets = [];
             resetBulkEditModal();
+        });
+    }
+    
+    if (bulkImageUploadModalElement) {
+        bulkImageUploadModalElement.addEventListener('hidden.bs.modal', function() {
+            bulkImageUploadTargets = [];
+            resetBulkImageUploadModal();
+        });
+    }
+    
+    // Handle bulk variant images preview
+    if (bulkVariantImagesInput) {
+        bulkVariantImagesInput.addEventListener('change', function(e) {
+            if (!bulkVariantImagesPreview) return;
+            
+            bulkVariantImagesPreview.innerHTML = '';
+            
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const previewDiv = document.createElement('div');
+                            previewDiv.className = 'position-relative';
+                            previewDiv.style.width = '80px';
+                            previewDiv.style.height = '80px';
+                            
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.className = 'rounded border';
+                            img.style.width = '100%';
+                            img.style.height = '100%';
+                            img.style.objectFit = 'cover';
+                            
+                            const badge = document.createElement('span');
+                            badge.className = 'position-absolute top-0 start-0 badge bg-primary';
+                            badge.style.fontSize = '10px';
+                            badge.textContent = i === 0 ? 'Primary' : (i + 1);
+                            
+                            previewDiv.appendChild(img);
+                            previewDiv.appendChild(badge);
+                            bulkVariantImagesPreview.appendChild(previewDiv);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
+            }
         });
     }
 

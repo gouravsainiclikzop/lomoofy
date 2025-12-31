@@ -15,14 +15,13 @@ class SimpleCheckoutPrerequisites
     public function handle(Request $request, Closure $next)
     {
         try {
-            \Log::info('SimpleCheckoutPrerequisites middleware started', ['url' => $request->url()]);
+           
             
             // Check if customer is authenticated
             $customer = Auth::guard('customer')->user();
-            \Log::info('Customer auth check', ['customer_id' => $customer ? $customer->id : null]);
             
             if (!$customer) {
-                \Log::info('Customer not authenticated, redirecting to cart');
+               
                 return redirect()->route('frontend.shoping-cart')
                     ->with('error', 'Please login to proceed to checkout');
             }
@@ -34,7 +33,7 @@ class SimpleCheckoutPrerequisites
                       ?? $request->header('X-Session-ID') 
                       ?? session()->getId();
 
-            \Log::info('Looking for cart', ['customer_id' => $customerId, 'session_id' => $sessionId]);
+           
 
             $cart = Cart::where(function($query) use ($customerId, $sessionId) {
                 if ($customerId) {
@@ -44,11 +43,11 @@ class SimpleCheckoutPrerequisites
                 }
             })->active()->with('items')->first();
 
-            \Log::info('Cart found', ['cart_id' => $cart ? $cart->id : null, 'items_count' => $cart ? $cart->items->count() : 0]);
+           
 
             // Check if cart exists and has items
             if (!$cart || $cart->items->count() === 0) {
-                \Log::info('Cart empty or not found, redirecting to cart');
+               
                 return redirect()->route('frontend.shoping-cart')
                     ->with('error', 'Your cart is empty');
             }
@@ -56,10 +55,9 @@ class SimpleCheckoutPrerequisites
             // Check if customer has addresses (simple check)
             $addresses = $customer->addresses;
             $addressCount = $addresses->count();
-            \Log::info('Address count', ['count' => $addressCount]);
             
             if ($addressCount === 0) {
-                \Log::info('No addresses found, redirecting to addresses page');
+               
                 return redirect()->route('frontend.addresses')
                     ->with('info', 'Please add an address before proceeding to checkout');
             }
@@ -75,14 +73,11 @@ class SimpleCheckoutPrerequisites
                 'single_address' => $addressCount === 1,
             ]);
 
-            \Log::info('SimpleCheckoutPrerequisites middleware completed successfully');
+           
             return $next($request);
             
         } catch (\Exception $e) {
-            \Log::error('SimpleCheckoutPrerequisites middleware error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            
             
             return redirect()->route('frontend.shoping-cart')
                 ->with('error', 'An error occurred. Please try again.');

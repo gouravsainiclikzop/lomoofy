@@ -48,10 +48,15 @@
 <div class="py-2 bg-dark">
 	<div class="container">
 		<div class="row">
-			
-			<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12 hide-ipad">
-				<div class="top_first"><a href="callto:(+84)0123456789" class="medium text-light">(+84) 0123 456 789</a></div>
-			</div>
+		
+		<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12 hide-ipad">
+				<div class="top_first">
+						<a href="tel:{{ $settings->phone }}" class="medium text-light">
+								{{ $settings->phone }}
+						</a>
+				</div>
+		</div>
+
 			
 			<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12 hide-ipad">
 				<div class="top_second text-center"><p class="medium text-light m-0 p-0">Get Free delivery from ₹2000 <a href="{{ route('frontend.shop') }}" class="medium text-light text-underline">Shop Now</a></p></div>

@@ -52,8 +52,8 @@
 									$product = $item->product;
 									$variant = $item->variant;
 									
-									// Get variant image first (primary or first), fallback to product image
-									$imageUrl = asset('frontend/images/product/sample-product.jpg'); // Default fallback
+									// Get variant image only - don't fallback to product image
+									$imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
 									
 									if ($variant && $variant->images && $variant->images->count() > 0) {
 										// Try to get primary variant image first
@@ -67,56 +67,31 @@
 												$imageUrl = asset('storage/' . $firstVariantImage->image_path);
 											}
 										}
-									} elseif ($product) {
-										// Fallback to product image if no variant image
-										$imageUrl = $product->primaryImage 
-											? asset('storage/' . $product->primaryImage->image_path)
-											: ($product->images && $product->images->count() > 0
-												? asset('storage/' . $product->images->first()->image_path)
-												: asset('frontend/images/product/sample-product.jpg'));
 									}
 									
-									// Get variant attributes
-									$variantAttrs = $variant && $variant->attributes 
-										? (is_string($variant->attributes) ? json_decode($variant->attributes, true) : $variant->attributes)
-										: [];
+									// Parse variant attributes using new structured format - show all attributes
+									$parsed = null;
+									$allAttributes = [];
 									
-									$colorValue = '';
-									$sizeValue = '';
-									
-									// Get color and size attributes from product category or global
-									$colorAttribute = null;
-									$sizeAttribute = null;
-									if ($product->category) {
-										$colorAttribute = $product->category->getAllProductAttributes()->where('type', 'color')->first();
-										$sizeAttribute = $product->category->getAllProductAttributes()->where('type', 'size')->first();
-									}
-									if (!$colorAttribute) {
-										$colorAttribute = \App\Models\ProductAttribute::where('type', 'color')->first();
-									}
-									if (!$sizeAttribute) {
-										$sizeAttribute = \App\Models\ProductAttribute::where('type', 'size')->first();
-									}
-									
-									foreach($variantAttrs as $key => $value) {
-										if (empty($value)) continue;
+									if ($variant && $variant->attributes) {
+										$parsed = \App\Http\Controllers\FrontendController::parseVariantAttributes($variant->attributes);
 										
-										// Check for color by attribute ID
-										if (is_numeric($key) && $colorAttribute && $key == $colorAttribute->id) {
-											$colorValue = $value;
-										}
-										// Check for color by attribute name
-										elseif (strtolower($key) === 'color' || ($colorAttribute && $key === $colorAttribute->name)) {
-											$colorValue = $value;
+										// Build all attributes array for display
+										if ($parsed['color'] && isset($parsed['color']['label'])) {
+											$allAttributes[] = ['label' => 'Color', 'value' => $parsed['color']['label']];
 										}
 										
-										// Check for size by attribute ID
-										if (is_numeric($key) && $sizeAttribute && $key == $sizeAttribute->id) {
-											$sizeValue = $value;
-										}
-										// Check for size by attribute name
-										elseif (strtolower($key) === 'size' || ($sizeAttribute && $key === $sizeAttribute->name)) {
-											$sizeValue = $value;
+										// Add all variable attributes
+										if (isset($parsed['variable']) && is_array($parsed['variable'])) {
+											foreach ($parsed['variable'] as $key => $value) {
+												$attrLabel = ucfirst(str_replace('_', ' ', $key));
+												$attrValue = is_array($value) 
+													? (isset($value['label']) ? $value['label'] : (isset($value['value']) ? $value['value'] : ''))
+													: (string)$value;
+												if ($attrValue) {
+													$allAttributes[] = ['label' => $attrLabel, 'value' => $attrValue];
+												}
+											}
 										}
 									}
 								@endphp
@@ -131,11 +106,12 @@
 												<h4 class="product_title fs-md ft-medium mb-1 lh-1">
 													<a href="{{ route('frontend.product') }}?product={{ $product->slug }}">{{ $product->name }}</a>
 												</h4>
-												@if($sizeValue)
-													<p class="mb-1 lh-1"><span class="text-dark">Size: {{ $sizeValue }}</span></p>
-												@endif
-												@if($colorValue)
-													<p class="mb-3 lh-1"><span class="text-dark">Color: {{ $colorValue }}</span></p>
+												@if(!empty($allAttributes))
+													@foreach($allAttributes as $attr)
+														<p class="mb-1 lh-1"><span class="text-dark">{{ $attr['label'] }}: {{ $attr['value'] }}</span></p>
+													@endforeach
+												@elseif($variant && $variant->name)
+													<p class="mb-1 lh-1"><span class="text-dark">{{ $variant->name }}</span></p>
 												@endif
 												<h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->unit_price, 2) }}</h4>
 												<select class="mb-2 custom-select w-auto cart-item-quantity" data-cart-item-id="{{ $item->id }}" data-variant-id="{{ $item->product_variant_id }}">
@@ -370,7 +346,7 @@ $(document).ready(function() {
                     '<div class="row align-items-center">' +
                     '<div class="col-3">' +
                     '<a href="/product?product=' + (item.product_slug || '') + '">' +
-                    '<img src="' + (item.image_url || '/frontend/images/product/sample-product.jpg') + '" alt="' + (item.product_name || '') + '" class="img-fluid">' +
+                    '<img src="' + (item.image_url || '/assets/images/placeholder.jpg') + '" alt="' + (item.product_name || '') + '" class="img-fluid">' +
                     '</a>' +
                     '</div>' +
                     '<div class="col d-flex align-items-center justify-content-between">' +
@@ -379,8 +355,18 @@ $(document).ready(function() {
                     '<a href="/product?product=' + (item.product_slug || '') + '">' + (item.product_name || '') + '</a>' +
                     stockBadge +
                     '</h4>' +
-                    (item.variant_name ? '<p class="mb-3 lh-1"><span class="text-dark">' + item.variant_name + '</span></p>' : '') +
-                    (isOutOfStock ? '<p class="text-danger mb-2"><small>Available stock: ' + (item.available_stock || 0) + ', Requested: ' + item.quantity + '</small></p>' : '') +
+                    (item.all_attributes && item.all_attributes.length > 0 
+                        ? item.all_attributes.map(function(attr) {
+                            return '<p class="mb-1 lh-1"><span class="text-dark">' + (attr.label || '') + ': ' + (attr.value || '') + '</span></p>';
+                        }).join('')
+                        : ((item.size_value ? '<p class="mb-1 lh-1"><span class="text-dark">Size: ' + (item.size_value || '') + '</span></p>' : '') +
+                           (item.color_value ? '<p class="mb-1 lh-1"><span class="text-dark">Color: ' + (item.color_value || '') + '</span></p>' : '') +
+                           (item.variant_name && !item.size_value && !item.color_value ? '<p class="mb-1 lh-1"><span class="text-dark">' + item.variant_name + '</span></p>' : ''))
+                    ) +
+                    (isOutOfStock
+                    ? '<p class="text-danger mb-2"><small>Available stock: ' + (item.available_stock || 0) + '</small></p>'
+                    : ''
+                    )+
                  '<h4 class="fs-md ft-medium mb-3 lh-1">₹' + parseFloat(item.unit_price).toFixed(2) + '</h4>' +
                 '<select class="mb-2 custom-select w-auto cart-item-quantity' 
                     + (isOutOfStock ? ' border-danger' : '') 

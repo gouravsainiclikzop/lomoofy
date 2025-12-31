@@ -122,22 +122,64 @@
                                     <table class="table table-borderless">
                                         <tbody>
                                             @foreach($order->items as $item)
+                                                @php
+                                                    // Get variant image only - don't fallback to product image
+                                                    $productImage = asset('assets/images/placeholder.jpg'); // Default placeholder
+                                                    
+                                                    if ($item->variant && $item->variant->images && $item->variant->images->count() > 0) {
+                                                        // Try to get primary variant image first
+                                                        $primaryVariantImage = $item->variant->images->where('is_primary', true)->first();
+                                                        if ($primaryVariantImage) {
+                                                            $productImage = asset('storage/' . $primaryVariantImage->image_path);
+                                                        } else {
+                                                            // Use first variant image
+                                                            $firstVariantImage = $item->variant->images->first();
+                                                            if ($firstVariantImage) {
+                                                                $productImage = asset('storage/' . $firstVariantImage->image_path);
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    // Parse variant attributes using new structured format - show all attributes
+                                                    $parsed = null;
+                                                    $allAttributes = [];
+                                                    
+                                                    if ($item->variant && $item->variant->attributes) {
+                                                        $parsed = \App\Http\Controllers\FrontendController::parseVariantAttributes($item->variant->attributes);
+                                                        
+                                                        // Build all attributes array for display
+                                                        if ($parsed['color'] && isset($parsed['color']['label'])) {
+                                                            $allAttributes[] = ['label' => 'Color', 'value' => $parsed['color']['label']];
+                                                        }
+                                                        
+                                                        // Add all variable attributes
+                                                        if (isset($parsed['variable']) && is_array($parsed['variable'])) {
+                                                            foreach ($parsed['variable'] as $key => $value) {
+                                                                $attrLabel = ucfirst(str_replace('_', ' ', $key));
+                                                                $attrValue = is_array($value) 
+                                                                    ? (isset($value['label']) ? $value['label'] : (isset($value['value']) ? $value['value'] : ''))
+                                                                    : (string)$value;
+                                                                if ($attrValue) {
+                                                                    $allAttributes[] = ['label' => $attrLabel, 'value' => $attrValue];
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                @endphp
                                                 <tr>
                                                     <td class="align-middle" style="width: 80px;">
-                                                        @if($item->product && $item->product->primaryImage)
-                                                            <img src="{{ asset('storage/' . $item->product->primaryImage->image_path) }}" 
-                                                                 alt="{{ $item->product_name }}" 
-                                                                 class="img-fluid rounded" style="max-width: 60px;">
-                                                        @else
-                                                            <div class="bg-light rounded d-flex align-items-center justify-content-center" 
-                                                                 style="width: 60px; height: 60px;">
-                                                                <i class="lni lni-image text-muted"></i>
-                                                            </div>
-                                                        @endif
+                                                        <img src="{{ $productImage }}" 
+                                                             alt="{{ $item->product_name }}" 
+                                                             class="img-fluid rounded" style="max-width: 60px; height: 60px; object-fit: cover;"
+                                                             onerror="this.src='{{ asset('assets/images/placeholder.jpg') }}'">
                                                     </td>
                                                     <td class="align-middle">
                                                         <h6 class="mb-1">{{ $item->product_name }}</h6>
-                                                        @if($item->variant_name)
+                                                        @if(!empty($allAttributes))
+                                                            @foreach($allAttributes as $attr)
+                                                                <small class="text-muted d-block">{{ $attr['label'] }}: {{ $attr['value'] }}</small>
+                                                            @endforeach
+                                                        @elseif($item->variant_name)
                                                             <small class="text-muted">{{ $item->variant_name }}</small>
                                                         @endif
                                                         @if($item->product_sku)

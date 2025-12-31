@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Models\Unit;
 use Box\Spout\Common\Exception\IOException;
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use Box\Spout\Reader\SheetInterface;
@@ -65,11 +66,6 @@ class ProductImportService
         try {
             $dataset = $this->parseFile($absolutePath, $extension);
         } catch (Throwable $exception) {
-            Log::error('ProductImportService@import - Failed to parse file', [
-                'file' => $originalName,
-                'extension' => $extension,
-                'message' => $exception->getMessage(),
-            ]);
 
             $result['errors'][] = [
                 'row' => null,
@@ -84,7 +80,8 @@ class ProductImportService
         // Group variants and images by product identifier (name or slug)
         $variants = $this->groupVariantsByProduct($dataset['variants'] ?? [], $products);
         $images = $this->groupImagesByProduct($dataset['images'] ?? [], $products);
-
+        
+       
         foreach ($products as $index => $productRow) {
             $rowNumber = $productRow['_row'] ?? ($index + 2); // header occupies first row
 
@@ -143,8 +140,13 @@ class ProductImportService
 
         $missingVariantKeys = array_diff(array_keys($variants), $productIdentifiers);
         
+        // Log variant processing summary
+        
+        
         // For variants-only imports, process the "missing" variants by looking up existing products
         if (empty($products) && !empty($missingVariantKeys)) {
+           
+            
             foreach ($missingVariantKeys as $missingIdentifier) {
                 try {
                     $importOutcome = DB::transaction(function () use ($missingIdentifier, $variants, $images) {
@@ -159,10 +161,7 @@ class ProductImportService
                         $result['skipped']++;
                     }
                 } catch (Throwable $exception) {
-                    Log::error('ProductImportService@import - Failed to import variants-only product', [
-                        'identifier' => $missingIdentifier,
-                        'message' => $exception->getMessage(),
-                    ]);
+                   
 
                     $result['errors'][] = [
                         'row' => null,
@@ -285,9 +284,7 @@ if (empty($headers)) {
                     break;
                 default:
                     // Unknown sheet - skip but log once
-                    Log::info('ProductImportService@parseSheet - Unknown sheet skipped', [
-                        'sheet' => $sheet->getName(),
-                    ]);
+                    
                     break;
             }
         }
@@ -869,7 +866,15 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
 
     /**
      * Parse user-friendly attributes format into JSON
-     * Format: color:black|size:S|material:cotton
+     * New Format: color:blue:#0000FF|size:S|material:cotton
+     * - Color format: color:label:code or color:label (code optional)
+     * - Variable format: attribute_name:value
+     * 
+     * Output format:
+     * {
+     *   "color": {"label": "blue", "code": "#0000FF"},
+     *   "variable": {"size": "S", "material": "cotton"}
+     * }
      */
     private function parseUserFriendlyAttributes(?string $attributesString): array
     {
@@ -877,7 +882,12 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             return [];
         }
         
-        $attributes = [];
+        $result = [
+            'variable' => []
+        ];
+        $hasColor = false;
+        $colorData = null;
+        
         $pairs = explode('|', $attributesString);
         
         foreach ($pairs as $pair) {
@@ -885,17 +895,168 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             if (empty($pair)) continue;
             
             if (strpos($pair, ':') !== false) {
-                [$key, $value] = explode(':', $pair, 2);
-                $key = trim($key);
-                $value = trim($value);
+                $parts = explode(':', $pair);
+                $key = trim($parts[0]);
                 
-                if (!empty($key) && !empty($value)) {
-                    $attributes[$key] = $value;
+                if (empty($key)) continue;
+                
+                // Handle color attribute (special case)
+                if (strtolower($key) === 'color') {
+                    $label = isset($parts[1]) ? trim($parts[1]) : '';
+                    $code = isset($parts[2]) ? trim($parts[2]) : '';
+                    
+                    if (!empty($label)) {
+                        // If code not provided, try to get it from color name or use default
+                        if (empty($code)) {
+                            $code = $this->getColorCodeFromName($label);
+                        }
+                        
+                        // Validate hex color code
+                        if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $code)) {
+                            $code = $this->getColorCodeFromName($label);
+                        }
+                        
+                        $hasColor = true;
+                        $colorData = [
+                            'label' => $label,
+                            'code' => $code
+                        ];
+                    }
+                } else {
+                    // Handle variable attributes
+                    $value = isset($parts[1]) ? trim($parts[1]) : '';
+                    if (!empty($value)) {
+                        $result['variable'][$key] = $value;
+                    }
                 }
             }
         }
         
-        return $attributes;
+        // Add color if present
+        if ($hasColor && $colorData) {
+            $result['color'] = $colorData;
+        }
+        
+        // If no variable attributes, remove empty variable key
+        if (empty($result['variable'])) {
+            unset($result['variable']);
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Parse user-friendly measurements format into JSON
+     * Format: attribute_name:value:unit_symbol|attribute_name:value:unit_symbol
+     * Example: chest size:26:in|collar:10:in
+     * 
+     * Output format:
+     * [
+     *   {
+     *     "attribute_id": null,
+     *     "attribute_name": "chest size",
+     *     "attribute_slug": null,
+     *     "value": 26,
+     *     "unit_id": 9,
+     *     "unit_name": "Inches",
+     *     "unit_symbol": "in",
+     *     "unit_type": "length"
+     *   }
+     * ]
+     */
+    private function parseUserFriendlyMeasurements(?string $measurementsString): array
+    {
+        if (empty($measurementsString)) {
+            return [];
+        }
+        
+        $result = [];
+        $measurements = explode('|', $measurementsString);
+        
+        foreach ($measurements as $measurement) {
+            $measurement = trim($measurement);
+            if (empty($measurement)) continue;
+            
+            // Split by colon: attribute_name:value:unit_symbol
+            $parts = explode(':', $measurement);
+            if (count($parts) < 3) {
+                continue; // Skip invalid format
+            }
+            
+            $attributeName = trim($parts[0]);
+            $value = trim($parts[1]);
+            $unitSymbol = trim($parts[2]);
+            
+            if (empty($attributeName) || empty($value) || empty($unitSymbol)) {
+                continue;
+            }
+            
+            // Validate value is numeric
+            if (!is_numeric($value)) {
+                Log::warning('ProductImportService - Invalid measurement value', [
+                    'measurement' => $measurement,
+                    'value' => $value
+                ]);
+                continue;
+            }
+            
+            // Look up unit by symbol
+            $unit = Unit::where('symbol', $unitSymbol)->first();
+            
+            if (!$unit) {
+                Log::warning('ProductImportService - Unit not found by symbol', [
+                    'unit_symbol' => $unitSymbol,
+                    'measurement' => $measurement
+                ]);
+                continue;
+            }
+            
+            $result[] = [
+                'attribute_id' => null,
+                'attribute_name' => $attributeName,
+                'attribute_slug' => null,
+                'value' => (float) $value,
+                'unit_id' => $unit->id,
+                'unit_name' => $unit->name,
+                'unit_symbol' => $unit->symbol,
+                'unit_type' => $unit->type,
+            ];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Get color code from color name (fallback when code not provided).
+     */
+    private function getColorCodeFromName(string $colorName): string
+    {
+        $colorMap = [
+            'black' => '#000000',
+            'white' => '#FFFFFF',
+            'red' => '#FF0000',
+            'green' => '#008000',
+            'blue' => '#0000FF',
+            'yellow' => '#FFFF00',
+            'orange' => '#FFA500',
+            'purple' => '#800080',
+            'pink' => '#FFC0CB',
+            'brown' => '#A52A2A',
+            'grey' => '#808080',
+            'gray' => '#808080',
+            'silver' => '#C0C0C0',
+            'gold' => '#FFD700',
+            'navy' => '#000080',
+            'maroon' => '#800000',
+            'olive' => '#808000',
+            'lime' => '#00FF00',
+            'aqua' => '#00FFFF',
+            'teal' => '#008080',
+            'fuchsia' => '#FF00FF',
+        ];
+        
+        $normalized = strtolower(trim($colorName));
+        return $colorMap[$normalized] ?? '#000000'; // Default to black if not found
     }
 
     /**
@@ -1048,7 +1209,7 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
     {
         if (empty($variantRows)) {
             return;
-        }
+        } 
 
         $existingVariants = $product->variants()->get()->keyBy('sku');
         $processedSkus = [];
@@ -1062,7 +1223,8 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             }
 
             $processedSkus[] = $variantSku;
-
+            
+            
             // First, check if variant exists for this product
             $variant = $existingVariants->get($variantSku);
             $isNew = false;
@@ -1106,13 +1268,109 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             }
 
             // Parse user-friendly attributes format first, fallback to JSON
-            $attributes = $this->parseUserFriendlyAttributes(
-                $row['attributes_keyvalue_format'] ?? 
-                $row['attributes'] ?? 
-                null
-            ) ?: $this->decodeJsonColumn($row['attributes_json'] ?? null);
+            // Try to find attributes column (header might be normalized differently)
+            // The CSV header "Attributes (color:label:code|variable:value format)" 
+            // gets normalized to something like "attributes_color_label_code_variable_value_format"
+            $attributesString = null;
             
-            $measurements = $this->decodeJsonColumn($row['measurements_json'] ?? null);
+            // Search for any key containing "attributes" (case-insensitive)
+            // This handles various header formats
+            foreach ($row as $key => $value) {
+                // Check if key contains "attributes" (case-insensitive) and value is not empty
+                if (stripos($key, 'attributes') !== false && 
+                    $value !== null && 
+                    trim((string)$value) !== '' &&
+                    stripos($key, 'json') === false) { // Exclude attributes_json
+                    $attributesString = trim((string)$value);
+                    break;
+                }
+            }
+            
+            // Fallback to specific known keys if not found
+            if (!$attributesString || $attributesString === '') {
+                $attributesString = $row['attributes'] ?? 
+                                   $row['attributes_keyvalue_format'] ?? 
+                                   $row['attributes_color_label_code_variable_value_format'] ??
+                                   null;
+                if ($attributesString) {
+                    $attributesString = trim((string)$attributesString);
+                }
+            }
+            
+            // Parse attributes
+            $attributes = [];
+            if ($attributesString && $attributesString !== '') {
+                $attributes = $this->parseUserFriendlyAttributes($attributesString);
+            }
+            
+            // Fallback to JSON if parsing returned empty
+            if (empty($attributes)) {
+                $jsonAttributes = $this->decodeJsonColumn($row['attributes_json'] ?? null);
+                if (!empty($jsonAttributes)) {
+                    $attributes = $jsonAttributes;
+                }
+            }
+            
+            // If still empty and variant exists, preserve existing attributes (don't overwrite with empty)
+            // Only set empty if this is a new variant or attributes were explicitly provided and parsed successfully
+            if (empty($attributes) && $variant && $variant->exists) {
+                if (!empty($attributesString)) {
+                    // Attributes string was provided but parsing failed - log warning but preserve existing
+                } else {
+                    // No attributes string found - preserve existing attributes when updating
+                }
+                // Keep existing attributes instead of overwriting with empty
+                $attributes = $variant->attributes ?? [];
+            } elseif (empty($attributes) && (!$variant || !$variant->exists)) {
+                // New variant with no attributes - set to empty array
+                $attributes = [];
+            }
+            
+            // Log warning if attributes are empty but we had a string
+            if (empty($attributes) && !empty($attributesString)) {
+            }
+            
+            // Parse measurements from CSV format: attribute_name:value:unit_symbol|attribute_name:value:unit_symbol
+            $measurementsString = null;
+            
+            // Search for any key containing "measurements" (case-insensitive)
+            foreach ($row as $key => $value) {
+                if (stripos($key, 'measurements') !== false && 
+                    $value !== null && 
+                    trim((string)$value) !== '' &&
+                    stripos($key, 'json') === false) { // Exclude measurements_json
+                    $measurementsString = trim((string)$value);
+                    break;
+                }
+            }
+            
+            // Fallback to specific known keys
+            if (!$measurementsString || $measurementsString === '') {
+                $measurementsString = $row['measurements'] ?? null;
+                if ($measurementsString) {
+                    $measurementsString = trim((string)$measurementsString);
+                }
+            }
+            
+            $measurements = [];
+            if ($measurementsString && $measurementsString !== '') {
+                $measurements = $this->parseUserFriendlyMeasurements($measurementsString);
+            }
+            
+            // Fallback to JSON if parsing returned empty
+            if (empty($measurements)) {
+                $jsonMeasurements = $this->decodeJsonColumn($row['measurements_json'] ?? null);
+                if (!empty($jsonMeasurements)) {
+                    $measurements = $jsonMeasurements;
+                }
+            }
+            
+            // If still empty and variant exists, preserve existing measurements
+            if (empty($measurements) && $variant && $variant->exists) {
+                if (!empty($measurementsString)) {
+                }
+                $measurements = $variant->measurements ?? [];
+            }
 
             $variant->fill([
                 'product_id' => $product->id,
@@ -1144,7 +1402,77 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
                 'description' => $row['detailed_description'] ?? $row['description'] ?? $variant->description ?? null,
             ]);
 
+            
+            
             $variant->save();
+            
+            // Reload to verify attributes were saved
+            $variant->refresh();
+            
+            // Handle variant images if provided
+            // Look for primary image and additional images columns
+            $primaryImagePath = null;
+            $additionalImagesString = null;
+            
+            // Search for primary image column
+            foreach ($row as $key => $value) {
+                if (stripos($key, 'primary') !== false && 
+                    stripos($key, 'image') !== false && 
+                    $value !== null && 
+                    trim((string)$value) !== '') {
+                    $primaryImagePath = trim((string)$value);
+                    break;
+                }
+            }
+            
+            // Search for additional images column
+            foreach ($row as $key => $value) {
+                if ((stripos($key, 'additional') !== false || stripos($key, 'extra') !== false) && 
+                    stripos($key, 'image') !== false && 
+                    $value !== null && 
+                    trim((string)$value) !== '') {
+                    $additionalImagesString = trim((string)$value);
+                    break;
+                }
+            }
+            
+            // Fallback to specific known keys
+            if (!$primaryImagePath) {
+                $primaryImagePath = $row['primary_image_path'] ?? 
+                                   $row['primary_image'] ?? 
+                                   null;
+                if ($primaryImagePath) {
+                    $primaryImagePath = trim((string)$primaryImagePath);
+                }
+            }
+            
+            if (!$additionalImagesString) {
+                $additionalImagesString = $row['additional_image_paths_comma_separated'] ?? 
+                                         $row['additional_images'] ?? 
+                                         $row['additional_image_paths'] ?? 
+                                         null;
+                if ($additionalImagesString) {
+                    $additionalImagesString = trim((string)$additionalImagesString);
+                }
+            }
+            
+            // Combine primary and additional images
+            $allImagePaths = [];
+            if ($primaryImagePath && $primaryImagePath !== '') {
+                $allImagePaths[] = $primaryImagePath;
+            }
+            if ($additionalImagesString && $additionalImagesString !== '') {
+                $additionalPaths = array_map('trim', explode(',', $additionalImagesString));
+                $additionalPaths = array_filter($additionalPaths, function($path) {
+                    return !empty($path);
+                });
+                $allImagePaths = array_merge($allImagePaths, $additionalPaths);
+            }
+            
+            if (!empty($allImagePaths)) {
+                $this->syncVariantImages($product, $variant, implode(',', $allImagePaths));
+            }
+            
             $sortOrder++;
 
             if ($isNew) {
@@ -1158,6 +1486,65 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
                 $variant->images()->delete();
                 $variant->delete();
             });
+        }
+    }
+
+    /**
+     * Sync variant images from comma-separated paths or URLs.
+     *
+     * @param  Product  $product
+     * @param  ProductVariant  $variant
+     * @param  string  $imagesString  Comma-separated image paths or URLs
+     */
+    private function syncVariantImages(Product $product, ProductVariant $variant, string $imagesString): void
+    {
+        if (empty($imagesString) || trim($imagesString) === '') {
+            return;
+        }
+
+        // Delete existing variant images before importing new ones
+        $variant->images()->delete();
+
+        // Split comma-separated image paths
+        $imagePaths = array_map('trim', explode(',', $imagesString));
+        $imagePaths = array_filter($imagePaths, function($path) {
+            return !empty($path);
+        });
+
+        if (empty($imagePaths)) {
+            return;
+        }
+
+        $sortOrder = 0;
+        $storedPaths = [];
+
+        foreach ($imagePaths as $imagePath) {
+            $resolvedPath = $this->resolveImagePath($imagePath);
+
+            if (!$resolvedPath) {
+                continue;
+            }
+
+            // If it's a URL that was downloaded, it's already stored
+            // If it's a local path, we'll use it as-is
+            $finalPath = $resolvedPath;
+
+            ProductImage::create([
+                'product_id' => $product->id,
+                'product_variant_id' => $variant->id,
+                'image_path' => $finalPath,
+                'alt_text' => null,
+                'sort_order' => $sortOrder,
+                'is_primary' => $sortOrder === 0,
+            ]);
+
+            $storedPaths[] = $finalPath;
+            $sortOrder++;
+        }
+
+        // Update variant's legacy image field with first image path
+        if (!empty($storedPaths)) {
+            $variant->update(['image' => $storedPaths[0]]);
         }
     }
 
@@ -1346,5 +1733,6 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
         return $this->cachedDefaultBrand = $brand;
     }
 }
+
 
 
