@@ -113,7 +113,7 @@
 												@elseif($variant && $variant->name)
 													<p class="mb-1 lh-1"><span class="text-dark">{{ $variant->name }}</span></p>
 												@endif
-												<h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->unit_price, 2) }}</h4>
+												<h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->unit_price, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></h4>
 												<select class="mb-2 custom-select w-auto cart-item-quantity" data-cart-item-id="{{ $item->id }}" data-variant-id="{{ $item->product_variant_id }}">
 													@php
     // Use stock_quantity directly (warehouse logic disabled for now)
@@ -185,7 +185,7 @@
 						<span>Shipping</span> <span class="ms-auto text-dark ft-medium" id="cartShipping">₹{{ number_format($cart->shipping_amount ?? 0, 2) }}</span>
 					  </li>
 					  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-						<span>Total</span> <span class="ms-auto text-dark ft-medium" id="cartTotal">₹{{ number_format($cart->total_amount ?? 0, 2) }}</span>
+						<span>Total</span> <span class="ms-auto text-dark ft-medium" id="cartTotal">₹{{ number_format($cart->total_amount ?? 0, 2) }} <span class="text-muted fs-xs">(Inclusive of all taxes)</span></span>
 					  </li>
 					  <li class="list-group-item fs-sm text-center">
 						Shipping cost calculated at Checkout *
@@ -367,7 +367,7 @@ $(document).ready(function() {
                     ? '<p class="text-danger mb-2"><small>Available stock: ' + (item.available_stock || 0) + '</small></p>'
                     : ''
                     )+
-                 '<h4 class="fs-md ft-medium mb-3 lh-1">₹' + parseFloat(item.unit_price).toFixed(2) + '</h4>' +
+                 '<h4 class="fs-md ft-medium mb-3 lh-1">₹' + parseFloat(item.unit_price).toFixed(2) + ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></h4>' +
                 '<select class="mb-2 custom-select w-auto cart-item-quantity' 
                     + (isOutOfStock ? ' border-danger' : '') 
                     + '" data-cart-item-id="' + item.id + '" data-variant-id="' + (item.variant_id || '') + '">';
@@ -448,7 +448,7 @@ $(document).ready(function() {
         
         $('#cartTax').text('₹' + parseFloat(summary.tax_amount || 0).toFixed(2));
         $('#cartShipping').text('₹' + parseFloat(summary.shipping_amount || 0).toFixed(2));
-        $('#cartTotal').text('₹' + parseFloat(summary.total_amount || 0).toFixed(2));
+        $('#cartTotal').html('₹' + parseFloat(summary.total_amount || 0).toFixed(2) + ' <span class="text-muted fs-xs">(Inclusive of all taxes)</span>');
         
         // Update cart count in header
         if (typeof updateCartCount === 'function') {

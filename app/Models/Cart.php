@@ -89,7 +89,7 @@ class Cart extends Model
      */
     public function recalculateTotals()
     {
-        $this->load('items', 'coupon');
+        $this->load('items.product', 'coupon');
         
         // Calculate subtotal
         $subtotal = $this->items->sum('total_price');
@@ -121,10 +121,36 @@ class Cart extends Model
         }
         $this->discount_amount = $discountAmount;
         
-        // Calculate tax (0% for now - can be configured later)
-        $taxRate = 0;
-        $taxableAmount = $subtotal - $discountAmount;
-        $taxAmount = $taxableAmount * $taxRate;
+        // Calculate GST from cart items
+        // Since prices are stored as GST-inclusive, we need to extract the GST amount
+        $taxAmount = 0;
+        
+        foreach ($this->items as $item) {
+            $product = $item->product;
+            if (!$product) {
+                continue;
+            }
+            
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true; // Default to inclusive
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
+            if ($gstPercentage > 0) {
+                // Calculate GST amount from GST-inclusive price
+                // Formula: GST = (Price * GST%) / (100 + GST%)
+                // Or: GST = Price - (Price / (1 + GST%/100))
+                $itemTotalPrice = $item->total_price ?? 0;
+                
+                if ($itemTotalPrice > 0) {
+                    // Calculate base price (excluding GST)
+                    $basePrice = $itemTotalPrice / (1 + ($gstPercentage / 100));
+                    // Calculate GST amount
+                    $itemGstAmount = $itemTotalPrice - $basePrice;
+                    $taxAmount += $itemGstAmount;
+                }
+            }
+        }
+        
         $this->tax_amount = $taxAmount;
         
         // Calculate shipping

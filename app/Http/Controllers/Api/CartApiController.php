@@ -249,6 +249,10 @@ class CartApiController extends Controller
                 }
             }
             
+            // Get GST settings from product for display
+            $gstType = $product->gst_type ?? true;
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
             return [
                 'id' => $item->id,
                 'product_id' => $product->id,
@@ -267,6 +271,8 @@ class CartApiController extends Controller
                 'out_of_stock' => $isOutOfStock,
                 'available_stock' => $availableStock,
                 'manage_stock' => $manageStock,
+                'gst_type' => $gstType,
+                'gst_percentage' => $gstPercentage,
             ];
         });
         
@@ -439,6 +445,34 @@ class CartApiController extends Controller
                 $variantId = $variant->id;
             }
             
+            // Helper function to calculate GST-inclusive price
+            $calculateGstInclusivePrice = function($basePrice, $gstType, $gstPercentage) {
+                if ($basePrice <= 0) return 0;
+                
+                // If gst_type is true, price is already inclusive
+                if ($gstType === true || $gstType === 1 || $gstType === '1') {
+                    return $basePrice;
+                }
+                
+                // If gst_type is false, add GST
+                if ($gstType === false || $gstType === 0 || $gstType === '0') {
+                    $gstPercent = $gstPercentage ?? 0;
+                    if ($gstPercent > 0) {
+                        return $basePrice + ($basePrice * $gstPercent / 100);
+                    }
+                }
+                
+                return $basePrice;
+            };
+            
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true; // Default to inclusive
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
+            // Calculate GST-inclusive price
+            $basePrice = $variant->sale_price ?? $variant->price ?? 0;
+            $gstInclusivePrice = $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
+            
             // Check if item already exists
             $existingItem = $cart->items()
                 ->where('product_id', $request->product_id)
@@ -447,6 +481,7 @@ class CartApiController extends Controller
             
             if ($existingItem) {
                 $existingItem->quantity += $request->quantity;
+                $existingItem->unit_price = $gstInclusivePrice; // Update to GST-inclusive price
                 $existingItem->total_price = $existingItem->quantity * $existingItem->unit_price;
                 $existingItem->save();
             } else {
@@ -455,8 +490,8 @@ class CartApiController extends Controller
                     'product_id' => $request->product_id,
                     'product_variant_id' => $variantId,
                     'quantity' => $request->quantity,
-                    'unit_price' => $variant->sale_price ?? $variant->price,
-                    'total_price' => ($variant->sale_price ?? $variant->price) * $request->quantity,
+                    'unit_price' => $gstInclusivePrice,
+                    'total_price' => $gstInclusivePrice * $request->quantity,
                 ]);
             }
             

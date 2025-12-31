@@ -107,6 +107,85 @@
 <!-- ======================= Dashboard Detail End ======================== -->
 @endsection
 
+@push('styles')
+<style>
+    /* Make columns equal height */
+    #wishlistProductsContainer .row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    #wishlistProductsContainer .row > [class*='col-'] {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Wishlist Product Card - Fixed Height */
+    #wishlistProductsContainer .product_grid {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    #wishlistProductsContainer .product_grid .card-body {
+        flex: 1 0 auto;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Product Card Image Consistency - 4:5 Aspect Ratio */
+    #wishlistProductsContainer .shop_thumb {
+        width: 100%;
+        padding-bottom: 125%; /* 5/4 = 1.25 = 125% for 4:5 aspect ratio */
+        overflow: hidden;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        aspect-ratio: 4 / 5; /* Modern browsers */
+    }
+
+    #wishlistProductsContainer .shop_thumb .card-img-top,
+    #wishlistProductsContainer .shop_thumb > a {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #wishlistProductsContainer .shop_thumb .card-img-top,
+    #wishlistProductsContainer .shop_thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        transition: transform 0.3s ease;
+    }
+
+    #wishlistProductsContainer .shop_thumb:hover .card-img-top,
+    #wishlistProductsContainer .shop_thumb:hover img {
+        transform: scale(1.05);
+    }
+
+    #wishlistProductsContainer .product_grid .card-img-top {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    /* Ensure card footer stays at bottom */
+    #wishlistProductsContainer .product_grid .card-footers {
+        flex-shrink: 0;
+        margin-top: auto;
+    }
+</style>
+@endpush
+
 @push('scripts')
 <script>
 $(document).ready(function() {

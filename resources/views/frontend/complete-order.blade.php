@@ -63,7 +63,7 @@
                         <div class="col-auto">
                             <div class="bg-light p-3 rounded">
                                 <h5 class="mb-1">Order Total</h5>
-                                <h3 class="text-dark mb-0">₹{{ number_format($order->total_amount, 2) }}</h3>
+                                <h3 class="text-dark mb-0">₹{{ number_format($order->total_amount, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></h3>
                             </div>
                         </div>
                     </div>
@@ -190,10 +190,10 @@
                                                         <span class="text-muted">Qty: {{ $item->quantity }}</span>
                                                     </td>
                                                     <td class="align-middle text-end">
-                                                        <strong>₹{{ number_format($item->total_price, 2) }}</strong>
-                                                        @if($item->quantity > 1)
+                                                        <strong>₹{{ number_format($item->total_price, 2) }} <span class="text-muted fs-xs">(Inclusive of all taxes)</span></strong>
+                                                    @if($item->quantity > 1)
                                                             <br><small class="text-muted">₹{{ number_format($item->unit_price, 2) }} each</small>
-                                                        @endif
+                                                    @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -229,7 +229,7 @@
                                         <hr class="my-2">
                                         <div class="d-flex justify-content-between fw-bold">
                                             <span>Total:</span>
-                                            <span>₹{{ number_format($order->total_amount, 2) }}</span>
+                                            <span>₹{{ number_format($order->total_amount, 2) }} <span class="text-muted fs-xs">(Inclusive of all taxes)</span></span>
                                         </div>
                                     </div>
                                 </div>

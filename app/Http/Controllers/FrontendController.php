@@ -4335,7 +4335,7 @@ class FrontendController extends Controller
             ]);
             
             // Recalculate cart totals manually
-            $cart->load('items', 'coupon');
+            $cart->load('items.product', 'coupon');
             $subtotal = $cart->items->sum('total_price');
             $cart->subtotal = $subtotal;
             
@@ -4351,10 +4351,35 @@ class FrontendController extends Controller
             }
             $cart->discount_amount = $discountAmount;
             
-            // Calculate tax (0% for now - can be configured later)
-            $taxRate = 0;
-            $taxableAmount = $subtotal - $discountAmount;
-            $taxAmount = $taxableAmount * $taxRate;
+            // Calculate GST from cart items
+            // Since prices are stored as GST-inclusive, we need to extract the GST amount
+            $taxAmount = 0;
+            
+            foreach ($cart->items as $item) {
+                $product = $item->product;
+                if (!$product) {
+                    continue;
+                }
+                
+                // Get GST settings from product
+                $gstType = $product->gst_type ?? true; // Default to inclusive
+                $gstPercentage = $product->gst_percentage ?? 0;
+                
+                if ($gstPercentage > 0) {
+                    // Calculate GST amount from GST-inclusive price
+                    // Formula: GST = Price - (Price / (1 + GST%/100))
+                    $itemTotalPrice = $item->total_price ?? 0;
+                    
+                    if ($itemTotalPrice > 0) {
+                        // Calculate base price (excluding GST)
+                        $basePrice = $itemTotalPrice / (1 + ($gstPercentage / 100));
+                        // Calculate GST amount
+                        $itemGstAmount = $itemTotalPrice - $basePrice;
+                        $taxAmount += $itemGstAmount;
+                    }
+                }
+            }
+            
             $cart->tax_amount = $taxAmount;
             
             // Calculate shipping

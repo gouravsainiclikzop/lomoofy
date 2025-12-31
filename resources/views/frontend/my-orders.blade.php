@@ -135,7 +135,7 @@
 																<p class="mb-2"><span class="text-dark medium">{{ $item->variant_name }}</span></p>
 															@endif
 															<p class="mb-1"><span class="text-muted small">Qty: {{ $item->quantity }}</span></p>
-															<h4 class="fs-sm ft-bold mb-0 lh-1">₹{{ number_format($item->total_price, 2) }}</h4>
+															<h4 class="fs-sm ft-bold mb-0 lh-1">₹{{ number_format($item->total_price, 2) }} <span class="text-muted fs-xs">(Inclusive of all taxes)</span></h4>
 														</div>
 													</div>
 												</div>
@@ -171,7 +171,7 @@
 												</p>
 											</div>
 											<div class="olf_inner_right">
-												<h5 class="mb-0 fs-sm ft-bold">Total: ₹{{ number_format($order->total_amount, 2) }}</h5>
+												<h5 class="mb-0 fs-sm ft-bold">Total: ₹{{ number_format($order->total_amount, 2) }} <span class="text-muted fs-xs">(Inclusive of all taxes)</span></h5>
 											</div>
 										</div>
 									</div>

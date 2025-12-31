@@ -131,28 +131,30 @@
 
 @push('styles')
 <style>
-/* Customer sidebar image styling */
 .dash_auth_thumb {
-    width: 102px !important;
-    height: 102px !important;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
     overflow: hidden;
-    display: flex !important;
+    display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0;
+    border: 0;
 }
 
 .dash_auth_thumb img {
-    width: 100px !important;
-    height: 100px !important;
-    object-fit: cover !important;
-    object-position: center !important;
-    border-radius: 50% !important;
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
 }
 
-/* Ensure circle class maintains round shape */
-.circle {
-    border-radius: 50% !important;
+.dash_auth_thumb {
+    aspect-ratio: 1 / 1;
 }
+
 </style>
 @endpush
 

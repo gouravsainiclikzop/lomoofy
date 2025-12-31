@@ -381,7 +381,7 @@
                                                         <p class="text-danger mb-1"><small>Available: {{ $availableStock }}, Requested: {{ $item->quantity }}</small></p>
                                                     @endif
                                                     <p class="mb-1 lh-1"><span class="text-muted small">Qty: {{ $item->quantity }}</span></p>
-                                                    <h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->total_price, 2) }}</h4>
+                                                    <h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->total_price, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></h4>
                                                 </div>
                                             </div>
                                         </div>
@@ -414,7 +414,7 @@
                                     </li>
                                     <li class="list-group-item d-flex text-dark fs-sm ft-regular border-top">
                                         <span class="fw-bold">Total</span> 
-                                        <span class="ms-auto text-dark ft-medium fw-bold">₹{{ number_format($cart->total_amount ?? 0, 2) }}</span>
+                                        <span class="ms-auto text-dark ft-medium fw-bold">₹{{ number_format($cart->total_amount ?? 0, 2) }} <span class="text-muted fs-xs">(Inclusive of all taxes)</span></span>
                                     </li>
                                     <li class="list-group-item fs-sm text-center">
                                         Shipping cost calculated at Checkout *
