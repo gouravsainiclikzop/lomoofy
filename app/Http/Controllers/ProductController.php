@@ -601,46 +601,107 @@ class ProductController extends Controller
      */
     public function updateVariants(Request $request, Product $product)
     {
-        $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
-        $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
-
-        
-        DB::beginTransaction();
-
         try {
-            if (!empty($variantsPayload)) {
-                $this->synchronizeVariants($product, $variantsPayload);
-            }
-
-            // Handle static attributes if provided
-            if ($request->has('static_attributes')) {
-                $this->synchronizeStaticAttributes($product, $request);
-            }
-
-            $product->load(['variants.images', 'category.parent']);
+            // Check for file upload limit before processing
+            $uploadedFiles = $request->file('variants', []);
+            $totalFiles = 0;
             
-            DB::commit();
+            // Count all uploaded files
+            foreach ($uploadedFiles as $variantIndex => $variantFiles) {
+                if (isset($variantFiles['images'])) {
+                    $images = is_array($variantFiles['images']) ? $variantFiles['images'] : [$variantFiles['images']];
+                    foreach ($images as $file) {
+                        if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                            $totalFiles++;
+                        }
+                    }
+                }
+            }
+            
+            $maxFileUploads = (int)ini_get('max_file_uploads');
+            if ($maxFileUploads > 0 && $totalFiles > $maxFileUploads) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Too many files uploaded. Maximum allowed: {$maxFileUploads}, Attempted: {$totalFiles}.",
+                    'error_code' => 'MAX_FILE_UPLOADS_EXCEEDED',
+                    'max_allowed' => $maxFileUploads,
+                    'attempted' => $totalFiles,
+                    'suggestion' => 'Try updating variants in smaller batches or reduce the number of images per variant.'
+                ], 422);
+            }
+            
+            $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
+            $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $uploadedFiles);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Variants updated successfully',
-                'product' => $product->load(['images', 'category.parent', 'variants']),
-                'redirect_url' => route('products.variants', $product)
-            ]);
+            DB::beginTransaction();
 
-        } catch (QueryException $e) {
-            DB::rollBack();
-            Log::error('Error updating variants: ' . $e->getMessage());
+            try {
+                if (!empty($variantsPayload)) {
+                    $this->synchronizeVariants($product, $variantsPayload);
+                }
+
+                // Handle static attributes if provided
+                if ($request->has('static_attributes')) {
+                    $this->synchronizeStaticAttributes($product, $request);
+                }
+
+                $product->load(['variants.images', 'category.parent']);
+                
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Variants updated successfully',
+                    'product' => $product->load(['images', 'category.parent', 'variants']),
+                    'redirect_url' => route('products.variants', $product)
+                ]);
+
+            } catch (QueryException $e) {
+                DB::rollBack();
+                Log::error('Error updating variants: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error updating variants: ' . $e->getMessage()
+                ], 500);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error updating variants: ' . $e->getMessage());
+                
+                // Check if error is related to file uploads
+                $errorMessage = $e->getMessage();
+                if (stripos($errorMessage, 'file upload') !== false || stripos($errorMessage, 'max_file_uploads') !== false) {
+                    $maxFileUploads = (int)ini_get('max_file_uploads');
+                    return response()->json([
+                        'success' => false,
+                        'message' => "File upload limit exceeded. Maximum allowed: {$maxFileUploads} files. Please reduce the number of images or increase PHP's max_file_uploads setting.",
+                        'error_code' => 'MAX_FILE_UPLOADS_EXCEEDED',
+                        'max_allowed' => $maxFileUploads
+                    ], 422);
+                }
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error updating variants: ' . $errorMessage
+                ], 500);
+            }
+        } catch (\Throwable $e) {
+            // Handle PHP-level errors (like max_file_uploads warning)
+            Log::error('Error updating variants (Throwable): ' . $e->getMessage());
+            
+            $errorMessage = $e->getMessage();
+            if (stripos($errorMessage, 'file upload') !== false || stripos($errorMessage, 'max_file_uploads') !== false) {
+                $maxFileUploads = (int)ini_get('max_file_uploads');
+                return response()->json([
+                    'success' => false,
+                    'message' => "File upload limit exceeded. Maximum allowed: {$maxFileUploads} files. Please reduce the number of images or increase PHP's max_file_uploads setting in php.ini.",
+                    'error_code' => 'MAX_FILE_UPLOADS_EXCEEDED',
+                    'max_allowed' => $maxFileUploads
+                ], 422);
+            }
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Error updating variants: ' . $e->getMessage()
-            ], 500);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error updating variants: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error updating variants: ' . $e->getMessage()
+                'message' => 'Error updating variants: ' . $errorMessage
             ], 500);
         }
     }
@@ -1761,7 +1822,11 @@ class ProductController extends Controller
 
     private function saveVariant(Product $product, array $variantData, int $index, ?ProductVariant $variant = null): ProductVariant
     {
-        $attributes = $this->normalizeVariantAttributes($variantData['attributes'] ?? ($variant->attributes ?? []));
+        // Preserve structured attributes format when updating existing variants
+        $attributes = $this->mergeVariantAttributes(
+            $variantData['attributes'] ?? null,
+            $variant ? $variant->attributes : null
+        );
 
         $variantName = isset($variantData['name']) && trim((string) $variantData['name']) !== ''
             ? trim($variantData['name'])
@@ -1779,13 +1844,22 @@ class ProductController extends Controller
             : ($variant ? $variant->sku : $product->sku . '-V' . ($index + 1));
 
         $mrp = $this->normalizeNumeric($variantData['price'] ?? ($variant->price ?? null), 0);
-        $rawSalePrice = $this->normalizeNumeric($variantData['sale_price'] ?? ($variant->sale_price ?? null));
+        
+        // Check if sale_price was explicitly provided in the form data
+        $salePriceProvided = array_key_exists('sale_price', $variantData);
+        $rawSalePrice = $salePriceProvided 
+            ? $this->normalizeNumeric($variantData['sale_price'], null)
+            : ($variant ? $variant->sale_price : null);
+        
         $discountType = $variantData['discount_type'] ?? ($variant->discount_type ?? null);
         $discountValue = $this->normalizeNumeric($variantData['discount_value'] ?? ($variant->discount_value ?? null));
         $discountActive = $this->normalizeBoolean($variantData['discount_active'] ?? ($variant->discount_active ?? false), false);
 
+        // Trust the provided sale_price if explicitly provided (like CSV import does)
+        // Only calculate from discount if sale_price was not provided in form data and discount is active
         $salePrice = $rawSalePrice;
-        if ($discountActive && $discountType && $discountValue !== null) {
+        if (!$salePriceProvided && $salePrice === null && $discountActive && $discountType && $discountValue !== null) {
+            // Only calculate if sale_price was not provided in form data
             if ($discountType === 'percentage') {
                 $salePrice = max($mrp - ($mrp * ($discountValue / 100)), 0);
             } elseif ($discountType === 'amount') {
@@ -1959,6 +2033,101 @@ class ProductController extends Controller
         }
 
         return is_array($attributes) ? $attributes : [];
+    }
+
+    /**
+     * Merge variant attributes while preserving structured format.
+     * If existing variant has structured format (with 'variable' and/or 'color' keys),
+     * preserve that structure and merge simplified incoming attributes into it.
+     */
+    private function mergeVariantAttributes($incomingAttributes, $existingAttributes): array
+    {
+        // Normalize both to arrays
+        $incoming = $this->normalizeVariantAttributes($incomingAttributes);
+        $existing = $this->normalizeVariantAttributes($existingAttributes);
+
+        // If no incoming attributes, use existing
+        if (empty($incoming)) {
+            return $existing;
+        }
+
+        // If no existing attributes, use incoming
+        if (empty($existing)) {
+            return $incoming;
+        }
+
+        // Check if existing has structured format (has 'variable' or 'color' keys with object values)
+        $hasStructuredFormat = (isset($existing['variable']) && is_array($existing['variable'])) || 
+                               (isset($existing['color']) && is_array($existing['color']) && isset($existing['color']['label']));
+        
+        // Check if incoming has structured format
+        $incomingHasStructuredFormat = (isset($incoming['variable']) && is_array($incoming['variable'])) || 
+                                       (isset($incoming['color']) && is_array($incoming['color']) && isset($incoming['color']['label']));
+
+        // If existing has structured format, preserve it
+        if ($hasStructuredFormat) {
+            $merged = $existing;
+            
+            // If incoming also has structured format, merge properly
+            if ($incomingHasStructuredFormat) {
+                // Merge color if present
+                if (isset($incoming['color'])) {
+                    $merged['color'] = $incoming['color'];
+                }
+                
+                // Merge variable attributes
+                if (isset($incoming['variable'])) {
+                    $merged['variable'] = array_merge(
+                        $existing['variable'] ?? [],
+                        $incoming['variable']
+                    );
+                }
+            } else {
+                // Incoming is simplified format - merge into existing structure
+                // Handle color update
+                if (isset($incoming['color'])) {
+                    $colorValue = $incoming['color'];
+                    if (is_array($colorValue) && isset($colorValue['label'])) {
+                        // Already structured
+                        $merged['color'] = $colorValue;
+                    } else {
+                        // Simple string value - update label but preserve code
+                        if (isset($existing['color']) && is_array($existing['color'])) {
+                            $merged['color'] = [
+                                'label' => $colorValue,
+                                'code' => $existing['color']['code'] ?? '#000000'
+                            ];
+                        } else {
+                            $merged['color'] = [
+                                'label' => $colorValue,
+                                'code' => '#000000'
+                            ];
+                        }
+                    }
+                }
+                
+                // Handle other attributes - add to variable if they don't match color
+                foreach ($incoming as $key => $value) {
+                    if ($key !== 'color' && $key !== 'variable') {
+                        // Add to variable attributes
+                        if (!isset($merged['variable'])) {
+                            $merged['variable'] = [];
+                        }
+                        $merged['variable'][$key] = $value;
+                    }
+                }
+            }
+            
+            return $merged;
+        }
+
+        // If incoming has structured format but existing doesn't, use incoming
+        if ($incomingHasStructuredFormat) {
+            return $incoming;
+        }
+
+        // Both are simple format - use incoming
+        return $incoming;
     }
 
     private function normalizeHighlightsDetails($highlightsDetails)

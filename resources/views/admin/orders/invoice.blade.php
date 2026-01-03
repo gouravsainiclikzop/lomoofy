@@ -285,20 +285,68 @@
             $exclusiveGstAmount = 0;
             $invoiceItems = [];
             
+            // Helper function to calculate final price for an order item (after discounts)
+            $calculateItemFinalPrice = function($item) {
+                $basePrice = isset($item['original_variant_price']) ? floatval($item['original_variant_price']) : floatval($item['unit_price']);
+                $salePrice = isset($item['variant_sale_price']) ? floatval($item['variant_sale_price']) : null;
+                $discountType = $item['discount_type'] ?? '';
+                $discountValue = isset($item['discount_value']) ? floatval($item['discount_value']) : 0;
+                $discountActive = $item['discount_active'] ?? false;
+                
+                // Round base price
+                $basePrice = round($basePrice);
+                
+                // Round sale price if it exists
+                $roundedSalePrice = null;
+                if ($salePrice !== null && $salePrice > 0) {
+                    $roundedSalePrice = round($salePrice);
+                }
+                
+                // Calculate final price
+                $priceToDiscount = $basePrice;
+                if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                    $priceToDiscount = $roundedSalePrice;
+                }
+                
+                $finalPrice = $priceToDiscount;
+                
+                // Apply discount if active
+                if ($discountActive && $discountType && $discountValue > 0) {
+                    if ($discountType === 'percentage') {
+                        $discountAmount = ($priceToDiscount * $discountValue) / 100;
+                        $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                    } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                        $finalPrice = max(0, $priceToDiscount - $discountValue);
+                    }
+                } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                    $finalPrice = $roundedSalePrice;
+                }
+                
+                // Round final price
+                return round($finalPrice);
+            };
+            
             foreach ($order['items'] as $index => $item) {
                 $gstType = $item['gst_type'] ?? true;
                 $gstPercentage = $item['gst_percentage'] ?? 18;
-                $itemTotal = floatval($item['total_price']);
-                $unitPrice = floatval($item['unit_price']);
                 $quantity = intval($item['quantity']);
                 
-                // Calculate net amount
-                $netAmount = 0;
+                // Calculate final price after discounts
+                $itemFinalPrice = $calculateItemFinalPrice($item);
+                
+                // Calculate base price per unit for net amount (before GST)
+                $basePricePerUnit = 0;
                 if ($gstType) {
-                    $netAmount = $itemTotal / (1 + $gstPercentage / 100);
+                    // GST inclusive: Final price already includes tax
+                    // Extract base price for net amount display
+                    $basePricePerUnit = $itemFinalPrice / (1 + ($gstPercentage / 100));
                 } else {
-                    $netAmount = $itemTotal;
+                    // GST exclusive: Final price is the base price
+                    $basePricePerUnit = $itemFinalPrice;
                 }
+                
+                // Net amount = base price * quantity
+                $netAmount = $basePricePerUnit * $quantity;
                 
                 // Calculate GST amount
                 $itemGstAmount = 0;
@@ -308,8 +356,12 @@
                 
                 if ($gstPercentage > 0) {
                     if ($gstType) {
-                        $itemGstAmount = $itemTotal - $netAmount;
+                        // GST inclusive: Calculate tax from final price (tax already included)
+                        // Tax = final_price - base_price
+                        $itemGstAmount = ($itemFinalPrice * $quantity) - $netAmount;
+                        // Don't add to exclusiveGstAmount since tax is already in the price
                     } else {
+                        // GST exclusive: Calculate tax to be added on base price
                         $itemGstAmount = $netAmount * ($gstPercentage / 100);
                         $exclusiveGstAmount += $itemGstAmount;
                     }
@@ -338,24 +390,48 @@
                     }
                 }
                 
+                // Display unit price should be final price per unit (after discounts, before GST extraction for inclusive)
+                // For invoice display: show the price that customer pays per unit
+                if ($gstType) {
+                    // GST inclusive: Show final price (what customer pays per unit)
+                    $displayUnitPrice = $itemFinalPrice;
+                    // Total amount = final price * quantity (includes tax)
+                    $totalAmount = $itemFinalPrice * $quantity;
+                } else {
+                    // GST exclusive: Show base price per unit
+                    $displayUnitPrice = $basePricePerUnit;
+                    // Total amount = base + tax
+                    $totalAmount = $netAmount + $itemGstAmount;
+                }
+                
                 $invoiceItems[] = [
                     'index' => $index + 1,
                     'product_name' => $item['product_name'],
                     'variant_name' => $item['variant_name'] ?? '',
                     'hsn_code' => $item['hsn_code'] ?? '4202',
-                    'unit_price' => $unitPrice,
+                    'unit_price' => $displayUnitPrice,
                     'quantity' => $quantity,
                     'net_amount' => $netAmount,
                     'gst_display' => $gstDisplay,
                     'gst_amount' => $itemGstAmount,
-                    'total' => $netAmount + $itemGstAmount,
+                    'total' => $totalAmount,
                 ];
             }
             
-            // Calculate grand total
-            $subtotal = floatval($order['subtotal']);
-            $discount = floatval($order['discount_amount'] ?? 0);
-            $shipping = floatval($order['shipping_amount'] ?? 0);
+            // Recalculate subtotal from invoice items (sum of all item totals after discounts)
+            $recalculatedSubtotal = 0;
+            foreach ($invoiceItems as $invoiceItem) {
+                $recalculatedSubtotal += $invoiceItem['total'];
+            }
+            
+            // Use recalculated subtotal (from items) or fallback to order subtotal
+            $subtotal = round($recalculatedSubtotal);
+            $discount = round(floatval($order['discount_amount'] ?? 0));
+            $shipping = round(floatval($order['shipping_amount'] ?? 0));
+            $taxAmount = round(floatval($order['tax_amount'] ?? 0));
+            
+            // Calculate grand total: subtotal - discount + tax (for exclusive items) + shipping
+            // For inclusive items, tax is already in subtotal, so we only add exclusive tax
             $calculatedGrandTotal = $subtotal - $discount + $exclusiveGstAmount + $shipping;
             
             // Number to words function
@@ -509,45 +585,61 @@
                     <td style="font-weight: bold;">₹{{ number_format($subtotal, 2) }}</td>
                 </tr>
                 
-                @if($isSameState)
-                    @foreach($cgstBreakdown as $key => $amount)
-                        <tr class="gst-row">
-                            <td colspan="7" style="text-align: right; font-weight: bold;">{{ $key }}:</td>
-                            <td style="font-weight: bold;">₹{{ number_format($amount, 2) }}</td>
-                        </tr>
-                    @endforeach
-                    @foreach($sgstBreakdown as $key => $amount)
-                        <tr class="gst-row">
-                            <td colspan="7" style="text-align: right; font-weight: bold;">{{ $key }}:</td>
-                            <td style="font-weight: bold;">₹{{ number_format($amount, 2) }}</td>
-                        </tr>
-                    @endforeach
-                @else
-                    @foreach($igstBreakdown as $key => $amount)
-                        <tr class="gst-row">
-                            <td colspan="7" style="text-align: right; font-weight: bold;">{{ $key }}:</td>
-                            <td style="font-weight: bold;">₹{{ number_format($amount, 2) }}</td>
-                        </tr>
-                    @endforeach
+                <!-- Discount - always shown -->
+                <tr class="discount-row">
+                    <td colspan="7" style="text-align: right; font-weight: bold;">Discount:</td>
+                    <td style="font-weight: bold; {{ $discount > 0 ? 'color: #28a745;' : '' }}">-₹{{ number_format($discount, 2) }}</td>
+                </tr>
+                
+                <!-- Total (Subtotal - Discount) -->
+                <tr class="total-row">
+                    <td colspan="7" style="text-align: right; font-weight: bold;">Total:</td>
+                    <td style="font-weight: bold;">₹{{ number_format($subtotal - $discount, 2) }}</td>
+                </tr>
+                
+                <!-- Tax - only show if there are exclusive items -->
+                @if($exclusiveGstAmount > 0)
+                    @if($isSameState)
+                        @foreach($cgstBreakdown as $key => $amount)
+                            @if($amount > 0)
+                            <tr class="gst-row">
+                                <td colspan="7" style="text-align: right; font-weight: bold;">{{ $key }}:</td>
+                                <td style="font-weight: bold;">₹{{ number_format($amount, 2) }}</td>
+                            </tr>
+                            @endif
+                        @endforeach
+                        @foreach($sgstBreakdown as $key => $amount)
+                            @if($amount > 0)
+                            <tr class="gst-row">
+                                <td colspan="7" style="text-align: right; font-weight: bold;">{{ $key }}:</td>
+                                <td style="font-weight: bold;">₹{{ number_format($amount, 2) }}</td>
+                            </tr>
+                            @endif
+                        @endforeach
+                    @else
+                        @foreach($igstBreakdown as $key => $amount)
+                            @if($amount > 0)
+                            <tr class="gst-row">
+                                <td colspan="7" style="text-align: right; font-weight: bold;">{{ $key }}:</td>
+                                <td style="font-weight: bold;">₹{{ number_format($amount, 2) }}</td>
+                            </tr>
+                            @endif
+                        @endforeach
+                    @endif
                 @endif
                 
-                @if($discount > 0)
-                    <tr class="discount-row">
-                        <td colspan="7" style="text-align: right; font-weight: bold;">Discount:</td>
-                        <td style="font-weight: bold;">-₹{{ number_format($discount, 2) }}</td>
-                    </tr>
-                @endif
-                
+                <!-- Shipping -->
                 @if($shipping > 0)
                     <tr class="shipping-row">
-                        <td colspan="7" style="text-align: right; font-weight: bold;">Shipping Charges:</td>
+                        <td colspan="7" style="text-align: right; font-weight: bold;">Shipping:</td>
                         <td style="font-weight: bold;">₹{{ number_format($shipping, 2) }}</td>
                     </tr>
                 @endif
                 
+                <!-- Payable (Grand Total) -->
                 <tr class="grand-total-row">
-                    <td colspan="7" style="text-align: right; font-weight: bold; background-color: #f8f9fa;">Total:</td>
-                    <td style="font-weight: bold; background-color: #f8f9fa;">₹{{ number_format($calculatedGrandTotal, 2) }}</td>
+                    <td colspan="7" style="text-align: right; font-weight: bold; background-color: #f8f9fa;">Payable:</td>
+                    <td style="font-weight: bold; background-color: #f8f9fa;">₹{{ number_format(round($calculatedGrandTotal), 2) }}</td>
                 </tr>
             </tbody>
         </table>

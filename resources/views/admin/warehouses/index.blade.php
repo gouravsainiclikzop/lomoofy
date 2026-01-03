@@ -567,7 +567,7 @@ $(document).ready(function() {
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <button class="btn btn-outline-info manage-locations" data-id="${warehouse.id}" data-name="${warehouse.name}" title="Manage Locations">
-                                            <i class="fas fa-map-marker-alt"></i>
+                                            Locations
                                         </button>
                                         <button class="btn btn-outline-primary edit-warehouse" data-id="${warehouse.id}" title="Edit">
                                             <i class="fas fa-edit"></i>

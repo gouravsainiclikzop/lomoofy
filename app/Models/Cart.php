@@ -89,13 +89,69 @@ class Cart extends Model
      */
     public function recalculateTotals()
     {
-        $this->load('items.product', 'coupon');
+        $this->load('items.product', 'items.variant', 'coupon');
         
-        // Calculate subtotal
-        $subtotal = $this->items->sum('total_price');
+        // Calculate subtotal (base price - no computation for inclusive items)
+        $subtotal = 0;
+        
+        // Calculate GST from cart items
+        // For tax-inclusive items: tax is already included in price, don't add it again
+        // For tax-exclusive items: calculate tax and add it separately
+        $taxAmount = 0;
+        
+        foreach ($this->items as $item) {
+            $product = $item->product;
+            $variant = $item->variant;
+            if (!$product) {
+                continue;
+            }
+            
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true; // Default to inclusive
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
+            // Get original variant price (sale_price or price)
+            $originalVariantPrice = null;
+            if ($variant) {
+                $originalVariantPrice = $variant->sale_price ?? $variant->price ?? null;
+            }
+            
+            // Current item unit price (stored in cart, already GST-inclusive)
+            $itemUnitPrice = $item->unit_price ?? 0;
+            $quantity = $item->quantity ?? 1;
+            
+            // Calculate base price per unit for subtotal
+            $basePricePerUnit = 0;
+            $itemGstAmount = 0;
+            
+            if ($gstPercentage > 0) {
+                if ($gstType) {
+                    // GST inclusive: Use original variant price as base (no extraction)
+                    // Don't recalculate tax - it's already in the price
+                    $basePricePerUnit = $originalVariantPrice !== null ? $originalVariantPrice : $itemUnitPrice;
+                    $itemGstAmount = 0; // Tax already included, don't add it again
+                } else {
+                    // GST exclusive: Extract base price from unit_price (unit_price = base + tax)
+                    $basePricePerUnit = $itemUnitPrice / (1 + ($gstPercentage / 100));
+                    $itemGstAmount = $basePricePerUnit * ($gstPercentage / 100);
+                }
+            } else {
+                // No GST for this item
+                $basePricePerUnit = $originalVariantPrice !== null ? $originalVariantPrice : $itemUnitPrice;
+                $itemGstAmount = 0;
+            }
+            
+            // Add to subtotal (base price * quantity)
+            $subtotal += $basePricePerUnit * $quantity;
+            
+            // Add tax amount (only for exclusive items)
+            $taxAmount += $itemGstAmount * $quantity;
+        }
+        
+        $this->tax_amount = $taxAmount;
         $this->subtotal = $subtotal;
         
-        // Calculate discount from coupon if exists
+        // Calculate discount from coupon if exists (after subtotal is calculated)
         $discountAmount = 0;
         if ($this->coupon_code && $this->coupon) {
             $coupon = $this->coupon;
@@ -121,38 +177,6 @@ class Cart extends Model
         }
         $this->discount_amount = $discountAmount;
         
-        // Calculate GST from cart items
-        // Since prices are stored as GST-inclusive, we need to extract the GST amount
-        $taxAmount = 0;
-        
-        foreach ($this->items as $item) {
-            $product = $item->product;
-            if (!$product) {
-                continue;
-            }
-            
-            // Get GST settings from product
-            $gstType = $product->gst_type ?? true; // Default to inclusive
-            $gstPercentage = $product->gst_percentage ?? 0;
-            
-            if ($gstPercentage > 0) {
-                // Calculate GST amount from GST-inclusive price
-                // Formula: GST = (Price * GST%) / (100 + GST%)
-                // Or: GST = Price - (Price / (1 + GST%/100))
-                $itemTotalPrice = $item->total_price ?? 0;
-                
-                if ($itemTotalPrice > 0) {
-                    // Calculate base price (excluding GST)
-                    $basePrice = $itemTotalPrice / (1 + ($gstPercentage / 100));
-                    // Calculate GST amount
-                    $itemGstAmount = $itemTotalPrice - $basePrice;
-                    $taxAmount += $itemGstAmount;
-                }
-            }
-        }
-        
-        $this->tax_amount = $taxAmount;
-        
         // Calculate shipping
         $allItemsFreeShipping = $this->items->every(function($item) {
             return $item->product && $item->product->free_shipping;
@@ -172,7 +196,8 @@ class Cart extends Model
         
         $this->shipping_amount = $shippingAmount;
         
-        // Calculate total
+        // Calculate total (Subtotal - Discount + Tax to add + Shipping)
+        // For inclusive items, tax is already in subtotal, so only add tax for exclusive items
         $this->total_amount = $subtotal - $discountAmount + $taxAmount + $shippingAmount;
         
         $this->save();

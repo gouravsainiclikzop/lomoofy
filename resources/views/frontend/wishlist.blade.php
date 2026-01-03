@@ -52,7 +52,9 @@
 										<div class="shop_thumb position-relative">
 											<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
 												@php
-													$firstVariantImage = $product['color_variants']->first()['image'] ?? $product['image_url'];
+													$firstVariantImage = ($product['color_variants'] && $product['color_variants']->isNotEmpty()) 
+														? ($product['color_variants']->first()['image'] ?? $product['image_url'])
+														: $product['image_url'];
 												@endphp
 												<img class="card-img-top" src="{{ $firstVariantImage }}" alt="{{ $product['name'] }}">
 											</a>
@@ -74,12 +76,40 @@
 													<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
 												</h5>
 												<div class="elis_rty">
-													@if($product['has_sale'] && $product['min_sale_price'])
-														<span class="text-muted ft-medium line-through me-2">₹{{ number_format($product['min_price'], 0) }}</span>
-														<span class="ft-medium theme-cl fs-md">₹{{ number_format($product['min_sale_price'], 0) }}</span>
-													@else
-														<span class="ft-medium fs-md text-dark">{{ $product['price_display'] }}</span>
-													@endif
+													@php
+														// Use first variant for pricing if available, otherwise use product-level pricing
+														$firstColorVariant = ($product['color_variants'] && $product['color_variants']->isNotEmpty()) 
+															? $product['color_variants']->first() 
+															: null;
+														if ($firstColorVariant) {
+															// Use variant-level pricing
+															$variantPrice = $firstColorVariant['price'] ?? $product['min_price'] ?? 0;
+															$variantSalePrice = $firstColorVariant['sale_price'] ?? null;
+															$variantHasSale = $firstColorVariant['has_sale'] ?? false;
+															$discountType = $firstColorVariant['discount_type'] ?? null;
+															$discountValue = $firstColorVariant['discount_value'] ?? null;
+															$discountActive = $firstColorVariant['discount_active'] ?? false;
+														} else {
+															// Use product-level pricing (no discount info available at product level)
+															$variantPrice = $product['min_price'] ?? 0;
+															$variantSalePrice = $product['min_sale_price'] ?? null;
+															$variantHasSale = $product['has_sale'] ?? false;
+															$discountType = null;
+															$discountValue = null;
+															$discountActive = false;
+														}
+													@endphp
+													@include('frontend.partials.product-pricing-compact', [
+														'price' => $variantPrice,
+														'sale_price' => $variantSalePrice,
+														'original_price' => $variantPrice,
+														'discount_type' => $discountType,
+														'discount_value' => $discountValue,
+														'discount_active' => $discountActive,
+														'gstType' => true,
+														'gstPercentage' => 0,
+														'compact' => true
+													])
 												</div>
 											</div>
 										</div>

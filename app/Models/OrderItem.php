@@ -19,12 +19,21 @@ class OrderItem extends Model
         'quantity',
         'unit_price',
         'total_price',
+        'original_variant_price',
+        'variant_sale_price',
+        'discount_type',
+        'discount_value',
+        'discount_active',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'original_variant_price' => 'decimal:2',
+        'variant_sale_price' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'discount_active' => 'boolean',
     ];
 
     // Relationships

@@ -45,102 +45,7 @@
 				</div>
 				
 				<div id="cartItemsContainer" style="display: none;">
-					@if($cart->items && $cart->items->count() > 0)
-						<ul class="list-group list-group-sm list-group-flush-y list-group-flush-x mb-4">
-							@foreach($cart->items as $item)
-								@php
-									$product = $item->product;
-									$variant = $item->variant;
-									
-									// Get variant image only - don't fallback to product image
-									$imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
-									
-									if ($variant && $variant->images && $variant->images->count() > 0) {
-										// Try to get primary variant image first
-										$primaryVariantImage = $variant->images->where('is_primary', true)->first();
-										if ($primaryVariantImage) {
-											$imageUrl = asset('storage/' . $primaryVariantImage->image_path);
-										} else {
-											// Use first variant image
-											$firstVariantImage = $variant->images->first();
-											if ($firstVariantImage) {
-												$imageUrl = asset('storage/' . $firstVariantImage->image_path);
-											}
-										}
-									}
-									
-									// Parse variant attributes using new structured format - show all attributes
-									$parsed = null;
-									$allAttributes = [];
-									
-									if ($variant && $variant->attributes) {
-										$parsed = \App\Http\Controllers\FrontendController::parseVariantAttributes($variant->attributes);
-										
-										// Build all attributes array for display
-										if ($parsed['color'] && isset($parsed['color']['label'])) {
-											$allAttributes[] = ['label' => 'Color', 'value' => $parsed['color']['label']];
-										}
-										
-										// Add all variable attributes
-										if (isset($parsed['variable']) && is_array($parsed['variable'])) {
-											foreach ($parsed['variable'] as $key => $value) {
-												$attrLabel = ucfirst(str_replace('_', ' ', $key));
-												$attrValue = is_array($value) 
-													? (isset($value['label']) ? $value['label'] : (isset($value['value']) ? $value['value'] : ''))
-													: (string)$value;
-												if ($attrValue) {
-													$allAttributes[] = ['label' => $attrLabel, 'value' => $attrValue];
-												}
-											}
-										}
-									}
-								@endphp
-								<li class="list-group-item" data-cart-item-id="{{ $item->id }}">
-									<div class="row align-items-center">
-										<div class="col-3">
-											<!-- Image -->
-											<a href="{{ route('frontend.product') }}?product={{ $product->slug }}"><img src="{{ $imageUrl }}" alt="{{ $product->name }}" class="img-fluid"></a>
-										</div>
-										<div class="col d-flex align-items-center justify-content-between">
-											<div class="cart_single_caption ps-2">
-												<h4 class="product_title fs-md ft-medium mb-1 lh-1">
-													<a href="{{ route('frontend.product') }}?product={{ $product->slug }}">{{ $product->name }}</a>
-												</h4>
-												@if(!empty($allAttributes))
-													@foreach($allAttributes as $attr)
-														<p class="mb-1 lh-1"><span class="text-dark">{{ $attr['label'] }}: {{ $attr['value'] }}</span></p>
-													@endforeach
-												@elseif($variant && $variant->name)
-													<p class="mb-1 lh-1"><span class="text-dark">{{ $variant->name }}</span></p>
-												@endif
-												<h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->unit_price, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></h4>
-												<select class="mb-2 custom-select w-auto cart-item-quantity" data-cart-item-id="{{ $item->id }}" data-variant-id="{{ $item->product_variant_id }}">
-													@php
-    // Use stock_quantity directly (warehouse logic disabled for now)
-    $availableStock = $variant ? ($variant->stock_quantity ?? 0) : ($product->stock_quantity ?? 10);
-    $maxQty = min(10, max(1, $availableStock));
-@endphp
-@for($qty = 1; $qty <= $maxQty; $qty++)
-														<option value="{{ $qty }}" {{ $item->quantity == $qty ? 'selected' : '' }}>{{ $qty }}</option>
-													@endfor
-												</select>
-											</div>
-											<div class="fls_last">
-												<button class="close_slide gray remove-cart-item" data-cart-item-id="{{ $item->id }}" data-variant-id="{{ $item->product_variant_id }}">
-													<i class="ti-close"></i>
-												</button>
-											</div>
-										</div>
-									</div>
-								</li>
-							@endforeach
-						</ul>
-					@else
-						<div id="emptyCartMessage" class="alert alert-info text-center" style="display: none;">
-							<p class="mb-0">Your cart is empty.</p>
-							<a href="{{ route('frontend.shop') }}" class="btn btn-dark mt-3">Continue Shopping</a>
-						</div>
-					@endif
+					 <!-- cart items will be displayed here using js -->
 				</div>
 				
 				<!-- Coupon Section - Will be shown/hidden dynamically -->
@@ -167,25 +72,34 @@
 				</div>
 			</div>
 			
-			<div class="col-12 col-md-12 col-lg-4">
+			<div class="col-12 col-md-12 col-lg-4 cart-summary">
 				<div class="card mb-4 gray mfliud">
 				  <div class="card-body">
 					<ul class="list-group list-group-sm list-group-flush-y list-group-flush-x">
 					  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-						<span>Subtotal</span> <span class="ms-auto text-dark ft-medium" id="cartSubtotal">₹{{ number_format($cart->subtotal ?? 0, 2) }}</span>
+						<span>Subtotal</span> <span class="ms-auto text-dark ft-medium" id="cartSubtotal"></span>
 					  </li>
-					  <!-- Discount row - shown/hidden dynamically -->
-					  <li class="list-group-item d-flex text-dark fs-sm ft-regular" id="cartDiscountRow" style="display: {{ ($cart->discount_amount ?? 0) > 0 ? '' : 'none' }};">
-						<span>Discount</span> <span class="ms-auto text-dark ft-medium text-success" id="cartDiscount">-₹{{ number_format($cart->discount_amount ?? 0, 2) }}</span>
-					  </li>
-					  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-						<span>Tax</span> <span class="ms-auto text-dark ft-medium" id="cartTax">₹{{ number_format($cart->tax_amount ?? 0, 2) }}</span>
+					  <!-- Discount row - always shown for apply coupon -->
+					  <li class="list-group-item d-flex text-dark fs-sm ft-regular" id="cartDiscountRow">
+						<span>Discount</span> <span class="ms-auto text-dark ft-medium text-success" id="cartDiscount">₹0.00</span>
 					  </li>
 					  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-						<span>Shipping</span> <span class="ms-auto text-dark ft-medium" id="cartShipping">₹{{ number_format($cart->shipping_amount ?? 0, 2) }}</span>
+						<span>Total</span> <span class="ms-auto text-dark ft-medium" id="cartTotal"></span>
 					  </li>
 					  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-						<span>Total</span> <span class="ms-auto text-dark ft-medium" id="cartTotal">₹{{ number_format($cart->total_amount ?? 0, 2) }} <span class="text-muted fs-xs">(Inclusive of all taxes)</span></span>
+						<span id="cartTaxLabel">Tax</span> <span class="ms-auto text-dark ft-medium" id="cartTax">₹0.00</span>
+					  </li>
+					  <li class="list-group-item d-flex text-dark fs-sm ft-regular">
+						<span>Shipping</span> <span class="ms-auto text-dark ft-medium" id="cartShipping"></span>
+					  </li> 
+					  <!-- <li class="list-group-item d-flex text-dark fs-sm ft-regular" style="display: none;">
+						<span>Grand Total</span> <span class="ms-auto text-dark ft-medium" id="cartGrandTotal"></span>
+					  </li>
+					  <li class="list-group-item d-flex text-dark fs-sm ft-regular" style="display: none;">
+						<span>Round Off</span> <span class="ms-auto text-dark ft-medium" id="cartRoundOff"></span>
+					  </li> -->
+					  <li class="list-group-item d-flex text-dark fs-sm ft-medium border-top">
+						<span>Payable</span> <span class="ms-auto text-dark ft-bold" id="cartPayable"></span>
 					  </li>
 					  <li class="list-group-item fs-sm text-center">
 						Shipping cost calculated at Checkout *
@@ -221,6 +135,9 @@
 @endsection
 
 @push('scripts')
+{{-- Include cart pricing JavaScript helper --}}
+@include('frontend.partials.product-pricing-cart-js')
+
 <script>
 $(document).ready(function() {
     // Check if user is logged in
@@ -296,8 +213,17 @@ $(document).ready(function() {
                     // Always update display with API data (it has the correct session_id)
                     updateCartDisplay(response.data);
                 } else {
-                    // If no items from API, show empty cart message
-                    updateCartDisplay({ items: [], summary: {} });
+                    // If no items from API, show empty cart message with default summary
+                    updateCartDisplay({ 
+                        items: [], 
+                        summary: {
+                            subtotal: 0,
+                            tax_amount: 0,
+                            shipping_amount: 0,
+                            discount_amount: 0,
+                            total_amount: 0
+                        }
+                    });
                 }
             },
             error: function(xhr) {
@@ -329,6 +255,8 @@ $(document).ready(function() {
     function updateCartDisplay(cartData) {
         const items = cartData.items || [];
         const summary = cartData.summary || {};
+        
+        console.log('updateCartDisplay called with:', { itemsCount: items.length, summary: summary });
         
         // Update cart items
         let itemsHtml = '';
@@ -367,7 +295,31 @@ $(document).ready(function() {
                     ? '<p class="text-danger mb-2"><small>Available stock: ' + (item.available_stock || 0) + '</small></p>'
                     : ''
                     )+
-                 '<h4 class="fs-md ft-medium mb-3 lh-1">₹' + parseFloat(item.unit_price).toFixed(2) + ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></h4>' +
+                '<div class="mb-3">' + (typeof generateCartItemPricing === 'function' ? generateCartItemPricing(item) : (function(){ 
+                    var up = parseFloat(item.unit_price) || 0;
+                    var originalPrice = item.original_variant_price ? parseFloat(item.original_variant_price) : null;
+                    var gstType = item.gst_type;
+                    var gstPct = parseFloat(item.gst_percentage) || 0;
+                    
+                    // Normalize gstType
+                    if (typeof gstType === 'string') {
+                        gstType = (gstType === 'false' || gstType === '0') ? false : true;
+                    }
+                    
+                    // Calculate display price (base price)
+                    var displayPrice = up;
+                    if (gstType === false && gstPct > 0) {
+                        // Exclusive: extract base price (unit_price already has tax added)
+                        displayPrice = up / (1 + (gstPct / 100));
+                    } else if (gstType !== false && originalPrice !== null) {
+                        // Inclusive: use original variant price (don't use stored unit_price which might be wrong)
+                        displayPrice = originalPrice;
+                    }
+                    // If no original price available, use unit_price as-is for inclusive
+                    
+                    var taxLabel = (gstType === false) ? "Exclusive of taxes" : "Inclusive of taxes";
+                    return '<h4 class="fs-md ft-medium mb-0 lh-1">₹' + displayPrice.toFixed(2) + ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></h4>';
+                })()) + '</div>' +
                 '<select class="mb-2 custom-select w-auto cart-item-quantity' 
                     + (isOutOfStock ? ' border-danger' : '') 
                     + '" data-cart-item-id="' + item.id + '" data-variant-id="' + (item.variant_id || '') + '">';
@@ -428,27 +380,245 @@ $(document).ready(function() {
             }
         }
         
-        // Update summary
-        $('#cartSubtotal').text('₹' + parseFloat(summary.subtotal || 0).toFixed(2));
-        
-        // Show/hide discount row
-        if (summary.discount_amount > 0) {
-            if ($('#cartDiscount').length === 0) {
-                $('#cartSubtotal').parent().after('<li class="list-group-item d-flex text-dark fs-sm ft-regular" id="cartDiscountRow"><span>Discount</span> <span class="ms-auto text-dark ft-medium text-success" id="cartDiscount">-₹' + parseFloat(summary.discount_amount || 0).toFixed(2) + '</span></li>');
-            } else {
-                $('#cartDiscount').text('-₹' + parseFloat(summary.discount_amount || 0).toFixed(2));
-                $('#cartDiscountRow').show();
+        // Helper function to calculate final price for an item (after discounts)
+        const calculateItemFinalPrice = (item) => {
+            let basePrice = parseFloat(item.variant_price || item.original_variant_price || item.unit_price || 0);
+            const salePrice = item.variant_sale_price ? parseFloat(item.variant_sale_price) : null;
+            const discountType = item.discount_type || '';
+            const discountValue = parseFloat(item.discount_value || 0);
+            const discountActive = item.discount_active === true || item.discount_active === '1' || item.discount_active === 1;
+            
+            // Round base price
+            basePrice = Math.round(basePrice);
+            
+            // Round sale price if it exists
+            let roundedSalePrice = null;
+            if (salePrice !== null && salePrice !== undefined) {
+                roundedSalePrice = Math.round(salePrice);
             }
+            
+            // Calculate final price
+            let priceToDiscount = basePrice;
+            if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
+                priceToDiscount = roundedSalePrice;
+            }
+            
+            let finalPrice = priceToDiscount;
+            
+            // Apply discount if active
+            if (discountActive && discountType && discountValue > 0) {
+                if (discountType === 'percentage') {
+                    const discountAmount = (priceToDiscount * discountValue) / 100;
+                    finalPrice = Math.max(0, priceToDiscount - discountAmount);
+                } else if (discountType === 'amount' || discountType === 'flat') {
+                    finalPrice = Math.max(0, priceToDiscount - discountValue);
+                }
+            } else if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
+                finalPrice = roundedSalePrice;
+            }
+            
+            // Round final price
+            return Math.round(finalPrice);
+        };
+        
+        // Recalculate subtotal/tax from all items using final prices (after discounts)
+        // For inclusive items: Keep unit_price as base price (don't extract tax, don't recalculate)
+        // For exclusive items: Extract base price from unit_price and calculate tax separately
+        let computedSubtotal = 0; // Subtotal (final price after discounts - no computation for inclusive items)
+        let computedTaxForDisplay = 0; // Tax amount for display only (inclusive items: tax already in price, exclusive: tax to add)
+        let computedTaxToAdd = 0; // Tax amount to add to total (only for exclusive items)
+        let hasExclusiveItems = false;
+        let maxGstPercentage = 0; // Track highest GST percentage for display
+        
+        const itemsForCalc = items;
+        for (let idx = 0; idx < itemsForCalc.length; idx++) {
+            const it = itemsForCalc[idx];
+            const unitPrice = parseFloat(it.unit_price) || 0; // This is already GST-inclusive
+            const originalPrice = it.original_variant_price ? parseFloat(it.original_variant_price) : null;
+            const quantity = parseInt(it.quantity) || 1;
+            // Normalize gstType: handle both boolean and string values
+            let gstType = (typeof it.gst_type !== 'undefined') ? it.gst_type : true;
+            if (typeof gstType === 'string') {
+                gstType = gstType === 'false' || gstType === '0' ? false : true;
+            }
+            const gstPct = parseFloat(it.gst_percentage) || 0;
+
+            // Calculate final price for this item (after discounts)
+            const itemFinalPrice = calculateItemFinalPrice(it);
+            
+            let subtotalPricePerUnit = 0; // Final price to show in subtotal (after discounts)
+            let taxForDisplay = 0; // Tax amount for display
+            let taxToAdd = 0; // Tax amount to add to total
+            
+            if (gstPct > 0) {
+                if (gstType === false) {
+                    // Exclusive of tax: Use final price and extract base price for tax calculation
+                    // Final price might already have tax, so extract base for tax calculation
+                    const baseForTax = itemFinalPrice / (1 + (gstPct / 100));
+                    taxToAdd = baseForTax * (gstPct / 100);
+                    taxForDisplay = taxToAdd;
+                    hasExclusiveItems = true;
+                    // Use final price in subtotal (will have tax added separately)
+                    subtotalPricePerUnit = itemFinalPrice;
+                } else {
+                    // Inclusive of tax: Use final price directly (tax already included)
+                    subtotalPricePerUnit = itemFinalPrice;
+                    // Calculate tax for display only (to show what tax is included)
+                    taxForDisplay = subtotalPricePerUnit - (subtotalPricePerUnit / (1 + (gstPct / 100)));
+                    // Don't add tax to total since it's already in the price
+                    taxToAdd = 0;
+                }
+                if (gstPct > maxGstPercentage) {
+                    maxGstPercentage = gstPct;
+                }
+            } else {
+                // No GST - use final price directly
+                subtotalPricePerUnit = itemFinalPrice;
+                taxForDisplay = 0;
+                taxToAdd = 0;
+            }
+            
+            // Subtotal: final price after discounts (no computation for inclusive items)
+            computedSubtotal += subtotalPricePerUnit * quantity;
+            
+            // Tax for display (both inclusive and exclusive)
+            computedTaxForDisplay += taxForDisplay * quantity;
+            // Tax to add to total (only exclusive items) - add once here
+            computedTaxToAdd += taxToAdd * quantity;
+            
+            console.log('Item calculation:', {
+                item: it.product_name,
+                gstType: gstType,
+                originalPrice: originalPrice,
+                unitPrice: unitPrice,
+                subtotalPricePerUnit: subtotalPricePerUnit,
+                taxForDisplay: taxForDisplay,
+                taxToAdd: taxToAdd,
+                quantity: quantity
+            });
+        }
+        
+        // Update displayed subtotal
+        computedSubtotal = computedSubtotal || 0;
+        console.log('Cart summary totals:', {
+            computedSubtotal: computedSubtotal,
+            computedTaxForDisplay: computedTaxForDisplay,
+            computedTaxToAdd: computedTaxToAdd,
+            hasExclusiveItems: hasExclusiveItems,
+            itemsCount: items.length
+        });
+        
+        // Helper function to format price (round to whole number)
+        const formatPrice = (price) => {
+            const rounded = Math.round(price);
+            return '₹' + rounded.toLocaleString();
+        };
+        
+        // Round subtotal to whole number
+        computedSubtotal = Math.round(computedSubtotal);
+        
+        // Ensure all summary elements exist and update them
+        const $subtotalEl = $('#cartSubtotal');
+        if ($subtotalEl.length) {
+            $subtotalEl.text(formatPrice(computedSubtotal));
         } else {
-            // Hide discount row if no discount
-            if ($('#cartDiscountRow').length > 0) {
-                $('#cartDiscountRow').hide();
+            console.error('cartSubtotal element not found');
+        }
+        
+        // Always show discount row (for apply coupon functionality)
+        const discountAmount = parseFloat(summary.discount_amount || 0);
+        const roundedDiscountAmount = Math.round(discountAmount);
+        const $discountEl = $('#cartDiscount');
+        if ($discountEl.length) {
+            if (roundedDiscountAmount > 0) {
+                $discountEl.text('-' + formatPrice(roundedDiscountAmount));
+            } else {
+                $discountEl.text('₹0');
+            }
+        }
+        $('#cartDiscountRow').show();
+        
+        // Calculate Total (Subtotal - Discount)
+        const totalAfterDiscount = computedSubtotal - roundedDiscountAmount;
+        const $totalEl = $('#cartTotal');
+        if ($totalEl.length) {
+            $totalEl.text(formatPrice(totalAfterDiscount));
+        } else {
+            console.error('cartTotal element not found');
+        }
+        
+        // Round tax amounts
+        computedTaxToAdd = Math.round(computedTaxToAdd);
+        computedTaxForDisplay = Math.round(computedTaxForDisplay);
+        
+        // Show tax row with GST percentage and amount
+        // Only show tax row if there are exclusive items (tax needs to be added separately)
+        // For inclusive items, tax is already in the price, so hide the tax row
+        const $taxEl = $('#cartTax');
+        const $taxLabelEl = $('#cartTaxLabel');
+        if ($taxEl.length && $taxLabelEl.length) {
+            if (hasExclusiveItems && computedTaxToAdd > 0) {
+                // Show tax row for exclusive items (tax needs to be added)
+                if (maxGstPercentage > 0) {
+                    $taxLabelEl.html('Tax (GST ' + Math.round(maxGstPercentage) + '% ' + formatPrice(computedTaxToAdd) + ')');
+                    $taxEl.text(formatPrice(computedTaxToAdd));
+                } else {
+                    $taxLabelEl.text('Tax');
+                    $taxEl.text(formatPrice(computedTaxToAdd));
+                }
+                $taxEl.closest('li.list-group-item').show();
+            } else {
+                // Hide tax row when all items are inclusive (tax already included in price)
+                $taxLabelEl.text('Tax');
+                $taxEl.text('₹0');
+                $taxEl.closest('li.list-group-item').hide();
             }
         }
         
-        $('#cartTax').text('₹' + parseFloat(summary.tax_amount || 0).toFixed(2));
-        $('#cartShipping').text('₹' + parseFloat(summary.shipping_amount || 0).toFixed(2));
-        $('#cartTotal').html('₹' + parseFloat(summary.total_amount || 0).toFixed(2) + ' <span class="text-muted fs-xs">(Inclusive of all taxes)</span>');
+        const shippingAmount = parseFloat(summary.shipping_amount || 0);
+        const roundedShippingAmount = Math.round(shippingAmount);
+        const $shippingEl = $('#cartShipping');
+        if ($shippingEl.length) {
+            $shippingEl.text(formatPrice(roundedShippingAmount));
+        }
+        
+        // Calculate Grand Total (Total + Tax to add + Shipping)
+        // For inclusive items, tax is already in total, so only add tax for exclusive items
+        const grandTotal = totalAfterDiscount + computedTaxToAdd + roundedShippingAmount;
+        console.log('Grand Total calculation:', {
+            totalAfterDiscount: totalAfterDiscount,
+            computedTaxToAdd: computedTaxToAdd,
+            shippingAmount: roundedShippingAmount,
+            grandTotal: grandTotal,
+            hasExclusiveItems: hasExclusiveItems
+        });
+        
+        const $grandTotalEl = $('#cartGrandTotal');
+        if ($grandTotalEl.length) {
+            $grandTotalEl.text(formatPrice(grandTotal));
+        }
+        
+        // Calculate Round Off (round to nearest rupee)
+        const roundOff = Math.round(grandTotal) - grandTotal;
+        const $roundOffEl = $('#cartRoundOff');
+        if ($roundOffEl.length) {
+            $roundOffEl.text(formatPrice(roundOff));
+        }
+        
+        // Calculate Payable (Grand Total + Round Off = rounded grand total)
+        // For inclusive items: grandTotal = total (tax already included) + shipping
+        // For exclusive items: grandTotal = total + tax + shipping
+        const payable = Math.round(grandTotal);
+        const $payableEl = $('#cartPayable');
+        if ($payableEl.length) {
+            $payableEl.text(formatPrice(payable));
+            console.log('Updated Payable:', payable, 'from Grand Total:', grandTotal, 'computedTaxToAdd:', computedTaxToAdd);
+        } else {
+            console.error('cartPayable element not found');
+        }
+        
+        // Force update visibility of summary section
+        $('.cart-summary').show();
         
         // Update cart count in header
         if (typeof updateCartCount === 'function') {
@@ -456,6 +626,8 @@ $(document).ready(function() {
         } else if (window.updateCartCount) {
             window.updateCartCount();
         }
+        
+        console.log('Cart summary update completed');
     }
     
     // Update coupon section
@@ -464,19 +636,30 @@ $(document).ready(function() {
             // No coupon applied
             $('#couponCode').val('');
             // Ensure Apply button is shown
+            const $colAuto = $('#couponForm .col-auto');
             if ($('#removeCouponBtn').length > 0) {
-                $('#removeCouponBtn').replaceWith('<button class="btn btn-dark" type="submit">Apply</button>');
+                $('#removeCouponBtn').remove();
             }
+            // Check if submit button exists, if not add it
             if ($('#couponForm button[type="submit"]').length === 0) {
-                $('#couponForm .col-auto').html('<button class="btn btn-dark" type="submit">Apply</button>');
+                $colAuto.html('<button class="btn btn-dark" type="submit">Apply</button>');
+            } else {
+                // Ensure it's an Apply button
+                const $submitBtn = $('#couponForm button[type="submit"]');
+                if ($submitBtn.attr('id') === 'removeCouponBtn') {
+                    $submitBtn.replaceWith('<button class="btn btn-dark" type="submit">Apply</button>');
+                }
             }
             $('#couponMessage').hide();
         } else {
             // Coupon applied
             $('#couponCode').val(coupon.code);
             // Replace Apply button with Remove button if needed
-            if ($('#removeCouponBtn').length === 0) {
-                $('#couponForm button[type="submit"]').replaceWith('<button class="btn btn-danger" type="button" id="removeCouponBtn">Remove</button>');
+            const $submitBtn = $('#couponForm button[type="submit"]');
+            if ($submitBtn.length > 0 && $submitBtn.attr('id') !== 'removeCouponBtn') {
+                $submitBtn.replaceWith('<button class="btn btn-danger" type="button" id="removeCouponBtn">Remove</button>');
+            } else if ($('#removeCouponBtn').length === 0) {
+                $('#couponForm .col-auto').html('<button class="btn btn-danger" type="button" id="removeCouponBtn">Remove</button>');
             }
             $('#couponMessage').html('<small class="text-success">Coupon "' + coupon.code + '" applied. Discount: ₹' + parseFloat(discountAmount || 0).toFixed(2) + '</small>').show();
         }
@@ -595,9 +778,11 @@ $(document).ready(function() {
         });
     });
     
-    // Apply coupon
-    $('#couponForm').on('submit', function(e) {
+    // Apply coupon - use event delegation to handle dynamically updated forms
+    $(document).on('submit', '#couponForm', function(e) {
         e.preventDefault();
+        e.stopPropagation();
+        
         const couponCode = $('#couponCode').val().trim();
         
         if (!couponCode) {
@@ -611,8 +796,13 @@ $(document).ready(function() {
                     backgroundColor: '#dc3545'
                 });
             }
-            return;
+            return false;
         }
+        
+        // Disable submit button to prevent double submission
+        const $submitBtn = $('#couponForm button[type="submit"]');
+        const originalBtnText = $submitBtn.text();
+        $submitBtn.prop('disabled', true).text('Applying...');
         
         const couponData = {
             coupon_code: couponCode
@@ -631,6 +821,9 @@ $(document).ready(function() {
             headers: couponHeaders,
             data: couponData,
             success: function(response) {
+                // Re-enable button
+                $submitBtn.prop('disabled', false).text(originalBtnText);
+                
                 if (response.success) {
                     // Show success message
                     if (typeof Snackbar !== 'undefined') {
@@ -648,6 +841,9 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
+                // Re-enable button
+                $submitBtn.prop('disabled', false).text(originalBtnText);
+                
                 const errorData = xhr.responseJSON && xhr.responseJSON.error;
                 let message = 'Failed to apply coupon';
                 
@@ -693,6 +889,8 @@ $(document).ready(function() {
                 }
             }
         });
+        
+        return false;
     });
     
     // Remove coupon - use event delegation for dynamically created button

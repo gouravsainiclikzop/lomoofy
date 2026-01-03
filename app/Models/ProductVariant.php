@@ -157,6 +157,121 @@ class ProductVariant extends Model
         }
         return 0;
     }
+
+    /**
+     * Check if discount is currently active
+     */
+    public function hasActiveDiscount()
+    {
+        if (!$this->discount_active) {
+            return false;
+        }
+
+        if (!$this->discount_type || !$this->discount_value) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Calculate final price after discount
+     * Discount is applied to sale_price if it exists, otherwise to base price
+     */
+    public function getFinalPriceAttribute()
+    {
+        $basePrice = $this->price ?? 0;
+        
+        // Determine the price to apply discount to (use sale_price if available, otherwise base price)
+        $priceToDiscount = $basePrice;
+        if ($this->isOnSale() && $this->sale_price) {
+            $priceToDiscount = $this->sale_price;
+        }
+
+        // Apply discount to the determined price
+        if ($this->hasActiveDiscount()) {
+            if ($this->discount_type === 'percentage') {
+                $discountAmount = ($priceToDiscount * $this->discount_value) / 100;
+                return max(0, $priceToDiscount - $discountAmount);
+            } elseif ($this->discount_type === 'amount' || $this->discount_type === 'flat') {
+                return max(0, $priceToDiscount - $this->discount_value);
+            }
+        }
+
+        // If no discount, return sale_price if available, otherwise base price
+        return $priceToDiscount;
+    }
+
+    /**
+     * Calculate total savings (base price - final price)
+     */
+    public function getTotalSavingsAttribute()
+    {
+        $basePrice = $this->price ?? 0;
+        $finalPrice = $this->final_price;
+        return max(0, $basePrice - $finalPrice);
+    }
+
+    /**
+     * Get discount badge text
+     * Shows discount applied to sale price if sale exists, otherwise discount on base price
+     */
+    public function getDiscountBadgeTextAttribute()
+    {
+        $basePrice = round($this->price ?? 0);
+        $salePrice = $this->sale_price ? round($this->sale_price) : null;
+        $hasSale = $this->isOnSale() && $salePrice && $salePrice < $basePrice;
+        
+        // If we have both sale price and active discount, show sale discount + extra discount
+        if ($hasSale && $this->hasActiveDiscount()) {
+            $finalPrice = round($this->final_price);
+            if ($finalPrice < $basePrice && $basePrice > 0) {
+                $salePercentage = round((($basePrice - $salePrice) / $basePrice) * 100);
+                // Show the actual discount percentage that was applied
+                $extraDiscountPercentage = 0;
+                if ($this->discount_type === 'percentage') {
+                    $extraDiscountPercentage = round($this->discount_value);
+                } elseif ($this->discount_type === 'amount' || $this->discount_type === 'flat') {
+                    if ($salePrice > 0) {
+                        $extraDiscountPercentage = round((($this->discount_value / $salePrice) * 100));
+                    }
+                }
+                
+                $badgeText = $salePercentage . '% OFF';
+                if ($extraDiscountPercentage > 0) {
+                    $badgeText .= ' (+ extra ' . $extraDiscountPercentage . '% discount)';
+                }
+                return $badgeText;
+            }
+        }
+        
+        // If only discount is active (no sale price)
+        if ($this->hasActiveDiscount() && !$hasSale) {
+            if ($this->discount_type === 'percentage') {
+                return round($this->discount_value) . '% OFF';
+            } elseif ($this->discount_type === 'amount' || $this->discount_type === 'flat') {
+                return '₹' . number_format($this->discount_value, 0) . ' OFF';
+            }
+        }
+        
+        // If only sale price (no discount)
+        if ($hasSale && !$this->hasActiveDiscount()) {
+            if ($basePrice > 0) {
+                $percentage = round((($basePrice - $salePrice) / $basePrice) * 100);
+                return $percentage . '% OFF';
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if any discount or sale is active
+     */
+    public function hasDiscountOrSale()
+    {
+        return $this->isOnSale() || $this->hasActiveDiscount();
+    }
     
     /**
      * Check if variant is low on stock
@@ -197,6 +312,13 @@ class ProductVariant extends Model
             return $this->stock_status === 'in_stock';
         }
         
+        // Use warehouse inventory if available, otherwise fall back to stock_quantity
+        $warehouseStock = $this->inventoryStocks()->sum('quantity');
+        if ($warehouseStock > 0) {
+            return true;
+        }
+        
+        // Fallback to variant stock_quantity if no warehouse stocks exist
         return $this->stock_quantity > 0;
     }
 

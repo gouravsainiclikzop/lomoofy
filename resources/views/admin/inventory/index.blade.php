@@ -733,11 +733,24 @@ function initializeDataTable() {
                         let quantityDisplay = stock.quantity || 0;
                         let availableDisplay = stock.available_quantity !== undefined ? stock.available_quantity : quantityDisplay;
                         
-                        html += `<div class="small">
+                        html += `<div class="small mb-1">
                             <span class="badge bg-primary">${stock.warehouse_name}</span>
                             <span class="text-muted">(${quantityDisplay})</span>
                             ${availableDisplay !== quantityDisplay ? `<span class="text-success">[Avail: ${availableDisplay}]</span>` : ''}
                         </div>`;
+                        
+                        // Show location breakdown if available
+                        if (stock.locations && stock.locations.length > 0) {
+                            stock.locations.forEach(function(location) {
+                                let locQty = location.quantity || 0;
+                                let locAvail = location.available_quantity !== undefined ? location.available_quantity : locQty;
+                                let locationLabel = location.location_code !== 'N/A' ? location.location_code : 'No location';
+                                html += `<div class="small ms-3 text-muted">
+                                    <i class="bx bx-map-pin"></i> ${locationLabel}: ${locQty}
+                                    ${locAvail !== locQty ? ` (Avail: ${locAvail})` : ''}
+                                </div>`;
+                            });
+                        }
                     });
                     html += `</div>`;
                     return html;

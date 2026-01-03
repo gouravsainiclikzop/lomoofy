@@ -447,23 +447,61 @@
 														<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1">
 															<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
 														</h5>
-														<div class="elis_rty">
-															<span class="ft-medium text-dark fs-sm product-price-{{ $index }}">
+														<div class="elis_rty product-price-{{ $index }}">
+															@php
+																// Use first color variant if available for better discount display
+																// Otherwise use product-level min/max prices
+																$firstColorVariant = $product['color_variants']->first();
+																$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
+																$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
+																$hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+															@endphp
+															
+															@if($firstColorVariant && !$hasPriceRange)
+																{{-- Use variant-level pricing when single variant --}}
+																@include('frontend.partials.product-pricing-compact', [
+																	'price' => $firstColorVariant['price'] ?? $minDisplayPrice,
+																	'sale_price' => $firstColorVariant['sale_price'] ?? null,
+																	'original_price' => $firstColorVariant['price'] ?? $minDisplayPrice,
+																	'discount_type' => $firstColorVariant['discount_type'] ?? null,
+																	'discount_value' => $firstColorVariant['discount_value'] ?? null,
+																	'discount_active' => $firstColorVariant['discount_active'] ?? false,
+																	'gstType' => true,
+																	'gstPercentage' => 0,
+																	'compact' => true
+																])
+															@else
+																{{-- Use price range display for multiple variants --}}
 																@php
-																	// Show price range from all variants using display prices (sale price if available, otherwise regular)
-																	// When showing default product image, don't show strikethrough price
-																	$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
-																	$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
-																	
-																	// Determine display price range (no strikethrough for default view)
-																	if ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0) {
-																		$displayPrice = '₹' . number_format($minDisplayPrice, 0) . ' - ₹' . number_format($maxDisplayPrice, 0);
-																	} else {
-																		$displayPrice = '₹' . number_format($minDisplayPrice, 0);
-																	}
+																	$minPrice = $product['min_price'] ?? 0;
+																	$maxPrice = $product['max_price'] ?? 0;
+																	$minSalePrice = $product['min_sale_price'] ?? null;
+																	$hasSale = $product['has_sale'] ?? false;
 																@endphp
-																{{ $displayPrice }}
-															</span>
+																@if($hasSale && $minSalePrice)
+																	<div class="product-pricing-compact compact">
+																		<div class="pricing-main-compact">
+																			<div class="d-flex align-items-baseline flex-wrap gap-1">
+																				<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
+																					₹{{ number_format($minPrice, 0) }}
+																					@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
+																				</span>
+																				<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
+																					₹{{ number_format($minSalePrice, 0) }}
+																					@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
+																						- ₹{{ number_format($product['max_sale_price'], 0) }}
+																					@endif
+																				</span>
+																			</div>
+																		</div>
+																	</div>
+																@else
+																	<span class="ft-medium text-dark fs-sm">
+																		₹{{ number_format($minDisplayPrice, 0) }}
+																		@if($hasPriceRange) - ₹{{ number_format($maxDisplayPrice, 0) }} @endif
+																	</span>
+																@endif
+															@endif
 														</div>
 													</div>
 												</div>
@@ -498,6 +536,9 @@
 @endsection
 
 @push('scripts')
+{{-- Include cart pricing JavaScript helper --}}
+@include('frontend.partials.product-pricing-cart-js')
+
 <script>
     
 $(document).ready(function() {
@@ -1181,12 +1222,34 @@ $(document).ready(function() {
                 $('.product-image-' + productIndex).attr('src', variantImage);
             }
             
-            // Update product price
-            let priceDisplay = '₹' + Math.round(price);
-            if (hasSale && salePrice) {
-                priceDisplay = '₹' + Math.round(salePrice);
+            // Update product price using pricing component
+            const priceContainer = $('.product-price-' + productIndex);
+            if (priceContainer.length) {
+                // Create a virtual variant object for pricing function
+                const variantData = {
+                    price: regularPrice,
+                    sale_price: salePrice,
+                    discount_type: null,
+                    discount_value: null,
+                    discount_active: false,
+                    gst_type: true,
+                    gst_percentage: 0
+                };
+                
+                // Use pricing component JavaScript if available
+                if (typeof generateCartItemPricing === 'function') {
+                    const pricingHtml = generateCartItemPricing(variantData);
+                    priceContainer.html(pricingHtml);
+                } else {
+                    // Fallback to simple price display
+                    let priceDisplay = '₹' + Math.round(price);
+                    if (hasSale && salePrice) {
+                        priceDisplay = '<span class="text-muted text-decoration-line-through me-1">₹' + Math.round(regularPrice) + '</span>' +
+                                       '<span class="theme-cl">₹' + Math.round(salePrice) + '</span>';
+                    }
+                    priceContainer.html(priceDisplay);
+                }
             }
-            $('.product-price-' + productIndex).text(priceDisplay);
         });
     }
     
@@ -1393,11 +1456,52 @@ $(document).ready(function() {
         const wishlistStyle = product.in_wishlist ? 'style="color: #dc3545 !important;"' : '';
         const wishlistData = product.in_wishlist ? 'data-in-wishlist="1"' : 'data-in-wishlist="0"';
         
-        let priceDisplay = '';
-        if (product.min_display_price != product.max_display_price && product.max_display_price > 0) {
-            priceDisplay = '₹' + Math.round(product.min_display_price) + ' - ₹' + Math.round(product.max_display_price);
+        // Generate pricing HTML using first variant or price range
+        let pricingHtml = '';
+        const firstVariant = product.color_variants && product.color_variants.length > 0 ? product.color_variants[0] : null;
+        const hasPriceRange = (product.min_display_price != product.max_display_price && product.max_display_price > 0);
+        
+        if (firstVariant && !hasPriceRange && typeof generateCartItemPricing === 'function') {
+            // Use variant-level pricing with discount support
+            const variantData = {
+                price: firstVariant.price || product.min_display_price || 0,
+                sale_price: firstVariant.sale_price || null,
+                discount_type: firstVariant.discount_type || null,
+                discount_value: firstVariant.discount_value || null,
+                discount_active: firstVariant.discount_active || false,
+                gst_type: true,
+                gst_percentage: 0
+            };
+            pricingHtml = generateCartItemPricing(variantData);
         } else {
-            priceDisplay = '₹' + Math.round(product.min_display_price);
+            // Use price range or simple display
+            if (hasPriceRange) {
+                if (product.has_sale && product.min_sale_price) {
+                    pricingHtml = '<div class="product-pricing-compact compact"><div class="pricing-main-compact">' +
+                        '<div class="d-flex align-items-baseline flex-wrap gap-1">' +
+                        '<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">' +
+                        '₹' + Math.round(product.min_price) + ' - ₹' + Math.round(product.max_price) + '</span>' +
+                        '<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">' +
+                        '₹' + Math.round(product.min_sale_price) + ' - ₹' + Math.round(product.max_sale_price || product.min_sale_price) + '</span></div></div></div>';
+                } else {
+                    pricingHtml = '<span class="ft-medium text-dark fs-sm">₹' + Math.round(product.min_display_price) + ' - ₹' + Math.round(product.max_display_price) + '</span>';
+                }
+            } else {
+                if (product.has_sale && product.min_sale_price && typeof generateCartItemPricing === 'function') {
+                    const variantData = {
+                        price: product.min_price || 0,
+                        sale_price: product.min_sale_price,
+                        discount_type: null,
+                        discount_value: null,
+                        discount_active: false,
+                        gst_type: true,
+                        gst_percentage: 0
+                    };
+                    pricingHtml = generateCartItemPricing(variantData);
+                } else {
+                    pricingHtml = '<span class="ft-medium text-dark fs-sm">₹' + Math.round(product.min_display_price) + '</span>';
+                }
+            }
         }
         
         return `
@@ -1436,8 +1540,8 @@ $(document).ready(function() {
                             <h5 class="fw-nornal fs-md mb-0 lh-1 mb-1">
                                 <a href="{{ route('frontend.product') }}?product=${product.slug}">${product.name}</a>
                             </h5>
-                            <div class="elis_rty">
-                                <span class="ft-medium text-dark fs-sm product-price-${index}">${priceDisplay}</span>
+                            <div class="elis_rty product-price-${index}">
+                                ${pricingHtml}
                             </div>
                         </div>
                     </div>

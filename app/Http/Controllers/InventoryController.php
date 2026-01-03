@@ -114,19 +114,24 @@ class InventoryController extends Controller
                 ];
             }
             
-            // Calculate stock - use variant stock_quantity directly (warehouse logic disabled for now)
-            $totalStockQty = $variant->stock_quantity ?? 0;
-            $availableStock = $totalStockQty;
+            // Calculate stock - use warehouse inventory if available, otherwise use variant stock_quantity
+            $warehouseTotalStock = $variant->inventoryStocks()->sum('quantity');
+            $warehouseTotalReserved = $variant->inventoryStocks()->sum('reserved_quantity');
             
-            // Calculate stock status based on total stock quantity if manage_stock is enabled
-            $calculatedStockStatus = $variant->stock_status;
-            if ($variant->manage_stock) {
-                $calculatedStockStatus = $totalStockQty > 0 ? 'in_stock' : 'out_of_stock';
-            }
-            
-            // Get warehouse breakdown - group by warehouse and sum quantities across all locations
+            // Get warehouse breakdown - group by warehouse and include location details
             $warehouseBreakdown = $variant->inventoryStocks->groupBy('warehouse_id')->map(function($stocks, $warehouseId) {
                 $firstStock = $stocks->first();
+                $locations = $stocks->map(function($stock) {
+                    return [
+                        'location_id' => $stock->warehouse_location_id,
+                        'location_code' => $stock->warehouseLocation->location_code ?? 'N/A',
+                        'full_location' => $stock->warehouseLocation->full_location ?? 'No location',
+                        'quantity' => $stock->quantity,
+                        'reserved_quantity' => $stock->reserved_quantity,
+                        'available_quantity' => $stock->available_quantity,
+                    ];
+                })->values()->toArray();
+                
                 return [
                     'warehouse_id' => $warehouseId,
                     'warehouse_name' => $firstStock->warehouse->name ?? 'N/A',
@@ -134,8 +139,24 @@ class InventoryController extends Controller
                     'quantity' => $stocks->sum('quantity'),
                     'reserved_quantity' => $stocks->sum('reserved_quantity'),
                     'available_quantity' => $stocks->sum('available_quantity'),
+                    'locations' => $locations,
                 ];
             })->values()->toArray();
+            
+            // Use warehouse total if warehouse inventory exists, otherwise fall back to variant stock_quantity
+            if ($warehouseTotalStock > 0 || count($warehouseBreakdown) > 0) {
+                $totalStockQty = $warehouseTotalStock;
+                $availableStock = max(0, $warehouseTotalStock - $warehouseTotalReserved);
+            } else {
+                $totalStockQty = $variant->stock_quantity ?? 0;
+                $availableStock = $totalStockQty;
+            }
+            
+            // Calculate stock status based on total stock quantity if manage_stock is enabled
+            $calculatedStockStatus = $variant->stock_status;
+            if ($variant->manage_stock) {
+                $calculatedStockStatus = $totalStockQty > 0 ? 'in_stock' : 'out_of_stock';
+            }
             
             // Get variant image only - don't fallback to product image
             $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder

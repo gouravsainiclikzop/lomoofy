@@ -245,7 +245,7 @@
                         </li>
                         
                         <!-- Section Management -->
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('sections.*') ? 'sa-nav__menu-item--active' : '' }}">
+                        <li class="d-none sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('sections.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('sections.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__icon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">

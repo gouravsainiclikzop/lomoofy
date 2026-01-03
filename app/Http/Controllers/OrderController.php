@@ -729,7 +729,7 @@ class OrderController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        $order = Order::findOrFail($id);
+        $order = Order::with('items.product', 'items.variant')->findOrFail($id);
         
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:pending,processing,shipped,delivered,cancelled,refunded',
@@ -742,14 +742,37 @@ class OrderController extends Controller
             ], 422);
         }
 
-        $order->status = $request->status;
-        $order->save();
+        DB::beginTransaction();
+        try {
+            $oldStatus = $order->status;
+            $newStatus = $request->status;
+            
+            // Handle status changes: restore stock if order is cancelled/refunded
+            $wasActive = !in_array($oldStatus, ['cancelled', 'refunded']);
+            $isNowCancelled = in_array($newStatus, ['cancelled', 'refunded']);
+            
+            // Restore stock from items if order was active and is now cancelled/refunded
+            if ($wasActive && $isNowCancelled) {
+                $this->restoreOrderStock($order);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Order status updated successfully',
-            'data' => $order
-        ]);
+            $order->status = $newStatus;
+            $order->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order status updated successfully',
+                'data' => $order
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating order status: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -1103,7 +1126,7 @@ class OrderController extends Controller
      */
     public function invoice($id)
     {
-        $order = Order::with(['customer.addresses', 'items.product'])->findOrFail($id);
+        $order = Order::with(['customer.addresses', 'items.product', 'items.variant'])->findOrFail($id);
 
         // Check if customer is accessing their own order
         if (auth()->guard('customer')->check()) {
@@ -1161,10 +1184,17 @@ class OrderController extends Controller
             ],
             'items' => $order->items->map(function($item) {
                 $product = $item->product;
+                $variant = $item->variant;
                 // Get GST type: true = Inclusive, false = Exclusive
                 $gstType = $product ? ($product->gst_type !== null ? (bool)$product->gst_type : true) : true;
                 // Get GST percentage, default to 18 if not set
                 $gstPercentage = $product ? ($product->gst_percentage !== null ? (float)$product->gst_percentage : 18) : 18;
+                
+                // Get original variant price for display
+                $originalVariantPrice = null;
+                if ($variant) {
+                    $originalVariantPrice = $variant->sale_price ?? $variant->price ?? null;
+                }
                 
                 return [
                     'product_name' => $item->product_name,
@@ -1174,6 +1204,11 @@ class OrderController extends Controller
                     'total_price' => $item->total_price,
                     'gst_type' => $gstType,
                     'gst_percentage' => $gstPercentage,
+                    'original_variant_price' => $item->original_variant_price ?? $originalVariantPrice,
+                    'variant_sale_price' => $item->variant_sale_price ?? null,
+                    'discount_type' => $item->discount_type ?? null,
+                    'discount_value' => $item->discount_value ?? null,
+                    'discount_active' => $item->discount_active ?? false,
                     'hsn_code' => $product && $product->hsn_code ? $product->hsn_code : '4202',
                 ];
             }),

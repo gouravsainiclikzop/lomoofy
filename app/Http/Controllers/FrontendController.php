@@ -357,12 +357,20 @@ class FrontendController extends Controller
                 $hasSale = $minSalePrice && $minPrice > 0 && $minSalePrice < $minPrice;
             }
             
-            // Get product image
-            $imageUrl = $product->primaryImage 
-                ? asset('storage/' . $product->primaryImage->image_path)
-                : ($product->images->first() 
-                    ? asset('storage/' . $product->images->first()->image_path)
-                    : asset('frontend/images/product/sample-product.jpg'));
+            // Get variant image - use placeholder if no variant images
+            $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+            $firstVariant = $activeVariants->first();
+            if ($firstVariant && $firstVariant->images && $firstVariant->images->count() > 0) {
+                $primaryVariantImage = $firstVariant->images->where('is_primary', true)->first();
+                if ($primaryVariantImage) {
+                    $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                } else {
+                    $firstVariantImage = $firstVariant->images->first();
+                    if ($firstVariantImage) {
+                        $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                    }
+                }
+            }
             
             // Format price display
             $priceDisplay = '';
@@ -459,25 +467,33 @@ class FrontendController extends Controller
                 // Determine if product is on sale
                 $hasSale = $minSalePrice && $minSalePrice < $minPrice;
                 
-                // Get product image
-                $imageUrl = $product->primaryImage 
-                    ? asset('storage/' . $product->primaryImage->image_path)
-                    : ($product->images->first() 
-                        ? asset('storage/' . $product->images->first()->image_path)
-                        : asset('assets/images/placeholder.jpg'));
+                // Get variant image - use placeholder if no variant images
+                $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+                $firstVariant = $activeVariants->first();
+                if ($firstVariant && $firstVariant->images && $firstVariant->images->count() > 0) {
+                    $primaryVariantImage = $firstVariant->images->where('is_primary', true)->first();
+                    if ($primaryVariantImage) {
+                        $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                    } else {
+                        $firstVariantImage = $firstVariant->images->first();
+                        if ($firstVariantImage) {
+                            $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                        }
+                    }
+                }
                 
                 // Format price display
                 $priceDisplay = '';
                 if ($hasSale && $minSalePrice) {
-                    $priceDisplay = '$' . number_format($minSalePrice, 0);
+                    $priceDisplay = '₹' . number_format($minSalePrice, 0);
                     if ($maxSalePrice && $minSalePrice != $maxSalePrice) {
-                        $priceDisplay .= ' - $' . number_format($maxSalePrice, 0);
+                        $priceDisplay .= ' - ₹' . number_format($maxSalePrice, 0);
                     }
                 } else {
                     if ($minPrice != $maxPrice) {
-                        $priceDisplay = '$' . number_format($minPrice, 0) . ' - $' . number_format($maxPrice, 0);
+                        $priceDisplay = '₹' . number_format($minPrice, 0) . ' - ₹' . number_format($maxPrice, 0);
                     } else {
-                        $priceDisplay = '$' . number_format($minPrice, 0);
+                        $priceDisplay = '₹' . number_format($minPrice, 0);
                     }
                 }
                 
@@ -1040,15 +1056,15 @@ class FrontendController extends Controller
                 // Format price display
                 $priceDisplay = '';
                 if ($hasSale && $minSalePrice) {
-                    $priceDisplay = '$' . number_format($minSalePrice, 0);
+                    $priceDisplay = '₹' . number_format($minSalePrice, 0);
                     if ($maxSalePrice && $minSalePrice != $maxSalePrice) {
-                        $priceDisplay .= ' - $' . number_format($maxSalePrice, 0);
+                        $priceDisplay .= ' - ₹' . number_format($maxSalePrice, 0);
                     }
                 } else {
                     if ($minPrice != $maxPrice) {
-                        $priceDisplay = '$' . number_format($minPrice, 0) . ' - $' . number_format($maxPrice, 0);
+                        $priceDisplay = '₹' . number_format($minPrice, 0) . ' - ₹' . number_format($maxPrice, 0);
                     } else {
-                        $priceDisplay = '$' . number_format($minPrice, 0);
+                        $priceDisplay = '₹' . number_format($minPrice, 0);
                     }
                 }
                 
@@ -1712,6 +1728,9 @@ class FrontendController extends Controller
                             'sale_price' => $salePrice,
                             'has_sale' => $hasSale,
                             'display_price' => $hasSale ? $salePrice : $price,
+                            'discount_type' => $variant->discount_type ?? null,
+                            'discount_value' => $variant->discount_value ?? null,
+                            'discount_active' => $variant->discount_active ?? false,
                         ];
                     })->unique('color')->values()->take(4),
                 ];
@@ -1751,9 +1770,12 @@ class FrontendController extends Controller
             'variants' => function($q) {
                 $q->where('is_active', true)
                   ->orderBy('sort_order')
-                  ->with(['images' => function($imgQ) {
-                      $imgQ->orderBy('sort_order')->orderBy('id');
-                  }]);
+                  ->with([
+                      'images' => function($imgQ) {
+                          $imgQ->orderBy('sort_order')->orderBy('id');
+                      },
+                      'inventoryStocks'
+                  ]);
             }
         ])
         ->where('slug', $slug)
@@ -2207,21 +2229,28 @@ class FrontendController extends Controller
                 'sale_price' => $salePrice,
                 'has_sale' => $hasVariantSale,
                 'display_price' => $hasVariantSale ? $salePrice : $price,
+                'discount_type' => $variant->discount_type ?? null,
+                'discount_value' => $variant->discount_value ?? null,
+                'discount_active' => $variant->discount_active ?? false,
                 'description' => $variant->description ?? '',
                 'highlights_details' => $highlightsDetails,
                 'attributes' => $allAttributeValues, // Include all attributes
                 'images' => $variantImages, // Include variant images
                 'measurements' => $measurements, // Include measurements
-                'is_in_stock' => $variant->manage_stock ? ($variant->stock_quantity > 0) : ($variant->stock_status === 'in_stock'),
+                'is_in_stock' => $variant->manage_stock 
+                    ? ($variant->total_stock_quantity > 0) 
+                    : ($variant->stock_status === 'in_stock'),
             ];
         }
         
-        // Check stock status
+        // Check stock status (use warehouse inventory if available)
         $inStock = $activeVariants->filter(function($variant) {
             if (!$variant->manage_stock) {
                 return $variant->stock_status === 'in_stock';
             }
-            return $variant->stock_quantity > 0;
+            // Use warehouse inventory if available, otherwise use stock_quantity
+            $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+            return $warehouseStock > 0 || $variant->stock_quantity > 0;
         })->count() > 0;
         
         // Get wishlist status
@@ -2372,9 +2401,12 @@ class FrontendController extends Controller
             'variants' => function($q) {
                 $q->where('is_active', true)
                   ->orderBy('sort_order')
-                  ->with(['images' => function($imgQ) {
-                      $imgQ->orderBy('sort_order')->orderBy('id');
-                  }]);
+                  ->with([
+                      'images' => function($imgQ) {
+                          $imgQ->orderBy('sort_order')->orderBy('id');
+                      },
+                      'inventoryStocks'
+                  ]);
             }
         ])
         ->where('slug', $slug)
@@ -2687,12 +2719,14 @@ class FrontendController extends Controller
             }
         }
         
-        // Check stock status
+        // Check stock status (use warehouse inventory if available)
         $inStock = $activeVariants->filter(function($variant) {
             if (!$variant->manage_stock) {
                 return $variant->stock_status === 'in_stock';
             }
-            return $variant->stock_quantity > 0;
+            // Use warehouse inventory if available, otherwise use stock_quantity
+            $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+            return $warehouseStock > 0 || $variant->stock_quantity > 0;
         })->count() > 0;
         
         return response()->json([
@@ -2717,6 +2751,8 @@ class FrontendController extends Controller
                 'price_display' => $minPrice != $maxPrice 
                     ? '₹' . number_format($minPrice, 2) . ' - ₹' . number_format($maxPrice, 2)
                     : '₹' . number_format($minPrice, 2),
+                'gst_type' => $gstType, // Add GST type for price display
+                'gst_percentage' => $gstPercentage, // Add GST percentage for price display
                 'colors' => array_values($colors), // Legacy support
                 'sizes' => array_values($sizes), // Legacy support
                 'color_variants' => $colorVariantsMap, // Legacy support
@@ -2830,14 +2866,19 @@ class FrontendController extends Controller
                         'price' => $price,
                         'sale_price' => $salePrice,
                         'has_sale' => $hasSale,
+                        'discount_type' => $variant->discount_type ?? null,
+                        'discount_value' => $variant->discount_value ?? null,
+                        'discount_active' => $variant->discount_active ?? false,
                         'color' => $colorValue, // Legacy support
                         'size' => $sizeValue, // Legacy support
                         'attributes' => $allAttributes, // New: All attributes for this variant
                         'images' => $variantImages,
-                        'stock_quantity' => $variant->stock_quantity,
+                        'stock_quantity' => $variant->total_stock_quantity ?? $variant->stock_quantity,
                         'stock_status' => $variant->stock_status,
                         'manage_stock' => $variant->manage_stock,
-                        'is_in_stock' => $variant->manage_stock ? $variant->stock_quantity > 0 : $variant->stock_status === 'in_stock',
+                        'is_in_stock' => $variant->manage_stock 
+                            ? ($variant->total_stock_quantity > 0) 
+                            : ($variant->stock_status === 'in_stock'),
                         'highlights_details' => $highlightsDetails,
                         'measurements' => $measurements, // Include measurements
                     ];
@@ -2894,6 +2935,72 @@ class FrontendController extends Controller
         return view('frontend.my-orders', compact('customer', 'orders'));
     }
 
+    /**
+     * Cancel order (customer-facing)
+     */
+    public function cancelOrder(Request $request, $id)
+    {
+        $customer = Auth::guard('customer')->user();
+        
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You must be logged in to cancel an order'
+            ], 401);
+        }
+
+        $order = \App\Models\Order::with('items.product', 'items.variant')->findOrFail($id);
+        
+        // Verify order belongs to customer
+        if ($order->customer_id !== $customer->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to cancel this order'
+            ], 403);
+        }
+
+        // Validate order can be cancelled
+        $cancellableStatuses = ['pending', 'processing'];
+        if (!in_array($order->status, $cancellableStatuses)) {
+            return response()->json([
+                'success' => false,
+                'message' => "Order cannot be cancelled. Current status: " . ucfirst($order->status) . ". Only orders with status 'Pending' or 'Processing' can be cancelled."
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Restore stock using CheckoutService
+            $checkoutService = new \App\Services\CheckoutService();
+            $checkoutService->restoreOrderStock($order);
+            
+            // Update order status
+            $order->status = 'cancelled';
+            $order->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order cancelled successfully. Stock has been restored.',
+                'data' => $order->load('items')
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error cancelling order', [
+                'order_id' => $order->id,
+                'customer_id' => $customer->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error cancelling order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function wishlist(Request $request)
     {
         // Get session ID or customer ID (similar to API controller)
@@ -2932,6 +3039,12 @@ class FrontendController extends Controller
         // Format wishlist items similar to new arrivals
         $wishlistProducts = $wishlistItems->map(function($wishlist) {
             $product = $wishlist->product;
+            
+            // Skip if product doesn't exist (deleted)
+            if (!$product) {
+                return null;
+            }
+            
             $activeVariants = $product->variants->where('is_active', true);
             
             // Get price range
@@ -3075,6 +3188,9 @@ class FrontendController extends Controller
                     'sale_price' => $salePrice,
                     'has_sale' => $hasSale,
                     'display_price' => $hasSale ? $salePrice : $price,
+                    'discount_type' => $variant->discount_type ?? null,
+                    'discount_value' => $variant->discount_value ?? null,
+                    'discount_active' => $variant->discount_active ?? false,
                 ];
             })->unique('color')->values()->take(4);
             
@@ -3096,7 +3212,7 @@ class FrontendController extends Controller
                 'is_featured' => $product->featured,
                 'color_variants' => $formattedColorVariants,
             ];
-        });
+        })->filter(); // Remove null entries (deleted products)
         
         return view('frontend.wishlist', compact('wishlistProducts', 'customer'));
     }
@@ -4352,7 +4468,8 @@ class FrontendController extends Controller
             $cart->discount_amount = $discountAmount;
             
             // Calculate GST from cart items
-            // Since prices are stored as GST-inclusive, we need to extract the GST amount
+            // For tax-inclusive items: tax is already included in price, don't add it again
+            // For tax-exclusive items: calculate tax and add it separately
             $taxAmount = 0;
             
             foreach ($cart->items as $item) {
@@ -4366,16 +4483,18 @@ class FrontendController extends Controller
                 $gstPercentage = $product->gst_percentage ?? 0;
                 
                 if ($gstPercentage > 0) {
-                    // Calculate GST amount from GST-inclusive price
-                    // Formula: GST = Price - (Price / (1 + GST%/100))
                     $itemTotalPrice = $item->total_price ?? 0;
                     
                     if ($itemTotalPrice > 0) {
-                        // Calculate base price (excluding GST)
-                        $basePrice = $itemTotalPrice / (1 + ($gstPercentage / 100));
-                        // Calculate GST amount
-                        $itemGstAmount = $itemTotalPrice - $basePrice;
-                        $taxAmount += $itemGstAmount;
+                        if ($gstType) {
+                            // GST inclusive: tax is already included in price
+                            // Don't add tax again - it's already in the price
+                            $itemGstAmount = 0;
+                        } else {
+                            // GST exclusive: calculate tax to be added on top
+                            $itemGstAmount = $itemTotalPrice * ($gstPercentage / 100);
+                        }
+                        $taxAmount += $itemGstAmount; // Only add tax for exclusive items
                     }
                 }
             }
@@ -4442,11 +4561,12 @@ class FrontendController extends Controller
                 $q->orderBy('sort_order')->orderBy('id')->limit(1);
             },
             'items.variant.inventoryStocks',
+            'items.variant',
             'coupon'
         ]);
         
-        // Recalculate and save cart totals
-        $cart->recalculateTotals();
+        // Recalculate cart totals using final prices (after discounts) - matching shopping cart logic
+        $this->recalculateCartTotalsWithFinalPrices($cart);
         
         // Persist checkout data in session for validation errors
         session()->put('checkout_data', [
@@ -4690,5 +4810,135 @@ class FrontendController extends Controller
 
         $colorLower = strtolower(trim($colorName));
         return $colorMap[$colorLower] ?? '#ccc';
+    }
+    
+    /**
+     * Recalculate cart totals using final prices (after discounts) - matching shopping cart logic
+     */
+    private function recalculateCartTotalsWithFinalPrices($cart)
+    {
+        // Helper function to calculate final price for an item (after discounts)
+        $calculateItemFinalPrice = function($variant) {
+            if (!$variant) {
+                return 0;
+            }
+            
+            $basePrice = $variant->price ?? 0;
+            $salePrice = $variant->sale_price ?? null;
+            $discountType = $variant->discount_type ?? '';
+            $discountValue = $variant->discount_value ?? 0;
+            $discountActive = $variant->discount_active ?? false;
+            
+            // Round base price
+            $basePrice = round($basePrice);
+            
+            // Round sale price if it exists
+            $roundedSalePrice = null;
+            if ($salePrice !== null) {
+                $roundedSalePrice = round($salePrice);
+            }
+            
+            // Calculate final price
+            $priceToDiscount = $basePrice;
+            if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                $priceToDiscount = $roundedSalePrice;
+            }
+            
+            $finalPrice = $priceToDiscount;
+            
+            // Apply discount if active
+            if ($discountActive && $discountType && $discountValue > 0) {
+                if ($discountType === 'percentage') {
+                    $discountAmount = ($priceToDiscount * $discountValue) / 100;
+                    $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                    $finalPrice = max(0, $priceToDiscount - $discountValue);
+                }
+            } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                $finalPrice = $roundedSalePrice;
+            }
+            
+            // Round final price
+            return round($finalPrice);
+        };
+        
+        $subtotal = 0;
+        $taxAmount = 0;
+        $hasExclusiveItems = false;
+        
+        foreach ($cart->items as $item) {
+            $product = $item->product;
+            $variant = $item->variant;
+            if (!$product) {
+                continue;
+            }
+            
+            // Calculate final price for this item (after discounts)
+            $itemFinalPrice = $calculateItemFinalPrice($variant);
+            
+            // Get GST settings
+            $gstType = $product->gst_type ?? true;
+            $gstPercentage = $product->gst_percentage ?? 0;
+            $quantity = $item->quantity ?? 1;
+            
+            if ($gstPercentage > 0) {
+                if (!$gstType) {
+                    // Exclusive of tax: Extract base price for tax calculation
+                    $baseForTax = $itemFinalPrice / (1 + ($gstPercentage / 100));
+                    $itemTax = $baseForTax * ($gstPercentage / 100);
+                    $taxAmount += $itemTax * $quantity;
+                    $hasExclusiveItems = true;
+                    // Use final price in subtotal (will have tax added separately)
+                    $subtotal += $itemFinalPrice * $quantity;
+                } else {
+                    // Inclusive of tax: Use final price directly (tax already included)
+                    $subtotal += $itemFinalPrice * $quantity;
+                    // Don't add tax since it's already in the price
+                }
+            } else {
+                // No GST - use final price directly
+                $subtotal += $itemFinalPrice * $quantity;
+            }
+        }
+        
+        // Calculate discount from coupon if exists
+        $discountAmount = 0;
+        if ($cart->coupon_code && $cart->coupon) {
+            $coupon = $cart->coupon;
+            if (property_exists($coupon, 'discount_type') && property_exists($coupon, 'discount_value')) {
+                if ($coupon->discount_type === 'percentage') {
+                    $discountAmount = ($subtotal * $coupon->discount_value) / 100;
+                } else {
+                    $discountAmount = min($coupon->discount_value, $subtotal);
+                }
+            }
+        }
+        
+        // Calculate shipping
+        $allItemsFreeShipping = $cart->items->every(function($item) {
+            return $item->product && $item->product->free_shipping;
+        });
+        
+        $hasNonShippingItems = $cart->items->contains(function($item) {
+            return $item->product && !$item->product->requires_shipping;
+        });
+        
+        if ($allItemsFreeShipping || $hasNonShippingItems) {
+            $shippingAmount = 0;
+        } else {
+            $freeShippingThreshold = 0;
+            $defaultShippingCost = 0;
+            $shippingAmount = $subtotal > $freeShippingThreshold ? 0 : $defaultShippingCost;
+        }
+        
+        // Update cart totals
+        $cart->subtotal = $subtotal;
+        $cart->discount_amount = $discountAmount;
+        $cart->tax_amount = $taxAmount;
+        $cart->shipping_amount = $shippingAmount;
+        $cart->total_amount = $subtotal - $discountAmount + $taxAmount + $shippingAmount;
+        $cart->save();
+        
+        return $cart;
     }
 }

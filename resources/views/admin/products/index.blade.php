@@ -243,6 +243,11 @@
                             <strong>Recommended:</strong> Use the Excel template (.xlsx) with all sheets (Products, Variants, Images) for complete import.<br>
                          
                         </div> -->
+                        <div class="form-text mt-2">
+                            Download the template, add your product and variant details,
+                            remove instructional headers and sample rows, save the file,
+                            upload it here, then start the import.
+                        </div>
                     </div> 
                 </form>
 

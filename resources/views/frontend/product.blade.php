@@ -77,17 +77,65 @@
 											<i class="fas fa-star"></i>
 											<span class="small">(0 Reviews)</span>
 										</div>
-										<div class="elis_rty" id="product-price">
-											@if($hasSale && $minSalePrice)
-												<span class="ft-medium text-muted line-through fs-md me-2">₹{{ number_format($minPrice, 2) }}</span>
-												<span class="ft-bold theme-cl fs-lg">₹{{ number_format($minSalePrice, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>
-											@else
-												<span class="ft-bold theme-cl fs-lg">₹{{ number_format($minPrice, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>
-												@if($minPrice != $maxPrice && $maxPrice > 0)
-													<span class="ft-bold theme-cl fs-lg"> - ₹{{ number_format($maxPrice, 0) }}</span>
-												@endif
-											@endif
-										</div>
+                                    @php
+                                        // Get first variant for initial pricing display
+                                        $firstVariant = isset($activeVariants) && $activeVariants->count() > 0 ? $activeVariants->first() : null;
+                                        
+                                        // Use first variant if available, otherwise create a dummy variant from price range
+                                        $displayVariant = $firstVariant;
+                                        if (!$displayVariant && isset($minPrice)) {
+                                            // Create a virtual variant for price range display
+                                            $displayVariant = (object)[
+                                                'price' => $minPrice ?? 0,
+                                                'sale_price' => $minSalePrice ?? null,
+                                                'discount_type' => null,
+                                                'discount_value' => null,
+                                                'discount_active' => false,
+                                            ];
+                                        }
+                                    @endphp
+                                    
+                                    {{-- New Pricing Component --}}
+                                    <div id="product-price">
+                                        @if($displayVariant && $displayVariant instanceof \App\Models\ProductVariant)
+                                            @include('frontend.partials.product-pricing', [
+                                                'variant' => $displayVariant,
+                                                'gstType' => $gstType ?? true,
+                                                'gstPercentage' => $gstPercentage ?? 0
+                                            ])
+                                        @elseif($displayVariant)
+                                            {{-- Fallback for price range display when no variant selected --}}
+                                            @php
+                                                $gstPct = $gstPercentage ?? 0;
+                                                if ($gstType === false && $gstPct > 0) {
+                                                    $displayMinPrice = $minPrice ? $minPrice / (1 + ($gstPct / 100)) : 0;
+                                                    $displayMinSalePrice = $minSalePrice ? $minSalePrice / (1 + ($gstPct / 100)) : null;
+                                                    $displayMaxPrice = ($minPrice != $maxPrice && $maxPrice) ? ($maxPrice / (1 + ($gstPct / 100))) : 0;
+                                                } else {
+                                                    $displayMinPrice = $minPrice ?? 0;
+                                                    $displayMinSalePrice = $minSalePrice ?? null;
+                                                    $displayMaxPrice = ($minPrice != $maxPrice && $maxPrice) ? $maxPrice : 0;
+                                                }
+                                                $taxLabelDynamic = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
+                                            @endphp
+                                            <div class="product-pricing-component" data-base-price="{{ $minPrice ?? 0 }}" data-sale-price="{{ $minSalePrice ?? null }}">
+                                                <div class="pricing-main mb-2">
+                                                    <div class="d-flex align-items-baseline flex-wrap gap-2">
+                                                        @if($hasSale && $displayMinSalePrice)
+                                                            <span class="base-price text-muted text-decoration-line-through fs-5 fw-normal">₹{{ number_format($displayMinPrice, 2) }}</span>
+                                                            <span class="final-price theme-cl fw-bold fs-2" style="color: #dc3545;">₹{{ number_format($displayMinSalePrice, 2) }}</span>
+                                                        @else
+                                                            <span class="final-price theme-cl fw-bold fs-3" style="color: #dc3545;">₹{{ number_format($displayMinPrice, 2) }}</span>
+                                                            @if($minPrice != $maxPrice && $displayMaxPrice > 0)
+                                                                <span class="final-price theme-cl fw-bold fs-3"> - ₹{{ number_format($displayMaxPrice, 0) }}</span>
+                                                            @endif
+                                                        @endif
+                                                        <span class="tax-label text-muted fs-sm align-self-end">({{ $taxLabelDynamic }})</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
 										@if($recentPurchaseCount > 0)
 										<div class="mt-2">
 											<span class="text-success fs-sm ft-medium">
@@ -704,18 +752,30 @@
                     let allMatch = true;
                     for (let attrId in selectedAttributes) {
                         const selectedValue = selectedAttributes[attrId];
-                        const variantAttr = variant.attributes.find(function(attr) {
-                            // Match by attribute_id, attribute_name, or attribute_slug
-                            // Also handle dynamic attributes
-                            const attrIdMatch = String(attr.attribute_id) === String(attrId) || 
-                                               String(attr.attribute_name) === String(attrId) ||
-                                               String(attr.attribute_slug) === String(attrId) ||
-                                               (attrId.startsWith('dynamic_') && String(attr.attribute_name).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase()) ||
-                                               (attrId.startsWith('dynamic_') && String(attr.attribute_slug).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase());
-                            const valueMatch = String(attr.value) === String(selectedValue);
-                            return attrIdMatch && valueMatch;
-                        });
-                        if (!variantAttr) {
+                        
+                        // variant.attributes is a flat object: {attribute_id: value}
+                        // Check if it's an array or object
+                        let hasMatch = false;
+                        if (Array.isArray(variant.attributes)) {
+                            // If it's an array, use find
+                            const variantAttr = variant.attributes.find(function(attr) {
+                                // Match by attribute_id, attribute_name, or attribute_slug
+                                // Also handle dynamic attributes
+                                const attrIdMatch = String(attr.attribute_id) === String(attrId) || 
+                                                   String(attr.attribute_name) === String(attrId) ||
+                                                   String(attr.attribute_slug) === String(attrId) ||
+                                                   (attrId.startsWith('dynamic_') && String(attr.attribute_name).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase()) ||
+                                                   (attrId.startsWith('dynamic_') && String(attr.attribute_slug).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase());
+                                const valueMatch = String(attr.value) === String(selectedValue);
+                                return attrIdMatch && valueMatch;
+                            });
+                            hasMatch = !!variantAttr;
+                        } else if (typeof variant.attributes === 'object') {
+                            // If it's an object, check directly
+                            hasMatch = variant.attributes[attrId] === selectedValue;
+                        }
+                        
+                        if (!hasMatch) {
                             allMatch = false;
                             break;
                         }
@@ -745,7 +805,7 @@
         // Get images from selected variant
         let imagesToShow = [];
         
-        // Try to get images from variant first (new dynamic attributes system)
+        // Try to get images from exact variant match first
         if (variant && variant.images && Array.isArray(variant.images) && variant.images.length > 0) {
             imagesToShow = variant.images.filter(function(img) {
                 return img && img.url && img.url !== 'undefined' && img.url !== 'null';
@@ -753,9 +813,21 @@
         }
         
         // If no images from exact variant match, try to find by color-type attribute
-        if (imagesToShow.length === 0) {
+        if (imagesToShow.length === 0 && window.variantDataMap) {
             // Find color-type attribute from selected attributes
             const selectedAttributes = {};
+            const attributesData = @json($attributesData ?? []);
+            
+            // Build map of attribute IDs to their types
+            const attributeTypeMap = {};
+            if (attributesData && Array.isArray(attributesData)) {
+                attributesData.forEach(function(attr) {
+                    if (attr.id) {
+                        attributeTypeMap[attr.id] = attr.type || 'text';
+                    }
+                });
+            }
+            
             document.querySelectorAll('.attribute-option-product:checked').forEach(function(input) {
                 const attrId = input.dataset.attributeId;
                 const value = input.value;
@@ -768,8 +840,12 @@
             let colorAttributeId = null;
             let colorValue = null;
             for (let attrId in selectedAttributes) {
+                // Check if it's a color attribute by type or by looking for color swatch
+                const isColorType = attributeTypeMap[attrId] === 'color';
                 const attrInput = document.querySelector('.attribute-option-product[data-attribute-id="' + attrId + '"]:checked');
-                if (attrInput && attrInput.closest('[data-attribute-container]')?.querySelector('.form-option-color')) {
+                const hasColorSwatch = attrInput && attrInput.closest('[data-attribute-container]')?.querySelector('.form-option-color');
+                
+                if (isColorType || hasColorSwatch) {
                     colorAttributeId = attrId;
                     colorValue = selectedAttributes[attrId];
                     break;
@@ -777,12 +853,57 @@
             }
             
             // If we found a color attribute, try to find variant with that color
-            if (colorAttributeId && colorValue && window.variantDataMap) {
+            if (colorAttributeId && colorValue) {
                 // Search through all variants to find one with matching color
                 for (let key in window.variantDataMap) {
                     const variantData = window.variantDataMap[key];
-                    if (variantData.attributes && variantData.attributes[colorAttributeId] === colorValue) {
-                        if (variantData.images && Array.isArray(variantData.images) && variantData.images.length > 0) {
+                    // variantData.attributes is a flat object: {attribute_id: value}
+                    if (variantData.attributes && typeof variantData.attributes === 'object' && !Array.isArray(variantData.attributes)) {
+                        // Check if this variant has the matching color attribute
+                        if (variantData.attributes[colorAttributeId] === colorValue) {
+                            if (variantData.images && Array.isArray(variantData.images) && variantData.images.length > 0) {
+                                imagesToShow = variantData.images.filter(function(img) {
+                                    return img && img.url && img.url !== 'undefined' && img.url !== 'null';
+                                });
+                                if (imagesToShow.length > 0) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // If still no images, try searching all variants for any with images (fallback)
+        if (imagesToShow.length === 0 && window.variantDataMap) {
+            // Get all selected attributes
+            const selectedAttributes = {};
+            document.querySelectorAll('.attribute-option-product:checked').forEach(function(input) {
+                const attrId = input.dataset.attributeId;
+                const value = input.value;
+                if (attrId && value) {
+                    selectedAttributes[attrId] = value;
+                }
+            });
+            
+            // Try to find any variant that matches at least one selected attribute and has images
+            if (Object.keys(selectedAttributes).length > 0) {
+                for (let key in window.variantDataMap) {
+                    const variantData = window.variantDataMap[key];
+                    if (variantData.images && Array.isArray(variantData.images) && variantData.images.length > 0) {
+                        // Check if this variant matches any selected attribute
+                        let hasMatch = false;
+                        if (variantData.attributes && typeof variantData.attributes === 'object' && !Array.isArray(variantData.attributes)) {
+                            for (let attrId in selectedAttributes) {
+                                if (variantData.attributes[attrId] === selectedAttributes[attrId]) {
+                                    hasMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (hasMatch) {
                             imagesToShow = variantData.images.filter(function(img) {
                                 return img && img.url && img.url !== 'undefined' && img.url !== 'null';
                             });
@@ -939,56 +1060,34 @@
         return div.innerHTML;
     }
     
-    // Update Price
+    // Update Price using new pricing component
     function updateVariantPrice() {
         const variant = getSelectedVariant();
-        const priceElement = document.getElementById('product-price');
         
-        if (!priceElement) return;
-        
-        // Helper function to format price with 2 decimal places
-        const formatPrice = (price) => {
-            return parseFloat(price).toFixed(2);
-        };
-        
-        let priceHtml = '';
-        if (variant && variant.price !== undefined) {
-            const price = variant.price || 0;
-            const salePrice = variant.sale_price;
-            const hasSale = variant.has_sale || (salePrice && salePrice < price);
-            
-            if (hasSale && salePrice) {
-                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2">₹' + 
-                           formatPrice(price) + '</span>' +
-                           '<span class="ft-bold theme-cl fs-lg">₹' + formatPrice(salePrice) + 
-                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
+        // Use new pricing component update function if available
+        if (typeof updateProductPricing === 'function') {
+            if (variant) {
+                updateProductPricing(variant);
             } else {
-                priceHtml = '<span class="ft-bold theme-cl fs-lg">₹' + formatPrice(price) + 
-                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
-            }
-        } else {
-            // Fallback to product price range
-            const minPrice = @json($minPrice ?? 0);
-            const maxPrice = @json($maxPrice ?? 0);
-            const minSalePrice = @json($minSalePrice ?? null);
-            const hasSale = @json($hasSale ?? false);
-            
-            if (hasSale && minSalePrice) {
-                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2">₹' + 
-                           formatPrice(minPrice) + '</span>' +
-                           '<span class="ft-bold theme-cl fs-lg">₹' + formatPrice(minSalePrice) + 
-                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
-            } else {
-                priceHtml = '<span class="ft-bold theme-cl fs-lg">₹' + formatPrice(minPrice) + 
-                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
-                if (minPrice != maxPrice && maxPrice > 0) {
-                    priceHtml += '<span class="ft-bold theme-cl fs-lg"> - ₹' + formatPrice(maxPrice) + 
-                                ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
-                }
+                // Fallback to price range display when no variant selected
+                const minPrice = @json($minPrice ?? 0);
+                const maxPrice = @json($maxPrice ?? 0);
+                const minSalePrice = @json($minSalePrice ?? null);
+                const hasSale = @json($hasSale ?? false);
+                
+                // Create a virtual variant for price range
+                const priceRangeVariant = {
+                    price: minPrice,
+                    sale_price: minSalePrice,
+                    discount_type: null,
+                    discount_value: null,
+                    discount_active: false,
+                    has_sale: hasSale
+                };
+                
+                updateProductPricing(priceRangeVariant);
             }
         }
-        
-        priceElement.innerHTML = priceHtml;
     }
     
     // Update SKU
@@ -1306,6 +1405,9 @@
 @endpush
 
 @push('scripts')
+{{-- Include pricing component JavaScript helper --}}
+@include('frontend.partials.product-pricing-js')
+
 <script>
 $(document).ready(function() {
     // Check wishlist status on page load using session_id from localStorage

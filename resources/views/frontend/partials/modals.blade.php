@@ -613,6 +613,8 @@
 @endpush
 
 @push('scripts')
+{{-- Include cart pricing JavaScript helper --}}
+@include('frontend.partials.product-pricing-cart-js')
 <script>
 $(document).ready(function() {
     let currentProductData = null;
@@ -1365,48 +1367,142 @@ $(document).ready(function() {
             return parseFloat(price).toFixed(2);
         };
         
-        // Update price
-        let priceHtml = '';
-        if (matchingVariant) {
-            const price = parseFloat(matchingVariant.price) || 0;
-            const salePrice = matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null;
-            const hasSale = salePrice && salePrice < price;
+        // Helper function to calculate display price (base price)
+        // For tax-inclusive: show complete price
+        // For tax-exclusive: extract base price (price already has tax added)
+        const getDisplayPrice = (price) => {
+            const gstType = currentProductData.gst_type ?? true;
+            const gstPercentage = parseFloat(currentProductData.gst_percentage) || 0;
             
-            if (hasSale && salePrice) {
-                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2"> ₹' + 
-                           formatPrice(price) + '</span>' +
-                           '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(salePrice) + 
-                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
+            // Normalize gstType
+            let normalizedGstType = gstType;
+            if (typeof gstType === 'string') {
+                normalizedGstType = (gstType === 'false' || gstType === '0') ? false : true;
+            }
+            
+            if (normalizedGstType === false && gstPercentage > 0 && price > 0) {
+                // Exclusive of tax: extract base price (price already has tax added)
+                return price / (1 + (gstPercentage / 100));
+            }
+            // Inclusive of tax: show complete price
+            return price;
+        };
+        
+        // Determine tax label
+        const getTaxLabel = () => {
+            const gstType = currentProductData.gst_type ?? true;
+            let normalizedGstType = gstType;
+            if (typeof gstType === 'string') {
+                normalizedGstType = (gstType === 'false' || gstType === '0') ? false : true;
+            }
+            return (normalizedGstType === false) ? 'Exclusive of taxes' : 'Inclusive of taxes';
+        };
+        
+        // Update price using pricing component
+        let priceHtml = '';
+        const taxLabel = getTaxLabel();
+        
+        // Get GST settings
+        const gstType = currentProductData.gst_type ?? true;
+        let normalizedGstType = gstType;
+        if (typeof gstType === 'string') {
+            normalizedGstType = (gstType === 'false' || gstType === '0') ? false : true;
+        }
+        const gstPercentage = parseFloat(currentProductData.gst_percentage) || 0;
+        
+        if (matchingVariant) {
+            // Use variant pricing with discount support
+            const variantData = {
+                price: parseFloat(matchingVariant.price) || 0,
+                variant_sale_price: matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null,
+                original_variant_price: parseFloat(matchingVariant.price) || 0,
+                unit_price: parseFloat(matchingVariant.price) || 0,
+                sale_price: matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null,
+                discount_type: matchingVariant.discount_type || null,
+                discount_value: matchingVariant.discount_value ? parseFloat(matchingVariant.discount_value) : null,
+                discount_active: matchingVariant.discount_active === true || matchingVariant.discount_active === '1' || matchingVariant.discount_active === 1,
+                gst_type: normalizedGstType,
+                gst_percentage: gstPercentage
+            };
+            
+            // Use pricing component JavaScript if available
+            if (typeof generateCartItemPricing === 'function') {
+                priceHtml = generateCartItemPricing(variantData);
             } else {
-                priceHtml = '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(price) + 
-                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
+                // Fallback to simple display
+                const price = parseFloat(matchingVariant.price) || 0;
+                const salePrice = matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null;
+                const hasSale = salePrice && salePrice < price;
+                
+                const displayPrice = getDisplayPrice(price);
+                const displaySalePrice = salePrice ? getDisplayPrice(salePrice) : null;
+                
+                if (hasSale && displaySalePrice) {
+                    priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2"> ₹' + 
+                               formatPrice(displayPrice) + '</span>' +
+                               '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(displaySalePrice) + 
+                               ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></span>';
+                } else {
+                    priceHtml = '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(displayPrice) + 
+                               ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></span>';
+                }
             }
             
             // Stock status
             const isInStock = matchingVariant.is_in_stock !== false && matchingVariant.is_in_stock !== 0;
             if (!isInStock) {
-                priceHtml += '<span class="ft-regular text-danger bg-light-danger py-1 px-2 fs-sm ms-2">Out of Stock</span>';
+                priceHtml += '<div class="mt-2"><span class="ft-regular text-danger bg-light-danger py-1 px-2 fs-sm">Out of Stock</span></div>';
             }
         } else {
             // Fallback to product price range
-            if (currentProductData.has_sale && currentProductData.min_sale_price) {
-                priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2"> ₹' + 
-                           formatPrice(currentProductData.min_price) + '</span>' +
-                           '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + 
-                           formatPrice(currentProductData.min_sale_price);
-                if (currentProductData.max_sale_price && currentProductData.min_sale_price != currentProductData.max_sale_price) {
-                    priceHtml += ' - ₹' + formatPrice(currentProductData.max_sale_price);
-                }
-                priceHtml += ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
+            const productData = {
+                price: parseFloat(currentProductData.min_price) || 0,
+                variant_sale_price: currentProductData.min_sale_price ? parseFloat(currentProductData.min_sale_price) : null,
+                original_variant_price: parseFloat(currentProductData.min_price) || 0,
+                unit_price: parseFloat(currentProductData.min_price) || 0,
+                sale_price: currentProductData.min_sale_price ? parseFloat(currentProductData.min_sale_price) : null,
+                discount_type: null,
+                discount_value: null,
+                discount_active: false,
+                gst_type: normalizedGstType,
+                gst_percentage: gstPercentage,
+                has_price_range: (currentProductData.min_price != currentProductData.max_price && currentProductData.max_price > 0),
+                max_price: currentProductData.max_price ? parseFloat(currentProductData.max_price) : null,
+                max_sale_price: currentProductData.max_sale_price ? parseFloat(currentProductData.max_sale_price) : null
+            };
+            
+            if (typeof generateCartItemPricing === 'function' && !productData.has_price_range) {
+                // Use pricing component for single price
+                priceHtml = generateCartItemPricing(productData);
             } else {
-                // Parse price_display and add tax text
-                const priceDisplay = currentProductData.price_display || '₹0.00';
-                priceHtml = '<span class="ft-bold theme-cl fs-lg me-2"> ' + priceDisplay.replace('₹', '₹') + 
-                           ' <span class="text-muted fs-sm">(Inclusive of all taxes)</span></span>';
+                // Fallback: show price range
+                if (currentProductData.has_sale && currentProductData.min_sale_price) {
+                    const displayMinPrice = getDisplayPrice(currentProductData.min_price);
+                    const displayMinSalePrice = getDisplayPrice(currentProductData.min_sale_price);
+                    const displayMaxSalePrice = currentProductData.max_sale_price ? getDisplayPrice(currentProductData.max_sale_price) : null;
+                    
+                    priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2"> ₹' + 
+                               formatPrice(displayMinPrice) + '</span>' +
+                               '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + 
+                               formatPrice(displayMinSalePrice);
+                    if (displayMaxSalePrice && displayMinSalePrice != displayMaxSalePrice) {
+                        priceHtml += ' - ₹' + formatPrice(displayMaxSalePrice);
+                    }
+                    priceHtml += ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></span>';
+                } else {
+                    const displayMinPrice = getDisplayPrice(currentProductData.min_price);
+                    const displayMaxPrice = currentProductData.max_price ? getDisplayPrice(currentProductData.max_price) : null;
+                    
+                    priceHtml = '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(displayMinPrice);
+                    if (displayMaxPrice && displayMinPrice != displayMaxPrice) {
+                        priceHtml += ' - ₹' + formatPrice(displayMaxPrice);
+                    }
+                    priceHtml += ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></span>';
+                }
             }
             
             if (!currentProductData.in_stock) {
-                priceHtml += '<span class="ft-regular text-danger bg-light-danger py-1 px-2 fs-sm ms-2">Out of Stock</span>';
+                priceHtml += '<div class="mt-2"><span class="ft-regular text-danger bg-light-danger py-1 px-2 fs-sm">Out of Stock</span></div>';
             }
         }
         

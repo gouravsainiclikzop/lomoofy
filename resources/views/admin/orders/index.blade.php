@@ -889,9 +889,9 @@ $(document).ready(function() {
                         if (isEditable) {
                             actionButtons = `
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-info view-order" data-id="${order.id}" title="View">
+                                     <!-- <button class="btn btn-outline-info view-order" data-id="${order.id}" title="View">
                                         <i class='bx bx-show'></i>
-                                    </button>
+                                    </button> -->
                                     <a href="/orders/${order.id}/invoice" target="_blank" class="btn btn-outline-success" title="Download Invoice">
                                         <i class='bx bx-download'></i>
                                     </a>
@@ -906,9 +906,9 @@ $(document).ready(function() {
                         } else {
                             actionButtons = `
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-info view-order" data-id="${order.id}" title="View">
+                                    <!-- <button class="btn btn-outline-info view-order" data-id="${order.id}" title="View">
                                         <i class='bx bx-show'></i>
-                                    </button>
+                                    </button> -->
                                     <a href="/orders/${order.id}/invoice" target="_blank" class="btn btn-outline-success" title="Download Invoice">
                                         <i class='bx bx-download'></i>
                                     </a>

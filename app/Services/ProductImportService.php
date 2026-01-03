@@ -496,8 +496,8 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
     }
 
     /**
-     * Group variant rows by product identifier (name or slug).
-     * Supports both product_sku (legacy) and product_name/product_slug (new structure).
+     * Group variant rows by product identifier (slug only for variants-only imports).
+     * Supports both product_sku (legacy) and product_slug.
      *
      * @param  array<int,array<string,mixed>>  $variantRows
      * @param  array<int,array<string,mixed>>  $productRows
@@ -516,7 +516,7 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             $slugInput = $productRow['seo_slug'] ?? $productRow['product_slug'] ?? $productRow['slug'] ?? $name;
             $identifier = Str::slug((string) $slugInput);
             
-            // Map both legacy SKU and name to identifier
+            // Map both legacy SKU and name to identifier (for regular product imports)
             $sku = trim((string) ($productRow['product_sku'] ?? ''));
             if ($sku !== '') {
                 $productMap[$sku] = $identifier;
@@ -526,53 +526,26 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
         }
 
         // If we're doing a variants-only import (no products in current batch),
-        // we need to check existing products in the database
+        // we need to check existing products in the database by slug only
         $existingProductMap = [];
         if (empty($productRows) && !empty($variantRows)) {
-            $productNames = [];
             $productSlugs = [];
             
             foreach ($variantRows as $row) {
-                $variantProductName = trim((string) ($row['product_name'] ?? ''));
-                if ($variantProductName !== '') {
-                    $productNames[] = $variantProductName;
-                }
-                
+                // For variants-only imports, use only product_slug (not product_name)
                 $variantProductSlug = trim((string) ($row['product_slug'] ?? $row['slug'] ?? ''));
                 if ($variantProductSlug !== '') {
                     $productSlugs[] = Str::slug($variantProductSlug);
                 }
             }
             
-            // Find existing products by name or slug, including soft-deleted products
-            if (!empty($productNames) || !empty($productSlugs)) {
+            // Find existing products by slug only, including soft-deleted products
+            if (!empty($productSlugs)) {
                 $existingProducts = Product::withTrashed()
-                    ->where(function ($query) use ($productNames, $productSlugs) {
-                        if (!empty($productNames)) {
-                            $query->whereIn('name', $productNames);
-                        }
-                        if (!empty($productSlugs)) {
-                            $query->orWhereIn('slug', $productSlugs);
-                        }
-                    })
+                    ->whereIn('slug', array_unique($productSlugs))
                     ->get();
                 
-                // Prioritize products with expected slugs over products with random slugs
-                $prioritizedProducts = [];
                 foreach ($existingProducts as $product) {
-                    $expectedSlug = Str::slug($product->name);
-                    if ($product->slug === $expectedSlug) {
-                        // This product has the expected slug, prioritize it
-                        $prioritizedProducts[$product->name] = $product;
-                    } elseif (!isset($prioritizedProducts[$product->name])) {
-                        // No prioritized product found yet, use this one as fallback
-                        $prioritizedProducts[$product->name] = $product;
-                    }
-                }
-                
-                foreach ($prioritizedProducts as $product) {
-                    $existingProductMap[$product->name] = $product->slug;
-                    $existingProductMap[Str::slug($product->name)] = $product->slug;
                     $existingProductMap[$product->slug] = $product->slug;
                 }
             }
@@ -584,33 +557,39 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             // Try to find product identifier from variant row
             $productKey = null;
             
-            // Try product_sku first (legacy support)
+            // Try product_sku first (legacy support - only for regular imports)
             $sku = trim((string) ($row['product_sku'] ?? ''));
             if ($sku !== '' && isset($productMap[$sku])) {
                 $productKey = $productMap[$sku];
             }
             
-            // Try product_name
+            // For variants-only imports, skip product_name and use only product_slug
+            // For regular imports, still check product_name if product_slug not found
             if (!$productKey) {
-                $variantProductName = trim((string) ($row['product_name'] ?? ''));
-                if ($variantProductName !== '' && isset($productMap[$variantProductName])) {
-                    $productKey = $productMap[$variantProductName];
-                } elseif ($variantProductName !== '' && isset($existingProductMap[$variantProductName])) {
-                    // Check existing products in database
-                    $productKey = $existingProductMap[$variantProductName];
-                } elseif ($variantProductName !== '') {
-                    $productKey = Str::slug($variantProductName);
+                // Try product_name only if we have product rows (regular import)
+                if (!empty($productRows)) {
+                    $variantProductName = trim((string) ($row['product_name'] ?? ''));
+                    if ($variantProductName !== '' && isset($productMap[$variantProductName])) {
+                        $productKey = $productMap[$variantProductName];
+                    }
                 }
             }
             
-            // Try product_slug
+            // Try product_slug (primary method for variants-only imports)
             if (!$productKey) {
                 $variantProductSlug = trim((string) ($row['product_slug'] ?? $row['slug'] ?? ''));
-                if ($variantProductSlug !== '' && isset($existingProductMap[$variantProductSlug])) {
-                    // Check existing products in database
-                    $productKey = $existingProductMap[$variantProductSlug];
-                } elseif ($variantProductSlug !== '') {
-                    $productKey = Str::slug($variantProductSlug);
+                if ($variantProductSlug !== '') {
+                    $slugCandidate = Str::slug($variantProductSlug);
+                    if (isset($existingProductMap[$slugCandidate])) {
+                        // Check existing products in database (variants-only import)
+                        $productKey = $existingProductMap[$slugCandidate];
+                    } elseif (!empty($productRows) && isset($productMap[$slugCandidate])) {
+                        // Check product map (regular import)
+                        $productKey = $productMap[$slugCandidate];
+                    } else {
+                        // Use the slug as-is for variants-only imports (product must exist)
+                        $productKey = $slugCandidate;
+                    }
                 }
             }
 
@@ -735,8 +714,12 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             // For variants-only imports, if we found an existing product, use its name
             if (!$isNew && $product->name) {
                 $name = $product->name;
+            } elseif ($isNew && empty($productRow)) {
+                // For variants-only imports, product must exist - use slug as fallback name
+                // Convert slug back to readable name (capitalize words)
+                $name = ucwords(str_replace(['-', '_'], ' ', $productIdentifier));
             } else {
-                throw new \RuntimeException('Product Name is required.');
+                throw new \RuntimeException('Product Name is required. For variants-only imports, the product must exist in the database.');
             }
         }
 
@@ -747,8 +730,14 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
 
         // Note: Price and sale_price are now variant-level only, removed from product
         // Note: 'type' field was removed from products table - all products support variants
-        $slugInput = $productRow['seo_slug'] ?? $productRow['product_slug'] ?? $productRow['slug'] ?? $name;
-        $slugCandidate = Str::slug((string) $slugInput);
+        // For variants-only imports, use the productIdentifier (slug) directly
+        $slugInput = $productRow['seo_slug'] ?? $productRow['product_slug'] ?? $productRow['slug'] ?? null;
+        if ($slugInput === null && empty($productRow)) {
+            // Variants-only import: use the identifier passed to this method
+            $slugCandidate = $productIdentifier;
+        } else {
+            $slugCandidate = Str::slug((string) ($slugInput ?? $name));
+        }
         $slug = $this->generateUniqueSlug($slugCandidate, $product->id);
 
         $product->fill([
@@ -770,7 +759,8 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
 
         $product->save();
 
-        // For variants-only imports, extract brand/category from first variant row if productRow is empty
+        // Brand and Category are product-level attributes, not variant-level
+        // They should be set during product import, not variant import
         $brandSlugs = $productRow['brand_slugs_(comma_separated)'] 
             ?? $productRow['brand_slugs_comma_separated'] 
             ?? $productRow['brand_slugs'] 
@@ -784,27 +774,6 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             ?? $productRow['subcategory_slugs_comma_separated'] 
             ?? $productRow['subcategory_slugs'] 
             ?? null;
-            
-        // If no brand/category in productRow and we have variant rows, check first variant
-        if (empty($brandSlugs) && !empty($variantRows)) {
-            $firstVariant = reset($variantRows);
-            $brandSlugs = $firstVariant['brand_slugs_(comma_separated)'] 
-                ?? $firstVariant['brand_slugs_comma_separated'] 
-                ?? $firstVariant['brand_slugs'] 
-                ?? null;
-        }
-        
-        if (empty($categorySlugFromProduct) && !empty($variantRows)) {
-            $firstVariant = reset($variantRows);
-            $categorySlugFromProduct = $firstVariant['category_slug'] 
-                ?? $firstVariant['category_slugs_(comma_separated)'] 
-                ?? $firstVariant['category_slugs_comma_separated'] 
-                ?? $firstVariant['category_slugs'] 
-                ?? $firstVariant['subcategory_slugs_(comma_separated)'] 
-                ?? $firstVariant['subcategory_slugs_comma_separated'] 
-                ?? $firstVariant['subcategory_slugs'] 
-                ?? null;
-        }
 
         $brandIds = $this->resolveBrandIds($brandSlugs);
         $this->syncProductBrands($product, $brandIds);
@@ -1414,52 +1383,130 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             $primaryImagePath = null;
             $additionalImagesString = null;
             
-            // Search for primary image column
-            foreach ($row as $key => $value) {
-                if (stripos($key, 'primary') !== false && 
-                    stripos($key, 'image') !== false && 
-                    $value !== null && 
-                    trim((string)$value) !== '') {
-                    $primaryImagePath = trim((string)$value);
-                    break;
+            // Debug: Log all available keys to help identify column name issues
+            $imageRelatedKeys = array_filter(array_keys($row), function($key) {
+                return stripos($key, 'image') !== false;
+            });
+            if (!empty($imageRelatedKeys)) {
+                
+            }
+            
+            // Helper function for case-insensitive key lookup
+            $getValueCaseInsensitive = function($row, $possibleKeys) {
+                foreach ($possibleKeys as $key) {
+                    // Direct match
+                    if (isset($row[$key])) {
+                        return $row[$key];
+                    }
+                    // Case-insensitive match
+                    foreach (array_keys($row) as $rowKey) {
+                        if (strtolower($rowKey) === strtolower($key)) {
+                            return $row[$rowKey];
+                        }
+                    }
+                }
+                return null;
+            };
+            
+            // First, try direct key lookup (most reliable)
+            // "Primary Image Path" normalizes to "primary_image_path"
+            // "Additional Image Paths (comma-separated)" normalizes to "additional_image_paths_comma_separated"
+            
+            // Try all possible normalized variations for primary image
+            $primaryImagePath = $getValueCaseInsensitive($row, [
+                'primary_image_path',
+                'primary_image',
+                'primaryimagepath',
+                'primary_imagepath',
+                'primaryimage_path'
+            ]);
+            if ($primaryImagePath) {
+                $primaryImagePath = trim((string)$primaryImagePath);
+                if ($primaryImagePath === '') {
+                    $primaryImagePath = null;
+                } else {
+                    
                 }
             }
             
-            // Search for additional images column
-            foreach ($row as $key => $value) {
-                if ((stripos($key, 'additional') !== false || stripos($key, 'extra') !== false) && 
-                    stripos($key, 'image') !== false && 
-                    $value !== null && 
-                    trim((string)$value) !== '') {
-                    $additionalImagesString = trim((string)$value);
-                    break;
+            // Try all possible normalized variations for additional images
+            $additionalImagesString = $getValueCaseInsensitive($row, [
+                'additional_image_paths_comma_separated',
+                'additional_images',
+                'additional_image_paths',
+                'additionalimagepathscomma_separated',
+                'additionalimagepaths',
+                'additional_imagepaths_comma_separated'
+            ]);
+            if ($additionalImagesString) {
+                $additionalImagesString = trim((string)$additionalImagesString);
+                if ($additionalImagesString === '') {
+                    $additionalImagesString = null;
+                } else {
+                    
                 }
             }
             
-            // Fallback to specific known keys
+            // If not found via direct lookup, search for primary image column by pattern
             if (!$primaryImagePath) {
-                $primaryImagePath = $row['primary_image_path'] ?? 
-                                   $row['primary_image'] ?? 
-                                   null;
-                if ($primaryImagePath) {
-                    $primaryImagePath = trim((string)$primaryImagePath);
+                foreach ($row as $key => $value) {
+                    if (stripos($key, 'primary') !== false && 
+                        stripos($key, 'image') !== false && 
+                        $value !== null) {
+                        $trimmed = trim((string)$value);
+                        if ($trimmed !== '') {
+                            $primaryImagePath = $trimmed;
+                            Log::info('Found primary image column by pattern search', [
+                                'column_key' => $key,
+                                'value' => $primaryImagePath,
+                                'variant_sku' => $variantSku,
+                            ]);
+                            break;
+                        }
+                    }
                 }
             }
             
+            // If not found via direct lookup, search for additional images column by pattern
             if (!$additionalImagesString) {
-                $additionalImagesString = $row['additional_image_paths_comma_separated'] ?? 
-                                         $row['additional_images'] ?? 
-                                         $row['additional_image_paths'] ?? 
-                                         null;
-                if ($additionalImagesString) {
-                    $additionalImagesString = trim((string)$additionalImagesString);
+                foreach ($row as $key => $value) {
+                    if ((stripos($key, 'additional') !== false || stripos($key, 'extra') !== false) && 
+                        stripos($key, 'image') !== false && 
+                        $value !== null) {
+                        $trimmed = trim((string)$value);
+                        if ($trimmed !== '') {
+                            $additionalImagesString = $trimmed;
+                            Log::info('Found additional images column by pattern search', [
+                                'column_key' => $key,
+                                'value' => $additionalImagesString,
+                                'variant_sku' => $variantSku,
+                            ]);
+                            break;
+                        }
+                    }
                 }
             }
+            
+            // Debug: Log what we found (or didn't find) in image columns
+            $primaryImageValue = $getValueCaseInsensitive($row, [
+                'primary_image_path',
+                'primary_image'
+            ]);
+            $additionalImagesValue = $getValueCaseInsensitive($row, [
+                'additional_image_paths_comma_separated',
+                'additional_images',
+                'additional_image_paths'
+            ]);
+            
+            $primaryImageTrimmed = $primaryImageValue ? trim((string)$primaryImageValue) : null;
+            $additionalImagesTrimmed = $additionalImagesValue ? trim((string)$additionalImagesValue) : null;
+            
+           
             
             // Combine primary and additional images
             $allImagePaths = [];
             if ($primaryImagePath && $primaryImagePath !== '') {
-                $allImagePaths[] = $primaryImagePath;
+                $allImagePaths[] = trim($primaryImagePath);
             }
             if ($additionalImagesString && $additionalImagesString !== '') {
                 $additionalPaths = array_map('trim', explode(',', $additionalImagesString));
@@ -1469,8 +1516,37 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
                 $allImagePaths = array_merge($allImagePaths, $additionalPaths);
             }
             
-            if (!empty($allImagePaths)) {
-                $this->syncVariantImages($product, $variant, implode(',', $allImagePaths));
+            // Remove duplicates while preserving order (first occurrence wins)
+            $uniqueImagePaths = [];
+            $seen = [];
+            foreach ($allImagePaths as $path) {
+                $normalizedPath = trim(strtolower($path));
+                if (!isset($seen[$normalizedPath])) {
+                    $seen[$normalizedPath] = true;
+                    $uniqueImagePaths[] = $path;
+                }
+            }
+            
+            if (!empty($uniqueImagePaths)) {
+                if (count($uniqueImagePaths) !== count($allImagePaths)) {
+                    Log::debug('Removed duplicate image URLs', [
+                        'variant_sku' => $variantSku,
+                        'original_count' => count($allImagePaths),
+                        'unique_count' => count($uniqueImagePaths),
+                    ]);
+                }
+                Log::info('Processing variant images', [
+                    'variant_sku' => $variantSku,
+                    'variant_id' => $variant->id,
+                    'product_id' => $product->id,
+                    'image_count' => count($uniqueImagePaths),
+                ]);
+                $this->syncVariantImages($product, $variant, implode(',', $uniqueImagePaths));
+            } else {
+                Log::debug('No variant images found in row', [
+                    'variant_sku' => $variantSku,
+                    'available_keys' => array_keys($row),
+                ]);
             }
             
             $sortOrder++;
@@ -1488,65 +1564,142 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             });
         }
     }
-
+ 
     /**
-     * Sync variant images from comma-separated paths or URLs.
-     *
-     * @param  Product  $product
-     * @param  ProductVariant  $variant
-     * @param  string  $imagesString  Comma-separated image paths or URLs
+     * Cache for resolved image paths to avoid duplicate downloads
+     * Key: normalized URL, Value: resolved path or false if failed
      */
+    private static $imageResolutionCache = [];
+    
+    /**
+     * Set of URLs that have failed to resolve (to avoid retrying)
+     */
+    private static $failedUrls = [];
+
     private function syncVariantImages(Product $product, ProductVariant $variant, string $imagesString): void
     {
         if (empty($imagesString) || trim($imagesString) === '') {
             return;
         }
-
-        // Delete existing variant images before importing new ones
-        $variant->images()->delete();
-
+    
         // Split comma-separated image paths
         $imagePaths = array_map('trim', explode(',', $imagesString));
         $imagePaths = array_filter($imagePaths, function($path) {
             return !empty($path);
         });
-
+    
         if (empty($imagePaths)) {
             return;
         }
-
-        $sortOrder = 0;
+    
+        // Don't remove duplicates - allow same URL to appear multiple times
+        // (user may want multiple entries even if URLs are the same)
+        $imagePaths = array_values($imagePaths);
+    
         $storedPaths = [];
-
+        $failedCount = 0;
+        $skippedCount = 0;
+    
         foreach ($imagePaths as $imagePath) {
-            $resolvedPath = $this->resolveImagePath($imagePath);
-
-            if (!$resolvedPath) {
+            // Normalize URL for cache key (for caching download results)
+            $cacheKey = strtolower(trim($imagePath));
+            
+            // Check if we've already tried this URL and it failed
+            if (isset(self::$failedUrls[$cacheKey])) {
+                $skippedCount++;
                 continue;
             }
-
-            // If it's a URL that was downloaded, it's already stored
-            // If it's a local path, we'll use it as-is
-            $finalPath = $resolvedPath;
-
-            ProductImage::create([
-                'product_id' => $product->id,
-                'product_variant_id' => $variant->id,
-                'image_path' => $finalPath,
-                'alt_text' => null,
-                'sort_order' => $sortOrder,
-                'is_primary' => $sortOrder === 0,
-            ]);
-
-            $storedPaths[] = $finalPath;
-            $sortOrder++;
+            
+            // Check cache first - use cached resolved path if available
+            if (isset(self::$imageResolutionCache[$cacheKey])) {
+                $resolvedPath = self::$imageResolutionCache[$cacheKey];
+                if ($resolvedPath !== false && $resolvedPath !== null) {
+                    // Add resolved path to stored paths (even if duplicate resolved path)
+                    // This allows multiple entries of same URL to create multiple image records
+                    $storedPaths[] = $resolvedPath;
+                    continue;
+                } else {
+                    // Previously failed, skip
+                    $failedCount++;
+                    continue;
+                }
+            }
+            
+            // resolveImagePath will handle Google Drive URL normalization
+            $resolvedPath = $this->resolveImagePath($imagePath);
+            
+            // Cache the result (so we don't download same URL again)
+            self::$imageResolutionCache[$cacheKey] = $resolvedPath;
+    
+            if (!$resolvedPath) {
+                // Mark as failed
+                self::$failedUrls[$cacheKey] = true;
+                $failedCount++;
+                
+                // Only log first failure per unique URL
+                $isGoogleDrive = stripos($imagePath, 'drive.google.com') !== false;
+                if ($isGoogleDrive) {
+                    $fileId = $this->extractGoogleDriveFileId($imagePath);
+                    Log::warning('Variant image import failed', [
+                        'variant_id' => $variant->id,
+                        'product_id' => $product->id,
+                        'url' => $imagePath,
+                        'file_id' => $fileId,
+                        'message' => 'Google Drive file is not publicly accessible. Please share the file with "Anyone with the link" permission in Google Drive.',
+                    ]);
+                } else {
+                    Log::warning('Variant image import failed', [
+                        'variant_id' => $variant->id,
+                        'product_id' => $product->id,
+                        'url' => $imagePath,
+                        'message' => 'Failed to download or resolve image path.',
+                    ]);
+                }
+                continue;
+            }
+    
+            // Add resolved path to stored paths
+            // This will create a separate record for each occurrence, even if resolved path is same
+            $storedPaths[] = $resolvedPath;
         }
-
-        // Update variant's legacy image field with first image path
+    
+        // Replace existing images ONLY if we successfully imported at least one
         if (!empty($storedPaths)) {
+            // Delete existing variant images
+            $variant->images()->delete();
+    
+            // Create new images
+            foreach ($storedPaths as $index => $path) {
+                ProductImage::create([
+                    'product_id'          => $product->id,
+                    'product_variant_id'  => $variant->id,
+                    'image_path'          => $path,
+                    'alt_text'            => null,
+                    'sort_order'          => $index,
+                    'is_primary'          => $index === 0,
+                ]);
+            }
+    
+            // Legacy support - update variant's image field
             $variant->update(['image' => $storedPaths[0]]);
+            
+            Log::info('Variant images imported successfully', [
+                'variant_id' => $variant->id,
+                'product_id' => $product->id,
+                'image_count' => count($storedPaths),
+                'skipped_duplicates' => $skippedCount,
+            ]);
+        } else {
+            Log::warning('No variant images were successfully imported', [
+                'variant_id' => $variant->id,
+                'product_id' => $product->id,
+                'attempted_count' => count($imagePaths),
+                'failed_count' => $failedCount,
+                'skipped_count' => $skippedCount,
+            ]);
         }
     }
+    
 
     /**
      * Sync product images from import rows.
@@ -1602,16 +1755,192 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
         }
 
         if (filter_var($path, FILTER_VALIDATE_URL)) {
+            // If the URL is a Google Drive share link, try to get a better download URL
+            $lowerPath = strtolower($path);
+            if (strpos($lowerPath, 'drive.google.com') !== false) {
+                $fileId = $this->extractGoogleDriveFileId($path);
+                if ($fileId) {
+                    $betterUrl = $this->downloadGoogleDriveFile($fileId);
+                    if ($betterUrl) {
+                        $path = $betterUrl;
+                    } else {
+                        // Fallback to standard download URL
+                        $path = 'https://drive.google.com/uc?export=download&id=' . $fileId;
+                    }
+                }
+            }
             try {
-                $response = Http::timeout(10)->get($path);
+                // Reduced timeout for faster failure detection (10 seconds instead of 30)
+                $response = Http::timeout(10)
+                    ->withOptions([
+                        'allow_redirects' => true,
+                        'verify' => false,
+                        'connect_timeout' => 5, // Connection timeout
+                    ])
+                    ->get($path);
+                
                 if (!$response->successful()) {
+                    Log::warning('ProductImportService@resolveImagePath - HTTP request failed', [
+                        'url' => $path,
+                        'status' => $response->status(),
+                    ]);
                     return null;
                 }
 
-                $extension = pathinfo(parse_url($path, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';
+                $contentType = $response->header('Content-Type') ?? '';
+                $body = $response->body();
+
+                // Check if we got HTML instead of an image (Google Drive confirmation page)
+                if (stripos($contentType, 'text/html') !== false || 
+                    (stripos($body, '<html') !== false && stripos($body, 'drive.google.com') !== false)) {
+                    
+                    // Try to extract confirmation token from Google Drive confirmation page
+                    if (stripos($path, 'drive.google.com') !== false) {
+                        // Extract file ID if not already in URL
+                        $fileId = $this->extractGoogleDriveFileId($path);
+                        if ($fileId) {
+                            // Try to extract confirmation token from the HTML
+                            if (preg_match('#name="confirm"\s+value="([^"]+)"#', $body, $m) || 
+                                preg_match('#confirm=([a-zA-Z0-9_-]+)#', $body, $m)) {
+                                $confirmToken = $m[1];
+                                $confirmUrl = 'https://drive.google.com/uc?export=download&confirm=' . $confirmToken . '&id=' . $fileId;
+                                
+                                Log::info('ProductImportService: Retrying with confirmation token', [
+                                    'file_id' => $fileId,
+                                    'confirm_url' => $confirmUrl,
+                                ]);
+                                
+                                // Reduced timeout for faster failure detection
+                                $response = Http::timeout(10)
+                                    ->withOptions([
+                                        'allow_redirects' => true,
+                                        'verify' => false,
+                                        'connect_timeout' => 5,
+                                    ])
+                                    ->get($confirmUrl);
+                                
+                                $contentType = $response->header('Content-Type') ?? '';
+                                $body = $response->body();
+                            }
+                            
+                            // If still HTML, try Googleusercontent direct access (works for publicly shared files)
+                            if (stripos($contentType, 'text/html') !== false) {
+                                $directUrl = 'https://lh3.googleusercontent.com/d/' . $fileId;
+                                Log::info('ProductImportService: Trying Googleusercontent direct access', [
+                                    'file_id' => $fileId,
+                                    'direct_url' => $directUrl,
+                                ]);
+                                
+                                try {
+                                    // Reduced timeout for faster failure detection
+                                    $directResponse = Http::timeout(10)
+                                        ->withOptions([
+                                            'allow_redirects' => true,
+                                            'verify' => false,
+                                            'connect_timeout' => 5,
+                                        ])
+                                        ->get($directUrl);
+                                    
+                                    $directContentType = $directResponse->header('Content-Type') ?? '';
+                                    $directBody = $directResponse->body();
+                                    
+                                    // If this works, use it
+                                    if (stripos($directContentType, 'image/') !== false && 
+                                        stripos($directContentType, 'text/html') === false) {
+                                        $response = $directResponse;
+                                        $contentType = $directContentType;
+                                        $body = $directBody;
+                                        $path = $directUrl;
+                                    } else {
+                                        // Try view URL as another fallback
+                                        $viewUrl = 'https://drive.google.com/uc?export=view&id=' . $fileId;
+                                        Log::info('ProductImportService: Trying view URL as last resort', [
+                                            'file_id' => $fileId,
+                                        ]);
+                                        
+                                        // Reduced timeout for faster failure detection
+                                $response = Http::timeout(10)
+                                    ->withOptions([
+                                        'allow_redirects' => true,
+                                        'verify' => false,
+                                        'connect_timeout' => 5,
+                                    ])
+                                            ->get($viewUrl);
+                                        
+                                        $contentType = $response->header('Content-Type') ?? '';
+                                        $body = $response->body();
+                                    }
+                                } catch (Throwable $e) {
+                                    // If direct access fails, try view URL
+                                    $viewUrl = 'https://drive.google.com/uc?export=view&id=' . $fileId;
+                                    Log::info('ProductImportService: Trying view URL after direct access failed', [
+                                        'file_id' => $fileId,
+                                        'error' => $e->getMessage(),
+                                    ]);
+                                    
+                                    // Reduced timeout for faster failure detection
+                                    $response = Http::timeout(10)
+                                        ->withOptions([
+                                            'allow_redirects' => true,
+                                            'verify' => false,
+                                            'connect_timeout' => 5,
+                                        ])
+                                        ->get($viewUrl);
+                                    
+                                    $contentType = $response->header('Content-Type') ?? '';
+                                    $body = $response->body();
+                                }
+                            }
+                        }
+                    }
+                    
+                    // If we still have HTML after all attempts, provide helpful error message
+                    if (stripos($contentType, 'text/html') !== false) {
+                        $fileId = $this->extractGoogleDriveFileId($path);
+                        $errorMsg = 'Google Drive file is not publicly accessible or requires authentication.';
+                        if ($fileId) {
+                            $errorMsg .= ' File ID: ' . $fileId . '. Please ensure the file is shared with "Anyone with the link" permission.';
+                        }
+                        
+                        Log::warning('ProductImportService@resolveImagePath - Google Drive file not accessible', [
+                            'url' => $path,
+                            'file_id' => $fileId,
+                            'content_type' => $contentType,
+                            'message' => $errorMsg,
+                        ]);
+                        return null;
+                    }
+                }
+
+                // Determine extension from content type or URL
+                $extension = $this->getExtensionFromContentType($contentType);
+                if (!$extension) {
+                    $extension = pathinfo(parse_url($path, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';
+                }
                 $filename = 'products/imports/' . Str::random(12) . '.' . strtolower($extension);
 
-                Storage::disk('public')->put($filename, $response->body());
+                Storage::disk('public')->put($filename, $body);
+                
+                // Validate downloaded content is a valid image
+                $fullCheckPath = storage_path('app/public/' . $filename);
+                $imageInfo = @getimagesize($fullCheckPath);
+                if ($imageInfo === false) {
+                    // Not a valid image, remove and skip
+                    Storage::disk('public')->delete($filename);
+                    Log::warning('ProductImportService@resolveImagePath - Downloaded file is not a valid image', [
+                        'path' => $path,
+                        'storage_path' => $filename,
+                        'content_type' => $contentType,
+                    ]);
+                    return null;
+                }
+                
+                Log::info('ProductImportService@resolveImagePath - Image downloaded and stored', [
+                    'url' => $path,
+                    'storage_path' => $filename,
+                    'content_type' => $contentType,
+                    'image_size' => $imageInfo[0] . 'x' . $imageInfo[1],
+                ]);
 
                 return $filename;
             } catch (Throwable $exception) {
@@ -1636,6 +1965,123 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
         // If the file does not exist we still store the relative path,
         // allowing admins to fix the asset later.
         return $normalized;
+    }
+
+    /**
+     * Extract Google Drive file ID from various URL formats.
+     */
+    private function extractGoogleDriveFileId(string $url): ?string
+    {
+        // Pattern 1: /file/d/FILE_ID/view
+        if (preg_match('#/file/d/([a-zA-Z0-9_-]+)#', $url, $m)) {
+            return $m[1];
+        }
+        
+        // Pattern 2: /d/FILE_ID/
+        if (preg_match('#/d/([a-zA-Z0-9_-]+)#', $url, $m)) {
+            return $m[1];
+        }
+        
+        // Pattern 3: id=FILE_ID
+        if (preg_match('#[?&]id=([a-zA-Z0-9_-]+)#', $url, $m)) {
+            return $m[1];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get the best download URL for a Google Drive file ID.
+     * Returns a URL that should work for downloading the file.
+     */
+    private function downloadGoogleDriveFile(string $fileId): ?string
+    {
+        // Try to get a direct download URL by checking if the file is publicly accessible
+        // Method 1: Standard download URL
+        $downloadUrl = 'https://drive.google.com/uc?export=download&id=' . $fileId;
+        
+        // First, try a HEAD request to see if we get redirected or get HTML
+        try {
+            $headResponse = Http::timeout(10)
+                                    ->withOptions([
+                                        'allow_redirects' => true,
+                                        'verify' => false,
+                                        'connect_timeout' => 5,
+                                    ])
+                ->head($downloadUrl);
+            
+            $contentType = $headResponse->header('Content-Type') ?? '';
+            
+            // If we get HTML, we need to handle the confirmation page
+            if (stripos($contentType, 'text/html') !== false) {
+                // Try to get the page and extract the confirmation link
+                $pageResponse = Http::timeout(10)
+                                    ->withOptions([
+                                        'allow_redirects' => true,
+                                        'verify' => false,
+                                        'connect_timeout' => 5,
+                                    ])
+                    ->get($downloadUrl);
+                
+                $body = $pageResponse->body();
+                
+                // Look for the confirmation link in the HTML
+                // Google Drive confirmation pages often have: href="/uc?export=download&confirm=XXX&id=FILE_ID"
+                if (preg_match('#href=["\']([^"\']*uc\?[^"\']*export=download[^"\']*confirm=[^"\']*id=' . preg_quote($fileId, '#') . '[^"\']*)["\']#', $body, $m)) {
+                    $confirmUrl = html_entity_decode($m[1]);
+                    if (!str_starts_with($confirmUrl, 'http')) {
+                        $confirmUrl = 'https://drive.google.com' . ltrim($confirmUrl, '/');
+                    }
+                    
+                    Log::info('ProductImportService: Found Google Drive confirmation link', [
+                        'file_id' => $fileId,
+                        'confirm_url' => $confirmUrl,
+                    ]);
+                    
+                    return $confirmUrl;
+                }
+                
+                // Alternative: Try the view URL which sometimes works without confirmation
+                $viewUrl = 'https://drive.google.com/uc?export=view&id=' . $fileId;
+                Log::info('ProductImportService: Using view URL as fallback for Google Drive', [
+                    'file_id' => $fileId,
+                ]);
+                
+                return $viewUrl;
+            }
+            
+            // If content type looks good, return the download URL
+            return $downloadUrl;
+            
+        } catch (Throwable $exception) {
+            Log::warning('ProductImportService: Error checking Google Drive file', [
+                'file_id' => $fileId,
+                'message' => $exception->getMessage(),
+            ]);
+            
+            // Return the download URL anyway, let the main download logic handle it
+            return $downloadUrl;
+        }
+    }
+
+    /**
+     * Get file extension from content type.
+     */
+    private function getExtensionFromContentType(string $contentType): ?string
+    {
+        $mimeToExt = [
+            'image/jpeg' => 'jpg',
+            'image/jpg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            'image/svg+xml' => 'svg',
+            'image/bmp' => 'bmp',
+            'image/tiff' => 'tiff',
+        ];
+        
+        $contentType = strtolower(trim(explode(';', $contentType)[0]));
+        return $mimeToExt[$contentType] ?? null;
     }
 
     /**

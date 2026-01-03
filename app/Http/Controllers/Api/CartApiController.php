@@ -73,6 +73,7 @@ class CartApiController extends Controller
             'items.variant.images' => function($q) {
                 $q->orderBy('is_primary', 'desc')->orderBy('sort_order')->orderBy('id');
             },
+            'items.variant.inventoryStocks',
             'items.variant',
             'coupon'
         ]);
@@ -87,15 +88,16 @@ class CartApiController extends Controller
             $stockSource = $variant ?: $product;
             
             if ($stockSource && $stockSource->manage_stock) {
-                // Use stock_quantity directly (warehouse logic disabled for now)
-                $availableStock = $variant 
-                    ? ($variant->stock_quantity ?? 0)
-                    : ($product->stock_quantity ?? 0);
-                
-                // Check stock_status as well
-                $stockStatus = $variant 
-                    ? ($variant->stock_status ?? 'in_stock')
-                    : ($product->stock_status ?? 'in_stock');
+                // Use warehouse inventory if available, otherwise use stock_quantity
+                if ($variant) {
+                    $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+                    $availableStock = $warehouseStock > 0 ? $warehouseStock : ($variant->stock_quantity ?? 0);
+                    $stockStatus = $variant->stock_status ?? 'in_stock';
+                } else {
+                    // For products without variants, use product stock_quantity
+                    $availableStock = $product->stock_quantity ?? 0;
+                    $stockStatus = $product->stock_status ?? 'in_stock';
+                }
                 
                 // Mark as out of stock if stock is 0 or stock_status is out_of_stock
                 $isOutOfStock = ($availableStock <= 0) || ($stockStatus === 'out_of_stock');
@@ -179,15 +181,16 @@ class CartApiController extends Controller
             
             if ($stockSource && $stockSource->manage_stock) {
                 $manageStock = true;
-                // Use stock_quantity directly (warehouse logic disabled for now)
-                $availableStock = $variant 
-                    ? ($variant->stock_quantity ?? 0)
-                    : ($product->stock_quantity ?? 0);
-                
-                // Check stock_status as well
-                $stockStatus = $variant 
-                    ? ($variant->stock_status ?? 'in_stock')
-                    : ($product->stock_status ?? 'in_stock');
+                // Use warehouse inventory if available, otherwise use stock_quantity
+                if ($variant) {
+                    $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+                    $availableStock = $warehouseStock > 0 ? $warehouseStock : ($variant->stock_quantity ?? 0);
+                    $stockStatus = $variant->stock_status ?? 'in_stock';
+                } else {
+                    // For products without variants, use product stock_quantity
+                    $availableStock = $product->stock_quantity ?? 0;
+                    $stockStatus = $product->stock_status ?? 'in_stock';
+                }
                 
                 // Mark as out of stock if stock is 0 or stock_status is out_of_stock
                 $isOutOfStock = ($availableStock <= 0) || ($stockStatus === 'out_of_stock');
@@ -253,6 +256,17 @@ class CartApiController extends Controller
             $gstType = $product->gst_type ?? true;
             $gstPercentage = $product->gst_percentage ?? 0;
             
+            // Get variant prices for display
+            $originalVariantPrice = null; // This will be used for display fallback
+            $variantSalePrice = null;
+            $variantPrice = null;
+            if ($variant) {
+                $variantPrice = $variant->price ?? null; // Base price
+                $variantSalePrice = $variant->sale_price ?? null;
+                // For display, use sale price if available, otherwise base price
+                $originalVariantPrice = $variantSalePrice ?? $variantPrice ?? null;
+            }
+            
             return [
                 'id' => $item->id,
                 'product_id' => $product->id,
@@ -266,10 +280,16 @@ class CartApiController extends Controller
                 'quantity' => $item->quantity,
                 'unit_price' => (float)$item->unit_price,
                 'total_price' => (float)$item->total_price,
+                'original_variant_price' => $originalVariantPrice ? (float)$originalVariantPrice : null, // Original variant price for display
+                'variant_price' => $variantPrice ? (float)$variantPrice : null,
+                'variant_sale_price' => $variantSalePrice ? (float)$variantSalePrice : null,
+                'discount_type' => $variant ? ($variant->discount_type ?? null) : null,
+                'discount_value' => $variant ? ($variant->discount_value ? (float)$variant->discount_value : null) : null,
+                'discount_active' => $variant ? ($variant->discount_active ?? false) : false,
                 'image_url' => $imageUrl,
                 'in_stock' => $isInStock,
                 'out_of_stock' => $isOutOfStock,
-                'available_stock' => $availableStock,
+                'available_stock' => $availableStock ?? 0,
                 'manage_stock' => $manageStock,
                 'gst_type' => $gstType,
                 'gst_percentage' => $gstPercentage,

@@ -140,7 +140,7 @@
                                 <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="0">None</button>
                                 <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="1">One</button>
                                 <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="2">Two</button>
-                                <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="3">Three</button>
+                                <!-- <button type="button" class="btn btn-outline-primary combination-count-btn" data-count="3">Three</button> -->
                             </div>
                             <small class="text-muted d-block mt-2">
                                 <i class="fas fa-info-circle me-1"></i>
@@ -405,7 +405,7 @@
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label form-label-sm">Sell Price</label>
+                            <label class="form-label form-label-sm">Sale Price</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">₹</span>
                                 <input type="number" class="form-control form-control-sm" id="variantSalePrice" name="variant_sale_price" step="0.01">
@@ -4014,11 +4014,8 @@ $(document).ready(function() {
                 if (containsObjectPlaceholder) {
                     variant.name = variantName;
                 }
-                // Prepend product name to variant name if not already included
-                const productName = $('#productName').val() || '';
-                if (productName && !variantName.includes(productName)) {
-                    variantName = `${productName} - ${variantName}`;
-                }
+                // Use variant name as-is from database/CSV - do not auto-prefix with product name
+                // This ensures consistency between import and update paths
                 // Generate SKU if not already set or is empty
                 if (variant.sku && variant.sku.trim() !== '') {
                     variantSku = variant.sku;
@@ -4067,9 +4064,9 @@ $(document).ready(function() {
                     .sort((a, b) => Number(a) - Number(b))
                     .map(key => normalizedCombination[key]);
                 const attributeName = variantValues.length > 0 ? variantValues.join(' - ') : 'Variant';
-                // Prepend product name to variant name
-                const productName = $('#productName').val() || '';
-                variantName = productName ? `${productName} - ${attributeName}` : attributeName;
+                // Use attribute name as-is - do not auto-prefix with product name
+                // This ensures consistency between import and update paths
+                variantName = attributeName;
                 
                 // Generate SKU if not already set
                 if (variant.sku && variant.sku.trim() !== '') {
@@ -4293,11 +4290,27 @@ ${variantName}
         const $row = $btn.closest('tr');
         const index = $btn.data('index');
         
-        // Populate modal with current values
-        $('#variantSku').val($row.find('[name*="[sku]"]').val());
-        $('#variantPrice').val($row.find('[name*="[price]"]').val());
-        const $salePriceField = $row.find('[name*="[sale_price]"]');
-        if ($salePriceField.length && $variantSellPriceInput.length) $variantSellPriceInput.val($salePriceField.val());
+        // Get variant data from data attribute (source of truth)
+        const variantDataStr = $row.attr('data-variant-data');
+        let variantData = null;
+        if (variantDataStr) {
+            try {
+                variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
+            } catch (e) {
+                console.error('Error parsing variant data:', e);
+            }
+        }
+        
+        // Populate modal with current values - prefer variantData over form fields
+        $('#variantSku').val(variantData?.sku || $row.find('[name*="[sku]"]').val());
+        $('#variantPrice').val(variantData?.price || $row.find('[name*="[price]"]').val());
+        
+        // Use sale_price from variantData (source of truth) instead of form field
+        // This ensures we show the actual stored value, not a potentially recalculated one
+        if ($variantSellPriceInput.length) {
+            const salePrice = variantData?.sale_price ?? $row.find('[name*="[sale_price]"]').val();
+            $variantSellPriceInput.val(salePrice || '');
+        }
         
         // Populate variant name
         const $variantNameLabel = $row.find('.form-check-label');
@@ -4368,7 +4381,8 @@ ${variantName}
         activeVariantRow = $row[0];
         syncModalImagePreviewFromRow($row[0]);
         handleDiscountStateChange();
-        calculateVariantSellPrice();
+        // Don't auto-calculate sale price when loading existing variant - preserve the stored value
+        // calculateVariantSellPrice(); // Commented out to preserve actual stored sale_price
         
         // Load highlights & details
         loadHighlightsDetailsFromRow($row[0]);
@@ -4380,10 +4394,9 @@ ${variantName}
         // }
         
         // Load description and additional information
-        const variantDataStr = $row.data('variantData');
-        if (variantDataStr) {
+        // variantDataStr and variantData are already declared above, reuse them
+        if (variantDataStr && variantData) {
             try {
-                const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
                 const $descriptionTextarea = $('#variantDescription');
                 const $additionalInfoTextarea = $('#variantAdditionalInfo');
                 
@@ -4404,9 +4417,9 @@ ${variantName}
                 
                 // Set editor content after editors are initialized (will be called after modal is shown)
                 setTimeout(function() {
-                    if (variantDataStr) {
+                    if (variantData) {
                         try {
-                            const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
+                            // Use the already-parsed variantData from outer scope
                             if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
                                 window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
                             }
@@ -4435,9 +4448,9 @@ ${variantName}
                 variantEditModal.show();
             // Set editor data after modal is shown and editors are initialized
             setTimeout(function() {
-                if (variantDataStr) {
+                if (variantData) {
                     try {
-                        const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
+                        // Use the already-parsed variantData from outer scope
                         if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
                             window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
                         }
@@ -4457,9 +4470,9 @@ ${variantName}
             variantEditModal.show();
             // Set editor data after offcanvas is shown (editors are initialized on show.bs.offcanvas)
             setTimeout(function() {
-                if (variantDataStr) {
+                if (variantData) {
                     try {
-                        const variantData = typeof variantDataStr === 'string' ? JSON.parse(variantDataStr) : variantDataStr;
+                        // Use the already-parsed variantData from outer scope
                         if (window.variantDescriptionEditor && typeof window.variantDescriptionEditor.setHTMLCode === 'function') {
                             window.variantDescriptionEditor.setHTMLCode(variantData.description || '');
                         }
@@ -6043,8 +6056,8 @@ ${variantName}
         }
         
         if (confirm(`Are you sure you want to delete ${selectedRows.length} selected variants? This action cannot be undone.`)) {
-            selectedRows.forEach($row => {
-                $row.remove();
+            selectedRows.forEach(row => {
+                $(row).remove(); // Convert to jQuery for remove() method
             });
             
             // Sync generatedVariants array with remaining DOM rows
@@ -6083,7 +6096,12 @@ ${variantName}
         const $selectedCheckboxes = $('#variantsTableBody').find('.variant-checkbox:checked');
         const selectedRows = [];
         $selectedCheckboxes.each(function() {
-            selectedRows.push($(this).closest('tr'));
+            // Return native DOM element, not jQuery object
+            const $row = $(this).closest('tr');
+            const rowElement = $row[0]; // Get native DOM element from jQuery object
+            if (rowElement) {
+                selectedRows.push(rowElement);
+            }
         });
         return selectedRows;
     }
@@ -6192,8 +6210,12 @@ ${variantName}
         // Get current sell price value (preserve if already set)
         let currentSellPrice = $variantSellPriceInput.val() ? parseFloat($variantSellPriceInput.val()) : null;
         
-        // Only calculate if discount is active, otherwise preserve existing value
-        if ($discountActive.length && $discountActive.val() === '1' && $discountTypeField.length && $discountTypeField.val() && $discountValueField.length) {
+        // Only calculate if sale_price is empty AND discount is active
+        // This preserves explicitly set sale_price values (like from CSV import)
+        if ((currentSellPrice === null || currentSellPrice === '' || isNaN(currentSellPrice)) 
+            && $discountActive.length && $discountActive.val() === '1' 
+            && $discountTypeField.length && $discountTypeField.val() 
+            && $discountValueField.length) {
             const discountValue = parseFloat($discountValueField.val());
             if (!isNaN(discountValue) && discountValue >= 0) {
                 if ($discountTypeField.val() === 'percentage') {
@@ -6204,11 +6226,10 @@ ${variantName}
             }
         }
         // If no discount active and no existing sell price, default to Regular Price
-        // Otherwise, keep the existing sell price value
-        else if (currentSellPrice === null || currentSellPrice === '') {
+        else if (currentSellPrice === null || currentSellPrice === '' || isNaN(currentSellPrice)) {
             currentSellPrice = mrp;
         }
-        // If discount is not active but sell price exists, keep the existing value (don't overwrite)
+        // If sale_price exists (even if discount is active), keep the existing value (don't overwrite)
 
         $variantSellPriceInput.val(currentSellPrice !== null ? currentSellPrice.toFixed(2) : '');
     }

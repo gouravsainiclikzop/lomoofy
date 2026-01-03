@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class CheckoutService
@@ -60,36 +61,32 @@ class CheckoutService
             $stockSource = $variant ?: $product;
         
             if ($stockSource && $stockSource->manage_stock) {
-                // Simple stock checking - use variant/product stock_quantity directly
-                // Warehouse inventory logic is commented out for now (not fully implemented yet)
-                $availableStock = $variant 
-                    ? ($variant->stock_quantity ?? 0)
-                    : ($product->stock_quantity ?? 0);
+                // Use warehouse inventory if available, otherwise use stock_quantity
+                $availableStock = 0;
                 
-                // // Check warehouse-based inventory if available
-                // if ($variant && $variant->inventoryStocks()->exists()) {
-                //     $totalStock = $variant->inventoryStocks()->sum('quantity');
-                //     $reservedStock = $variant->inventoryStocks()->sum('reserved_quantity');
-                //     
-                //     // If warehouse stocks exist but have zero total stock, fall back to variant stock_quantity
-                //     if ($totalStock > 0) {
-                //         $availableStock = max(0, $totalStock - $reservedStock);
-                //     } else {
-                //         // Fall back to variant stock_quantity when warehouse stocks have zero total stock
-                //         $availableStock = $variant->stock_quantity ?? 0;
-                //     }
-                // } else {
-                //     // Fallback to variant/product stock_quantity
-                //     $availableStock = $variant 
-                //         ? ($variant->available_stock ?? ($variant->stock_quantity ?? 0))
-                //         : ($product->stock_quantity ?? 0);
-                // }
+                if ($variant) {
+                    // Check warehouse-based inventory if available
+                    $variant->load('inventoryStocks');
+                    $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+                    $reservedStock = $variant->inventoryStocks()->sum('reserved_quantity');
+                    
+                    if ($warehouseStock > 0) {
+                        // Use warehouse inventory
+                        $availableStock = max(0, $warehouseStock - $reservedStock);
+                    } else {
+                        // Fall back to variant stock_quantity if no warehouse stocks
+                        $availableStock = $variant->stock_quantity ?? 0;
+                    }
+                } else {
+                    // For products without variants, use product stock_quantity
+                    $availableStock = $product->stock_quantity ?? 0;
+                }
           
-                 
+                
                 if ($item->quantity > $availableStock) {
-                    $errors[] = "Insufficient stock for '{$productName}'. Available: {$availableStock}, Requested: {$item->quantity}";
+                    $errors[] = "Sorry, \"{$productName}\" is not available in the quantity you requested. Only {$availableStock} items are available.";
                 } else if ($availableStock <= 0) {
-                    $errors[] = "Product '{$productName}' is out of stock";
+                    $errors[] = "Sorry, \"{$productName}\" is not available in the quantity you requested. Only {$availableStock} items are available.";
                 } 
             }
             
@@ -206,8 +203,8 @@ class CheckoutService
         
         return DB::transaction(function () use ($cart, $customer, $shippingAddress, $billingAddress, $billingSameAsShipping, $additionalData) {
             
-            // Recalculate cart totals one final time
-            $cart->recalculateTotals();
+            // Recalculate cart totals using final prices (after discounts) - matching checkout logic
+            $this->recalculateCartTotalsWithFinalPricesForOrder($cart);
             
             // Create immutable address snapshots
             $shippingSnapshot = $this->createAddressSnapshot($shippingAddress);
@@ -274,6 +271,11 @@ class CheckoutService
                     'quantity' => $cartItem->quantity,
                     'unit_price' => $cartItem->unit_price,
                     'total_price' => $cartItem->total_price,
+                    'original_variant_price' => $variant ? ($variant->price ?? null) : null,
+                    'variant_sale_price' => $variant ? ($variant->sale_price ?? null) : null,
+                    'discount_type' => $variant ? ($variant->discount_type ?? null) : null,
+                    'discount_value' => $variant ? ($variant->discount_value ?? null) : null,
+                    'discount_active' => $variant ? ($variant->discount_active ?? false) : false,
                 ]);
                 
                 // Decrement stock (handles warehouse-based inventory)
@@ -330,63 +332,70 @@ class CheckoutService
 
 private function decrementStock($product, $variant, int $quantity, $warehouseId = null, $locationId = null): void
 {
-    self::addDebugLog("DECREMENT_STOCK: Method called - variant: " . ($variant ? $variant->id : 'null') . ", manage_stock: " . ($variant ? ($variant->manage_stock ? 'true' : 'false') : 'n/a') . ", quantity: $quantity");
+    self::addDebugLog("DECREMENT_STOCK: Method called - variant: " . ($variant ? $variant->id : 'null') . ", manage_stock: " . ($variant ? ($variant->manage_stock ? 'true' : 'false') : 'n/a') . ", quantity: $quantity, warehouseId: " . ($warehouseId ?? 'null') . ", locationId: " . ($locationId ?? 'null'));
     
     // Variant priority
     if ($variant && $variant->manage_stock) {
         self::addDebugLog("DECREMENT_STOCK: Inside IF - will decrement stock for variant {$variant->id}");
-        // Simple stock decrement - use variant stock_quantity directly
-        // Warehouse inventory logic is commented out for now (not fully implemented yet)
         
-        // // Warehouse inventory path
-        // if ($variant->inventoryStocks()->exists()) {
-        // 
-        //     if (!$warehouseId) {
-        //         $warehouse = \App\Models\Warehouse::getDefault();
-        //         $warehouseId = $warehouse?->id;
-        //     }
-        // 
-        //     $stocks = $variant->inventoryStocks() 
-        //         ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
-        //         ->orderBy('available_quantity', 'desc')
-        //         ->lockForUpdate()
-        //         ->get();
-        //  
-        //     // If no warehouse stocks found after filtering, fall back to variant stock_quantity
-        //     if (!$stocks->isEmpty()) {
-        //         $remaining = $quantity;
-        // 
-        //         foreach ($stocks as $stock) {
-        //             if ($remaining <= 0) break;
-        // 
-        //             $available = max(0, $stock->available_quantity);
-        //             $deduct = min($remaining, $available);
-        // 
-        //             if ($deduct <= 0) continue;
-        // 
-        //             $stock->quantity = max(0, $stock->quantity - $deduct);
-        //             $stock->save();
-        // 
-        //             $remaining -= $deduct;
-        //         }
-        // 
-        //         if ($remaining > 0) {
-        //             throw ValidationException::withMessages([
-        //                 'inventory' => "Insufficient stock for {$variant->sku}."
-        //             ]);
-        //         }
-        // 
-        //         $variant->stock_quantity = $variant->inventoryStocks()->sum('quantity');
-        //         $variant->available_stock = $variant->inventoryStocks()->sum('available_quantity');
-        //         $variant->stock_status = $variant->stock_quantity > 0 ? 'in_stock' : 'out_of_stock';
-        //         $variant->save();
-        // 
-        //         return;
-        //     }
-        //     // If stocks are empty, fall through to variant fallback logic below
-        // }
-
-        // Simple variant stock decrement - use direct database update
+        // Check if warehouse-based inventory exists
+        if ($variant->inventoryStocks()->exists()) {
+            self::addDebugLog("DECREMENT_STOCK: Warehouse inventory exists for variant {$variant->id}");
+            
+            // Get or determine warehouse
+            if (!$warehouseId) {
+                $warehouse = \App\Models\Warehouse::getDefault();
+                $warehouseId = $warehouse?->id;
+                self::addDebugLog("DECREMENT_STOCK: Using default warehouse: " . ($warehouseId ?? 'null'));
+            }
+            
+            if ($warehouseId) {
+                // Warehouse inventory path - find or create inventory stock record
+                $inventoryStock = \App\Models\InventoryStock::firstOrNew([
+                    'product_variant_id' => $variant->id,
+                    'warehouse_id' => $warehouseId,
+                    'warehouse_location_id' => $locationId, // Optional location
+                ]);
+                
+                $oldStock = $inventoryStock->quantity ?? 0;
+                $newStock = max(0, $oldStock - $quantity);
+                
+                self::addDebugLog("DECREMENT_STOCK: Warehouse stock - old: $oldStock, quantity: $quantity, new: $newStock");
+                
+                // Update inventory stock
+                $inventoryStock->quantity = $newStock;
+                $inventoryStock->save();
+                
+                // Log inventory history
+                if ($oldStock != $newStock) {
+                    \App\Models\InventoryHistory::create([
+                        'product_variant_id' => $variant->id,
+                        'warehouse_id' => $warehouseId,
+                        'warehouse_location_id' => $locationId,
+                        'previous_quantity' => $oldStock,
+                        'new_quantity' => $newStock,
+                        'quantity_change' => -$quantity,
+                        'change_type' => 'decrement',
+                        'reference_type' => 'order',
+                        'notes' => 'Stock decremented for order',
+                        'user_id' => Auth::check() ? Auth::id() : null,
+                    ]);
+                }
+                
+                // Sync total to variant stock_quantity
+                $variant->refresh();
+                $totalStock = $variant->inventoryStocks()->sum('quantity');
+                $variant->stock_quantity = $totalStock;
+                $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+                $variant->save();
+                
+                self::addDebugLog("DECREMENT_STOCK: Synced variant stock_quantity to $totalStock");
+                return;
+            }
+        }
+        
+        // Fallback: Simple variant stock decrement - use direct database update
+        self::addDebugLog("DECREMENT_STOCK: No warehouse inventory, using variant stock_quantity fallback");
         $oldStock = $variant->stock_quantity;
         $newStock = max(0, $oldStock - $quantity);
         
@@ -435,8 +444,6 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
         self::addDebugLog("DECREMENT_STOCK: SKIPPED - variant: " . ($variant ? $variant->id : 'null') . ", manage_stock: " . ($variant ? ($variant->manage_stock ? 'true' : 'false') : 'n/a'));
     }
 
-       
-
     // Product fallback
     if ($product && $product->manage_stock) {
         self::addDebugLog("DECREMENT_STOCK: Decrementing product stock for product {$product->id}");
@@ -445,6 +452,159 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
         $product->save();
     }
 }
+
+    /**
+     * Increment stock for a product or variant (reverse of decrementStock)
+     */
+    private function incrementStock($product, $variant, int $quantity, $warehouseId = null, $locationId = null): void
+    {
+        self::addDebugLog("INCREMENT_STOCK: Method called - variant: " . ($variant ? $variant->id : 'null') . ", manage_stock: " . ($variant ? ($variant->manage_stock ? 'true' : 'false') : 'n/a') . ", quantity: $quantity, warehouseId: " . ($warehouseId ?? 'null') . ", locationId: " . ($locationId ?? 'null'));
+        
+        // Variant priority
+        if ($variant && $variant->manage_stock) {
+            self::addDebugLog("INCREMENT_STOCK: Inside IF - will increment stock for variant {$variant->id}");
+            
+            // Check if warehouse-based inventory exists
+            if ($variant->inventoryStocks()->exists()) {
+                self::addDebugLog("INCREMENT_STOCK: Warehouse inventory exists for variant {$variant->id}");
+                
+                // Get or determine warehouse
+                if (!$warehouseId) {
+                    $warehouse = \App\Models\Warehouse::getDefault();
+                    $warehouseId = $warehouse?->id;
+                    self::addDebugLog("INCREMENT_STOCK: Using default warehouse: " . ($warehouseId ?? 'null'));
+                }
+                
+                if ($warehouseId) {
+                    // Warehouse inventory path - find or create inventory stock record
+                    $inventoryStock = \App\Models\InventoryStock::firstOrNew([
+                        'product_variant_id' => $variant->id,
+                        'warehouse_id' => $warehouseId,
+                        'warehouse_location_id' => $locationId, // Optional location
+                    ]);
+                    
+                    $oldStock = $inventoryStock->quantity ?? 0;
+                    $newStock = $oldStock + $quantity;
+                    
+                    self::addDebugLog("INCREMENT_STOCK: Warehouse stock - old: $oldStock, quantity: $quantity, new: $newStock");
+                    
+                    // Update inventory stock
+                    $inventoryStock->quantity = $newStock;
+                    $inventoryStock->save();
+                    
+                    // Log inventory history
+                    if ($oldStock != $newStock) {
+                        \App\Models\InventoryHistory::create([
+                            'product_variant_id' => $variant->id,
+                            'warehouse_id' => $warehouseId,
+                            'warehouse_location_id' => $locationId,
+                            'previous_quantity' => $oldStock,
+                            'new_quantity' => $newStock,
+                            'quantity_change' => $quantity,
+                            'change_type' => 'increment',
+                            'reference_type' => 'order_cancellation',
+                            'notes' => 'Stock restored from cancelled order',
+                            'user_id' => Auth::check() ? Auth::id() : null,
+                        ]);
+                    }
+                    
+                    // Sync total to variant stock_quantity
+                    $variant->refresh();
+                    $totalStock = $variant->inventoryStocks()->sum('quantity');
+                    $variant->stock_quantity = $totalStock;
+                    $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+                    $variant->save();
+                    
+                    self::addDebugLog("INCREMENT_STOCK: Synced variant stock_quantity to $totalStock");
+                    return;
+                }
+            }
+            
+            // Fallback: Simple variant stock increment - use direct database update
+            self::addDebugLog("INCREMENT_STOCK: No warehouse inventory, using variant stock_quantity fallback");
+            $oldStock = $variant->stock_quantity;
+            $newStock = $oldStock + $quantity;
+            
+            self::addDebugLog("INCREMENT_STOCK: Before update - variant_id: {$variant->id}, old_stock: $oldStock, quantity: $quantity, new_stock: $newStock");
+            
+            // Use direct database update (simplest approach)
+            $updated = DB::table('product_variants')
+                ->where('id', $variant->id)
+                ->update([
+                    'stock_quantity' => $newStock,
+                    'stock_status' => $newStock > 0 ? 'in_stock' : 'out_of_stock',
+                    'updated_at' => now()
+                ]);
+            
+            self::addDebugLog("INCREMENT_STOCK: After update - variant_id: {$variant->id}, rows_updated: $updated, new_stock: $newStock");
+            
+            // Verify the update actually happened by querying database directly (bypass Eloquent cache)
+            $actualStock = DB::table('product_variants')
+                ->where('id', $variant->id)
+                ->value('stock_quantity');
+            
+            self::addDebugLog("INCREMENT_STOCK: Direct DB query result - variant_id: {$variant->id}, actual_stock_quantity: $actualStock");
+            
+            if ($actualStock != $newStock) {
+                self::addDebugLog("INCREMENT_STOCK: WARNING - Stock mismatch! Expected: $newStock, Got from DB: $actualStock. Retrying update...");
+                // Retry the update
+                $retryUpdated = DB::table('product_variants')
+                    ->where('id', $variant->id)
+                    ->update([
+                        'stock_quantity' => $newStock,
+                        'stock_status' => $newStock > 0 ? 'in_stock' : 'out_of_stock',
+                        'updated_at' => now()
+                    ]);
+                $actualStock = DB::table('product_variants')
+                    ->where('id', $variant->id)
+                    ->value('stock_quantity');
+                self::addDebugLog("INCREMENT_STOCK: After retry - variant_id: {$variant->id}, rows_updated: $retryUpdated, actual_stock_quantity: $actualStock");
+            }
+            
+            // Refresh variant to get new stock value
+            $variant->refresh();
+            self::addDebugLog("INCREMENT_STOCK: After refresh - variant_id: {$variant->id}, model_stock_quantity: {$variant->stock_quantity}");
+
+            return;
+        } else {
+            self::addDebugLog("INCREMENT_STOCK: SKIPPED - variant: " . ($variant ? $variant->id : 'null') . ", manage_stock: " . ($variant ? ($variant->manage_stock ? 'true' : 'false') : 'n/a'));
+        }
+
+        // Product fallback
+        if ($product && $product->manage_stock) {
+            self::addDebugLog("INCREMENT_STOCK: Incrementing product stock for product {$product->id}");
+            $product->stock_quantity = ($product->stock_quantity ?? 0) + $quantity;
+            $product->stock_status = $product->stock_quantity > 0 ? 'in_stock' : 'out_of_stock';
+            $product->save();
+        }
+    }
+
+    /**
+     * Restore stock for order items (increment stock back)
+     */
+    public function restoreOrderStock(Order $order): void
+    {
+        self::addDebugLog("RESTORE_ORDER_STOCK: Starting for order {$order->id}");
+        
+        $order->load('items.product', 'items.variant');
+        
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            if (!$product) {
+                self::addDebugLog("RESTORE_ORDER_STOCK: Product not found for item {$item->id}");
+                continue;
+            }
+
+            $variant = $item->variant;
+            
+            self::addDebugLog("RESTORE_ORDER_STOCK: Restoring stock for item {$item->id} - product: {$product->id}, variant: " . ($variant ? $variant->id : 'null') . ", quantity: {$item->quantity}");
+            
+            // Use warehouse from order item if available
+            $this->incrementStock($product, $variant, $item->quantity, $item->warehouse_id, $item->warehouse_location_id);
+        }
+        
+        self::addDebugLog("RESTORE_ORDER_STOCK: Completed for order {$order->id}");
+    }
 
     /**
      * Add debug log message
@@ -464,72 +624,7 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
 
 
 
-
-    /**
-     * Decrement product/variant stock (handles warehouse-based inventory)
-     */
-    // private function decrementStock($product, $variant, int $quantity, $warehouseId = null, $locationId = null): void
-    // {
-    //     if ($variant) {
-    //         // Handle variant stock
-    //         if ($variant->manage_stock) {
-    //             // If warehouse-based inventory exists, use it
-    //             if ($variant->inventoryStocks()->exists()) {
-    //                 // Get default warehouse if not specified
-    //                 if (!$warehouseId) {
-    //                     $warehouse = \App\Models\Warehouse::getDefault();
-    //                     $warehouseId = $warehouse ? $warehouse->id : null;
-    //                 }
-                    
-    //                 if ($warehouseId) {
-    //                     $inventoryStock = \App\Models\InventoryStock::firstOrNew([
-    //                         'product_variant_id' => $variant->id,
-    //                         'warehouse_id' => $warehouseId,
-    //                         'warehouse_location_id' => $locationId,
-    //                     ]);
-                        
-    //                     $inventoryStock->quantity = max(0, ($inventoryStock->quantity ?? 0) - $quantity);
-    //                     $inventoryStock->save();
-                        
-    //                     // Sync total to variant stock_quantity
-    //                     $totalStock = $variant->inventoryStocks()->sum('quantity');
-    //                     $variant->stock_quantity = $totalStock;
-    //                 } else {
-    //                     // Fallback to variant stock_quantity
-    //                     $newQuantity = max(0, ($variant->stock_quantity ?? 0) - $quantity);
-    //                     $variant->stock_quantity = $newQuantity;
-    //                 }
-    //             } else {
-    //                 // Fallback to variant stock_quantity
-    //                 $newQuantity = max(0, ($variant->stock_quantity ?? 0) - $quantity);
-    //                 $variant->stock_quantity = $newQuantity;
-    //             }
-                
-    //             // Update stock status
-    //             $totalStock = $variant->total_stock_quantity ?? ($variant->stock_quantity ?? 0);
-    //             if ($totalStock <= 0) {
-    //                 $variant->stock_status = 'out_of_stock';
-    //             }
-    //             $variant->save();
-    //         }
-    //     } else {
-    //         // Handle product stock (legacy - products don't have variants)
-    //         if ($product->manage_stock) {
-    //             $newQuantity = max(0, ($product->stock_quantity ?? 0) - $quantity);
-    //             $product->stock_quantity = $newQuantity;
-                
-    //             // Update stock status
-    //             if ($newQuantity <= 0) {
-    //                 $product->stock_status = 'out_of_stock';
-    //             }
-    //             $product->save();
-    //         }
-    //     }
-    // }
-    
-    /**
-     * Get customer addresses for checkout
-     */
+ 
     public function getCustomerAddressesForCheckout(Customer $customer): array
     {
         $addresses = $customer->addresses()
@@ -576,5 +671,141 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
         }
         
         return $validator->validated();
+    }
+    
+    /**
+     * Recalculate cart totals using final prices (after discounts) - matching checkout logic
+     */
+    private function recalculateCartTotalsWithFinalPricesForOrder(Cart $cart)
+    {
+        // Helper function to calculate final price for an item (after discounts)
+        $calculateItemFinalPrice = function($variant) {
+            if (!$variant) {
+                return 0;
+            }
+            
+            $basePrice = $variant->price ?? 0;
+            $salePrice = $variant->sale_price ?? null;
+            $discountType = $variant->discount_type ?? '';
+            $discountValue = $variant->discount_value ?? 0;
+            $discountActive = $variant->discount_active ?? false;
+            
+            // Round base price
+            $basePrice = round($basePrice);
+            
+            // Round sale price if it exists
+            $roundedSalePrice = null;
+            if ($salePrice !== null) {
+                $roundedSalePrice = round($salePrice);
+            }
+            
+            // Calculate final price
+            $priceToDiscount = $basePrice;
+            if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                $priceToDiscount = $roundedSalePrice;
+            }
+            
+            $finalPrice = $priceToDiscount;
+            
+            // Apply discount if active
+            if ($discountActive && $discountType && $discountValue > 0) {
+                if ($discountType === 'percentage') {
+                    $discountAmount = ($priceToDiscount * $discountValue) / 100;
+                    $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                    $finalPrice = max(0, $priceToDiscount - $discountValue);
+                }
+            } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                $finalPrice = $roundedSalePrice;
+            }
+            
+            // Round final price
+            return round($finalPrice);
+        };
+        
+        $subtotal = 0;
+        $taxAmount = 0;
+        $hasExclusiveItems = false;
+        
+        foreach ($cart->items as $item) {
+            $product = $item->product;
+            $variant = $item->variant;
+            if (!$product) {
+                continue;
+            }
+            
+            // Calculate final price for this item (after discounts)
+            $itemFinalPrice = $calculateItemFinalPrice($variant);
+            
+            // Get GST settings
+            $gstType = $product->gst_type ?? true;
+            $gstPercentage = $product->gst_percentage ?? 0;
+            $quantity = $item->quantity ?? 1;
+            
+            if ($gstPercentage > 0) {
+                if (!$gstType) {
+                    // Exclusive of tax: Extract base price for tax calculation
+                    $baseForTax = $itemFinalPrice / (1 + ($gstPercentage / 100));
+                    $itemTax = $baseForTax * ($gstPercentage / 100);
+                    $taxAmount += $itemTax * $quantity;
+                    $hasExclusiveItems = true;
+                    // Use final price in subtotal (will have tax added separately)
+                    $subtotal += $itemFinalPrice * $quantity;
+                } else {
+                    // Inclusive of tax: Use final price directly (tax already included)
+                    $subtotal += $itemFinalPrice * $quantity;
+                    // Don't add tax since it's already in the price
+                }
+            } else {
+                // No GST - use final price directly
+                $subtotal += $itemFinalPrice * $quantity;
+            }
+        }
+        
+        // Calculate discount from coupon if exists
+        $discountAmount = 0;
+        if ($cart->coupon_code && $cart->coupon) {
+            $coupon = $cart->coupon;
+            if (method_exists($coupon, 'isActive') && method_exists($coupon, 'canBeUsed') && method_exists($coupon, 'calculateDiscount')) {
+                if ($coupon->isActive() && $coupon->canBeUsed()) {
+                    if (!property_exists($coupon, 'min_order_amount') || !$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount) {
+                        $discountAmount = $coupon->calculateDiscount($subtotal);
+                    }
+                }
+            } elseif (property_exists($coupon, 'discount_type') && property_exists($coupon, 'discount_value')) {
+                if ($coupon->discount_type === 'percentage') {
+                    $discountAmount = ($subtotal * $coupon->discount_value) / 100;
+                } else {
+                    $discountAmount = min($coupon->discount_value, $subtotal);
+                }
+            }
+        }
+        
+        // Calculate shipping
+        $allItemsFreeShipping = $cart->items->every(function($item) {
+            return $item->product && $item->product->free_shipping;
+        });
+        
+        $hasNonShippingItems = $cart->items->contains(function($item) {
+            return $item->product && !$item->product->requires_shipping;
+        });
+        
+        if ($allItemsFreeShipping || $hasNonShippingItems) {
+            $shippingAmount = 0;
+        } else {
+            $freeShippingThreshold = 0;
+            $defaultShippingCost = 0;
+            $shippingAmount = $subtotal > $freeShippingThreshold ? 0 : $defaultShippingCost;
+        }
+        
+        // Update cart totals
+        $cart->subtotal = $subtotal;
+        $cart->discount_amount = $discountAmount;
+        $cart->tax_amount = $taxAmount;
+        $cart->shipping_amount = $shippingAmount;
+        $cart->total_amount = $subtotal - $discountAmount + $taxAmount + $shippingAmount;
+        $cart->save();
+        
+        return $cart;
     }
 }

@@ -8,6 +8,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\FrontendController;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+
+Route::get('/test-db', function () {
+    return DB::table('product_variants')->whereIn('product_id', [1, 2, 3, 4,5,6])->select('product_id', 'sku', 'name', 'price', 'sale_price', 'discount_type', 'discount_value', 'discount_active')->get();  
+});
+
 
 Route::get('/debug-log', function () {
     Log::info('Manual log trigger executed', [
@@ -43,6 +49,7 @@ Route::middleware(['customer.auth'])->group(function () {
 
 Route::middleware(['customer.auth'])->group(function () {
     Route::get('/my-orders', [FrontendController::class, 'myOrders'])->name('frontend.my-orders');
+    Route::post('/orders/{id}/cancel', [FrontendController::class, 'cancelOrder'])->name('frontend.orders.cancel');
     Route::get('/profile-info', [FrontendController::class, 'profileInfo'])->name('frontend.profile-info');
     Route::post('/profile-info', [FrontendController::class, 'updateProfileInfo'])->name('frontend.profile-info.update');
     Route::get('/change-password', [FrontendController::class, 'changePassword'])->name('frontend.change-password');

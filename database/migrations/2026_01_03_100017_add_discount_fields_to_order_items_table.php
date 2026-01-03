@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->string('original_variant_price')->nullable()->after('total_price');
+            $table->string('variant_sale_price')->nullable()->after('original_variant_price');
+            $table->string('discount_type')->nullable()->after('variant_sale_price');
+            $table->decimal('discount_value', 10, 2)->nullable()->after('discount_type');
+            $table->boolean('discount_active')->default(false)->after('discount_value');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->dropColumn([
+                'original_variant_price',
+                'variant_sale_price',
+                'discount_type',
+                'discount_value',
+                'discount_active'
+            ]);
+        });
+    }
+};

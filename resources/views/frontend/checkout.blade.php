@@ -381,7 +381,50 @@
                                                         <p class="text-danger mb-1"><small>Available: {{ $availableStock }}, Requested: {{ $item->quantity }}</small></p>
                                                     @endif
                                                     <p class="mb-1 lh-1"><span class="text-muted small">Qty: {{ $item->quantity }}</span></p>
-                                                    <h4 class="fs-md ft-medium mb-3 lh-1">₹{{ number_format($item->total_price, 2) }} <span class="text-muted fs-sm">(Inclusive of all taxes)</span></h4>
+                                                    @php
+                                                        // Get GST settings from product
+                                                        $gstType = $product->gst_type ?? true;
+                                                        $gstPercentage = $product->gst_percentage ?? 0;
+                                                        
+                                                        // Get original variant price for display
+                                                        $originalVariantPrice = null;
+                                                        $variantSalePrice = null;
+                                                        $variantPrice = null;
+                                                        
+                                                        if ($variant) {
+                                                            $variantPrice = $variant->price ?? null;
+                                                            $variantSalePrice = $variant->sale_price ?? null;
+                                                            // Use variant price as base price (not sale price)
+                                                            $originalVariantPrice = $variantPrice ?? null;
+                                                        } else {
+                                                            $variantPrice = null;
+                                                            $variantSalePrice = null;
+                                                            $originalVariantPrice = null;
+                                                        }
+                                                        
+                                                        // Calculate display price per unit (for compact component)
+                                                        $displayPricePerUnit = $item->unit_price ?? 0;
+                                                        if ($gstType && $originalVariantPrice !== null) {
+                                                            // Inclusive: use original variant price (base price)
+                                                            $displayPricePerUnit = $originalVariantPrice;
+                                                        } elseif (!$gstType && $gstPercentage > 0) {
+                                                            // Exclusive: extract base price from unit_price
+                                                            $displayPricePerUnit = $item->unit_price / (1 + ($gstPercentage / 100));
+                                                        }
+                                                    @endphp
+                                                    <div class="mb-3">
+                                                        @include('frontend.partials.product-pricing-compact', [
+                                                            'price' => $variantPrice ?? $displayPricePerUnit,
+                                                            'sale_price' => $variantSalePrice,
+                                                            'original_price' => $variantPrice ?? $displayPricePerUnit,
+                                                            'discount_type' => $variant->discount_type ?? null,
+                                                            'discount_value' => $variant->discount_value ?? null,
+                                                            'discount_active' => $variant->discount_active ?? false,
+                                                            'gstType' => $gstType,
+                                                            'gstPercentage' => $gstPercentage,
+                                                            'compact' => false
+                                                        ])
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -394,27 +437,63 @@
                         <div class="card mb-4 gray">
                             <div class="card-body">
                                 <ul class="list-group list-group-sm list-group-flush-y list-group-flush-x">
+                                    @php
+                                        // Round all amounts to whole numbers for display
+                                        $subtotal = round($cart->subtotal ?? 0);
+                                        $discountAmount = round($cart->discount_amount ?? 0);
+                                        $totalAfterDiscount = $subtotal - $discountAmount;
+                                        
+                                        // Calculate tax display with GST percentage if available
+                                        $hasExclusiveItems = false;
+                                        $maxGstPercentage = 0;
+                                        foreach ($cart->items ?? [] as $item) {
+                                            $product = $item->product;
+                                            if ($product) {
+                                                $gstType = $product->gst_type ?? true;
+                                                $gstPercentage = $product->gst_percentage ?? 0;
+                                                if ($gstPercentage > 0 && !$gstType) {
+                                                    $hasExclusiveItems = true;
+                                                    if ($gstPercentage > $maxGstPercentage) {
+                                                        $maxGstPercentage = $gstPercentage;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        $taxAmount = round($cart->tax_amount ?? 0);
+                                        $shippingAmount = round($cart->shipping_amount ?? 0);
+                                        $grandTotal = $totalAfterDiscount + $taxAmount + $shippingAmount;
+                                        $payable = round($grandTotal);
+                                        
+                                        $taxLabel = ($taxAmount > 0 && $maxGstPercentage > 0 && $hasExclusiveItems) 
+                                            ? 'Tax (GST ' . round($maxGstPercentage) . '% ₹' . number_format($taxAmount, 0) . ')' 
+                                            : 'Tax';
+                                    @endphp
                                     <li class="list-group-item d-flex text-dark fs-sm ft-regular">
                                         <span>Subtotal</span> 
-                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($cart->subtotal ?? 0, 2) }}</span>
+                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($subtotal, 0) }}</span>
                                     </li>
-                                    @if(($cart->discount_amount ?? 0) > 0)
+                                    <!-- Discount row - always shown -->
                                     <li class="list-group-item d-flex text-dark fs-sm ft-regular">
                                         <span>Discount</span> 
-                                        <span class="ms-auto text-dark ft-medium text-success">-₹{{ number_format($cart->discount_amount, 2) }}</span>
+                                        <span class="ms-auto text-dark ft-medium text-success">-₹{{ number_format($discountAmount, 0) }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex text-dark fs-sm ft-regular">
+                                        <span>Total</span> 
+                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($totalAfterDiscount, 0) }}</span>
+                                    </li>
+                                    @if($hasExclusiveItems && $taxAmount > 0)
+                                    <li class="list-group-item d-flex text-dark fs-sm ft-regular">
+                                        <span>{{ $taxLabel }}</span> 
+                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($taxAmount, 0) }}</span>
                                     </li>
                                     @endif
                                     <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-                                        <span>Tax</span> 
-                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($cart->tax_amount ?? 0, 2) }}</span>
-                                    </li>
-                                    <li class="list-group-item d-flex text-dark fs-sm ft-regular">
                                         <span>Shipping</span> 
-                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($cart->shipping_amount ?? 0, 2) }}</span>
+                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($shippingAmount, 0) }}</span>
                                     </li>
-                                    <li class="list-group-item d-flex text-dark fs-sm ft-regular border-top">
-                                        <span class="fw-bold">Total</span> 
-                                        <span class="ms-auto text-dark ft-medium fw-bold">₹{{ number_format($cart->total_amount ?? 0, 2) }} <span class="text-muted fs-xs">(Inclusive of all taxes)</span></span>
+                                    <li class="list-group-item d-flex text-dark fs-sm ft-medium border-top">
+                                        <span>Payable</span> 
+                                        <span class="ms-auto text-dark ft-bold">₹{{ number_format($payable, 0) }}</span>
                                     </li>
                                     <li class="list-group-item fs-sm text-center">
                                         Shipping cost calculated at Checkout *
