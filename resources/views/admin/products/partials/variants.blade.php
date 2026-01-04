@@ -41,90 +41,13 @@
         </h6>
     </div> -->
     <div class="card-body py-3">
-        {{-- OLD UI COMMENTED OUT - Dynamic Attributes Approach --}}
-        {{--
-        <div class="row g-2 mb-3">
-            <div class="col-md-6"> 
-                <div id="attributeSelection">
-                    <div class="row g-2">
-                        <div class="col-12">
-                            <label class="form-label form-label-sm">Select Available Attributes for Variants</label>
-                            <div class="attributes-checkbox-list" id="availableAttributesContainer">
-                                @if(isset($attributes) && count($attributes) > 0)
-                                    @foreach($attributes as $attribute)
-                                        <div class="form-check attribute-checkbox-item" data-attribute-id="{{ $attribute->id }}">
-                                            <input class="form-check-input attribute-checkbox" 
-                                                   type="checkbox" 
-                                                   value="{{ $attribute->id }}" 
-                                                   id="attr_{{ $attribute->id }}"
-                                                   data-attribute-type="{{ $attribute->type }}"
-                                                   data-attribute-description="{{ $attribute->description }}">
-                                            <label class="form-check-label" for="attr_{{ $attribute->id }}">
-                                                <strong>{{ $attribute->name }}</strong>
-                                                <span class="text-muted ms-2">({{ ucfirst($attribute->type) }})</span>
-                                                @if($attribute->description)
-                                                    <small class="text-muted d-block">{{ $attribute->description }}</small>
-                                                @endif
-                                            </label>
-                                        </div>
-                                    @endforeach
-                                @else
-                                    <div class="text-muted text-center p-3">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <small>No attributes available. Please select a category or create attributes first.</small>
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <small class="text-muted small mb-0">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Select one or more attributes to create product variants.
-                                </small>
-                                <button type="button" 
-                                        class="btn btn-sm btn-primary" 
-                                        id="loadAttributeValuesBtn"
-                                        style="display: none;">
-                                    <i class="fas fa-sync-alt me-1"></i>
-                                    Load Values
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div id="addVariantForm" class="card" style="display: none;">
-                    <div class="card-header py-2">
-                        <h6 class="mb-0 form-label-sm">
-                            <i class="fas fa-plus-circle me-2"></i>Add New Variant
-                        </h6>
-                    </div>
-                    <div class="card-body py-2">
-                        <div class="row g-2">
-                            <div id="variantAttributeSelectors" class="col-12">
-                            </div>
-                            <div class="col-12 text-end">
-                                <button type="button" class="btn btn-primary" id="addVariantBtn">
-                                    <i class="fas fa-magic me-1"></i> Generate All Variants
-                                </button>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Select multiple values for each attribute to generate all combinations
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-        </div>
-    </div>
-</div>
-        --}}
+        
 
         {{-- NEW UI - Combination Based Variant Generation --}}
         <!-- <div class="row g-2 mb-3"> -->
         <div class="  g-2 mb-3">
             <div class="col-12">
-                <div class="card">
+                <div class="card" id="combinationWizardCard">
                     <div class="card-header py-2">
                         <h6 class="mb-0 form-label-sm">
                             Generate Variants by Combinations
@@ -172,6 +95,33 @@
                                     <i class="fas fa-magic me-1"></i> Generate Variants
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Attribute-Based Variant Creation UI (shown when variants exist) --}}
+        <div class="g-2 mb-3" id="attributeBasedVariantCard" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header py-2">
+                        <h6 class="mb-0 form-label-sm">
+                            <i class="fas fa-layer-group me-2"></i>Create New Variants Using Existing Attributes
+                        </h6>
+                    </div>
+                    <div class="card-body py-3">
+                        <p class="text-muted small mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Select values from existing attributes or add new values to create variant combinations.
+                        </p>
+                        <div id="extractedAttributesContainer">
+                            <!-- Attributes will be dynamically loaded here -->
+                        </div>
+                        <div class="mt-3" id="generateFromAttributesBtnContainer" style="display: none;">
+                            <button type="button" class="btn btn-success" id="generateVariantsFromAttributesBtn">
+                                <i class="fas fa-magic me-1"></i> Generate Variants
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -585,6 +535,16 @@
 @endphp
 
 <script id="existingVariantsPayload" type="application/json">{!! $existingVariantsJson !!}</script>
+@php
+    $attributeMapByName = [];
+    if (isset($attributes) && count($attributes) > 0) {
+        foreach ($attributes as $attribute) {
+            $attributeMapByName[strtolower($attribute->name)] = $attribute->id;
+            $attributeMapByName[strtolower($attribute->slug)] = $attribute->id;
+        }
+    }
+@endphp
+<script id="attributeMapByName" type="application/json">{!! json_encode($attributeMapByName) !!}</script>
 
 <!-- Variant Images View Modal -->
 <div class="modal fade" id="variantImagesViewModal" tabindex="-1" aria-labelledby="variantImagesViewModalLabel" aria-hidden="true">
@@ -1204,6 +1164,13 @@ $(document).ready(function() {
     const existingVariantsPayload = $existingVariantsElement.length
         ? JSON.parse($existingVariantsElement.text() || '[]')
         : [];
+    
+    // Create attribute mapping (name/slug to ID) for attribute-based variant creation
+    const $attributeMapElement = $('#attributeMapByName');
+    const attributeMapByName = $attributeMapElement.length
+        ? JSON.parse($attributeMapElement.text() || '{}')
+        : {};
+    
     const $productFormElement = $('#productForm');
     let isEditMode = false;
     if ($productFormElement.length) {
@@ -3184,6 +3151,18 @@ $(document).ready(function() {
                     const attributeKey = String(attributeId);
                     attributeValuesCache.delete(attributeKey);
                     
+                    // If attribute-based variant UI is visible, refresh it
+                    const $attributeBasedCard = $('#attributeBasedVariantCard');
+                    if ($attributeBasedCard.length && $attributeBasedCard.is(':visible')) {
+                        // Re-extract attributes from existing variants and refresh UI
+                        if (existingVariantsPayload && Array.isArray(existingVariantsPayload) && existingVariantsPayload.length > 0) {
+                            const extractedAttributes = extractAttributeStructureFromVariants(existingVariantsPayload);
+                            if (extractedAttributes && Object.keys(extractedAttributes).length > 0) {
+                                renderAttributeBasedVariantUI(extractedAttributes);
+                            }
+                        }
+                    }
+                    
                     // Value loading functionality removed - no longer refreshing containers
                 } else {
                     // Show error message
@@ -3630,8 +3609,10 @@ $(document).ready(function() {
         const valueId = `value_${comboIndex}_${valueIndex}`;
         
         let valueHtml = '';
+        let colorInputId = null;
+        
         if (type === 'color') {
-            const colorInputId = `colorInput_${comboIndex}_${valueIndex}`;
+            colorInputId = `colorInput_${comboIndex}_${valueIndex}`;
             valueHtml = `
                 <div class="row g-2 mb-2 value-item" data-value-index="${valueIndex}">
                     <div class="col-md-5">
@@ -3666,7 +3647,7 @@ $(document).ready(function() {
         valuesList.append(valueHtml);
         
         // Initialize color picker if it's a color type
-        if (type === 'color') {
+        if (type === 'color' && colorInputId) {
             setTimeout(() => {
                 const $colorBtn = $(`#${colorInputId}`).siblings('.color-picker-btn');
                 if ($colorBtn.length && typeof initializeVariantColorPicker === 'function') {
@@ -4003,8 +3984,22 @@ $(document).ready(function() {
 
             let normalizedAttributes = {};
 
+            // Check if attributes are already in structured format (has 'variable' or 'color' keys)
+            const isStructuredFormat = variant.attributes && 
+                typeof variant.attributes === 'object' && 
+                !Array.isArray(variant.attributes) &&
+                (variant.attributes.variable !== undefined || variant.attributes.color !== undefined);
+
             if (variant.name) {
-                normalizedAttributes = normalizeAttributesPayload(variant.attributes || {});
+                if (isStructuredFormat) {
+                    // Preserve structured format
+                    variantAttributes = variant.attributes;
+                    normalizedAttributes = variant.attributes; // For display purposes
+                } else {
+                    normalizedAttributes = normalizeAttributesPayload(variant.attributes || {});
+                    variantAttributes = normalizedAttributes;
+                }
+                
                 const attributeDisplayOrder = Object.keys(normalizedAttributes)
                     .sort((a, b) => Number(a) - Number(b))
                     .map(key => normalizedAttributes[key]);
@@ -4021,9 +4016,20 @@ $(document).ready(function() {
                     variantSku = variant.sku;
                 } else {
                     // Generate SKU from variant attributes
-                    const variantValues = Object.keys(normalizedAttributes)
-                        .sort((a, b) => Number(a) - Number(b))
-                        .map(key => normalizedAttributes[key]);
+                    // For structured format, extract values from variable and color
+                    let variantValues = [];
+                    if (isStructuredFormat) {
+                        if (variantAttributes.color && variantAttributes.color.label) {
+                            variantValues.push(variantAttributes.color.label);
+                        }
+                        if (variantAttributes.variable) {
+                            variantValues = variantValues.concat(Object.values(variantAttributes.variable));
+                        }
+                    } else {
+                        variantValues = Object.keys(normalizedAttributes)
+                            .sort((a, b) => Number(a) - Number(b))
+                            .map(key => normalizedAttributes[key]);
+                    }
                     const skuSuffix = variantValues.map(value =>
                         value.toString().toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 3)
                     ).join('-');
@@ -4051,18 +4057,36 @@ $(document).ready(function() {
                 variantDiscountActive = variant.discount_active ? '1' : '';
                 variantMeasurements = extractMeasurementsForVariant(variant);
                 variantImages = normalizedImages;
-                variantAttributes = normalizedAttributes;
             } else {
-                // Only use attributes for variant name, not other variant properties
-                const normalizedCombination = normalizeAttributesPayload(variant.attributes || {});
-                // Filter to only include actual attribute IDs (not other properties)
-                const attributeKeys = Object.keys(normalizedCombination).filter(key => {
-                    // Only include keys that are in selectedAttributeIds (actual attribute IDs)
-                    return selectedAttributeIds.includes(String(key));
-                });
-                const variantValues = attributeKeys
-                    .sort((a, b) => Number(a) - Number(b))
-                    .map(key => normalizedCombination[key]);
+                // Variant generated from combinations - attributes should already be in structured format
+                if (isStructuredFormat) {
+                    // Preserve structured format
+                    variantAttributes = variant.attributes;
+                } else {
+                    // Fallback to old format normalization
+                    const normalizedCombination = normalizeAttributesPayload(variant.attributes || {});
+                    variantAttributes = normalizedCombination;
+                }
+                
+                // Generate variant name from attributes
+                let variantValues = [];
+                if (isStructuredFormat) {
+                    if (variantAttributes.color && variantAttributes.color.label) {
+                        variantValues.push(variantAttributes.color.label);
+                    }
+                    if (variantAttributes.variable) {
+                        variantValues = variantValues.concat(Object.values(variantAttributes.variable));
+                    }
+                } else {
+                    // Filter to only include actual attribute IDs (not other properties)
+                    const attributeKeys = Object.keys(variantAttributes).filter(key => {
+                        // Only include keys that are in selectedAttributeIds (actual attribute IDs)
+                        return selectedAttributeIds.includes(String(key));
+                    });
+                    variantValues = attributeKeys
+                        .sort((a, b) => Number(a) - Number(b))
+                        .map(key => variantAttributes[key]);
+                }
                 const attributeName = variantValues.length > 0 ? variantValues.join(' - ') : 'Variant';
                 // Use attribute name as-is - do not auto-prefix with product name
                 // This ensures consistency between import and update paths
@@ -4098,7 +4122,6 @@ $(document).ready(function() {
                 variantDiscountValue = '';
                 variantDiscountActive = '';
                 variantMeasurements = [];
-                variantAttributes = normalizedCombination;
                 variantImages = normalizedImages;
             }
             variant.attributes = variantAttributes;
@@ -5044,7 +5067,13 @@ ${variantName}
                     if (fieldName && value !== null && value !== undefined) {
                         // Handle JSON fields
                         if (fieldName === 'attributes' || fieldName === 'measurements' || fieldName === 'highlights_details') {
-                            if (value && value !== '[]' && value !== '{}' && value.trim() !== '') {
+                            // Always send attributes (even if empty) so backend can format them properly
+                            // For measurements and highlights_details, only send if not empty
+                            if (fieldName === 'attributes') {
+                                // Always send attributes - backend will format empty {} properly
+                                const attrsValue = value && value.trim() !== '' ? value : '{}';
+                                formData.append(`variants[${index}][${fieldName}]`, attrsValue);
+                            } else if (value && value !== '[]' && value !== '{}' && value.trim() !== '') {
                                 formData.append(`variants[${index}][${fieldName}]`, value);
                             }
                         } else if (value !== '' && value !== null) {
@@ -6149,6 +6178,24 @@ ${variantName}
         
         // Uncheck all attribute value checkboxes
         $('#variantAttributeSelectors').find('.value-checkbox, .variant-attribute-value-checkbox').prop('checked', false);
+        
+        // Hide combination wizard when variants exist - use attribute structure instead
+        const $combinationWizardCard = $('#combinationWizardCard');
+        const $attributeBasedVariantCard = $('#attributeBasedVariantCard');
+        if ($combinationWizardCard.length) {
+            $combinationWizardCard.hide();
+        }
+        
+        // Extract and show attribute structure for creating new variants
+        if (payload && Array.isArray(payload) && payload.length > 0) {
+            const extractedAttributes = extractAttributeStructureFromVariants(payload);
+            if (extractedAttributes && Object.keys(extractedAttributes).length > 0) {
+                renderAttributeBasedVariantUI(extractedAttributes);
+                if ($attributeBasedVariantCard.length) {
+                    $attributeBasedVariantCard.show();
+                }
+            }
+        }
 
         // Disabled: Don't auto-select attributes on page load
         // Wait a bit for DOM to be ready, then auto-select attributes
@@ -7272,6 +7319,494 @@ ${variantName}
         return {};
     }
     
+    // Extract attribute structure from existing variants
+    function extractAttributeStructureFromVariants(variants) {
+        if (!variants || !Array.isArray(variants) || variants.length === 0) {
+            return {};
+        }
+        
+        const attributeStructure = {
+            color: {
+                type: 'color',
+                name: 'color',
+                values: new Set()
+            },
+            variable: {}
+        };
+        
+        variants.forEach(variant => {
+            if (!variant.attributes) return;
+            
+            let attrs = variant.attributes;
+            if (typeof attrs === 'string') {
+                try {
+                    attrs = JSON.parse(attrs);
+                } catch (e) {
+                    return;
+                }
+            }
+            
+            // Check if structured format
+            if (attrs && typeof attrs === 'object' && !Array.isArray(attrs)) {
+                // Extract color
+                if (attrs.color && attrs.color.label) {
+                    const colorValue = {
+                        label: attrs.color.label,
+                        code: attrs.color.code || '#000000'
+                    };
+                    attributeStructure.color.values.add(JSON.stringify(colorValue));
+                }
+                
+                // Extract variable attributes (size, etc.)
+                if (attrs.variable && typeof attrs.variable === 'object') {
+                    Object.keys(attrs.variable).forEach(key => {
+                        if (!attributeStructure.variable[key]) {
+                            attributeStructure.variable[key] = {
+                                type: 'variable',
+                                name: key,
+                                values: new Set()
+                            };
+                        }
+                        const value = attrs.variable[key];
+                        if (value) {
+                            attributeStructure.variable[key].values.add(value);
+                        }
+                    });
+                }
+            }
+        });
+        
+        // Convert Sets to Arrays
+        const result = {};
+        if (attributeStructure.color.values.size > 0) {
+            result.color = {
+                type: 'color',
+                name: 'color',
+                values: Array.from(attributeStructure.color.values).map(v => JSON.parse(v))
+            };
+        }
+        
+        Object.keys(attributeStructure.variable).forEach(key => {
+            if (attributeStructure.variable[key].values.size > 0) {
+                result[key] = {
+                    type: 'variable',
+                    name: key,
+                    values: Array.from(attributeStructure.variable[key].values)
+                };
+            }
+        });
+        
+        return result;
+    }
+    
+    // Render attribute-based variant creation UI
+    function renderAttributeBasedVariantUI(extractedAttributes) {
+        const $container = $('#extractedAttributesContainer');
+        if (!$container.length) return;
+        
+        $container.empty();
+        
+        if (!extractedAttributes || Object.keys(extractedAttributes).length === 0) {
+            $container.html('<p class="text-muted">No attributes found in existing variants.</p>');
+            return;
+        }
+        
+        let hasAttributes = false;
+        
+        // Render color attribute
+        if (extractedAttributes.color && extractedAttributes.color.values.length > 0) {
+            hasAttributes = true;
+            const colorAttr = extractedAttributes.color;
+            const colorHtml = renderAttributeSelector('color', colorAttr);
+            $container.append(colorHtml);
+        }
+        
+        // Render variable attributes (size, etc.)
+        Object.keys(extractedAttributes).forEach(key => {
+            if (key !== 'color' && extractedAttributes[key] && extractedAttributes[key].values.length > 0) {
+                hasAttributes = true;
+                const varAttr = extractedAttributes[key];
+                const varHtml = renderAttributeSelector(key, varAttr);
+                $container.append(varHtml);
+            }
+        });
+        
+        if (hasAttributes) {
+            $('#generateFromAttributesBtnContainer').show();
+        }
+    }
+    
+    // Render individual attribute selector
+    function renderAttributeSelector(attrKey, attrData) {
+        const isColor = attrData.type === 'color';
+        const attrName = attrData.name || attrKey;
+        const values = attrData.values || [];
+        
+        let valuesHtml = '';
+        if (isColor) {
+            // Color values with color codes
+            values.forEach((value, index) => {
+                const colorLabel = value.label || value;
+                const colorCode = value.code || '#000000';
+                const valueId = `attr_${attrKey}_value_${index}`;
+                valuesHtml += `
+                    <div class="form-check form-check-inline mb-2">
+                        <input class="form-check-input attribute-value-checkbox" 
+                               type="checkbox" 
+                               id="${valueId}"
+                               data-attribute-key="${attrKey}"
+                               data-attribute-type="color"
+                               data-value-label="${escapeHtml(colorLabel)}"
+                               data-value-code="${escapeHtml(colorCode)}"
+                               value="${escapeHtml(JSON.stringify(value))}">
+                        <label class="form-check-label d-flex align-items-center" for="${valueId}">
+                            <span class="rounded-circle me-2" style="width: 20px; height: 20px; background-color: ${colorCode}; border: 1px solid #ddd; display: inline-block;"></span>
+                            ${escapeHtml(colorLabel)}
+                        </label>
+                    </div>
+                `;
+            });
+        } else {
+            // Variable values (size, etc.)
+            values.forEach((value, index) => {
+                const valueId = `attr_${attrKey}_value_${index}`;
+                valuesHtml += `
+                    <div class="form-check form-check-inline mb-2">
+                        <input class="form-check-input attribute-value-checkbox" 
+                               type="checkbox" 
+                               id="${valueId}"
+                               data-attribute-key="${attrKey}"
+                               data-attribute-type="variable"
+                               data-value-label="${escapeHtml(value)}"
+                               value="${escapeHtml(value)}">
+                        <label class="form-check-label" for="${valueId}">
+                            ${escapeHtml(value)}
+                        </label>
+                    </div>
+                `;
+            });
+        }
+        
+        return `
+            <div class="card mb-3" data-attribute-key="${attrKey}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">
+                            <strong>${escapeHtml(attrName.charAt(0).toUpperCase() + attrName.slice(1))}</strong>
+                            <span class="badge bg-secondary ms-2">${values.length} values</span>
+                        </h6>
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-primary add-new-value-btn" 
+                                data-attribute-key="${attrKey}"
+                                data-attribute-type="${attrData.type}">
+                            <i class="fas fa-plus me-1"></i>Add New Value
+                        </button>
+                    </div>
+                    <div class="attribute-values-container" style="max-height: 150px; overflow-y: auto;">
+                        ${valuesHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Generate variants from selected attribute values
+    function generateVariantsFromAttributes() {
+        const selectedValues = {};
+        const $checkboxes = $('.attribute-value-checkbox:checked');
+        
+        if ($checkboxes.length === 0) {
+            showToast('error', 'Please select at least one value for each attribute.');
+            return;
+        }
+        
+        // Group selected values by attribute
+        $checkboxes.each(function() {
+            const $checkbox = $(this);
+            const attrKey = $checkbox.data('attribute-key');
+            const attrType = $checkbox.data('attribute-type');
+            const value = $checkbox.val();
+            
+            if (!selectedValues[attrKey]) {
+                selectedValues[attrKey] = {
+                    type: attrType,
+                    values: []
+                };
+            }
+            
+            if (attrType === 'color') {
+                try {
+                    const colorData = JSON.parse(value);
+                    selectedValues[attrKey].values.push(colorData);
+                } catch (e) {
+                    // Fallback
+                    const label = $checkbox.data('value-label');
+                    const code = $checkbox.data('value-code') || '#000000';
+                    selectedValues[attrKey].values.push({ label: label, code: code });
+                }
+            } else {
+                selectedValues[attrKey].values.push(value);
+            }
+        });
+        
+        // Check if at least one value selected for each attribute
+        const attributeKeys = Object.keys(selectedValues);
+        if (attributeKeys.length === 0) {
+            showToast('error', 'Please select at least one value.');
+            return;
+        }
+        
+        // Generate all combinations
+        const combinations = generateAttributeCombinations(selectedValues);
+        
+        if (combinations.length === 0) {
+            showToast('error', 'No combinations generated. Please select values.');
+            return;
+        }
+        
+        // Add to generatedVariants
+        combinations.forEach(combination => {
+            generatedVariants.push(combination);
+        });
+        
+        // Display variants
+        displayVariants();
+        syncGeneratedVariantsFromDOM();
+        
+        // Show success message
+        showToast('success', `Generated ${combinations.length} new variant(s).`);
+        
+        // Clear selections
+        $('.attribute-value-checkbox').prop('checked', false);
+        
+        // Persist draft
+        if (!isRestoringVariantDraft) {
+            persistVariantDraft();
+        }
+    }
+    
+    // Generate all combinations from selected attribute values
+    function generateAttributeCombinations(selectedValues) {
+        const attributeKeys = Object.keys(selectedValues);
+        if (attributeKeys.length === 0) return [];
+        
+        // Build arrays for cartesian product
+        const arrays = attributeKeys.map(key => selectedValues[key].values);
+        
+        // Generate cartesian product
+        const combinations = cartesianProduct(arrays);
+        
+        // Convert to variant format
+        return combinations.map(combination => {
+            const attributes = {
+                variable: {}
+            };
+            let hasColor = false;
+            let colorData = null;
+            
+            attributeKeys.forEach((key, index) => {
+                const value = combination[index];
+                const attrData = selectedValues[key];
+                
+                if (attrData.type === 'color') {
+                    hasColor = true;
+                    colorData = typeof value === 'object' ? value : { label: value, code: '#000000' };
+                } else {
+                    attributes.variable[key] = typeof value === 'object' ? value.label || value : value;
+                }
+            });
+            
+            if (hasColor) {
+                attributes.color = colorData;
+            }
+            
+            // Generate variant name
+            const nameParts = attributeKeys.map((key, index) => {
+                const value = combination[index];
+                if (selectedValues[key].type === 'color') {
+                    return typeof value === 'object' ? value.label : value;
+                } else {
+                    return `${key}: ${value}`;
+                }
+            });
+            
+            return {
+                attributes: attributes,
+                name: nameParts.join(' - ')
+            };
+        });
+    }
+    
+    // Cartesian product helper
+    function cartesianProduct(arrays) {
+        if (arrays.length === 0) return [[]];
+        if (arrays.length === 1) return arrays[0].map(x => [x]);
+        
+        const [first, ...rest] = arrays;
+        const restProduct = cartesianProduct(rest);
+        const result = [];
+        
+        first.forEach(firstItem => {
+            restProduct.forEach(restItems => {
+                result.push([firstItem, ...restItems]);
+            });
+        });
+        
+        return result;
+    }
+    
+    // Handle add new value button - add inline input without saving to database
+    $(document).on('click', '.add-new-value-btn', function() {
+        const $btn = $(this);
+        const attrKey = $btn.data('attribute-key');
+        const attrType = $btn.data('attribute-type');
+        
+        // Hide the button
+        $btn.hide();
+        
+        // Find the values container
+        const $card = $btn.closest('.card[data-attribute-key]');
+        const $valuesContainer = $card.find('.attribute-values-container');
+        
+        // Create inline input form
+        let inputHtml = '';
+        if (attrType === 'color') {
+            inputHtml = `
+                <div class="border rounded p-2 mb-2 bg-light add-value-form">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input type="text" class="form-control form-control-sm new-value-label" placeholder="Color name (e.g., Red, Blue)">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control form-control-sm new-value-color-code" value="#000000" placeholder="#000000">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-sm btn-success save-new-value-btn" data-attribute-key="${escapeHtml(attrKey)}" data-attribute-type="${escapeHtml(attrType)}">
+                                <i class="fas fa-check me-1"></i>Add
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary cancel-new-value-btn mt-1">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            inputHtml = `
+                <div class="border rounded p-2 mb-2 bg-light add-value-form">
+                    <div class="row g-2">
+                        <div class="col-md-9">
+                            <input type="text" class="form-control form-control-sm new-value-label" placeholder="Value (e.g., S, M, L)">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-sm btn-success save-new-value-btn" data-attribute-key="${escapeHtml(attrKey)}" data-attribute-type="${escapeHtml(attrType)}">
+                                <i class="fas fa-check me-1"></i>Add
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary cancel-new-value-btn mt-1">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        $valuesContainer.append(inputHtml);
+    });
+    
+    // Handle save new value (inline, no database save)
+    $(document).on('click', '.save-new-value-btn', function() {
+        const $btn = $(this);
+        const $form = $btn.closest('.add-value-form');
+        const attrKey = $btn.data('attribute-key');
+        const attrType = $btn.data('attribute-type');
+        
+        const $labelInput = $form.find('.new-value-label');
+        const label = $labelInput.val().trim();
+        
+        if (!label) {
+            alert('Please enter a value');
+            return;
+        }
+        
+        // Find the values container
+        const $card = $btn.closest('.card[data-attribute-key]');
+        const $valuesContainer = $card.find('.attribute-values-container');
+        
+        // Get current values count
+        const currentCount = $valuesContainer.find('.attribute-value-checkbox').length;
+        const valueIndex = currentCount;
+        const valueId = `attr_${attrKey}_value_${valueIndex}`;
+        
+        let newValueHtml = '';
+        if (attrType === 'color') {
+            const colorCode = $form.find('.new-value-color-code').val().trim() || '#000000';
+            const valueData = { label: label, code: colorCode };
+            newValueHtml = `
+                <div class="form-check form-check-inline mb-2">
+                    <input class="form-check-input attribute-value-checkbox" 
+                           type="checkbox" 
+                           id="${valueId}"
+                           data-attribute-key="${escapeHtml(attrKey)}"
+                           data-attribute-type="color"
+                           data-value-label="${escapeHtml(label)}"
+                           data-value-code="${escapeHtml(colorCode)}"
+                           value="${escapeHtml(JSON.stringify(valueData))}">
+                    <label class="form-check-label d-flex align-items-center" for="${valueId}">
+                        <span class="rounded-circle me-2" style="width: 20px; height: 20px; background-color: ${colorCode}; border: 1px solid #ddd; display: inline-block;"></span>
+                        ${escapeHtml(label)}
+                    </label>
+                </div>
+            `;
+        } else {
+            newValueHtml = `
+                <div class="form-check form-check-inline mb-2">
+                    <input class="form-check-input attribute-value-checkbox" 
+                           type="checkbox" 
+                           id="${valueId}"
+                           data-attribute-key="${escapeHtml(attrKey)}"
+                           data-attribute-type="variable"
+                           data-value-label="${escapeHtml(label)}"
+                           value="${escapeHtml(label)}">
+                    <label class="form-check-label" for="${valueId}">
+                        ${escapeHtml(label)}
+                    </label>
+                </div>
+            `;
+        }
+        
+        // Remove the form
+        $form.remove();
+        
+        // Add the new value checkbox
+        $valuesContainer.append(newValueHtml);
+        
+        // Update badge count
+        const $badge = $card.find('.badge');
+        const currentBadgeCount = parseInt($badge.text()) || 0;
+        $badge.text(currentBadgeCount + 1 + ' values');
+        
+        // Show the "Add New Value" button again
+        $card.find('.add-new-value-btn').show();
+    });
+    
+    // Handle cancel new value
+    $(document).on('click', '.cancel-new-value-btn', function() {
+        const $form = $(this).closest('.add-value-form');
+        const $card = $form.closest('.card[data-attribute-key]');
+        
+        // Remove the form
+        $form.remove();
+        
+        // Show the "Add New Value" button again
+        $card.find('.add-new-value-btn').show();
+    });
+    
+    // Handle generate variants from attributes button
+    $(document).on('click', '#generateVariantsFromAttributesBtn', function() {
+        generateVariantsFromAttributes();
+    });
+    
     // Final initialization: Ensure default variant is created and table is visible
     // This runs after all other initialization
     setTimeout(function() {
@@ -7297,6 +7832,24 @@ ${variantName}
             }
         } catch(e) {
             hasVariants = false;
+        }
+        
+        // Hide combination wizard if variants exist (use attribute structure instead)
+        if (existingVariantsPayload && Array.isArray(existingVariantsPayload) && existingVariantsPayload.length > 0) {
+            const $combinationWizardCard = $('#combinationWizardCard');
+            const $attributeBasedVariantCard = $('#attributeBasedVariantCard');
+            if ($combinationWizardCard.length) {
+                $combinationWizardCard.hide();
+            }
+            
+            // Extract and show attribute structure for creating new variants
+            const extractedAttributes = extractAttributeStructureFromVariants(existingVariantsPayload);
+            if (extractedAttributes && Object.keys(extractedAttributes).length > 0) {
+                renderAttributeBasedVariantUI(extractedAttributes);
+                if ($attributeBasedVariantCard.length) {
+                    $attributeBasedVariantCard.show();
+                }
+            }
         }
         
         // Default variant creation removed per user request

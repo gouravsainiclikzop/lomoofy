@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
 Route::get('/test-db', function () {
-    return DB::table('product_variants')->whereIn('product_id', [1, 2, 3, 4,5,6])->select('product_id', 'sku', 'name', 'price', 'sale_price', 'discount_type', 'discount_value', 'discount_active')->get();  
+    return DB::table('product_variants')->whereIn('product_id', [8])->select('product_id', 'sku','attributes', 'name', 'price', 'sale_price', 'discount_type', 'discount_value', 'discount_active')->get();  
 });
 
 

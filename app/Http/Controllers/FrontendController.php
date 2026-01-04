@@ -2347,8 +2347,7 @@ class FrontendController extends Controller
                     : '$' . number_format($minPrice, 0),
             ];
         });
-        
-        
+         
         return view('frontend.product', compact(
             'product',
             'primaryCategory',

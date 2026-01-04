@@ -722,7 +722,7 @@
     const productImages = @json($productImages ?? []);
     
     // Get selected variant based on all attributes
-    function getSelectedVariant() {
+    window.getSelectedVariant = function() {
         // Try new attribute-based selection first
         const selectedAttributes = {};
         document.querySelectorAll('.attribute-option-product:checked').forEach(function(input) {
@@ -744,43 +744,76 @@
                 return variantDataMap[key];
             }
             
-            // If exact match not found, try to find variant by matching all attributes
-            // This handles dynamic attributes that might not be in the key
+            // If exact match not found, try to find variant by matching structured format
+            // Get attributesData to map attribute IDs to names/slugs
+            const attributesData = @json($attributesData ?? []);
+            const attributeMap = {};
+            if (attributesData && Array.isArray(attributesData)) {
+                attributesData.forEach(function(attr) {
+                    attributeMap[attr.id] = {
+                        name: (attr.name || '').toLowerCase(),
+                        slug: (attr.slug || '').toLowerCase(),
+                        type: attr.type || 'text'
+                    };
+                });
+            }
+            
             for (let variantKey in variantDataMap) {
                 const variant = variantDataMap[variantKey];
-                if (variant.attributes) {
+                if (variant.attributes && typeof variant.attributes === 'object') {
                     let allMatch = true;
-                    for (let attrId in selectedAttributes) {
-                        const selectedValue = selectedAttributes[attrId];
-                        
-                        // variant.attributes is a flat object: {attribute_id: value}
-                        // Check if it's an array or object
-                        let hasMatch = false;
-                        if (Array.isArray(variant.attributes)) {
-                            // If it's an array, use find
-                            const variantAttr = variant.attributes.find(function(attr) {
-                                // Match by attribute_id, attribute_name, or attribute_slug
-                                // Also handle dynamic attributes
-                                const attrIdMatch = String(attr.attribute_id) === String(attrId) || 
-                                                   String(attr.attribute_name) === String(attrId) ||
-                                                   String(attr.attribute_slug) === String(attrId) ||
-                                                   (attrId.startsWith('dynamic_') && String(attr.attribute_name).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase()) ||
-                                                   (attrId.startsWith('dynamic_') && String(attr.attribute_slug).toLowerCase() === attrId.replace('dynamic_', '').toLowerCase());
-                                const valueMatch = String(attr.value) === String(selectedValue);
-                                return attrIdMatch && valueMatch;
-                            });
-                            hasMatch = !!variantAttr;
-                        } else if (typeof variant.attributes === 'object') {
-                            // If it's an object, check directly
-                            hasMatch = variant.attributes[attrId] === selectedValue;
-                        }
-                        
-                        if (!hasMatch) {
-                            allMatch = false;
-                            break;
+                    
+                    // Handle structured format: {"variable":{"size":"uk 6"},"color":{"label":"black","code":"#000000"}}
+                    if (variant.attributes.variable || variant.attributes.color) {
+                        for (let attrId in selectedAttributes) {
+                            const selectedValue = String(selectedAttributes[attrId]).trim().toLowerCase();
+                            const attrInfo = attributeMap[attrId];
+                            
+                            if (!attrInfo) {
+                                allMatch = false;
+                                break;
+                            }
+                            
+                            let hasMatch = false;
+                            
+                            // Check color attribute
+                            if (attrInfo.type === 'color' || attrInfo.name === 'color' || attrInfo.slug === 'color') {
+                                if (variant.attributes.color && variant.attributes.color.label) {
+                                    const variantColorLabel = String(variant.attributes.color.label).trim().toLowerCase();
+                                    hasMatch = variantColorLabel === selectedValue;
+                                }
+                            }
+                            // Check variable attributes
+                            else if (variant.attributes.variable && typeof variant.attributes.variable === 'object') {
+                                // Try to match by attribute name or slug
+                                for (let varKey in variant.attributes.variable) {
+                                    if (varKey.toLowerCase() === attrInfo.name || varKey.toLowerCase() === attrInfo.slug) {
+                                        const variantValue = String(variant.attributes.variable[varKey]).trim().toLowerCase();
+                                        hasMatch = variantValue === selectedValue;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (!hasMatch) {
+                                allMatch = false;
+                                break;
+                            }
                         }
                     }
+                    // Fallback: flat format
+                    else {
+                        for (let attrId in selectedAttributes) {
+                            const selectedValue = selectedAttributes[attrId];
+                            if (variant.attributes[attrId] !== selectedValue) {
+                                allMatch = false;
+                                break;
+                            }
+                        }
+                    }
+                    
                     if (allMatch && Object.keys(selectedAttributes).length > 0) {
+                        console.log('getSelectedVariant - Found variant by structured format match:', variant);
                         return variant;
                     }
                 }
@@ -792,11 +825,11 @@
         const selectedSize = document.querySelector('input[name="productSize"]:checked')?.value || '';
         const key = selectedColor + '|' + selectedSize;
         return variantDataMap[key] || null;
-    }
+    };
     
     // Update product images gallery based on selected variant
     function updateProductImagesGallery() {
-        const variant = getSelectedVariant();
+        const variant = window.getSelectedVariant();
         const mainImageElement = document.getElementById('productMainImage');
         const thumbnailsContainer = document.getElementById('productThumbnailsContainer');
         
@@ -998,7 +1031,7 @@
     
     // Update description
     function updateVariantDescription() {
-        const variant = getSelectedVariant();
+        const variant = window.getSelectedVariant();
         const descriptionElement = document.getElementById('variant-description');
         
         if (!descriptionElement) return;
@@ -1022,7 +1055,7 @@
     
     // Update highlights details
     function updateVariantHighlightsDetails() {
-        const variant = getSelectedVariant();
+        const variant = window.getSelectedVariant();
         const highlightsElement = document.getElementById('variant-highlights-details');
         
         if (!highlightsElement) return;
@@ -1062,7 +1095,7 @@
     
     // Update Price using new pricing component
     function updateVariantPrice() {
-        const variant = getSelectedVariant();
+        const variant = window.getSelectedVariant();
         
         // Use new pricing component update function if available
         if (typeof updateProductPricing === 'function') {
@@ -1092,7 +1125,7 @@
     
     // Update SKU
     function updateVariantSku() {
-        const variant = getSelectedVariant();
+        const variant = window.getSelectedVariant();
         const skuElement = document.getElementById('variant-sku');
         const skuInfoElement = document.getElementById('variant-sku-info');
         const skuRowElement = document.getElementById('variant-sku-row');
@@ -1275,13 +1308,18 @@
                     return;
                 }
                 
-                // Get selected variant
-                const variantDataMap = window.variantDataMap || {};
-                const selectedColor = document.querySelector('input[name="productColor"]:checked')?.value || '';
-                const selectedSize = document.querySelector('input[name="productSize"]:checked')?.value || '';
-                const key = selectedColor + '|' + selectedSize;
-                const variant = variantDataMap[key] || null;
+                // Get selected variant using getSelectedVariant function
+                const variant = window.getSelectedVariant ? window.getSelectedVariant() : null;
                 const variantId = variant ? variant.id : null;
+                
+                console.log('Add to Cart - Selected Variant:', variant);
+                console.log('Add to Cart - Variant ID:', variantId);
+                
+                if (!variant || !variantId) {
+                    alert('Please select all required attributes (size, color, etc.)');
+                    $btn.prop('disabled', false);
+                    return;
+                }
                 
                 // Get quantity from the select element in the same form row
                 const $formRow = $btn.closest('.form-row, .row');

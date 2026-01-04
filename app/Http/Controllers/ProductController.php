@@ -602,6 +602,7 @@ class ProductController extends Controller
     public function updateVariants(Request $request, Product $product)
     {
         try {
+            log::info('updateVariants request', $request->all());
             // Check for file upload limit before processing
             $uploadedFiles = $request->file('variants', []);
             $totalFiles = 0;
@@ -2036,14 +2037,145 @@ class ProductController extends Controller
     }
 
     /**
+     * Format attributes from UI format to database format.
+     * Ensures attributes are in the correct structure: {"variable":{"size":"M"},"color":{"label":"black","code":"#000000"}}
+     */
+    private function formatVariantAttributes($attributes): array
+    {
+        $normalized = $this->normalizeVariantAttributes($attributes);
+        
+        if (empty($normalized)) {
+            return [];
+        }
+        
+        $result = [];
+        $hasColor = false;
+        $colorData = null;
+        
+        // Check if already in structured format
+        if (isset($normalized['color']) || isset($normalized['variable'])) {
+            // Already structured - validate and clean up
+            if (isset($normalized['color']) && is_array($normalized['color'])) {
+                $colorLabel = $normalized['color']['label'] ?? $normalized['color']['value'] ?? '';
+                $colorCode = $normalized['color']['code'] ?? '';
+                
+                if (!empty($colorLabel)) {
+                    // Don't validate color code - UI uses color picker so it's always valid
+                    // Use provided code or default to black
+                    if (empty($colorCode)) {
+                        $colorCode = '#000000';
+                    }
+                    
+                    $hasColor = true;
+                    $colorData = [
+                        'label' => $colorLabel,
+                        'code' => $colorCode
+                    ];
+                }
+            }
+            
+            // Handle variable attributes
+            if (isset($normalized['variable']) && is_array($normalized['variable'])) {
+                $variableAttrs = [];
+                foreach ($normalized['variable'] as $key => $value) {
+                    if (!empty($value)) {
+                        $variableAttrs[$key] = is_array($value) ? ($value['label'] ?? $value['value'] ?? '') : (string)$value;
+                    }
+                }
+                if (!empty($variableAttrs)) {
+                    $result['variable'] = $variableAttrs;
+                }
+            }
+        } else {
+            // Not in structured format - convert it
+            foreach ($normalized as $key => $value) {
+                if (empty($value)) {
+                    continue;
+                }
+                
+                // Check if it's a color (by key name)
+                if (strtolower($key) === 'color' || strtolower($key) === 'colour') {
+                    $colorLabel = is_array($value) ? ($value['label'] ?? $value['value'] ?? '') : (string)$value;
+                    $colorCode = is_array($value) ? ($value['code'] ?? '') : '';
+                    
+                    if (!empty($colorLabel)) {
+                        // Don't validate color code - UI uses color picker so it's always valid
+                        // Use provided code or default to black
+                        if (empty($colorCode)) {
+                            $colorCode = '#000000';
+                        }
+                        
+                        $hasColor = true;
+                        $colorData = [
+                            'label' => $colorLabel,
+                            'code' => $colorCode
+                        ];
+                    }
+                } else {
+                    // Treat as variable attribute
+                    if (!isset($result['variable'])) {
+                        $result['variable'] = [];
+                    }
+                    $result['variable'][$key] = is_array($value) ? ($value['label'] ?? $value['value'] ?? '') : (string)$value;
+                }
+            }
+        }
+        
+        // Add color if present
+        if ($hasColor && $colorData) {
+            $result['color'] = $colorData;
+        }
+        
+        // If no variable attributes, remove empty variable key
+        if (isset($result['variable']) && empty($result['variable'])) {
+            unset($result['variable']);
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Get color code from color name (helper method)
+     */
+    private function getColorCodeFromName(string $colorName): string
+    {
+        $colorMap = [
+            'black' => '#000000',
+            'white' => '#FFFFFF',
+            'red' => '#FF0000',
+            'green' => '#008000',
+            'blue' => '#0000FF',
+            'yellow' => '#FFFF00',
+            'orange' => '#FFA500',
+            'purple' => '#800080',
+            'pink' => '#FFC0CB',
+            'brown' => '#A52A2A',
+            'grey' => '#808080',
+            'gray' => '#808080',
+            'silver' => '#C0C0C0',
+            'gold' => '#FFD700',
+            'navy' => '#000080',
+            'maroon' => '#800000',
+            'olive' => '#808000',
+            'lime' => '#00FF00',
+            'aqua' => '#00FFFF',
+            'teal' => '#008080',
+            'fuchsia' => '#FF00FF',
+        ];
+        
+        $normalized = strtolower(trim($colorName));
+        return $colorMap[$normalized] ?? '#000000'; // Default to black if not found
+    }
+
+    /**
      * Merge variant attributes while preserving structured format.
      * If existing variant has structured format (with 'variable' and/or 'color' keys),
      * preserve that structure and merge simplified incoming attributes into it.
      */
     private function mergeVariantAttributes($incomingAttributes, $existingAttributes): array
     {
-        // Normalize both to arrays
-        $incoming = $this->normalizeVariantAttributes($incomingAttributes);
+        // Format incoming attributes to ensure correct structure
+        $incoming = $this->formatVariantAttributes($incomingAttributes);
         $existing = $this->normalizeVariantAttributes($existingAttributes);
 
         // If no incoming attributes, use existing
@@ -2051,7 +2183,7 @@ class ProductController extends Controller
             return $existing;
         }
 
-        // If no existing attributes, use incoming
+        // If no existing attributes, use formatted incoming
         if (empty($existing)) {
             return $incoming;
         }
