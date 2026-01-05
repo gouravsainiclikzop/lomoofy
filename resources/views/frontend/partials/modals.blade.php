@@ -992,11 +992,9 @@ $(document).ready(function() {
         });
         
         // Initialize SKU and Highlights on load
-        updateQuickViewSku();
-        updateQuickViewHighlights();
-        
-        // Update add to cart button based on stock status
-        updateQuickViewAddToCartButton(matchingVariant);
+        // Note: updateQuickViewVariant() was already called at line 941 and it updates
+        // the add to cart button internally, so no need to call it again here
+        updateQuickViewVariant();
         
         // Update measurement button visibility
         updateQuickViewMeasurementButton();

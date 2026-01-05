@@ -55,6 +55,13 @@ class OrderApiController extends Controller
             $cart->save();
         }
         
+        // Check if cart exists before validating
+        if (!$cart) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Cart not found'],
+            ], 400);
+        }
        
         $validation = $this->checkoutService->validateCart($cart);
         

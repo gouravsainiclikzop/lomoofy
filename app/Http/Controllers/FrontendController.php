@@ -4782,6 +4782,9 @@ class FrontendController extends Controller
                     'order_id' => $order->id
                 ]);
                 
+                // Restore stock before deleting the order (since createOrder already decremented it)
+                $checkoutService->restoreOrderStock($order);
+                
                 // Delete the order if Razorpay order creation failed
                 $order->delete();
                 
@@ -4814,6 +4817,20 @@ class FrontendController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+            
+            // If order was created, restore stock before returning error
+            if (isset($order) && $order && $order->exists) {
+                try {
+                    $checkoutService = app(CheckoutService::class);
+                    $checkoutService->restoreOrderStock($order);
+                    $order->delete();
+                } catch (\Exception $restoreException) {
+                    \Log::error('Failed to restore stock after Razorpay order creation error', [
+                        'error' => $restoreException->getMessage(),
+                        'order_id' => $order->id ?? null
+                    ]);
+                }
+            }
             
             return response()->json([
                 'success' => false,
@@ -4866,6 +4883,8 @@ class FrontendController extends Controller
             }
             
             // Update order payment status
+            // Note: Stock was already decremented when the order was created via createOrder()
+            // in createRazorpayOrder(), so no need to decrement stock again here
             $order->update([
                 'payment_status' => 'paid',
                 'razorpay_payment_id' => $razorpayPaymentId,
@@ -4873,7 +4892,7 @@ class FrontendController extends Controller
                 'status' => 'processing', // Move order to processing after payment
             ]);
             
-            // Clear cart
+            // Cart was already cleared when order was created, but check if any cart remains
             if ($order->customer_id) {
                 $cart = \App\Models\Cart::where('customer_id', $order->customer_id)->active()->first();
                 if ($cart) {

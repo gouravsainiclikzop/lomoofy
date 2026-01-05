@@ -334,9 +334,22 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
 {
     self::addDebugLog("DECREMENT_STOCK: Method called - variant: " . ($variant ? $variant->id : 'null') . ", manage_stock: " . ($variant ? ($variant->manage_stock ? 'true' : 'false') : 'n/a') . ", quantity: $quantity, warehouseId: " . ($warehouseId ?? 'null') . ", locationId: " . ($locationId ?? 'null'));
     
-    // Variant priority
-    if ($variant && $variant->manage_stock) {
-        self::addDebugLog("DECREMENT_STOCK: Inside IF - will decrement stock for variant {$variant->id}");
+    // Variant priority - Always decrement stock if variant exists and has stock quantity
+    // Check if there's stock to decrement (either in inventory_stocks or stock_quantity)
+    if ($variant) {
+        // Check if variant has stock (either in inventory_stocks or stock_quantity)
+        $hasStock = false;
+        if ($variant->inventoryStocks()->exists()) {
+            $totalInventoryStock = $variant->inventoryStocks()->sum('quantity');
+            $hasStock = $totalInventoryStock > 0;
+        } else {
+            $hasStock = ($variant->stock_quantity ?? 0) > 0;
+        }
+        
+        // Always decrement if there's stock, regardless of manage_stock setting
+        // This ensures inventory is always updated when orders are placed
+        if ($hasStock || $variant->manage_stock) {
+            self::addDebugLog("DECREMENT_STOCK: Inside IF - will decrement stock for variant {$variant->id}");
         
         // Check if warehouse-based inventory exists
         if ($variant->inventoryStocks()->exists()) {
@@ -439,9 +452,10 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
         $variant->refresh();
         self::addDebugLog("DECREMENT_STOCK: After refresh - variant_id: {$variant->id}, model_stock_quantity: {$variant->stock_quantity}");
 
-        return;
-    } else {
-        self::addDebugLog("DECREMENT_STOCK: SKIPPED - variant: " . ($variant ? $variant->id : 'null') . ", manage_stock: " . ($variant ? ($variant->manage_stock ? 'true' : 'false') : 'n/a'));
+            return;
+        } else {
+            self::addDebugLog("DECREMENT_STOCK: SKIPPED - variant: " . ($variant ? $variant->id : 'null') . " - no stock to decrement and manage_stock is false");
+        }
     }
 
     // Product fallback
