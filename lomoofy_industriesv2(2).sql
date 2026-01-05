@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jan 04, 2026 at 06:53 PM
+-- Generation Time: Jan 05, 2026 at 09:08 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -68,7 +68,7 @@ CREATE TABLE `cache` (
 --
 
 INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('laravel-cache-storage_refresh_check', 'b:0;', 1767549093);
+('laravel-cache-storage_refresh_check', 'b:0;', 1767600307);
 
 -- --------------------------------------------------------
 
@@ -567,7 +567,8 @@ INSERT INTO `inventory_history` (`id`, `product_variant_id`, `warehouse_id`, `wa
 (21, 2, 1, NULL, 0, 10, 10, 'set', 'manual', NULL, NULL, 1, '2026-01-02 06:12:19', '2026-01-02 06:12:19'),
 (22, 1, 1, NULL, 20, 19, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-03 04:28:37', '2026-01-03 04:28:37'),
 (23, 1, 1, NULL, 19, 18, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-03 04:38:36', '2026-01-03 04:38:36'),
-(24, 1, 1, NULL, 18, 17, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-03 05:04:11', '2026-01-03 05:04:11');
+(24, 1, 1, NULL, 18, 17, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-03 05:04:11', '2026-01-03 05:04:11'),
+(25, 19, 1, NULL, 0, 20, 20, 'set', 'manual', NULL, NULL, 1, '2026-01-05 02:16:44', '2026-01-05 02:16:44');
 
 -- --------------------------------------------------------
 
@@ -599,7 +600,8 @@ INSERT INTO `inventory_stocks` (`id`, `product_variant_id`, `warehouse_id`, `war
 (13, 53, 1, NULL, 20, 0, '2025-12-31 07:24:09', '2025-12-31 07:24:09'),
 (14, 1, 1, NULL, 17, 0, '2026-01-02 04:44:34', '2026-01-03 05:04:11'),
 (15, 6, 1, NULL, 10, 0, '2026-01-02 05:40:39', '2026-01-02 05:40:39'),
-(16, 2, 1, NULL, 10, 0, '2026-01-02 06:12:19', '2026-01-02 06:12:19');
+(16, 2, 1, NULL, 10, 0, '2026-01-02 06:12:19', '2026-01-02 06:12:19'),
+(17, 19, 1, NULL, 20, 0, '2026-01-05 02:16:44', '2026-01-05 02:16:44');
 
 -- --------------------------------------------------------
 
@@ -958,7 +960,8 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (100, '2025_12_26_120836_add_authorized_signatory_to_company_settings_table', 67),
 (101, '2025_12_28_120036_create_product_brands_table', 68),
 (102, '2025_12_30_110525_add_coming_soon_to_company_settings_table', 69),
-(103, '2026_01_03_100017_add_discount_fields_to_order_items_table', 70);
+(103, '2026_01_03_100017_add_discount_fields_to_order_items_table', 70),
+(104, '2026_01_05_075728_add_razorpay_fields_to_orders_table', 71);
 
 -- --------------------------------------------------------
 
@@ -978,6 +981,9 @@ CREATE TABLE `orders` (
   `discount_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
   `total_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
   `payment_method` varchar(255) DEFAULT NULL,
+  `razorpay_order_id` varchar(255) DEFAULT NULL,
+  `razorpay_payment_id` varchar(255) DEFAULT NULL,
+  `razorpay_signature` varchar(255) DEFAULT NULL,
   `payment_status` enum('pending','paid','failed','refunded') NOT NULL DEFAULT 'pending',
   `notes` text DEFAULT NULL,
   `shipping_address` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`shipping_address`)),
@@ -994,9 +1000,10 @@ CREATE TABLE `orders` (
 -- Dumping data for table `orders`
 --
 
-INSERT INTO `orders` (`id`, `order_number`, `source`, `customer_id`, `status`, `subtotal`, `tax_amount`, `shipping_amount`, `discount_amount`, `total_amount`, `payment_method`, `payment_status`, `notes`, `shipping_address`, `billing_address`, `billing_same_as_shipping`, `shipping_address_id`, `billing_address_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'ORD-6958F0A2F1773', 'frontend', 15, 'pending', 720.00, 0.00, 0.00, 0.00, 720.00, 'cash_on_delivery', 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-03T10:34:10.985271Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-03T10:34:10.985271Z\"}', 1, 16, 16, '2026-01-03 05:04:10', '2026-01-03 05:04:10', NULL),
-(2, 'ORD-695AA8D5B186C', 'frontend', 15, 'pending', 1250.00, 0.00, 0.00, 0.00, 1250.00, 'cash_on_delivery', 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-04T17:52:21.725561Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-04T17:52:21.725561Z\"}', 1, 16, 16, '2026-01-04 12:22:21', '2026-01-04 12:22:21', NULL);
+INSERT INTO `orders` (`id`, `order_number`, `source`, `customer_id`, `status`, `subtotal`, `tax_amount`, `shipping_amount`, `discount_amount`, `total_amount`, `payment_method`, `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`, `payment_status`, `notes`, `shipping_address`, `billing_address`, `billing_same_as_shipping`, `shipping_address_id`, `billing_address_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'ORD-6958F0A2F1773', 'frontend', 15, 'pending', 720.00, 0.00, 0.00, 0.00, 720.00, 'cash_on_delivery', NULL, NULL, NULL, 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-03T10:34:10.985271Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-03T10:34:10.985271Z\"}', 1, 16, 16, '2026-01-03 05:04:10', '2026-01-03 05:04:10', NULL),
+(2, 'ORD-695AA8D5B186C', 'frontend', 15, 'pending', 1250.00, 0.00, 0.00, 0.00, 1250.00, 'cash_on_delivery', NULL, NULL, NULL, 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-04T17:52:21.725561Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-04T17:52:21.725561Z\"}', 1, 16, 16, '2026-01-04 12:22:21', '2026-01-04 12:22:21', NULL),
+(3, 'ORD-695B7044D36BF', 'frontend', 15, 'processing', 800.00, 0.00, 0.00, 0.00, 800.00, 'razorpay', 'order_S07kPk1zjoDoTr', 'pay_S07kmGPgKWt3tv', 'b11da565f9cb7f2046add9bcedca32a31a37d29cebf193c8a51f53555e0b0d26', 'paid', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-05T08:03:16.862960Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-05T08:03:16.862960Z\"}', 1, 16, 16, '2026-01-05 02:33:16', '2026-01-05 02:33:53', NULL);
 
 -- --------------------------------------------------------
 
@@ -1035,7 +1042,8 @@ INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `product_variant_id`,
 (1, 1, 1, 1, NULL, NULL, 'Cotton Casual T-Shirt', 'CTSHIRT-BLK-S', 'Black - Small', 'CTSHIRT-BLK-S', 1, 800.00, 800.00, '1000.00', '800.00', 'percentage', 10.00, 1, '2026-01-03 05:04:10', '2026-01-03 05:04:10'),
 (2, 2, 8, 15, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-1-BLA-UK6', 'black - size: uk 6', 'CASUALCANV-1-BLA-UK6', 1, 450.00, 450.00, '500.00', '450.00', NULL, NULL, 0, '2026-01-04 12:22:21', '2026-01-04 12:22:21'),
 (3, 2, 8, 16, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-2-BLA-UK7', 'black - size: uk7', 'CASUALCANV-2-BLA-UK7', 1, 400.00, 400.00, '500.00', '400.00', NULL, NULL, 0, '2026-01-04 12:22:21', '2026-01-04 12:22:21'),
-(4, 2, 8, 19, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-3-BLA-UK8', 'black - size: uk8', 'CASUALCANV-3-BLA-UK8', 1, 400.00, 400.00, '600.00', '400.00', NULL, NULL, 0, '2026-01-04 12:22:21', '2026-01-04 12:22:21');
+(4, 2, 8, 19, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-3-BLA-UK8', 'black - size: uk8', 'CASUALCANV-3-BLA-UK8', 1, 400.00, 400.00, '600.00', '400.00', NULL, NULL, 0, '2026-01-04 12:22:21', '2026-01-04 12:22:21'),
+(5, 3, 8, 19, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-3-BLA-UK8', 'black - size: uk8', 'CASUALCANV-3-BLA-UK8', 2, 400.00, 800.00, '600.00', '400.00', NULL, NULL, 0, '2026-01-05 02:33:16', '2026-01-05 02:33:16');
 
 -- --------------------------------------------------------
 
@@ -1621,16 +1629,16 @@ CREATE TABLE `product_variants` (
 
 INSERT INTO `product_variants` (`id`, `product_id`, `sku`, `barcode`, `name`, `attributes`, `measurements`, `highlights_details`, `description`, `additional_information`, `price`, `sale_price`, `cost_price`, `image`, `discount_type`, `discount_value`, `discount_active`, `sale_price_start`, `sale_price_end`, `manage_stock`, `stock_quantity`, `low_stock_threshold`, `stock_status`, `weight`, `length`, `width`, `height`, `diameter`, `is_active`, `sort_order`, `created_at`, `updated_at`) VALUES
 (1, 1, 'CTSHIRT-BLK-S', NULL, 'Black - Small', '{\"variable\":{\"size\":\"S\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":26,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":32,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in small size', NULL, 1000.00, 799.00, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 1, NULL, NULL, 1, 17, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-03 00:01:38', '2026-01-04 09:28:25'),
-(2, 1, 'CTSHIRT-BLK-M', NULL, 'Black - Medium', '{\"variable\":{\"size\":\"M\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":28,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10.5,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":33,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in medium size', NULL, 1000.00, 799.00, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 0, NULL, NULL, 1, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-03 00:01:38', '2026-01-04 09:28:25'),
-(3, 1, 'CTSHIRT-BLK-L', NULL, 'Black - Large', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":30,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":11,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":34,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in large size', NULL, 1000.00, 1000.00, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 1, NULL, NULL, 1, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-03 00:01:38', '2026-01-04 09:28:25'),
-(4, 1, 'CTSHIRT-WHT-S', NULL, 'White - Small', '{\"variable\":{\"size\":\"S\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":26,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":32,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in small size', NULL, 1000.00, 1000.00, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 0, NULL, NULL, 1, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-03 00:01:38', '2026-01-04 09:28:26'),
-(5, 1, 'CTSHIRT-WHT-M', NULL, 'White - Medium', '{\"variable\":{\"size\":\"M\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":28,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10.5,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":33,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in medium size', NULL, 599.00, NULL, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 1, NULL, NULL, 1, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-03 00:01:38', '2026-01-04 09:28:26'),
-(6, 1, 'CTSHIRT-WHT-L', NULL, 'White - Large', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":30,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":11,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":34,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in large size', NULL, 599.00, NULL, NULL, 'products/imports/LMso4cmWY75W.jpg', NULL, NULL, 0, NULL, NULL, 1, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 5, '2026-01-03 00:01:38', '2026-01-04 09:28:26'),
-(7, 11, 'HANDBAG-BRN-OS', NULL, 'Brown - One Size', '{\"variable\":{\"size\":\"onesize\"},\"color\":{\"label\":\"brown\",\"code\":\"#A52A2A\"}}', '[]', '[{\"heading_name\":\"Premium Quality\",\"bullet_points\":[\"Genuine leather premium quality\",\"Spacious compartments\",\"Durable construction\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Clean with leather conditioner\",\"Store in dust bag\",\"Avoid water exposure\"]}]', 'Brown leather handbag one size', NULL, 3999.00, 3199.00, NULL, NULL, 'percentage', 20.00, 1, NULL, NULL, 1, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-03 00:01:39', '2026-01-03 00:52:39'),
-(8, 12, 'EARRING-DIA-OS', NULL, 'Diamond - One Size', '{\"variable\":{\"size\":\"onesize\"}}', '[]', '[{\"heading_name\":\"Luxury Jewelry\",\"bullet_points\":[\"Real diamond premium jewelry\",\"Classic stud design\",\"Elegant sparkle\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Store in jewelry box\",\"Clean with soft brush\",\"Professional cleaning recommended\"]}]', 'Diamond stud earrings one size', NULL, 9999.00, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 1, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-03 00:01:39', '2026-01-03 00:52:39'),
+(2, 1, 'CTSHIRT-BLK-M', NULL, 'Black - Medium', '{\"variable\":{\"size\":\"M\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":28,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10.5,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":33,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in medium size', NULL, 1000.00, 799.00, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 0, NULL, NULL, 1, 10, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-03 00:01:38', '2026-01-05 02:04:07'),
+(3, 1, 'CTSHIRT-BLK-L', NULL, 'Black - Large', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":30,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":11,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":34,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in large size', NULL, 1000.00, 1000.00, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 1, NULL, NULL, 1, 0, 0, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-03 00:01:38', '2026-01-05 01:53:29'),
+(4, 1, 'CTSHIRT-WHT-S', NULL, 'White - Small', '{\"variable\":{\"size\":\"S\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":26,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":32,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in small size', NULL, 1000.00, 1000.00, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 0, NULL, NULL, 1, 0, 0, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-03 00:01:38', '2026-01-05 01:53:29'),
+(5, 1, 'CTSHIRT-WHT-M', NULL, 'White - Medium', '{\"variable\":{\"size\":\"M\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":28,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10.5,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":33,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in medium size', NULL, 599.00, NULL, NULL, 'products/imports/LMso4cmWY75W.jpg', 'percentage', 10.00, 1, NULL, NULL, 1, 0, 0, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-03 00:01:38', '2026-01-05 01:53:29'),
+(6, 1, 'CTSHIRT-WHT-L', NULL, 'White - Large', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":30,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":11,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":34,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in large size', NULL, 599.00, NULL, NULL, 'products/imports/LMso4cmWY75W.jpg', NULL, NULL, 0, NULL, NULL, 1, 10, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 5, '2026-01-03 00:01:38', '2026-01-05 02:04:07'),
+(7, 11, 'HANDBAG-BRN-OS', NULL, 'Brown - One Size', '{\"variable\":{\"size\":\"onesize\"},\"color\":{\"label\":\"brown\",\"code\":\"#A52A2A\"}}', '[]', '[{\"heading_name\":\"Premium Quality\",\"bullet_points\":[\"Genuine leather premium quality\",\"Spacious compartments\",\"Durable construction\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Clean with leather conditioner\",\"Store in dust bag\",\"Avoid water exposure\"]}]', 'Brown leather handbag one size', NULL, 3999.00, 3199.00, NULL, NULL, 'percentage', 20.00, 1, NULL, NULL, 1, 8, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-03 00:01:39', '2026-01-05 02:04:07'),
+(8, 12, 'EARRING-DIA-OS', NULL, 'Diamond - One Size', '{\"variable\":{\"size\":\"onesize\"}}', '[]', '[{\"heading_name\":\"Luxury Jewelry\",\"bullet_points\":[\"Real diamond premium jewelry\",\"Classic stud design\",\"Elegant sparkle\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Store in jewelry box\",\"Clean with soft brush\",\"Professional cleaning recommended\"]}]', 'Diamond stud earrings one size', NULL, 9999.00, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 1, 0, 0, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-03 00:01:39', '2026-01-05 01:53:29'),
 (15, 8, 'CASUALCANV-1-BLA-UK6', NULL, 'black - size: uk 6', '{\"variable\":{\"size\":\"uk 6\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-04 10:16:41', '2026-01-04 10:39:27'),
 (16, 8, 'CASUALCANV-2-BLA-UK7', NULL, 'black - size: uk7', '{\"variable\":{\"size\":\"uk7\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 500.00, 400.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-04 10:16:41', '2026-01-04 10:18:32'),
-(19, 8, 'CASUALCANV-3-BLA-UK8', NULL, 'black - size: uk8', '{\"variable\":{\"size\":\"uk8\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 600.00, 400.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-04 12:20:14', '2026-01-04 12:21:27');
+(19, 8, 'CASUALCANV-3-BLA-UK8', NULL, 'black - size: uk8', '{\"variable\":{\"size\":\"uk8\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 600.00, 400.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 20, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-04 12:20:14', '2026-01-05 02:16:44');
 
 -- --------------------------------------------------------
 
@@ -1779,8 +1787,7 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('6KnQhJYhoqRC5yPGoMGIJVIru5kEWVgtLid002MW', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTo3OntzOjY6Il90b2tlbiI7czo0MDoieWNKUVo0ZE5GNUpzeTliaThGMktMSmNOYmVjcTAycDlZUzk3STdzSiI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MzE6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9teS1vcmRlcnMiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjU1OiJsb2dpbl9jdXN0b21lcl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE1O3M6MzoidXJsIjthOjE6e3M6ODoiaW50ZW5kZWQiO3M6Mzg6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9vcmRlcnMvMS9pbnZvaWNlIjt9czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTtzOjI0OiJyZWNlbnRseV92aWV3ZWRfcHJvZHVjdHMiO2E6MTp7aTowO2k6ODt9fQ==', 1767549155),
-('degX0EqLihxTohSjlbyKVcTcye9oMLbqHjcFxWKI', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoidWd2NkY2WXR0ZjUyaVRIYVJ0ZFY5aHVqTlFjRXYzYkNVYlhIbUU3diI7czoyNDoicmVjZW50bHlfdmlld2VkX3Byb2R1Y3RzIjthOjE6e2k6MDtpOjg7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjYwOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvcHJvZHVjdD9wcm9kdWN0PWNhc3VhbC1jYW52YXMtc25lYWtlcnMiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19', 1767543344);
+('AZBwmPqdRtgek272MM9cMfto8y1hzdXuz3RR0boT', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTo3OntzOjY6Il90b2tlbiI7czo0MDoiN1hweUU0cGhVRFdzWW5UNDlWU1ZpUmhGcVBKZlFOOHZNMldVWGpZWCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDE6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9zaG9wP2NhdGVnb3J5PXdvbWVuIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTtzOjU1OiJsb2dpbl9jdXN0b21lcl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE1O3M6MjQ6InJlY2VudGx5X3ZpZXdlZF9wcm9kdWN0cyI7YToxOntpOjA7aTo4O31zOjEzOiJjaGVja291dF9kYXRhIjthOjU6e3M6NzoiY2FydF9pZCI7aTozNjtzOjEwOiJzZXNzaW9uX2lkIjtzOjQwOiJBWkJ3bVBxZFJ0Z2VrMjcyTU05Y01mdG84eTFoemRYdXozUlIwYm9UIjtzOjE5OiJzaGlwcGluZ19hZGRyZXNzX2lkIjtpOjE2O3M6MTg6ImJpbGxpbmdfYWRkcmVzc19pZCI7aToxNjtzOjI0OiJiaWxsaW5nX3NhbWVfYXNfc2hpcHBpbmciO2I6MTt9fQ==', 1767600492);
 
 -- --------------------------------------------------------
 
@@ -42399,13 +42406,13 @@ ALTER TABLE `brands`
 -- AUTO_INCREMENT for table `carts`
 --
 ALTER TABLE `carts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -42477,13 +42484,13 @@ ALTER TABLE `home_sliders`
 -- AUTO_INCREMENT for table `inventory_history`
 --
 ALTER TABLE `inventory_history`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `inventory_stocks`
 --
 ALTER TABLE `inventory_stocks`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `jobs`
@@ -42543,19 +42550,19 @@ ALTER TABLE `lead_tags`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=104;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `our_collection`
