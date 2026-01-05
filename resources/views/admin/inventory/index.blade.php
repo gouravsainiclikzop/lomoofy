@@ -661,6 +661,7 @@ function initializeDataTable() {
                 d.stock_status = $('#filterStockStatus').val();
                 d.low_stock = $('#filterLowStock').is(':checked') ? '1' : '';
                 d.warehouse_id = $('#filterWarehouse').val();
+                d._t = new Date().getTime(); // Cache busting
             }
         },
         columns: [

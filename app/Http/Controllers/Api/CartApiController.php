@@ -91,16 +91,24 @@ class CartApiController extends Controller
                 // Use warehouse inventory if available, otherwise use stock_quantity
                 if ($variant) {
                     $warehouseStock = $variant->inventoryStocks()->sum('quantity');
-                    $availableStock = $warehouseStock > 0 ? $warehouseStock : ($variant->stock_quantity ?? 0);
-                    $stockStatus = $variant->stock_status ?? 'in_stock';
+                    // If has inventory_stocks records, use warehouse total (even if 0)
+                    // Otherwise, use variant stock_quantity
+                    if ($variant->inventoryStocks()->count() > 0) {
+                        $availableStock = $warehouseStock;
+                    } else {
+                        $availableStock = $variant->stock_quantity ?? 0;
+                    }
+                    // Calculate stock status from actual quantity (not database value)
+                    $stockStatus = ($availableStock > 0) ? 'in_stock' : 'out_of_stock';
                 } else {
                     // For products without variants, use product stock_quantity
                     $availableStock = $product->stock_quantity ?? 0;
-                    $stockStatus = $product->stock_status ?? 'in_stock';
+                    // Calculate stock status from actual quantity (not database value)
+                    $stockStatus = ($availableStock > 0) ? 'in_stock' : 'out_of_stock';
                 }
                 
-                // Mark as out of stock if stock is 0 or stock_status is out_of_stock
-                $isOutOfStock = ($availableStock <= 0) || ($stockStatus === 'out_of_stock');
+                // Mark as out of stock if stock is 0
+                $isOutOfStock = ($availableStock <= 0);
                 
                 // If cart quantity exceeds available stock, adjust it (but only if stock is available)
                 // Do NOT adjust if stock is 0 - keep the item quantity so it shows as out of stock
@@ -179,24 +187,49 @@ class CartApiController extends Controller
             $manageStock = false;
             $isOutOfStock = false;
             
+            // Calculate stock availability - always calculate from actual quantity
             if ($stockSource && $stockSource->manage_stock) {
                 $manageStock = true;
                 // Use warehouse inventory if available, otherwise use stock_quantity
                 if ($variant) {
                     $warehouseStock = $variant->inventoryStocks()->sum('quantity');
-                    $availableStock = $warehouseStock > 0 ? $warehouseStock : ($variant->stock_quantity ?? 0);
-                    $stockStatus = $variant->stock_status ?? 'in_stock';
+                    // If has inventory_stocks records, use warehouse total (even if 0)
+                    // Otherwise, use variant stock_quantity
+                    if ($variant->inventoryStocks()->count() > 0) {
+                        $availableStock = $warehouseStock;
+                    } else {
+                        $availableStock = $variant->stock_quantity ?? 0;
+                    }
+                    // Calculate stock status from actual quantity (not database value)
+                    $stockStatus = ($availableStock > 0) ? 'in_stock' : 'out_of_stock';
                 } else {
                     // For products without variants, use product stock_quantity
                     $availableStock = $product->stock_quantity ?? 0;
-                    $stockStatus = $product->stock_status ?? 'in_stock';
+                    // Calculate stock status from actual quantity (not database value)
+                    $stockStatus = ($availableStock > 0) ? 'in_stock' : 'out_of_stock';
                 }
                 
-                // Mark as out of stock if stock is 0 or stock_status is out_of_stock
-                $isOutOfStock = ($availableStock <= 0) || ($stockStatus === 'out_of_stock');
+                // Mark as out of stock if stock is 0
+                $isOutOfStock = ($availableStock <= 0);
                 
                 // Item is in stock only if available stock meets quantity requirement AND not out of stock
                 $isInStock = !$isOutOfStock && ($availableStock >= $item->quantity);
+            } else {
+                // If not managing stock, check quantity anyway for display purposes
+                if ($variant) {
+                    $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+                    if ($variant->inventoryStocks()->count() > 0) {
+                        $availableStock = $warehouseStock;
+                    } else {
+                        $availableStock = $variant->stock_quantity ?? 0;
+                    }
+                } else {
+                    $availableStock = $product->stock_quantity ?? 0;
+                }
+                
+                // Even if not managing stock, if quantity is 0, mark as out of stock
+                $isOutOfStock = ($availableStock <= 0);
+                $isInStock = !$isOutOfStock;
             }
             
             // Parse variant attributes for display - get ALL attributes

@@ -108,6 +108,12 @@
 										<button type="submit" class="btn btn-block custom-height bg-dark mb-2 w-100" id="quickViewAddToCart" data-product-slug="">
 											<i class="lni lni-shopping-basket me-2"></i>Add to Cart 
 										</button>
+										<!-- Stock Status Message -->
+										<div id="quickViewStockStatusMessage" class="mt-2" style="display: none;">
+											<small class="text-danger">
+												<i class="lni lni-close me-1"></i><span id="quickViewStockStatusText">Out of Stock</span>
+											</small>
+										</div>
 									</div>
 									<div class="col-12 col-md-6 col-lg-3">
 										<!-- Wishlist -->
@@ -989,6 +995,9 @@ $(document).ready(function() {
         updateQuickViewSku();
         updateQuickViewHighlights();
         
+        // Update add to cart button based on stock status
+        updateQuickViewAddToCartButton(matchingVariant);
+        
         // Update measurement button visibility
         updateQuickViewMeasurementButton();
         
@@ -1209,6 +1218,22 @@ $(document).ready(function() {
             
             const variantId = matchingVariant ? matchingVariant.id : null;
             
+            // Check if variant is in stock
+            if (!matchingVariant) {
+                alert('Please select all required attributes (size, color, etc.)');
+                $btn.data('processing', false);
+                $btn.prop('disabled', false);
+                return false;
+            }
+            
+            const isInStock = matchingVariant.is_in_stock !== false && matchingVariant.is_in_stock !== undefined;
+            if (!isInStock) {
+                alert('This product is currently out of stock.');
+                $btn.data('processing', false);
+                $btn.prop('disabled', false);
+                return false;
+            }
+            
             // Get quantity
             const quantitySelect = $('#quickViewQuantity');
             const quantity = quantitySelect ? parseInt(quantitySelect.val()) : 1;
@@ -1361,6 +1386,9 @@ $(document).ready(function() {
         
         // Update Highlights
         updateQuickViewHighlights(matchingVariant);
+        
+        // Update Add to Cart button based on stock status
+        updateQuickViewAddToCartButton(matchingVariant);
         
         // Helper function to format price with 2 decimal places
         const formatPrice = (price) => {
@@ -1567,6 +1595,53 @@ $(document).ready(function() {
         } else {
             $('#quickViewHighlightsDetails').html('');
             $('#quickViewProductInfo').hide();
+        }
+    }
+    
+    // Update add to cart button based on stock status
+    function updateQuickViewAddToCartButton(matchingVariant) {
+        const $addToCartBtn = $('#quickViewAddToCart');
+        const $stockStatusMsg = $('#quickViewStockStatusMessage');
+        const $stockStatusText = $('#quickViewStockStatusText');
+        
+        if (!$addToCartBtn.length) {
+            return;
+        }
+        
+        if (!matchingVariant) {
+            // No variant selected - disable button
+            $addToCartBtn.prop('disabled', true)
+                .html('<i class="lni lni-shopping-basket me-2"></i>Select Options')
+                .removeClass('btn-danger')
+                .addClass('bg-dark');
+            if ($stockStatusMsg.length) {
+                $stockStatusMsg.hide();
+            }
+            return;
+        }
+        
+        // Check if variant is in stock
+        const isInStock = matchingVariant.is_in_stock !== false && matchingVariant.is_in_stock !== undefined;
+        
+        if (!isInStock) {
+            // Out of stock - disable button and show message
+            $addToCartBtn.prop('disabled', true)
+                .addClass('btn-danger')
+                .removeClass('bg-dark')
+                .html('<i class="lni lni-close me-2"></i>Out of Stock');
+            if ($stockStatusMsg.length) {
+                $stockStatusMsg.show();
+                $stockStatusText.text('This Item is currently out of stock.');
+            }
+        } else {
+            // In stock - enable button
+            $addToCartBtn.prop('disabled', false)
+                .removeClass('btn-danger')
+                .addClass('bg-dark')
+                .html('<i class="lni lni-shopping-basket me-2"></i>Add to Cart');
+            if ($stockStatusMsg.length) {
+                $stockStatusMsg.hide();
+            }
         }
     }
     

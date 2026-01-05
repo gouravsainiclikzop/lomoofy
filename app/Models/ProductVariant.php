@@ -67,6 +67,45 @@ class ProductVariant extends Model
         'highlights_details' => 'array',
     ];
 
+    /**
+     * Boot the model and register event listeners
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Auto-update stock_status based on total stock quantity
+        // This ensures stock_status is always in sync when variant is saved directly
+        static::saving(function ($variant) {
+            // Only update if manage_stock is enabled and stock_status is being set/changed
+            if ($variant->manage_stock && $variant->isDirty(['stock_quantity', 'manage_stock'])) {
+                // Calculate total stock from inventory_stocks if variant exists
+                $totalStock = 0;
+                
+                if ($variant->exists) {
+                    // Query inventory_stocks to get actual total
+                    $totalStock = $variant->inventoryStocks()->sum('quantity');
+                    
+                    // Fallback to stock_quantity if no warehouse stocks exist
+                    if ($totalStock == 0 && ($variant->stock_quantity ?? 0) > 0) {
+                        $totalStock = $variant->stock_quantity;
+                    }
+                } else {
+                    // New variant, use stock_quantity
+                    $totalStock = $variant->stock_quantity ?? 0;
+                }
+                
+                // Auto-calculate stock status: 0 = out_of_stock, > 0 = in_stock
+                $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+                
+                // Sync stock_quantity if variant exists and we have warehouse stocks
+                if ($variant->exists && $totalStock > 0) {
+                    $variant->stock_quantity = $totalStock;
+                }
+            }
+        });
+    }
+
     // Relationships
     public function product()
     {

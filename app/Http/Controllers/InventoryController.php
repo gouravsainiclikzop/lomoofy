@@ -47,6 +47,9 @@ class InventoryController extends Controller
             // Only get variants where product is not soft-deleted
             $q->whereNull('deleted_at');
         });
+        
+        // Note: Stock status is calculated dynamically in the map function below
+        // based on actual inventory_stocks quantity, so it's always accurate
 
         // Filter by warehouse if provided
         if ($request->has('warehouse_id') && $request->warehouse_id) {
@@ -143,19 +146,36 @@ class InventoryController extends Controller
                 ];
             })->values()->toArray();
             
-            // Use warehouse total if warehouse inventory exists, otherwise fall back to variant stock_quantity
-            if ($warehouseTotalStock > 0 || count($warehouseBreakdown) > 0) {
+            // Calculate total stock: prioritize warehouse inventory, fallback to variant stock_quantity
+            // If there are any inventory_stocks records, use warehouse total (even if 0)
+            // Otherwise, use variant stock_quantity
+            if (count($warehouseBreakdown) > 0) {
+                // Has warehouse records - use warehouse total (could be 0)
                 $totalStockQty = $warehouseTotalStock;
                 $availableStock = max(0, $warehouseTotalStock - $warehouseTotalReserved);
             } else {
+                // No warehouse records - use variant stock_quantity
                 $totalStockQty = $variant->stock_quantity ?? 0;
                 $availableStock = $totalStockQty;
             }
             
-            // Calculate stock status based on total stock quantity if manage_stock is enabled
-            $calculatedStockStatus = $variant->stock_status;
-            if ($variant->manage_stock) {
-                $calculatedStockStatus = $totalStockQty > 0 ? 'in_stock' : 'out_of_stock';
+            // Calculate stock status based on total stock quantity
+            // ALWAYS calculate from actual quantity, NEVER use database stock_status value
+            // This ensures the displayed status is always accurate regardless of database value
+            // Rule: If quantity is 0, status MUST be 'out_of_stock' (regardless of manage_stock setting)
+            if ($totalStockQty > 0) {
+                // Has stock - status is 'in_stock'
+                $calculatedStockStatus = 'in_stock';
+            } else {
+                // No stock (quantity is 0) - status MUST be 'out_of_stock'
+                $calculatedStockStatus = 'out_of_stock';
+            }
+            
+            // Update database value to keep it in sync (only if manage_stock is enabled)
+            if ($variant->manage_stock && $variant->stock_status !== $calculatedStockStatus) {
+                $variant->stock_status = $calculatedStockStatus;
+                $variant->stock_quantity = $totalStockQty;
+                $variant->saveQuietly();
             }
             
             // Get variant image only - don't fallback to product image

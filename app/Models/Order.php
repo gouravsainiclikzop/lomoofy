@@ -30,6 +30,9 @@ class Order extends Model
         'billing_same_as_shipping',
         'shipping_address_id',
         'billing_address_id',
+        'razorpay_order_id',
+        'razorpay_payment_id',
+        'razorpay_signature',
     ];
 
     protected $casts = [

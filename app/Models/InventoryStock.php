@@ -23,6 +23,46 @@ class InventoryStock extends Model
     ];
 
     /**
+     * Boot the model and register event listeners
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Update ProductVariant stock_status when inventory stock is saved
+        static::saved(function ($inventoryStock) {
+            $variant = $inventoryStock->productVariant;
+            if ($variant && $variant->manage_stock) {
+                // Calculate total stock from all warehouses
+                $totalStock = $variant->inventoryStocks()->sum('quantity');
+                
+                // Update variant stock_quantity and stock_status
+                $variant->stock_quantity = $totalStock;
+                $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+                
+                // Save without triggering events to avoid infinite loop
+                $variant->saveQuietly();
+            }
+        });
+
+        // Update ProductVariant stock_status when inventory stock is deleted
+        static::deleted(function ($inventoryStock) {
+            $variant = $inventoryStock->productVariant;
+            if ($variant && $variant->manage_stock) {
+                // Calculate total stock from remaining warehouses
+                $totalStock = $variant->inventoryStocks()->sum('quantity');
+                
+                // Update variant stock_quantity and stock_status
+                $variant->stock_quantity = $totalStock;
+                $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
+                
+                // Save without triggering events to avoid infinite loop
+                $variant->saveQuietly();
+            }
+        });
+    }
+
+    /**
      * Get the product variant
      */
     public function productVariant()

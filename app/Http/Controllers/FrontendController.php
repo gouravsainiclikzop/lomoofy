@@ -2237,20 +2237,29 @@ class FrontendController extends Controller
                 'attributes' => $allAttributeValues, // Include all attributes
                 'images' => $variantImages, // Include variant images
                 'measurements' => $measurements, // Include measurements
-                'is_in_stock' => $variant->manage_stock 
-                    ? ($variant->total_stock_quantity > 0) 
-                    : ($variant->stock_status === 'in_stock'),
+                // Calculate stock status from actual quantity (not database value)
+                'is_in_stock' => (function() use ($variant) {
+                    // Calculate total stock from inventory_stocks if available, otherwise use stock_quantity
+                    $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+                    $totalStock = ($variant->inventoryStocks()->count() > 0) 
+                        ? $warehouseStock 
+                        : ($variant->stock_quantity ?? 0);
+                    // If quantity > 0, in stock; otherwise out of stock
+                    return $totalStock > 0;
+                })(),
             ];
         }
         
         // Check stock status (use warehouse inventory if available)
+        // Always calculate from actual quantity, not database stock_status value
         $inStock = $activeVariants->filter(function($variant) {
-            if (!$variant->manage_stock) {
-                return $variant->stock_status === 'in_stock';
-            }
-            // Use warehouse inventory if available, otherwise use stock_quantity
+            // Calculate total stock from inventory_stocks if available, otherwise use stock_quantity
             $warehouseStock = $variant->inventoryStocks()->sum('quantity');
-            return $warehouseStock > 0 || $variant->stock_quantity > 0;
+            $totalStock = ($variant->inventoryStocks()->count() > 0) 
+                ? $warehouseStock 
+                : ($variant->stock_quantity ?? 0);
+            // If quantity > 0, in stock; otherwise out of stock (regardless of manage_stock setting)
+            return $totalStock > 0;
         })->count() > 0;
         
         // Get wishlist status
@@ -2719,13 +2728,15 @@ class FrontendController extends Controller
         }
         
         // Check stock status (use warehouse inventory if available)
+        // Always calculate from actual quantity, not database stock_status value
         $inStock = $activeVariants->filter(function($variant) {
-            if (!$variant->manage_stock) {
-                return $variant->stock_status === 'in_stock';
-            }
-            // Use warehouse inventory if available, otherwise use stock_quantity
+            // Calculate total stock from inventory_stocks if available, otherwise use stock_quantity
             $warehouseStock = $variant->inventoryStocks()->sum('quantity');
-            return $warehouseStock > 0 || $variant->stock_quantity > 0;
+            $totalStock = ($variant->inventoryStocks()->count() > 0) 
+                ? $warehouseStock 
+                : ($variant->stock_quantity ?? 0);
+            // If quantity > 0, in stock; otherwise out of stock (regardless of manage_stock setting)
+            return $totalStock > 0;
         })->count() > 0;
         
         return response()->json([
@@ -2875,9 +2886,16 @@ class FrontendController extends Controller
                         'stock_quantity' => $variant->total_stock_quantity ?? $variant->stock_quantity,
                         'stock_status' => $variant->stock_status,
                         'manage_stock' => $variant->manage_stock,
-                        'is_in_stock' => $variant->manage_stock 
-                            ? ($variant->total_stock_quantity > 0) 
-                            : ($variant->stock_status === 'in_stock'),
+                        // Calculate stock status from actual quantity (not database value)
+                        'is_in_stock' => (function() use ($variant) {
+                            // Calculate total stock from inventory_stocks if available, otherwise use stock_quantity
+                            $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+                            $totalStock = ($variant->inventoryStocks()->count() > 0) 
+                                ? $warehouseStock 
+                                : ($variant->stock_quantity ?? 0);
+                            // If quantity > 0, in stock; otherwise out of stock
+                            return $totalStock > 0;
+                        })(),
                         'highlights_details' => $highlightsDetails,
                         'measurements' => $measurements, // Include measurements
                     ];
@@ -4669,6 +4687,217 @@ class FrontendController extends Controller
             return redirect()->route('frontend.checkout')
                 ->withInput()
                 ->with('error', 'Checkout failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Create Razorpay order
+     */
+    public function createRazorpayOrder(Request $request)
+    {
+        try {
+            $cart = $request->attributes->get('validated_cart');
+            $customer = $request->attributes->get('authenticated_customer');
+            
+            $checkoutService = app(CheckoutService::class);
+            
+            // Validate request data
+            $validatedData = $checkoutService->validateCheckoutRequest($request->all());
+            
+            // Validate addresses
+            $addressValidation = $checkoutService->validateAddresses(
+                $customer,
+                $validatedData['shipping_address_id'] ?? null,
+                $validatedData['billing_address_id'] ?? null,
+                $validatedData['billing_same_as_shipping'] ?? false
+            );
+            
+            if (!$addressValidation['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Address validation failed',
+                    'errors' => $addressValidation['errors']
+                ], 422);
+            }
+            
+            // Validate cart
+            $cartValidation = $checkoutService->validateCart($cart);
+            if (!$cartValidation['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cart validation failed',
+                    'errors' => $cartValidation['errors']
+                ], 400);
+            }
+            
+            // Create order first
+            $order = $checkoutService->createOrder(
+                $cart,
+                $customer,
+                $addressValidation['shipping_address'],
+                $addressValidation['billing_address'],
+                $validatedData['billing_same_as_shipping'] ?? false,
+                [
+                    'payment_method' => 'razorpay',
+                    'notes' => $validatedData['notes'] ?? null,
+                ]
+            );
+            
+            // Calculate amount in paise (Razorpay uses smallest currency unit)
+            $amount = round($order->total_amount * 100); // Convert to paise
+            
+            // Create Razorpay order
+            $razorpayKeyId = env('RAZORPAY_KEY_ID', 'rzp_test_RytPVtZvClzzRV');
+            $razorpayKeySecret = env('RAZORPAY_KEY_SECRET', 'J1eq1gkUD4049W9CuDsqljXw');
+            
+            $razorpayOrderData = [
+                'amount' => $amount,
+                'currency' => 'INR',
+                'receipt' => $order->order_number,
+                'notes' => [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'customer_id' => $customer->id,
+                ]
+            ];
+            
+            // Create order via Razorpay API
+            $ch = curl_init('https://api.razorpay.com/v1/orders');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($razorpayOrderData));
+            curl_setopt($ch, CURLOPT_USERPWD, $razorpayKeyId . ':' . $razorpayKeySecret);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json'
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode !== 200) {
+                \Log::error('Razorpay order creation failed', [
+                    'response' => $response,
+                    'http_code' => $httpCode,
+                    'order_id' => $order->id
+                ]);
+                
+                // Delete the order if Razorpay order creation failed
+                $order->delete();
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create payment order. Please try again.'
+                ], 500);
+            }
+            
+            $razorpayOrder = json_decode($response, true);
+            
+            // Update order with Razorpay order ID
+            $order->update([
+                'razorpay_order_id' => $razorpayOrder['id'] ?? null,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'razorpay_order_id' => $razorpayOrder['id'],
+                    'amount' => $amount,
+                    'currency' => 'INR',
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Razorpay order creation error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create payment order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Handle Razorpay payment success callback
+     */
+    public function razorpayPaymentSuccess(Request $request)
+    {
+        try {
+            $razorpayOrderId = $request->input('razorpay_order_id');
+            $razorpayPaymentId = $request->input('razorpay_payment_id');
+            $razorpaySignature = $request->input('razorpay_signature');
+            $orderId = $request->input('order_id');
+            
+            if (!$razorpayOrderId || !$razorpayPaymentId || !$razorpaySignature || !$orderId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing payment parameters'
+                ], 400);
+            }
+            
+            $order = \App\Models\Order::find($orderId);
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found'
+                ], 404);
+            }
+            
+            // Verify signature
+            $razorpayKeySecret = env('RAZORPAY_KEY_SECRET', 'J1eq1gkUD4049W9CuDsqljXw');
+            $generatedSignature = hash_hmac('sha256', $razorpayOrderId . '|' . $razorpayPaymentId, $razorpayKeySecret);
+            
+            if ($generatedSignature !== $razorpaySignature) {
+                \Log::error('Razorpay signature verification failed', [
+                    'order_id' => $orderId,
+                    'expected' => $generatedSignature,
+                    'received' => $razorpaySignature
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment verification failed'
+                ], 400);
+            }
+            
+            // Update order payment status
+            $order->update([
+                'payment_status' => 'paid',
+                'razorpay_payment_id' => $razorpayPaymentId,
+                'razorpay_signature' => $razorpaySignature,
+                'status' => 'processing', // Move order to processing after payment
+            ]);
+            
+            // Clear cart
+            if ($order->customer_id) {
+                $cart = \App\Models\Cart::where('customer_id', $order->customer_id)->active()->first();
+                if ($cart) {
+                    $cart->items()->delete();
+                    $cart->delete();
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment successful',
+                'order_number' => $order->order_number
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Razorpay payment success error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment processing failed: ' . $e->getMessage()
+            ], 500);
         }
     }
 

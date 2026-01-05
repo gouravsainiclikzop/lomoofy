@@ -316,6 +316,12 @@
 												data-product-slug="{{ $product->slug }}">
 												<i class="lni lni-shopping-basket me-2"></i>Add to Cart 
 											</button>
+											<!-- Stock Status Message -->
+											<div id="stock-status-message" class="mt-2" style="display: none;">
+												<small class="text-danger">
+													<i class="lni lni-close me-1"></i><span id="stock-status-text">Out of Stock</span>
+												</small>
+											</div>
 										</div>
 										<div class="col-12 col-md-6 col-lg-3">
 											<!-- Wishlist -->
@@ -1176,6 +1182,62 @@
         }
     }
     
+    // Update add to cart button based on stock status
+    function updateAddToCartButton() {
+        // Check if jQuery is available
+        if (typeof jQuery === 'undefined' && typeof $ === 'undefined') {
+            // jQuery not loaded yet, try again later
+            setTimeout(updateAddToCartButton, 100);
+            return;
+        }
+        
+        const $ = typeof jQuery !== 'undefined' ? jQuery : window.$;
+        const variant = window.getSelectedVariant ? window.getSelectedVariant() : null;
+        const $addToCartBtn = $('.add-to-cart-btn');
+        const $stockStatusMsg = $('#stock-status-message');
+        const $stockStatusText = $('#stock-status-text');
+        
+        if (!$addToCartBtn.length) {
+            return;
+        }
+        
+        if (!variant) {
+            // No variant selected - disable button
+            $addToCartBtn.prop('disabled', true)
+                .html('<i class="lni lni-shopping-basket me-2"></i>Select Options')
+                .removeClass('btn-danger')
+                .addClass('bg-dark');
+            if ($stockStatusMsg.length) {
+                $stockStatusMsg.hide();
+            }
+            return;
+        }
+        
+        // Check if variant is in stock
+        const isInStock = variant.is_in_stock !== false && variant.is_in_stock !== undefined;
+        
+        if (!isInStock) {
+            // Out of stock - disable button and show message
+            $addToCartBtn.prop('disabled', true)
+                .addClass('btn-danger')
+                .removeClass('bg-dark')
+                .html('<i class="lni lni-close me-2"></i>Out of Stock');
+            if ($stockStatusMsg.length) {
+                $stockStatusMsg.show();
+                $stockStatusText.text('This Item is currently out of stock.');
+            }
+        } else {
+            // In stock - enable button
+            $addToCartBtn.prop('disabled', false)
+                .removeClass('btn-danger')
+                .addClass('bg-dark')
+                .html('<i class="lni lni-shopping-basket me-2"></i>Add to Cart');
+            if ($stockStatusMsg.length) {
+                $stockStatusMsg.hide();
+            }
+        }
+    }
+    
     // Update all variant information including images
     function updateVariantInfo() {
         updateProductImagesGallery(); // Update images first
@@ -1184,6 +1246,7 @@
         updateVariantHighlightsDetails();
         updateVariantSku();
         updateVariantAdditionalInfo(); // Update additional info tab
+        updateAddToCartButton(); // Update add to cart button based on stock
     }
     
     // Add event listeners for all attribute changes
@@ -1210,8 +1273,15 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Attach thumbnail handlers
         attachThumbnailHandlers();
-        // Update variant info
+        // Update variant info (will call updateAddToCartButton)
         updateVariantInfo();
+        
+        // Also update button when jQuery is ready (for add to cart button)
+        if (typeof jQuery !== 'undefined') {
+            jQuery(document).ready(function() {
+                updateAddToCartButton();
+            });
+        }
     });
 })();
 </script>
@@ -1317,6 +1387,14 @@
                 
                 if (!variant || !variantId) {
                     alert('Please select all required attributes (size, color, etc.)');
+                    $btn.prop('disabled', false);
+                    return;
+                }
+                
+                // Check if variant is in stock
+                const isInStock = variant.is_in_stock !== false && variant.is_in_stock !== undefined;
+                if (!isInStock) {
+                    alert('This product is currently out of stock.');
                     $btn.prop('disabled', false);
                     return;
                 }

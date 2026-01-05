@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
 Route::get('/test-db', function () {
-    return DB::table('product_variants')->whereIn('product_id', [8])->select('product_id', 'sku','attributes', 'name', 'price', 'sale_price', 'discount_type', 'discount_value', 'discount_active')->get();  
+    return DB::table('inventory_stocks')->whereIn('product_variant_id', ['15','16','19'])->get();  
 });
 
 
@@ -59,6 +59,8 @@ Route::middleware(['customer.auth'])->group(function () {
     Route::get('/payment-methode', [FrontendController::class, 'paymentMethode'])->name('frontend.payment-methode');
     Route::get('/checkout', [FrontendController::class, 'checkout'])->name('frontend.checkout')->middleware('simple.checkout.prerequisites');
     Route::post('/checkout', [FrontendController::class, 'processCheckout'])->name('frontend.checkout.process')->middleware('simple.checkout.prerequisites');
+    Route::post('/razorpay/create-order', [FrontendController::class, 'createRazorpayOrder'])->name('frontend.razorpay.create-order')->middleware('simple.checkout.prerequisites');
+    Route::post('/razorpay/payment-success', [FrontendController::class, 'razorpayPaymentSuccess'])->name('frontend.razorpay.payment-success');
     
     // Temporary debug route without middleware
     Route::get('/checkout-debug', [FrontendController::class, 'checkout'])->name('frontend.checkout.debug');

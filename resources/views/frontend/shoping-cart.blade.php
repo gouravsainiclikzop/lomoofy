@@ -263,10 +263,11 @@ $(document).ready(function() {
         if (items.length > 0) {
             itemsHtml = '<ul class="list-group list-group-sm list-group-flush-y list-group-flush-x mb-4">';
             items.forEach(function(item) {
-                const isOutOfStock = item.manage_stock && !item.in_stock;
+                // Check out of stock: either explicitly marked as out_of_stock, or manage_stock is true and in_stock is false
+                const isOutOfStock = item.out_of_stock || (item.manage_stock && !item.in_stock);
                 const stockBadge = isOutOfStock 
                     ? '<span class="badge bg-danger ms-2">Out of Stock</span>' 
-                    : (item.manage_stock && item.available_stock !== null 
+                    : (item.manage_stock && item.available_stock !== null && item.available_stock > 0
                         ? '<span class="badge bg-success ms-2">In Stock (' + item.available_stock + ')</span>' 
                         : '');
                 
@@ -359,7 +360,7 @@ $(document).ready(function() {
         $('#cartItemsContainer').show();
         
         // Check if any items are out of stock
-        const hasOutOfStockItems = items.some(item => item.manage_stock && !item.in_stock);
+        const hasOutOfStockItems = items.some(item => item.out_of_stock || (item.manage_stock && !item.in_stock));
         
         // Show/hide coupon section and checkout button based on items and stock availability
         if (items.length > 0 && !hasOutOfStockItems) {

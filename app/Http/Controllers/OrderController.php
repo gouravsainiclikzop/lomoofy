@@ -339,11 +339,13 @@ class OrderController extends Controller
                     $variant->stock_quantity = $newQuantity;
                 }
                 
-                // Update stock status
-                $totalStock = $variant->total_stock_quantity ?? ($variant->stock_quantity ?? 0);
-                if ($totalStock <= 0) {
-                    $variant->stock_status = 'out_of_stock';
+                // Update stock status - calculate total stock from warehouses
+                $totalStock = $variant->inventoryStocks()->sum('quantity');
+                if ($totalStock == 0 && ($variant->stock_quantity ?? 0) > 0) {
+                    $totalStock = $variant->stock_quantity;
                 }
+                $variant->stock_quantity = $totalStock;
+                $variant->stock_status = $totalStock > 0 ? 'in_stock' : 'out_of_stock';
                 $variant->save();
             }
         } else {

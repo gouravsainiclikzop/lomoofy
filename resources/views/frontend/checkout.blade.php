@@ -253,11 +253,17 @@
                                 </label>
                             </div>
                             <div class="form-check mb-3">
-                                <input class="form-check-input" type="radio" name="payment_method" value="online_payment" id="online">
+                                <input class="form-check-input" type="radio" name="payment_method" value="razorpay" id="online">
                                 <label class="form-check-label" for="online">
                                     <strong>Online Payment</strong>
-                                    <small class="d-block text-muted">Pay securely online (Coming Soon)</small>
+                                    <small class="d-block text-muted">Pay securely online </small>
                                 </label>
+                            </div>
+                            <!-- Razorpay Payment Button Container -->
+                            <div id="razorpayPaymentContainer" style="display: none;" class="mt-3">
+                                <button type="button" id="razorpayPayBtn" class="btn btn-primary w-100">
+                                    <i class="fas fa-credit-card me-2"></i>Pay Online
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -610,6 +616,9 @@
 @endpush
 
 @push('scripts')
+<!-- Razorpay Checkout Script -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <!-- Enhanced Checkout JavaScript -->
 <script src="{{ asset('frontend/js/checkout.js') }}"></script>
 
@@ -639,9 +648,127 @@ if (!window.checkoutManager) {
             $(this).closest('.address-card').addClass('border-primary');
             $(this).closest('.address-options').find('.address-card').not($(this).closest('.address-card')).removeClass('border-primary');
         });
+        
+        // Handle payment method change
+        $('input[name="payment_method"]').on('change', function() {
+            const paymentMethod = $(this).val();
+            const razorpayContainer = $('#razorpayPaymentContainer');
+            const placeOrderBtn = $('#placeOrderBtn');
+            
+            if (paymentMethod === 'razorpay') {
+                razorpayContainer.show();
+                placeOrderBtn.hide();
+            } else {
+                razorpayContainer.hide();
+                placeOrderBtn.show();
+            }
+        });
+        
+        // Initialize payment method visibility
+        $('input[name="payment_method"]:checked').trigger('change');
+        
+        // Razorpay payment handler
+        $('#razorpayPayBtn').on('click', function(e) {
+            e.preventDefault();
+            
+            const $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-2"></i>Processing...');
+            
+            // Get form data
+            const formData = {
+                shipping_address_id: $('input[name="shipping_address_id"]:checked').val(),
+                billing_address_id: $('input[name="billing_address_id"]:checked').val(),
+                billing_same_as_shipping: $('#billingSameAsShipping').is(':checked') ? 1 : 0,
+                payment_method: 'razorpay',
+                notes: $('textarea[name="notes"]').val(),
+                session_id: $('input[name="session_id"]').val(),
+                _token: $('input[name="_token"]').val()
+            };
+            
+            // Create Razorpay order
+            $.ajax({
+                url: '{{ route("frontend.razorpay.create-order") }}',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.success && response.data) {
+                        const options = {
+                            key: 'rzp_test_RytPVtZvClzzRV',
+                            amount: response.data.amount,
+                            currency: response.data.currency,
+                            name: '{{ config("app.name", "Lomoofy Industries") }}',
+                            description: 'Order #' + response.data.order_number,
+                            order_id: response.data.razorpay_order_id,
+                            handler: function(razorpayResponse) {
+                                // Payment successful - verify and update order
+                                $.ajax({
+                                    url: '{{ route("frontend.razorpay.payment-success") }}',
+                                    method: 'POST',
+                                    data: {
+                                        razorpay_order_id: razorpayResponse.razorpay_order_id,
+                                        razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                                        razorpay_signature: razorpayResponse.razorpay_signature,
+                                        order_id: response.data.order_id,
+                                        _token: '{{ csrf_token() }}'
+                                    },
+                                    success: function(verifyResponse) {
+                                        if (verifyResponse.success) {
+                                            window.location.href = '{{ route("frontend.complete-order", ["order" => ":order"]) }}'.replace(':order', response.data.order_number);
+                                        } else {
+                                            alert('Payment verification failed: ' + (verifyResponse.message || 'Unknown error'));
+                                            $btn.prop('disabled', false).html('<i class="fas fa-credit-card me-2"></i>Pay with Razorpay');
+                                        }
+                                    },
+                                    error: function() {
+                                        alert('Payment verification failed. Please contact support.');
+                                        $btn.prop('disabled', false).html('<i class="fas fa-credit-card me-2"></i>Pay with Razorpay');
+                                    }
+                                });
+                            },
+                            prefill: {
+                                name: '{{ Auth::guard("customer")->user()->name ?? "" }}',
+                                email: '{{ Auth::guard("customer")->user()->email ?? "" }}',
+                                contact: '{{ Auth::guard("customer")->user()->phone ?? "" }}'
+                            },
+                            theme: {
+                                color: '#528FF0'
+                            },
+                            modal: {
+                                ondismiss: function() {
+                                    $btn.prop('disabled', false).html('<i class="fas fa-credit-card me-2"></i>Pay with Razorpay');
+                                }
+                            }
+                        };
+                        
+                        const razorpay = new Razorpay(options);
+                        razorpay.open();
+                    } else {
+                        alert('Failed to create payment order: ' + (response.message || 'Unknown error'));
+                        $btn.prop('disabled', false).html('<i class="fas fa-credit-card me-2"></i>Pay with Razorpay');
+                    }
+                },
+                error: function(xhr) {
+                    let errorMsg = 'Failed to initialize payment. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        errorMsg = Object.values(xhr.responseJSON.errors).flat().join(', ');
+                    }
+                    alert(errorMsg);
+                    $btn.prop('disabled', false).html('<i class="fas fa-credit-card me-2"></i>Pay with Razorpay');
+                }
+            });
+        });
 
         // Form validation and submission
         $('#checkoutForm').on('submit', function(e) {
+            // Prevent form submission if Razorpay is selected
+            if ($('input[name="payment_method"]:checked').val() === 'razorpay') {
+                e.preventDefault();
+                $('#razorpayPayBtn').trigger('click');
+                return false;
+            }
+            
             const submitBtn = $('#placeOrderBtn');
             const btnText = submitBtn.find('.btn-text');
             const btnLoading = submitBtn.find('.btn-loading');
