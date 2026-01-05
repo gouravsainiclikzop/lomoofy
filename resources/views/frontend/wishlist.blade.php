@@ -81,35 +81,72 @@
 														$firstColorVariant = ($product['color_variants'] && $product['color_variants']->isNotEmpty()) 
 															? $product['color_variants']->first() 
 															: null;
-														if ($firstColorVariant) {
-															// Use variant-level pricing
-															$variantPrice = $firstColorVariant['price'] ?? $product['min_price'] ?? 0;
+														$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
+														$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
+														$hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+														
+														if ($firstColorVariant && !$hasPriceRange) {
+															// Use variant-level pricing with discount
+															$variantPrice = $firstColorVariant['price'] ?? $minDisplayPrice;
 															$variantSalePrice = $firstColorVariant['sale_price'] ?? null;
-															$variantHasSale = $firstColorVariant['has_sale'] ?? false;
 															$discountType = $firstColorVariant['discount_type'] ?? null;
 															$discountValue = $firstColorVariant['discount_value'] ?? null;
 															$discountActive = $firstColorVariant['discount_active'] ?? false;
 														} else {
-															// Use product-level pricing (no discount info available at product level)
-															$variantPrice = $product['min_price'] ?? 0;
+															// Use product-level pricing for price ranges
+															$variantPrice = $minDisplayPrice;
 															$variantSalePrice = $product['min_sale_price'] ?? null;
-															$variantHasSale = $product['has_sale'] ?? false;
 															$discountType = null;
 															$discountValue = null;
 															$discountActive = false;
 														}
 													@endphp
-													@include('frontend.partials.product-pricing-compact', [
-														'price' => $variantPrice,
-														'sale_price' => $variantSalePrice,
-														'original_price' => $variantPrice,
-														'discount_type' => $discountType,
-														'discount_value' => $discountValue,
-														'discount_active' => $discountActive,
-														'gstType' => true,
-														'gstPercentage' => 0,
-														'compact' => true
-													])
+													
+													@if($firstColorVariant && !$hasPriceRange)
+														{{-- Use variant-level pricing when single variant --}}
+														@include('frontend.partials.product-pricing-compact', [
+															'price' => $variantPrice,
+															'sale_price' => $variantSalePrice,
+															'original_price' => $variantPrice,
+															'discount_type' => $discountType,
+															'discount_value' => $discountValue,
+															'discount_active' => $discountActive,
+															'gstType' => true,
+															'gstPercentage' => 0,
+															'compact' => true
+														])
+													@else
+														{{-- Use price range display for multiple variants --}}
+														@php
+															$minPrice = $product['min_price'] ?? 0;
+															$maxPrice = $product['max_price'] ?? 0;
+															$minSalePrice = $product['min_sale_price'] ?? null;
+															$hasSale = $product['has_sale'] ?? false;
+														@endphp
+														@if($hasSale && $minSalePrice)
+															<div class="product-pricing-compact compact">
+																<div class="pricing-main-compact">
+																	<div class="d-flex align-items-baseline flex-wrap gap-1">
+																		<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
+																			₹{{ number_format($minPrice, 0) }}
+																			@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
+																		</span>
+																		<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
+																			₹{{ number_format($minSalePrice, 0) }}
+																			@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
+																				- ₹{{ number_format($product['max_sale_price'], 0) }}
+																			@endif
+																		</span>
+																	</div>
+																</div>
+															</div>
+														@else
+															<span class="ft-medium fs-md text-dark">
+																₹{{ number_format($minDisplayPrice, 0) }}
+																@if($hasPriceRange) - ₹{{ number_format($maxDisplayPrice, 0) }} @endif
+															</span>
+														@endif
+													@endif
 												</div>
 											</div>
 										</div>

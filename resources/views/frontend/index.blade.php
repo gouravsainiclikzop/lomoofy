@@ -250,11 +250,56 @@
 															<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
 														</h5>
 														<div class="elis_rty">
-															@if($product['has_sale'] && $product['min_sale_price'])
-																<span class="text-muted ft-medium line-through me-2">₹{{ number_format($product['min_price'], 0) }}</span>
-																<span class="ft-medium theme-cl fs-md">₹{{ number_format($product['min_sale_price'], 0) }}</span>
+															@php
+																$hasPriceRange = $product['has_price_range'] ?? false;
+																$firstVariantPrice = $product['first_variant_price'] ?? $product['min_price'] ?? 0;
+																$firstVariantSalePrice = $product['first_variant_sale_price'] ?? null;
+															@endphp
+															
+															@if(!$hasPriceRange && isset($product['first_variant_discount_type']))
+																{{-- Use variant-level pricing when single variant with discount --}}
+																@include('frontend.partials.product-pricing-compact', [
+																	'price' => $firstVariantPrice,
+																	'sale_price' => $firstVariantSalePrice,
+																	'original_price' => $firstVariantPrice,
+																	'discount_type' => $product['first_variant_discount_type'] ?? null,
+																	'discount_value' => $product['first_variant_discount_value'] ?? null,
+																	'discount_active' => $product['first_variant_discount_active'] ?? false,
+																	'gstType' => true,
+																	'gstPercentage' => 0,
+																	'compact' => true
+																])
 															@else
-																<span class="ft-medium fs-md text-dark">{{ $product['price_display'] }}</span>
+																{{-- Use price range or simple display for multiple variants --}}
+																@php
+																	$minPrice = $product['min_price'] ?? 0;
+																	$maxPrice = $product['max_price'] ?? 0;
+																	$minSalePrice = $product['min_sale_price'] ?? null;
+																	$hasSale = $product['has_sale'] ?? false;
+																@endphp
+																@if($hasSale && $minSalePrice)
+																	<div class="product-pricing-compact compact">
+																		<div class="pricing-main-compact">
+																			<div class="d-flex align-items-baseline flex-wrap gap-1">
+																				<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
+																					₹{{ number_format($minPrice, 0) }}
+																					@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
+																				</span>
+																				<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
+																					₹{{ number_format($minSalePrice, 0) }}
+																					@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
+																						- ₹{{ number_format($product['max_sale_price'], 0) }}
+																					@endif
+																				</span>
+																			</div>
+																		</div>
+																	</div>
+																@else
+																	<span class="ft-medium fs-md text-dark">
+																		₹{{ number_format($product['min_display_price'] ?? $product['min_price'] ?? 0, 0) }}
+																		@if($hasPriceRange) - ₹{{ number_format($product['max_display_price'] ?? $product['max_price'] ?? 0, 0) }} @endif
+																	</span>
+																@endif
 															@endif
 														</div>
 													</div>
@@ -399,6 +444,9 @@
 																data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
 																data-regular-price="{{ $colorVariant['price'] ?? 0 }}"
 																data-has-sale="{{ $colorVariant['has_sale'] ? '1' : '0' }}"
+																data-discount-type="{{ $colorVariant['discount_type'] ?? '' }}"
+																data-discount-value="{{ $colorVariant['discount_value'] ?? 0 }}"
+																data-discount-active="{{ ($colorVariant['discount_active'] ?? false) ? '1' : '0' }}"
 																data-product-index="{{ $index }}"
 																data-variant-image="{{ $colorVariant['image'] ?? '' }}"
 																data-color-value="{{ $colorVariant['color'] ?? '' }}">
@@ -434,23 +482,61 @@
 										<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1">
 											<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
 										</h5>
-										<div class="elis_rty">
-											<span class="ft-medium text-dark fs-sm product-price-{{ $index }}">
+										<div class="elis_rty product-price-{{ $index }}">
+											@php
+												// Use first color variant if available for better discount display
+												// Otherwise use product-level min/max prices
+												$firstColorVariant = $product['color_variants']->first();
+												$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
+												$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
+												$hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+											@endphp
+											
+											@if($firstColorVariant && !$hasPriceRange)
+												{{-- Use variant-level pricing when single variant --}}
+												@include('frontend.partials.product-pricing-compact', [
+													'price' => $firstColorVariant['price'] ?? $minDisplayPrice,
+													'sale_price' => $firstColorVariant['sale_price'] ?? null,
+													'original_price' => $firstColorVariant['price'] ?? $minDisplayPrice,
+													'discount_type' => $firstColorVariant['discount_type'] ?? null,
+													'discount_value' => $firstColorVariant['discount_value'] ?? null,
+													'discount_active' => $firstColorVariant['discount_active'] ?? false,
+													'gstType' => true,
+													'gstPercentage' => 0,
+													'compact' => true
+												])
+											@else
+												{{-- Use price range display for multiple variants --}}
 												@php
-													// Show price range from all variants using display prices (sale price if available, otherwise regular)
-													// When showing default product image, don't show strikethrough price
-													$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
-													$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
-													
-													// Determine display price range (no strikethrough for default view)
-													if ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0) {
-													$displayPrice = '₹' . number_format($minDisplayPrice, 0) . ' - ₹' . number_format($maxDisplayPrice, 0);
-												} else {
-													$displayPrice = '₹' . number_format($minDisplayPrice, 0);
-												}
+													$minPrice = $product['min_price'] ?? 0;
+													$maxPrice = $product['max_price'] ?? 0;
+													$minSalePrice = $product['min_sale_price'] ?? null;
+													$hasSale = $product['has_sale'] ?? false;
 												@endphp
-												{{ $displayPrice }}
-											</span>
+												@if($hasSale && $minSalePrice)
+													<div class="product-pricing-compact compact">
+														<div class="pricing-main-compact">
+															<div class="d-flex align-items-baseline flex-wrap gap-1">
+																<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
+																	₹{{ number_format($minPrice, 0) }}
+																	@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
+																</span>
+																<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
+																	₹{{ number_format($minSalePrice, 0) }}
+																	@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
+																		- ₹{{ number_format($product['max_sale_price'], 0) }}
+																	@endif
+																</span>
+															</div>
+														</div>
+													</div>
+												@else
+													<span class="ft-medium text-dark fs-sm">
+														₹{{ number_format($minDisplayPrice, 0) }}
+														@if($hasPriceRange) - ₹{{ number_format($maxDisplayPrice, 0) }} @endif
+													</span>
+												@endif
+											@endif
 										</div>
 									</div>
 								</div>
@@ -553,11 +639,56 @@
 															<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
 														</h5>
 														<div class="elis_rty">
-															@if($product['has_sale'] && $product['min_sale_price'])
-																<span class="text-muted ft-medium line-through me-2">₹{{ number_format($product['min_price'], 0) }}</span>
-																<span class="ft-medium theme-cl fs-md">₹{{ number_format($product['min_sale_price'], 0) }}</span>
+															@php
+																$hasPriceRange = $product['has_price_range'] ?? false;
+																$firstVariantPrice = $product['first_variant_price'] ?? $product['min_price'] ?? 0;
+																$firstVariantSalePrice = $product['first_variant_sale_price'] ?? null;
+															@endphp
+															
+															@if(!$hasPriceRange && isset($product['first_variant_discount_type']))
+																{{-- Use variant-level pricing when single variant with discount --}}
+																@include('frontend.partials.product-pricing-compact', [
+																	'price' => $firstVariantPrice,
+																	'sale_price' => $firstVariantSalePrice,
+																	'original_price' => $firstVariantPrice,
+																	'discount_type' => $product['first_variant_discount_type'] ?? null,
+																	'discount_value' => $product['first_variant_discount_value'] ?? null,
+																	'discount_active' => $product['first_variant_discount_active'] ?? false,
+																	'gstType' => true,
+																	'gstPercentage' => 0,
+																	'compact' => true
+																])
 															@else
-																<span class="ft-medium fs-md text-dark">{{ $product['price_display'] }}</span>
+																{{-- Use price range or simple display for multiple variants --}}
+																@php
+																	$minPrice = $product['min_price'] ?? 0;
+																	$maxPrice = $product['max_price'] ?? 0;
+																	$minSalePrice = $product['min_sale_price'] ?? null;
+																	$hasSale = $product['has_sale'] ?? false;
+																@endphp
+																@if($hasSale && $minSalePrice)
+																	<div class="product-pricing-compact compact">
+																		<div class="pricing-main-compact">
+																			<div class="d-flex align-items-baseline flex-wrap gap-1">
+																				<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
+																					₹{{ number_format($minPrice, 0) }}
+																					@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
+																				</span>
+																				<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
+																					₹{{ number_format($minSalePrice, 0) }}
+																					@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
+																						- ₹{{ number_format($product['max_sale_price'], 0) }}
+																					@endif
+																				</span>
+																			</div>
+																		</div>
+																	</div>
+																@else
+																	<span class="ft-medium fs-md text-dark">
+																		₹{{ number_format($product['min_display_price'] ?? $product['min_price'] ?? 0, 0) }}
+																		@if($hasPriceRange) - ₹{{ number_format($product['max_display_price'] ?? $product['max_price'] ?? 0, 0) }} @endif
+																	</span>
+																@endif
 															@endif
 														</div>
 													</div>
@@ -773,6 +904,9 @@
 @endsection
 
 @push('scripts')
+{{-- Include cart pricing JavaScript helper --}}
+@include('frontend.partials.product-pricing-cart-js')
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Reset all color options to unchecked state on page load
@@ -812,24 +946,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                // Update price to show selected variant price
+                // Update price to show selected variant price using pricing component
                 if (priceElement) {
-                    const displayPrice = parseFloat(this.getAttribute('data-price')) || 0;
-                    const regularPrice = parseFloat(this.getAttribute('data-regular-price')) || 0;
-                    const salePrice = this.getAttribute('data-sale-price');
-                    const hasSale = this.getAttribute('data-has-sale') === '1' && salePrice;
+                    // Create a virtual variant object for pricing function
+                    const variantData = {
+                        price: parseFloat(this.getAttribute('data-regular-price')) || 0,
+                        sale_price: this.getAttribute('data-sale-price') || null,
+                        discount_type: this.getAttribute('data-discount-type') || null,
+                        discount_value: parseFloat(this.getAttribute('data-discount-value')) || 0,
+                        discount_active: this.getAttribute('data-discount-active') === '1',
+                        gst_type: true,
+                        gst_percentage: 0
+                    };
                     
-                    // Format price display for selected variant
-                    let priceHtml = '';
-                    if (hasSale && salePrice) {
-                        priceHtml = '<span class="text-decoration-line-through text-muted me-1">₹' + 
-                                   Math.round(regularPrice).toLocaleString() + '</span>' +
-                                   '₹' + Math.round(displayPrice).toLocaleString();
+                    // Use pricing component JavaScript if available
+                    if (typeof generateCartItemPricing === 'function') {
+                        const pricingHtml = generateCartItemPricing(variantData);
+                        priceElement.innerHTML = pricingHtml;
                     } else {
-                        priceHtml = '₹' + Math.round(displayPrice).toLocaleString();
+                        // Fallback to simple price display
+                        const displayPrice = parseFloat(this.getAttribute('data-price')) || 0;
+                        const regularPrice = parseFloat(this.getAttribute('data-regular-price')) || 0;
+                        const salePrice = this.getAttribute('data-sale-price');
+                        const hasSale = this.getAttribute('data-has-sale') === '1' && salePrice;
+                        
+                        let priceHtml = '';
+                        if (hasSale && salePrice) {
+                            priceHtml = '<span class="text-decoration-line-through text-muted me-1">₹' + 
+                                       Math.round(regularPrice).toLocaleString() + '</span>' +
+                                       '₹' + Math.round(displayPrice).toLocaleString();
+                        } else {
+                            priceHtml = '₹' + Math.round(displayPrice).toLocaleString();
+                        }
+                        priceElement.innerHTML = priceHtml;
                     }
-                    
-                    priceElement.innerHTML = priceHtml;
                 }
 
                 // Update the data-selected-color attribute on the quick view button

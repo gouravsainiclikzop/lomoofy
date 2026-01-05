@@ -77,12 +77,10 @@ class FrontendController extends Controller
             $prices = $activeVariants->pluck('price')->filter();
             $salePrices = $activeVariants->pluck('sale_price')->filter();
             
-            // Calculate display prices (sale price if available, otherwise regular price)
+            // Calculate display prices (final price after discount, sale price if available, otherwise regular price)
             $displayPrices = $activeVariants->map(function($variant) {
-                $price = $variant->price ?? 0;
-                $salePrice = $variant->sale_price;
-                // Use sale price if it exists and is less than regular price, otherwise use regular price
-                return ($salePrice && $salePrice < $price) ? $salePrice : $price;
+                // Use final_price which accounts for discounts
+                return $variant->final_price ?? $variant->price ?? 0;
             })->filter();
             
             $minPrice = $prices->min() ?? 0;
@@ -238,6 +236,8 @@ class FrontendController extends Controller
                     $price = $variant->price ?? 0;
                     $salePrice = $variant->sale_price;
                     $hasSale = $salePrice && $salePrice < $price;
+                    // Calculate final price after discount
+                    $finalPrice = $variant->final_price ?? ($hasSale ? $salePrice : $price);
                     
                     return [
                         'id' => $variant->id,
@@ -247,7 +247,10 @@ class FrontendController extends Controller
                         'price' => $price,
                         'sale_price' => $salePrice,
                         'has_sale' => $hasSale,
-                        'display_price' => $hasSale ? $salePrice : $price,
+                        'display_price' => $finalPrice,
+                        'discount_type' => $variant->discount_type ?? null,
+                        'discount_value' => $variant->discount_value ?? null,
+                        'discount_active' => $variant->discount_active ?? false,
                         'variable_attributes' => $variableAttributes, // All variable attributes for this variant
                         'available_variable_values' => $availableVariableValues, // All available values for each variable attribute
                         'images' => $variant->images->map(function($img) {
@@ -339,11 +342,10 @@ class FrontendController extends Controller
                 $prices = $activeVariants->pluck('price')->filter();
                 $salePrices = $activeVariants->pluck('sale_price')->filter();
                 
-                // Calculate display prices
+                // Calculate display prices (final price after discount)
                 $displayPrices = $activeVariants->map(function($variant) {
-                    $price = $variant->price ?? 0;
-                    $salePrice = $variant->sale_price;
-                    return ($salePrice && $salePrice < $price) ? $salePrice : $price;
+                    // Use final_price which accounts for discounts
+                    return $variant->final_price ?? $variant->price ?? 0;
                 })->filter();
                 
                 $minPrice = $prices->min() ?? 0;
@@ -391,6 +393,15 @@ class FrontendController extends Controller
                 $priceDisplay = 'Price on request';
             }
             
+            // Get first variant discount info for pricing component
+            $firstVariant = $activeVariants->first();
+            $firstVariantPrice = $firstVariant ? ($firstVariant->price ?? 0) : $minPrice;
+            $firstVariantSalePrice = $firstVariant ? $firstVariant->sale_price : $minSalePrice;
+            $firstVariantDiscountType = $firstVariant ? ($firstVariant->discount_type ?? null) : null;
+            $firstVariantDiscountValue = $firstVariant ? ($firstVariant->discount_value ?? null) : null;
+            $firstVariantDiscountActive = $firstVariant ? ($firstVariant->discount_active ?? false) : false;
+            $hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+            
             // Determine badge type
             $badge = null;
             if ($hasSale) {
@@ -416,6 +427,13 @@ class FrontendController extends Controller
                 'price_display' => $priceDisplay,
                 'badge' => $badge,
                 'in_wishlist' => in_array($product->id, $wishlistProductIds),
+                // Add first variant discount info for pricing component
+                'first_variant_price' => $firstVariantPrice,
+                'first_variant_sale_price' => $firstVariantSalePrice,
+                'first_variant_discount_type' => $firstVariantDiscountType,
+                'first_variant_discount_value' => $firstVariantDiscountValue,
+                'first_variant_discount_active' => $firstVariantDiscountActive,
+                'has_price_range' => $hasPriceRange,
             ];
         });
         
@@ -450,11 +468,10 @@ class FrontendController extends Controller
                 $prices = $activeVariants->pluck('price')->filter();
                 $salePrices = $activeVariants->pluck('sale_price')->filter();
                 
-                // Calculate display prices
+                // Calculate display prices (final price after discount)
                 $displayPrices = $activeVariants->map(function($variant) {
-                    $price = $variant->price ?? 0;
-                    $salePrice = $variant->sale_price;
-                    return ($salePrice && $salePrice < $price) ? $salePrice : $price;
+                    // Use final_price which accounts for discounts
+                    return $variant->final_price ?? $variant->price ?? 0;
                 })->filter();
                 
                 $minPrice = $prices->min() ?? 0;
@@ -497,6 +514,15 @@ class FrontendController extends Controller
                     }
                 }
                 
+                // Get first variant discount info for pricing component
+                $firstVariant = $activeVariants->first();
+                $firstVariantPrice = $firstVariant ? ($firstVariant->price ?? 0) : $minPrice;
+                $firstVariantSalePrice = $firstVariant ? $firstVariant->sale_price : $minSalePrice;
+                $firstVariantDiscountType = $firstVariant ? ($firstVariant->discount_type ?? null) : null;
+                $firstVariantDiscountValue = $firstVariant ? ($firstVariant->discount_value ?? null) : null;
+                $firstVariantDiscountActive = $firstVariant ? ($firstVariant->discount_active ?? false) : false;
+                $hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+                
                 // Determine badge type
                 $badge = null;
                 if ($hasSale) {
@@ -522,6 +548,13 @@ class FrontendController extends Controller
                     'price_display' => $priceDisplay,
                     'badge' => $badge,
                     'in_wishlist' => in_array($product->id, $wishlistProductIds),
+                    // Add first variant discount info for pricing component
+                    'first_variant_price' => $firstVariantPrice,
+                    'first_variant_sale_price' => $firstVariantSalePrice,
+                    'first_variant_discount_type' => $firstVariantDiscountType,
+                    'first_variant_discount_value' => $firstVariantDiscountValue,
+                    'first_variant_discount_active' => $firstVariantDiscountActive,
+                    'has_price_range' => $hasPriceRange,
                 ];
             });
         }
@@ -950,12 +983,10 @@ class FrontendController extends Controller
                 $prices = $activeVariants->pluck('price')->filter();
                 $salePrices = $activeVariants->pluck('sale_price')->filter();
                 
-                // Calculate display prices (sale price if available, otherwise regular price)
+                // Calculate display prices (final price after discount, sale price if available, otherwise regular price)
                 $displayPrices = $activeVariants->map(function($variant) {
-                    $price = $variant->price ?? 0;
-                    $salePrice = $variant->sale_price;
-                    // Use sale price if it exists and is less than regular price, otherwise use regular price
-                    return ($salePrice && $salePrice < $price) ? $salePrice : $price;
+                    // Use final_price which accounts for discounts
+                    return $variant->final_price ?? $variant->price ?? 0;
                 })->filter();
                 
                 $minPrice = $prices->min() ?? 0;
@@ -1135,6 +1166,8 @@ class FrontendController extends Controller
                         $price = $variant->price ?? 0;
                         $salePrice = $variant->sale_price;
                         $hasSale = $salePrice && $salePrice < $price;
+                        // Calculate final price after discount
+                        $finalPrice = $variant->final_price ?? ($hasSale ? $salePrice : $price);
                         
                         return [
                             'id' => $variant->id,
@@ -1144,7 +1177,10 @@ class FrontendController extends Controller
                             'price' => $price,
                             'sale_price' => $salePrice,
                             'has_sale' => $hasSale,
-                            'display_price' => $hasSale ? $salePrice : $price,
+                            'display_price' => $finalPrice,
+                            'discount_type' => $variant->discount_type ?? null,
+                            'discount_value' => $variant->discount_value ?? null,
+                            'discount_active' => $variant->discount_active ?? false,
                             'variable_attributes' => $variableAttributes, // All variable attributes for this variant
                             'available_variable_values' => $availableVariableValues, // All available values for each variable attribute
                             'images' => $variant->images->map(function($img) {
@@ -1718,6 +1754,8 @@ class FrontendController extends Controller
                         $price = $variant->price ?? 0;
                         $salePrice = $variant->sale_price;
                         $hasSale = $salePrice && $salePrice < $price;
+                        // Calculate final price after discount
+                        $finalPrice = $variant->final_price ?? ($hasSale ? $salePrice : $price);
                         
                         return [
                             'id' => $variant->id,
@@ -1727,7 +1765,7 @@ class FrontendController extends Controller
                             'price' => $price,
                             'sale_price' => $salePrice,
                             'has_sale' => $hasSale,
-                            'display_price' => $hasSale ? $salePrice : $price,
+                            'display_price' => $finalPrice,
                             'discount_type' => $variant->discount_type ?? null,
                             'discount_value' => $variant->discount_value ?? null,
                             'discount_active' => $variant->discount_active ?? false,
@@ -3068,8 +3106,16 @@ class FrontendController extends Controller
             $prices = $activeVariants->pluck('price')->filter();
             $salePrices = $activeVariants->pluck('sale_price')->filter();
             
+            // Calculate display prices (final price after discount)
+            $displayPrices = $activeVariants->map(function($variant) {
+                // Use final_price which accounts for discounts
+                return $variant->final_price ?? $variant->price ?? 0;
+            })->filter();
+            
             $minPrice = $prices->min() ?? 0;
             $maxPrice = $prices->max() ?? 0;
+            $minDisplayPrice = $displayPrices->min() ?? $minPrice;
+            $maxDisplayPrice = $displayPrices->max() ?? $maxPrice;
             $minSalePrice = $salePrices->min();
             $maxSalePrice = $salePrices->max();
             
@@ -3195,6 +3241,8 @@ class FrontendController extends Controller
                 $price = $variant->price ?? 0;
                 $salePrice = $variant->sale_price;
                 $hasSale = $salePrice && $salePrice < $price;
+                // Calculate final price after discount
+                $finalPrice = $variant->final_price ?? ($hasSale ? $salePrice : $price);
                 
                 return [
                     'id' => $variant->id,
@@ -3204,7 +3252,7 @@ class FrontendController extends Controller
                     'price' => $price,
                     'sale_price' => $salePrice,
                     'has_sale' => $hasSale,
-                    'display_price' => $hasSale ? $salePrice : $price,
+                    'display_price' => $finalPrice,
                     'discount_type' => $variant->discount_type ?? null,
                     'discount_value' => $variant->discount_value ?? null,
                     'discount_active' => $variant->discount_active ?? false,
@@ -3219,6 +3267,8 @@ class FrontendController extends Controller
                 'image_url' => $imageUrl,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
+                'min_display_price' => $minDisplayPrice,
+                'max_display_price' => $maxDisplayPrice,
                 'min_sale_price' => $minSalePrice,
                 'max_sale_price' => $maxSalePrice,
                 'has_sale' => $hasSale,

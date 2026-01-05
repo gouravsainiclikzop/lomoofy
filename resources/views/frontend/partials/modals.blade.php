@@ -28,14 +28,14 @@
 							<div class="prt_02 mb-2">
 								<h2 class="ft-bold mb-1" id="quickViewTitle"></h2>
 								<div class="text-left">
-									<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
+									<!-- <div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
 										<i class="fas fa-star filled"></i>
 										<i class="fas fa-star filled"></i>
 										<i class="fas fa-star filled"></i>
 										<i class="fas fa-star filled"></i>
 										<i class="fas fa-star"></i>
 										<span class="small">(0 Reviews)</span>
-									</div>
+									</div> -->
 									<div class="elis_rty" id="quickViewPrice"></div>
 								</div>
 							</div>

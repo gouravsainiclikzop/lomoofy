@@ -23,7 +23,7 @@
     $customerName = $customer ? $customer->full_name : 'Guest User';
     
     // Get customer location from default address or first address
-    $customerLocation = 'Not Set';
+    $customerLocation = '';
     if ($customer) {
         // Try to get country from default address first
         $defaultAddress = $customer->defaultAddress;
@@ -189,7 +189,7 @@ $(document).ready(function() {
 					}
 					
 					// Update location from default address or any address
-					let location = 'Not Set';
+					let location = '';
 					if (customer.default_address && customer.default_address.country) {
 						location = customer.default_address.country;
 					} else if (customer.addresses && customer.addresses.length > 0) {
@@ -218,7 +218,7 @@ $(document).ready(function() {
 						$('#customerSidebarLoading').hide();
 						$('#customerSidebarInfo').show();
 						$('#customerSidebarName').text('Guest User');
-						$('#customerSidebarLocation').text('Not Set');
+						$('#customerSidebarLocation').text('');
 						$('#customerSidebarImage').attr('src', '{{ asset("frontend/images/user-image.webp") }}').show();
 					}
 				}
@@ -236,7 +236,7 @@ $(document).ready(function() {
 					$('#customerSidebarLoading').hide();
 					$('#customerSidebarInfo').show();
 					$('#customerSidebarName').text('Guest User');
-					$('#customerSidebarLocation').text('Not Set');
+					$('#customerSidebarLocation').text('');
 					$('#customerSidebarImage').attr('src', '{{ asset("frontend/images/user-image.webp") }}').show();
 				}
 			}

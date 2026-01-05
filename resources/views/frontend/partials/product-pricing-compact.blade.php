@@ -35,9 +35,22 @@
             
             // Generate badge text - show combined savings if both sale and discount exist
             if ($salePrice && $salePrice < $basePrice && $basePrice > 0) {
-                // Both sale price and active discount - show total savings percentage
-                $totalPercentage = round((($basePrice - $finalPrice) / $basePrice) * 100);
-                $discountBadgeText = $totalPercentage . '% OFF';
+                // Both sale price and active discount - show sale discount + extra discount
+                $salePercentage = round((($basePrice - $salePrice) / $basePrice) * 100);
+                // Show the actual discount percentage that was applied (not percentage of base price)
+                $extraDiscountPercentage = 0;
+                if ($discount_type === 'percentage') {
+                    $extraDiscountPercentage = round($discount_value);
+                } elseif (in_array($discount_type, ['amount', 'flat'])) {
+                    // For flat discounts, calculate percentage from sale price
+                    if ($salePrice > 0) {
+                        $extraDiscountPercentage = round((($discount_value / $salePrice) * 100));
+                    }
+                }
+                $discountBadgeText = $salePercentage . '% OFF';
+                if ($extraDiscountPercentage > 0) {
+                    $discountBadgeText .= ' (+ extra ' . $extraDiscountPercentage . '% discount)';
+                }
             } else {
                 // Only active discount - show discount amount/percentage
                 if ($discount_type === 'percentage') {
