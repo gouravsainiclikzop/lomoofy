@@ -1209,6 +1209,7 @@ $(document).ready(function() {
     function initializeProductInteractions() {
         // Color option change handlers
         $(document).off('change', '.color-option').on('change', '.color-option', function() {
+            return ; // return for now
             const $this = $(this);
             const productIndex = $this.data('product-index');
             const variantImage = $this.data('variant-image');

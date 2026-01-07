@@ -63,21 +63,7 @@
 			</div>
 			
 			<!-- Right Menu -->
-			<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12">
-<!-- 
-				<div class="currency-selector dropdown js-dropdown float-right">
-					<a href="javascript:void(0);" data-bs-toggle="dropdown" class="popup-title"  title="Currency" aria-label="Currency dropdown">
-						<span class="hidden-xl-down medium text-light">Currency:</span>
-						<span class="iso_code medium text-light">$USD</span>
-						<i class="fa fa-angle-down medium text-light"></i>
-					</a>
-					<ul class="popup-content dropdown-menu">  
-						<li><a title="Euro" href="#" class="dropdown-item medium text-medium">EUR €</a></li>
-						<li class="current"><a title="US Dollar" href="#" class="dropdown-item medium text-medium">USD $</a></li>
-					</ul>
-				</div> -->
-				
-			<!-- Choose Language -->
+			<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12"> 
 			
 			<div class="language-selector-wrapper dropdown js-dropdown float-right me-3">
 				<a class="popup-title" href="javascript:void(0)" data-bs-toggle="dropdown" title="Language" aria-label="Language dropdown">
@@ -95,13 +81,10 @@
 					<li data-lang="hi"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="hi"><img src="{{ asset('frontend/images/7.jpg') }}" alt="hi" width="16" height="11" /><span>हिन्दी</span></a></li>
 					<li data-lang="pa"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="pa"><img src="{{ asset('frontend/images/8.jpg') }}" alt="pa" width="16" height="11" /><span>ਪੰਜਾਬੀ</span></a></li>
 				</ul>
-			</div>
-				 
-				 
+			</div> 
 				<div class="currency-selector dropdown js-dropdown float-right me-3">
 					<a href="{{ route('frontend.profile-info') }}" class="text-light medium">My Account</a>
-				</div>
-				
+				</div> 
 			</div>
 			
 		</div>
@@ -128,172 +111,35 @@
 									</button>
 								</form>
 							</div>
+						</li> 
+				 
+				  	@if(!Auth::guard('customer')->check())
+							<li>
+								<a href="#" data-bs-toggle="modal" data-bs-target="#login"> 
+									<i class="lni lni-user"></i>
+								</a>
+							</li> 
+						@else
+							<li>
+								<a href="{{ route('frontend.profile-info') }}"> 
+									<i class="lni lni-user" style="color: #1db000;"></i>
+								</a>
+							</li>
+						@endif 
+
+						<li>
+							<a href="{{ route('frontend.wishlist') }}" class="wishlist-link">
+								<i class="lni lni-heart"></i><span class="dn-counter">0</span>
+							</a>
 						</li>
-					@guest
-					<li>
-						<a href="#" data-bs-toggle="modal" data-bs-target="#login"> 
-              <i class="lni lni-user-4"></i>
-						</a>
-					</li>
-					@else
-					<li class="has-submenu">
-						<a href="{{ route('frontend.profile-info') }}"> 
-								<i class="lni lnis-user-4" style="color: #1db000"></i>
-							<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span>
-						</a>
-						<ul class="nav-dropdown nav-submenu">
-						<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i> {{ ucfirst(Auth::guard('customer')->user()->full_name ?? "Guest User") }}</a></li>
-							<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
-							<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
-							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Saved Addresses</a></li>
-							<!-- <li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li> -->
-							<li><a href="#" id="customerLogoutBtn2"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
-						</ul>
-					</li>
-					@endguest
-					<li>
-						<a href="{{ route('frontend.wishlist') }}" class="wishlist-link">
-							<i class="lni lni-heart"></i><span class="dn-counter">0</span>
-						</a>
-					</li>
-					<li>
-						<a href="{{ route('frontend.shoping-cart') }}">
-							<i class="lni lni-shopping-basket"></i><span class="dn-counter">0</span>
-						</a>
-					</li>
-					<li>
-						<a href="{{ route('frontend.my-orders') }}">
-							<i class="lni lni-dashboard"></i><span class="dn-counter">0</span>
-						</a>
-					</li>
+						<li>
+							<a href="{{ route('frontend.shoping-cart') }}">
+								<i class="lni lni-shopping-basket"></i><span class="dn-counter">0</span>
+							</a>
+						</li> 
 					</ul>
 				</div>
 			</div>
-
-			<div class="nav-menus-wrapper" style="transition-property: none;">
-				<ul class="nav-menu">  
-				<li class=""><a href="javascript:void(0);">Lomoofy <span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-						<ul class="nav-dropdown nav-submenu" style="right: auto; display: none;">
-							<li class=""><a href="{{ route('frontend.about-us') }}">About Us</a></li>
-							<li class=""><a href="{{ route('frontend.contact') }}">Contact Us</a></li> 
-						</ul>
-					</li>
-					
-					<li class="main-menu-item"><a href="javascript:void(0);">Men<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-									<ul class="nav-dropdown nav-submenu" style="display: none; right: auto;">
-										<li class=""><a href="javascript:void(0);">T-Shirts<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu" style="display: none;">
-												<li><a href="{{ route('frontend.shop') }}?category=men-essential-t-shirts">Essential</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-fashion-t-shirts">Fashion</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-stripes-t-shirts">Stripes</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-pocket-t-shirts">Pocket T-Shirts</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-graphic-t-shirts">Graphic T-Shirts</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-slogan-t-shirts">Slogan T-Shirts</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-fullsleeve-t-shirts">Fullsleeve</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-vneck-t-shirts">Fullsleeve V-Necks</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Shirts<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=men-casual-shoes">Casual Shoes</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-formal-shirts">Formal Shirts</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-slim-fit-shirts">Slim Fit Shirts</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-regular-fit-shirts">Regular Fit Shirts</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Bottomwear<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=men-jeans">Jeans</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-trousers">Trousers</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-chinos">Chinos</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-cargos">Cargos</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Winter Wear<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=men-sweatshirt-hoodies">Sweatshirt and Hoodies</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-sweater-cardigans">Sweater and Cardigans</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-jackets-coats">Jackets and Coats</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-tracksuits">Tracksuits</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Footwear<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=men-casual-shoes">Casual Shoes</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-formal-shoes">Formal Shoes</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-sports-shoes">Sports Shoes</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Sports And Gym Wear<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=men-sports-t-shirts">T-Shirts</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-sports-shorts">Shorts</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=men-sports-pants">Track Pants</a></li>
-											</ul>
-										</li> 
-									</ul>
-								</li>
-
-								<li class="main-menu-item"><a href="javascript:void(0);">Women<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-									<ul class="nav-dropdown nav-submenu" style="display: none; right: auto;">
-										<li class=""><a href="javascript:void(0);">Western Wear<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu" style="display: none;">
-												<li><a href="{{ route('frontend.shop') }}?category=women-western-wear">Western Wear</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=women-ethnic-wear">Ethnic Wear</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=women-western-wear">Western Wear</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Ethnic Wear<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=women-ethnic-wear">Ethnic Wear</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=women-western-wear">Western Wear</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=women-ethnic-wear">Ethnic Wear</a></li>
-											</ul>
-										</li> 
-											<li><a href="{{ route('frontend.shop') }}?category=women-ethnic-wear">Ethnic Wear</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-western-wear">Western Wear</a></li>
-											<li><a href="{{ route('frontend.shop') }}?category=women-ethnic-wear">Ethnic Wear</a></li>
-									</ul>
-								</li>
-
-
-								<li class="main-menu-item">
-									<a href="javascript:void(0);">Kids<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-									<ul class="nav-dropdown nav-submenu" style="display: none; right: auto;">
-										<li class=""><a href="javascript:void(0);">Boys<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu" style="display: none;">
-												<li><a href="{{ route('frontend.shop') }}?category=kids-boys-shirts">Shirts</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=kids-boys-trousers">Trousers</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=kids-boys-chinos">Chinos</a></li>
-												<li><a href="{{ route('frontend.shop') }}?category=kids-boys-cargos">Cargos</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Girls<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=kids-girls-dresses">Dresses</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Babies<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=kids-babies-dresses">Dresses</a></li>
-											</ul>
-										</li>
-										<li><a href="javascript:void(0);">Toddlers<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-											<ul class="nav-dropdown nav-submenu">
-												<li><a href="{{ route('frontend.shop') }}?category=kids-toddlers-dresses">Dresses</a></li>
-											</ul>
-										</li>
-									</ul>
-								</li> 
-								
-								<li class="main-menu-item"><a href="{{ route('frontend.my-orders') }}"> <i class="lni lni-dashboard"></i> My Orders</a></li>
-								<li class="main-menu-item"><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"> <i class="lni lni-heart"></i> Wishlist</a></li>
-								<li class="main-menu-item"><a href="{{ route('frontend.profile-info') }}"> <i class="lni lni-user"></i> Profile Info</a></li>
-								<li class="main-menu-item"><a href="{{ route('frontend.addresses') }}"> <i class="lni lni-map-marker"></i> Addresses</a></li>
-								<!-- <li class="main-menu-item"><a href="{{ route('frontend.payment-methode') }}"> <i class="lni lni-mastercard"></i>Payment Methode</a></li> -->
-								<li class="main-menu-item"><a href="#" id="customerLogoutBtn3"> 
-								<i class="lni lni-power-switch"></i>   Log Out</a></li>
-								
 
 					@php 
 						// Get parent categories (level 0) with their children (level 1) and grandchildren (level 2)
@@ -319,6 +165,109 @@
 							->get();
 					@endphp
 
+			<div class="nav-menus-wrapper" style="transition-property: none;">
+				<ul class="nav-menu">   
+			
+				<!-- mobile menu starts here -->
+				<!-- mobile menu starts here -->
+				<!-- mobile menu starts here -->
+				<!-- mobile menu starts here -->
+				<li class="main-menu-item">
+				  <a href="javascript:void(0);">Lomoofy <span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
+					<ul class="nav-dropdown nav-submenu" style="right: auto; display: none;">
+						<li class=""><a href="{{ route('frontend.about-us') }}">About Us</a></li>
+						<li class=""><a href="{{ route('frontend.contact') }}">Contact Us</a></li> 
+					</ul>
+				</li>  
+				
+@foreach($parentCategories as $parent)
+    @php
+        $hasChildren = $parent->children && $parent->children->count();
+    @endphp
+
+    <li class="main-menu-item">
+        <a href="{{ route('frontend.shop') }}?category={{ $parent->slug }}">
+            {{ $parent->name }}
+            @if($hasChildren)
+                <span class="submenu-indicator">
+                    <span class="submenu-indicator-chevron"></span>
+                </span>
+            @endif
+        </a>
+
+        @if($hasChildren)
+            <ul class="nav-dropdown nav-submenu" style="display:none; right:auto;">
+
+                @foreach($parent->children as $child)
+                    @php
+                        $hasGrand = $child->children && $child->children->count();
+                    @endphp
+
+                    <li>
+                        <a href="javascript:void(0);">
+                            {{ $child->name }}
+                            @if($hasGrand)
+                                <span class="submenu-indicator">
+                                    <span class="submenu-indicator-chevron"></span>
+                                </span>
+                            @endif
+                        </a>
+
+                        <ul class="nav-dropdown nav-submenu" style="display:none;">
+                            @if($hasGrand)
+                                @foreach($child->children as $grand)
+                                    <li>
+                                        <a href="{{ route('frontend.shop') }}?category={{ $grand->slug }}">
+                                            {{ $grand->name }}
+                                        </a>
+                                    </li>
+                                @endforeach
+                            @else
+                                <li>
+                                    <a href="{{ route('frontend.shop') }}?category={{ $child->slug }}">
+                                        View All
+                                    </a>
+                                </li>
+                            @endif
+                        </ul>
+                    </li>
+
+                @endforeach
+
+            </ul>
+        @endif
+    </li> 
+@endforeach
+  
+								
+					<li class="main-menu-item"><a href="{{ route('frontend.profile-info') }}"> <i class="lni lni-user"></i> {{ ucfirst(Auth::guard('customer')->user()->full_name ?? "Guest User") }}</a></li>
+							 
+					@if(Auth::guard('customer')->check())
+					<li class="main-menu-item"><a href="{{ route('frontend.my-orders') }}"> <i class="lni lni-dashboard"></i> My Orders </a></li>
+					<li class="main-menu-item"><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"> <i class="lni lni-heart"></i> Wishlist</a></li>
+					<li class="main-menu-item"><a href="{{ route('frontend.addresses') }}"> <i class="lni lni-map-marker"></i> Addresses</a></li>
+				
+					<li class="main-menu-item">
+						<a href="#" id="customerLogoutBtn3"> 
+							<i class="lni lni-power-switch"></i> Log Out
+						</a>
+					</li>   
+					@endif
+
+
+				<!-- mobile menu ends here -->
+				
+				<!-- desktop menu starts here -->
+				<!-- desktop menu starts here -->
+				<!-- desktop menu starts here -->
+				<!-- desktop menu starts here -->
+				<li class="mega-menu-item">
+				  <a href="javascript:void(0);">Lomoofy <span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
+					<ul class="nav-dropdown nav-submenu" style="right: auto; display: none;">
+						<li class=""><a href="{{ route('frontend.about-us') }}">About Us</a></li>
+						<li class=""><a href="{{ route('frontend.contact') }}">Contact Us</a></li> 
+					</ul>
+				</li>  
 					@foreach($parentCategories as $parentCategory)
 						@php
 							$hasChildren = $parentCategory->children && $parentCategory->children->count() > 0;
@@ -384,85 +333,7 @@
 								</div>
 							@endif
 						</li>
-					@endforeach
-
-					<!-- 
-					Dynamic Category Code (Commented - Uncomment when ready to use):
-					@php
-						use App\Models\Category;
-						// Get parent categories (level 1) with their children and grandchildren
-						$parentCategories = Category::whereNull('parent_id')
-							->where(function($q) {
-								$q->where('is_active', true)->orWhereNull('is_active');
-							})
-							->with(['children' => function($query) {
-								$query->where(function($q) {
-									$q->where('is_active', true)->orWhereNull('is_active');
-								})
-								->orderBy('sort_order')
-								->with(['children' => function($q) {
-									$q->where(function($query) {
-										$query->where('is_active', true)->orWhereNull('is_active');
-									})
-									->orderBy('sort_order');
-								}]);
-							}])
-							->orderBy('sort_order')
-							->get();
-					@endphp
-
-					@if($parentCategories->count() > 0)
-						@foreach($parentCategories as $parentCategory)
-							@php
-								$hasChildren = $parentCategory->children->count() > 0;
-							@endphp
-							<li>
-								<a href="{{ route('frontend.shop') }}?category={{ $parentCategory->slug }}">
-									{{ $parentCategory->name }}
-									@if($hasChildren)
-										<span class="submenu-indicator">
-											<span class="submenu-indicator-chevron"></span>
-										</span>
-									@endif
-								</a>
-								@if($hasChildren)
-									<ul class="nav-dropdown nav-submenu">
-										@foreach($parentCategory->children as $childCategory)
-											@php
-												$hasGrandchildren = $childCategory->children->count() > 0;
-											@endphp
-											<li class="{{ $hasGrandchildren ? 'has-submenu' : '' }}">
-												<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}">
-													{{ $childCategory->name }}
-												</a>
-												@if($hasGrandchildren)
-													<ul class="nav-dropdown nav-submenu">
-														@foreach($childCategory->children as $grandchildCategory)
-															<li>
-																<a href="{{ route('frontend.shop') }}?category={{ $grandchildCategory->slug }}">
-																	{{ $grandchildCategory->name }}
-																</a>
-															</li>
-														@endforeach
-													</ul>
-												@endif
-											</li>
-										@endforeach
-									</ul>
-								@endif
-							</li>
-						@endforeach
-					@endif
-					-->
-
-					<!-- <li><a href="{{ route('frontend.index') }}">Home</a></li>
-					
-					<li><a href="{{ route('frontend.shop') }}">Shop</a></li>   -->
-
-          <!-- <li><a href="{{ route('frontend.profile-info') }}">My Account</a></li> -->
-
-         <!-- <li><a href="{{ route('frontend.privacy') }}">Privacy Policy</a></li> -->
-					
+					@endforeach  
 				</ul>
 				
 				<ul class="nav-menu nav-menu-social align-to-right">
@@ -475,11 +346,9 @@
 								</button>
 							</form>
 						</div>
-					</li>
-
+					</li> 
 					<!-- Customer Auth: Checked via JavaScript (session-based) -->
-					<!-- Guest User Icon (shown by default, hidden when customer logged in) -->
- 
+					<!-- Guest User Icon (shown by default, hidden when customer logged in) --> 
 					<li id="guestUserIcon" class="customer-auth-element">
 						<a href="#" id="guestUserIconLink">
 							<i class="lni lni-user"></i>
@@ -494,12 +363,13 @@
 						</a>
 						<ul class="nav-dropdown nav-submenu">
 						<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i> {{ ucfirst(Auth::guard('customer')->user()->full_name ?? "Guest User") }}</a></li>
+						 
 							<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
-							<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
-							<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Saved Addresses</a></li>
-							<!-- <li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li> -->
-							<li><a href="#" id="customerLogoutBtn"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
-						</ul>
+								<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
+								<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Saved Addresses</a></li>
+								<!-- <li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li> -->
+								<li><a href="#" id="customerLogoutBtn"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
+							</ul> 
 					</li>
 					<!-- wishlist icon desktop -->
 					<li>

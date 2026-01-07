@@ -3605,7 +3605,8 @@ $(document).ready(function() {
 
     function addValueInput(comboIndex, type) {
         const valuesList = $(`#valuesList_${comboIndex}`);
-        const valueIndex = combinationConfig[comboIndex].values.length;
+        // Calculate valueIndex based on existing DOM elements, not combinationConfig (which is only populated when generating variants)
+        const valueIndex = valuesList.find('.value-item').length;
         const valueId = `value_${comboIndex}_${valueIndex}`;
         
         let valueHtml = '';
@@ -3654,6 +3655,9 @@ $(document).ready(function() {
                     const hiddenInput = document.getElementById(colorInputId);
                     const btnElement = $colorBtn[0];
                     if (hiddenInput && btnElement) {
+                        // Mark as manually initialized to prevent MutationObserver from re-initializing
+                        $colorBtn.attr('data-pickr-manual-init', 'true');
+                        $colorBtn.attr('data-pickr-initialized', 'true');
                         initializeVariantColorPicker(colorInputId, btnElement, hiddenInput, '#000000');
                     }
                 }
@@ -3671,8 +3675,9 @@ $(document).ready(function() {
             const valuesList = $(`#valuesList_${comboIdx}`);
             
             valuesList.find('.value-item').each(function() {
-                const valueIndex = $(this).data('value-index');
-                const labelInput = $(this).find('.value-label');
+                const $valueItem = $(this);
+                const valueIndex = $valueItem.data('value-index');
+                const labelInput = $valueItem.find('.value-label');
                 const label = labelInput.val().trim();
                 
                 if (!label) {
@@ -3683,8 +3688,41 @@ $(document).ready(function() {
                 let valueData = { label: label };
                 
                 if (combo.type === 'color') {
-                    const colorInputId = `colorInput_${comboIdx}_${valueIndex}`;
-                    const colorCode = $(`#${colorInputId}`).val() || '#000000';
+                    // Find the color input directly within this value item to ensure we get the correct one
+                    const $colorInput = $valueItem.find('.color-input-hidden');
+                    const colorInputId = $colorInput.attr('id');
+                    let colorCode = $colorInput.val() || '#000000';
+                    
+                    // ALWAYS prefer picker color over input value - picker is the source of truth
+                    // The input might not be updated if change event hasn't fired yet
+                    if (colorInputId && window.variantColorPickers && window.variantColorPickers[colorInputId]) {
+                        try {
+                            const pickerColor = window.variantColorPickers[colorInputId].getColor();
+                            if (pickerColor) {
+                                const hexColor = pickerColor.toHEXA().toString();
+                                colorCode = hexColor;
+                                // Also update the hidden input to keep them in sync
+                                $colorInput.val(hexColor);
+                                console.log('[Generate Variants - Combination Wizard] Using picker color (source of truth):', {
+                                    colorInputId: colorInputId,
+                                    label: label,
+                                    pickerColor: hexColor,
+                                    inputWas: $colorInput.val(),
+                                    inputNow: hexColor
+                                });
+                            }
+                        } catch(e) {
+                            console.warn('[Generate Variants - Combination Wizard] Error getting picker color, using input value:', e);
+                        }
+                    } else {
+                        console.log('[Generate Variants - Combination Wizard] No picker instance found, using input value:', {
+                            colorInputId: colorInputId,
+                            label: label,
+                            colorCode: colorCode,
+                            availablePickers: window.variantColorPickers ? Object.keys(window.variantColorPickers) : []
+                        });
+                    }
+                    
                     valueData.code = colorCode;
                 }
                 
@@ -5019,13 +5057,15 @@ ${variantName}
             
             console.log('Found variant rows:', rows.length);
             
-            if (rows.length === 0) {
-                showToast('error', 'No variants to save. Please add at least one variant.');
-                return;
-            }
+            // Collect all variant IDs being sent (for debugging)
+            const variantIdsBeingSent = [];
             
             // Extract variant data from each row
             rows.forEach((row, index) => {
+                // First, try to get variant ID from row's data attribute (fallback)
+                const variantIdFromRow = row.getAttribute('data-variant-id');
+                let variantIdSent = false;
+                
                 // Get all hidden inputs from the row
                 const hiddenInputs = row.querySelectorAll('input[type="hidden"]');
                 console.log(`Row ${index} has ${hiddenInputs.length} hidden inputs`);
@@ -5046,8 +5086,10 @@ ${variantName}
                     
                     // Try to get field name from data attribute
                     if (dataAttr) {
-                        if (dataAttr.includes('id')) fieldName = 'id';
-                        else if (dataAttr.includes('sku')) fieldName = 'sku';
+                        if (dataAttr.includes('id')) {
+                            fieldName = 'id';
+                            variantIdSent = true; // Mark that we found the ID input
+                        } else if (dataAttr.includes('sku')) fieldName = 'sku';
                         else if (dataAttr.includes('price')) fieldName = 'price';
                         else if (dataAttr.includes('attributes')) fieldName = 'attributes';
                         else if (dataAttr.includes('measurements')) fieldName = 'measurements';
@@ -5061,6 +5103,9 @@ ${variantName}
                         const fieldMatch = name.match(/variants\[\d+\]\[(.+)\]/);
                         if (fieldMatch) {
                             fieldName = fieldMatch[1];
+                            if (fieldName === 'id') {
+                                variantIdSent = true; // Mark that we found the ID input
+                            }
                         }
                     }
                     
@@ -5076,11 +5121,45 @@ ${variantName}
                             } else if (value && value !== '[]' && value !== '{}' && value.trim() !== '') {
                                 formData.append(`variants[${index}][${fieldName}]`, value);
                             }
+                        } else if (fieldName === 'id') {
+                            // Always send variant ID if it exists
+                            // This is critical for backend to know which variants to keep vs delete
+                            // Prefer value from input if it's not empty, otherwise use row attribute
+                            let idToSend = null;
+                            let idSource = '';
+                            
+                            if (value !== null && value !== undefined && value !== '') {
+                                idToSend = value;
+                                idSource = 'input';
+                            } else if (variantIdFromRow && variantIdFromRow !== '') {
+                                idToSend = variantIdFromRow;
+                                idSource = 'row attribute';
+                            }
+                            
+                            if (idToSend) {
+                                formData.append(`variants[${index}][${fieldName}]`, idToSend);
+                                variantIdsBeingSent.push(idToSend);
+                                console.log(`Sending variant ID: ${idToSend} (from ${idSource})`);
+                            } else {
+                                console.warn(`Row ${index} has no variant ID - will be treated as new variant`);
+                            }
                         } else if (value !== '' && value !== null) {
                             formData.append(`variants[${index}][${fieldName}]`, value);
                         }
                     }
                 });
+                
+                // Ensure variant ID is sent if it exists (fallback if not found in hidden inputs)
+                if (!variantIdSent && variantIdFromRow && variantIdFromRow !== '') {
+                    formData.append(`variants[${index}][id]`, variantIdFromRow);
+                    variantIdsBeingSent.push(variantIdFromRow);
+                    console.log(`Added variant ID from row data attribute: ${variantIdFromRow}`);
+                }
+                
+                // Log if row has no ID (might be a new variant)
+                if (!variantIdSent && (!variantIdFromRow || variantIdFromRow === '')) {
+                    console.log(`Row ${index} has no variant ID - will be treated as new variant`);
+                }
                 
                 // Also extract from visible inputs
                 const skuInput = row.querySelector('[name*="[sku]"]');
@@ -5105,6 +5184,16 @@ ${variantName}
                     });
                 }
             });
+            
+            // Log what we're sending
+            console.log(`Total variants being sent: ${rows.length}`);
+            console.log(`Variant IDs being sent:`, variantIdsBeingSent);
+            if (rows.length === 0) {
+                console.log('No variants in DOM - all variants will be deleted from database');
+                // Explicitly send an empty variants array to ensure backend receives it
+                // This ensures the backend knows to delete all existing variants
+                formData.append('variants[]', '');
+            }
             
             // Add CSRF token
             const csrfToken = document.querySelector('meta[name="csrf-token"]');
@@ -6741,7 +6830,20 @@ ${variantName}
         if (attributesHidden && attributesHidden.value) {
             try {
                 attributes = JSON.parse(attributesHidden.value);
+                // Validate and fix color code if it's incorrect
+                if (attributes.color && attributes.color.label && attributes.color.code) {
+                    // If color code is the same as another variant's code but label is different,
+                    // this might indicate a bug - log it for debugging
+                    const variantName = label ? label.textContent.trim() : 'Unknown';
+                    console.log('[extractVariantRowData] Reading attributes for variant:', {
+                        variantName: variantName,
+                        colorLabel: attributes.color.label,
+                        colorCode: attributes.color.code,
+                        attributesInputValue: attributesHidden.value
+                    });
+                }
             } catch (error) {
+                console.error('[extractVariantRowData] Error parsing attributes:', error, attributesHidden.value);
                 attributes = {};
             }
         } else if (row.dataset.variantData) {
@@ -6749,8 +6851,18 @@ ${variantName}
                 const parsed = JSON.parse(row.dataset.variantData);
                 if (parsed && typeof parsed === 'object') {
                     attributes = parsed.attributes || {};
+                    // Validate color code from dataset as well
+                    if (attributes.color && attributes.color.label && attributes.color.code) {
+                        const variantName = label ? label.textContent.trim() : 'Unknown';
+                        console.log('[extractVariantRowData] Reading attributes from dataset for variant:', {
+                            variantName: variantName,
+                            colorLabel: attributes.color.label,
+                            colorCode: attributes.color.code
+                        });
+                    }
                 }
             } catch (error) {
+                console.error('[extractVariantRowData] Error parsing variantData:', error);
                 attributes = {};
             }
         }
@@ -7350,9 +7462,33 @@ ${variantName}
             if (attrs && typeof attrs === 'object' && !Array.isArray(attrs)) {
                 // Extract color
                 if (attrs.color && attrs.color.label) {
+                    // Always preserve the color code from the variant - don't default to #000000
+                    // If code is missing, try to infer from label or use a sensible default
+                    let colorCode = attrs.color.code;
+                    if (!colorCode || colorCode === '#000000' || colorCode === '#FFFFFF') {
+                        // Try to infer color code from label name
+                        const labelLower = attrs.color.label.toLowerCase();
+                        if (labelLower.includes('black')) {
+                            colorCode = '#000000';
+                        } else if (labelLower.includes('white')) {
+                            colorCode = '#FFFFFF';
+                        } else if (labelLower.includes('red')) {
+                            colorCode = '#FF0000';
+                        } else if (labelLower.includes('blue')) {
+                            colorCode = '#0000FF';
+                        } else if (labelLower.includes('green')) {
+                            colorCode = '#008000';
+                        } else if (labelLower.includes('yellow')) {
+                            colorCode = '#FFFF00';
+                        } else {
+                            // Use the code from variant if it exists, otherwise keep original
+                            colorCode = attrs.color.code || '#000000';
+                        }
+                    }
+                    
                     const colorValue = {
                         label: attrs.color.label,
-                        code: attrs.color.code || '#000000'
+                        code: colorCode
                     };
                     attributeStructure.color.values.add(JSON.stringify(colorValue));
                 }
@@ -7447,10 +7583,13 @@ ${variantName}
             // Color values with color codes
             values.forEach((value, index) => {
                 const colorLabel = value.label || value;
-                const colorCode = value.code || '#000000';
+                // Ensure we use the actual color code from the value object, not a default
+                const colorCode = (value && typeof value === 'object' && value.code) ? value.code : '#000000';
                 const valueId = `attr_${attrKey}_value_${index}`;
+                // Ensure the value object has both label and code
+                const valueObj = typeof value === 'object' ? { label: colorLabel, code: colorCode } : { label: colorLabel, code: '#000000' };
                 valuesHtml += `
-                    <div class="form-check form-check-inline mb-2">
+                    <div class="form-check form-check-inline mb-2 d-flex align-items-center attribute-value-item" data-value-index="${index}">
                         <input class="form-check-input attribute-value-checkbox" 
                                type="checkbox" 
                                id="${valueId}"
@@ -7458,11 +7597,30 @@ ${variantName}
                                data-attribute-type="color"
                                data-value-label="${escapeHtml(colorLabel)}"
                                data-value-code="${escapeHtml(colorCode)}"
-                               value="${escapeHtml(JSON.stringify(value))}">
-                        <label class="form-check-label d-flex align-items-center" for="${valueId}">
+                               value="${escapeHtml(JSON.stringify(valueObj))}">
+                        <label class="form-check-label d-flex align-items-center me-2" for="${valueId}" style="cursor: pointer;">
                             <span class="rounded-circle me-2" style="width: 20px; height: 20px; background-color: ${colorCode}; border: 1px solid #ddd; display: inline-block;"></span>
-                            ${escapeHtml(colorLabel)}
+                            <span class="attribute-value-label">${escapeHtml(colorLabel)}</span>
                         </label>
+                        <div class="btn-group btn-group-sm ms-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm edit-attribute-value-btn" 
+                                    data-attribute-key="${attrKey}"
+                                    data-attribute-type="color"
+                                    data-value-index="${index}"
+                                    data-value-label="${escapeHtml(colorLabel)}"
+                                    data-value-code="${escapeHtml(colorCode)}"
+                                    title="Edit value">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm delete-attribute-value-btn" 
+                                    data-attribute-key="${attrKey}"
+                                    data-attribute-type="color"
+                                    data-value-index="${index}"
+                                    data-value-label="${escapeHtml(colorLabel)}"
+                                    title="Delete value">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
             });
@@ -7470,18 +7628,37 @@ ${variantName}
             // Variable values (size, etc.)
             values.forEach((value, index) => {
                 const valueId = `attr_${attrKey}_value_${index}`;
+                const valueLabel = typeof value === 'object' ? (value.label || value) : value;
                 valuesHtml += `
-                    <div class="form-check form-check-inline mb-2">
+                    <div class="form-check form-check-inline mb-2 d-flex align-items-center attribute-value-item" data-value-index="${index}">
                         <input class="form-check-input attribute-value-checkbox" 
                                type="checkbox" 
                                id="${valueId}"
                                data-attribute-key="${attrKey}"
                                data-attribute-type="variable"
-                               data-value-label="${escapeHtml(value)}"
-                               value="${escapeHtml(value)}">
-                        <label class="form-check-label" for="${valueId}">
-                            ${escapeHtml(value)}
+                               data-value-label="${escapeHtml(valueLabel)}"
+                               value="${escapeHtml(valueLabel)}">
+                        <label class="form-check-label me-2" for="${valueId}" style="cursor: pointer;">
+                            <span class="attribute-value-label">${escapeHtml(valueLabel)}</span>
                         </label>
+                        <div class="btn-group btn-group-sm ms-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm edit-attribute-value-btn" 
+                                    data-attribute-key="${attrKey}"
+                                    data-attribute-type="variable"
+                                    data-value-index="${index}"
+                                    data-value-label="${escapeHtml(valueLabel)}"
+                                    title="Edit value">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm delete-attribute-value-btn" 
+                                    data-attribute-key="${attrKey}"
+                                    data-attribute-type="variable"
+                                    data-value-index="${index}"
+                                    data-value-label="${escapeHtml(valueLabel)}"
+                                    title="Delete value">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
             });
@@ -7535,15 +7712,64 @@ ${variantName}
             }
             
             if (attrType === 'color') {
+                // ALWAYS use data attributes as the source of truth - they're set when checkbox is created
+                const codeFromAttr = $checkbox.attr('data-value-code'); // Use attr() instead of data() to get raw value
+                const labelFromAttr = $checkbox.attr('data-value-label');
+                const checkboxId = $checkbox.attr('id');
+                
+                console.log('[Generate Variants - Reading Color]', {
+                    checkboxId: checkboxId,
+                    attrKey: attrKey,
+                    codeFromAttr: codeFromAttr,
+                    labelFromAttr: labelFromAttr,
+                    checkboxValue: value
+                });
+                
+                // Build color data object - prioritize data attributes over JSON value
+                let colorData = {
+                    label: labelFromAttr || '',
+                    code: codeFromAttr || '#000000'
+                };
+                
+                // Try to parse JSON value as fallback, but data attributes take precedence
                 try {
-                    const colorData = JSON.parse(value);
-                    selectedValues[attrKey].values.push(colorData);
+                    const parsedValue = JSON.parse(value);
+                    console.log('[Generate Variants - Parsed JSON]', {
+                        checkboxId: checkboxId,
+                        parsedValue: parsedValue
+                    });
+                    // Only use parsed values if data attributes are missing
+                    if (!colorData.label && parsedValue.label) {
+                        colorData.label = parsedValue.label;
+                    }
+                    // Only use parsed code if data attribute code is missing or default
+                    if (!codeFromAttr || codeFromAttr === '#000000' || codeFromAttr === '#FFFFFF') {
+                        if (parsedValue.code && parsedValue.code !== '#000000') {
+                            colorData.code = parsedValue.code;
+                            console.log('[Generate Variants] Using parsed code:', parsedValue.code);
+                        }
+                    }
                 } catch (e) {
-                    // Fallback
-                    const label = $checkbox.data('value-label');
-                    const code = $checkbox.data('value-code') || '#000000';
-                    selectedValues[attrKey].values.push({ label: label, code: code });
+                    // If JSON parsing fails, we already have data from attributes
+                    console.log('[Generate Variants] Color value JSON parse failed, using data attributes:', e);
                 }
+                
+                // Final fallback - ensure we have at least a label
+                if (!colorData.label) {
+                    colorData.label = value || 'Unknown Color';
+                }
+                
+                console.log('[Generate Variants - FINAL Color Data]', {
+                    checkboxId: checkboxId,
+                    attrKey: attrKey,
+                    finalLabel: colorData.label,
+                    finalCode: colorData.code,
+                    codeFromAttr: codeFromAttr,
+                    labelFromAttr: labelFromAttr,
+                    willBeAddedTo: 'selectedValues[' + attrKey + '].values'
+                });
+                
+                selectedValues[attrKey].values.push(colorData);
             } else {
                 selectedValues[attrKey].values.push(value);
             }
@@ -7610,7 +7836,15 @@ ${variantName}
                 
                 if (attrData.type === 'color') {
                     hasColor = true;
-                    colorData = typeof value === 'object' ? value : { label: value, code: '#000000' };
+                    // Ensure color code is preserved from the value object
+                    if (typeof value === 'object' && value.code) {
+                        colorData = { label: value.label || value, code: value.code };
+                    } else if (typeof value === 'object' && value.label) {
+                        // Has label but no code, try to get from checkbox
+                        colorData = { label: value.label, code: '#000000' };
+                    } else {
+                        colorData = { label: value, code: '#000000' };
+                    }
                 } else {
                     attributes.variable[key] = typeof value === 'object' ? value.label || value : value;
                 }
@@ -7671,6 +7905,7 @@ ${variantName}
         // Create inline input form
         let inputHtml = '';
         if (attrType === 'color') {
+            const colorInputId = `newColorInput_${attrKey}_${Date.now()}`;
             inputHtml = `
                 <div class="border rounded p-2 mb-2 bg-light add-value-form">
                     <div class="row g-2">
@@ -7678,7 +7913,8 @@ ${variantName}
                             <input type="text" class="form-control form-control-sm new-value-label" placeholder="Color name (e.g., Red, Blue)">
                         </div>
                         <div class="col-md-4">
-                            <input type="text" class="form-control form-control-sm new-value-color-code" value="#000000" placeholder="#000000">
+                            <input type="hidden" class="form-control form-control-sm new-value-color-code" id="${colorInputId}" value="#000000">
+                            <button type="button" class="btn btn-sm w-100 new-color-picker-btn" data-color-input="${colorInputId}" style="background-color: #000000; height: 38px; border: 1px solid #ced4da; border-radius: 0.375rem; cursor: pointer;" title="Click to pick color"></button>
                         </div>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-sm btn-success save-new-value-btn" data-attribute-key="${escapeHtml(attrKey)}" data-attribute-type="${escapeHtml(attrType)}">
@@ -7712,6 +7948,82 @@ ${variantName}
         }
         
         $valuesContainer.append(inputHtml);
+        
+        // Initialize color picker for new color input if it's a color attribute
+        if (attrType === 'color') {
+            setTimeout(function() {
+                // Find the newly added form (last one in container)
+                const $newForm = $valuesContainer.find('.add-value-form').last();
+                const colorInputId = $newForm.find('.new-value-color-code').attr('id');
+                
+                console.log('[Add New Value] Initializing color picker:', {
+                    colorInputId: colorInputId,
+                    formExists: $newForm.length > 0,
+                    attrKey: attrKey
+                });
+                
+                if (colorInputId) {
+                    const $colorBtn = $newForm.find('.new-color-picker-btn');
+                    const $hiddenInput = $newForm.find(`#${colorInputId}`);
+                    
+                    // Ensure the input starts with #000000
+                    $hiddenInput.val('#000000');
+                    
+                    if ($colorBtn.length && $hiddenInput.length && $colorBtn[0] && $hiddenInput[0]) {
+                        // Mark button to prevent MutationObserver from initializing it again
+                        $colorBtn.attr('data-pickr-initialized', 'true');
+                        $colorBtn.attr('data-pickr-manual-init', 'true');
+                        
+                        // Destroy any existing picker instance for this input
+                        if (window.variantColorPickers && window.variantColorPickers[colorInputId]) {
+                            try {
+                                console.log('[Add New Value] Destroying existing picker for:', colorInputId);
+                                window.variantColorPickers[colorInputId].destroy();
+                                delete window.variantColorPickers[colorInputId];
+                            } catch(e) {
+                                console.log('[Add New Value] Error destroying existing color picker:', e);
+                            }
+                        }
+                        
+                        // Initialize with fresh #000000
+                        console.log('[Add New Value] Creating new picker instance for:', {
+                            colorInputId: colorInputId,
+                            buttonElement: !!$colorBtn[0],
+                            hiddenInputElement: !!$hiddenInput[0],
+                            existingPickers: window.variantColorPickers ? Object.keys(window.variantColorPickers) : []
+                        });
+                        
+                        const picker = initializeVariantColorPicker(colorInputId, $colorBtn[0], $hiddenInput[0], '#000000');
+                        
+                        if (picker) {
+                            console.log('[Add New Value] Color picker initialized successfully:', {
+                                colorInputId: colorInputId,
+                                pickerInstance: !!picker,
+                                storedIn: `window.variantColorPickers['${colorInputId}']`,
+                                allPickersNow: Object.keys(window.variantColorPickers)
+                            });
+                        } else {
+                            console.error('[Add New Value] Failed to initialize color picker:', {
+                                colorInputId: colorInputId,
+                                reason: 'initializeVariantColorPicker returned null'
+                            });
+                        }
+                        
+                        // Ensure button shows #000000
+                        $colorBtn.css('background-color', '#000000');
+                    } else {
+                        console.error('[Add New Value] Missing elements for color picker:', {
+                            colorBtnExists: $colorBtn.length > 0,
+                            hiddenInputExists: $hiddenInput.length > 0,
+                            colorBtnElement: !!$colorBtn[0],
+                            hiddenInputElement: !!$hiddenInput[0]
+                        });
+                    }
+                } else {
+                    console.error('[Add New Value] Color input ID not found in form');
+                }
+            }, 200); // Increased timeout to ensure DOM is ready
+        }
     });
     
     // Handle save new value (inline, no database save)
@@ -7740,10 +8052,90 @@ ${variantName}
         
         let newValueHtml = '';
         if (attrType === 'color') {
-            const colorCode = $form.find('.new-value-color-code').val().trim() || '#000000';
+            // Get color code from hidden input (set by color picker) - use the one in THIS form only
+            const $colorInput = $form.find('.new-value-color-code').first();
+            const colorInputId = $colorInput.attr('id');
+            let colorCode = $colorInput.val().trim() || '#000000';
+            
+            console.log('[Save New Color - Step 1] Reading from hidden input:', {
+                label: label,
+                colorInputId: colorInputId,
+                inputValue: $colorInput.val(),
+                colorCode: colorCode
+            });
+            
+            // Also check the color picker instance directly - THIS IS THE MOST RELIABLE SOURCE
+            if (colorInputId && window.variantColorPickers && window.variantColorPickers[colorInputId]) {
+                try {
+                    const pickerColor = window.variantColorPickers[colorInputId].getColor();
+                    if (pickerColor) {
+                        // Convert to hex format
+                        const hexColor = pickerColor.toHEXA().toString();
+                        console.log('[Save New Color - Step 2] Reading from picker instance:', {
+                            pickerId: colorInputId,
+                            hexColor: hexColor,
+                            currentColorCode: colorCode,
+                            pickerExists: true,
+                            allPickerIds: Object.keys(window.variantColorPickers)
+                        });
+                        // Always use picker color if available (it's the most current)
+                        if (hexColor) {
+                            colorCode = hexColor;
+                            console.log('[Save New Color - Step 2] Using picker color:', hexColor);
+                        }
+                    }
+                } catch(e) {
+                    console.error('[Save New Color] Error getting color from picker:', e);
+                }
+            } else {
+                console.warn('[Save New Color] Picker instance not found for:', {
+                    colorInputId: colorInputId,
+                    pickersExist: !!window.variantColorPickers,
+                    allPickerIds: window.variantColorPickers ? Object.keys(window.variantColorPickers) : [],
+                    formHtml: $form.html().substring(0, 200) // First 200 chars for debugging
+                });
+            }
+            
+            // Fallback: try to get from color picker button background
+            if (!colorCode || colorCode === '#000000') {
+                const $colorBtn = $form.find('.new-color-picker-btn').first();
+                if ($colorBtn.length) {
+                    const bgColor = $colorBtn.css('background-color');
+                    console.log('[Save New Color - Step 3] Reading from button background:', {
+                        bgColor: bgColor,
+                        currentColorCode: colorCode
+                    });
+                    if (bgColor && bgColor !== 'rgb(0, 0, 0)' && bgColor !== 'rgba(0, 0, 0, 0)') {
+                        // Convert rgb to hex if needed
+                        const hexFromBg = rgbToHex(bgColor);
+                        if (hexFromBg && hexFromBg !== '#000000') {
+                            colorCode = hexFromBg;
+                        }
+                    }
+                }
+            }
+            
+            console.log('[Save New Color - FINAL]', {
+                label: label,
+                finalColorCode: colorCode,
+                inputId: colorInputId,
+                inputValue: $colorInput.val(),
+                willBeStoredIn: 'data-value-code attribute and checkbox value'
+            });
+            
             const valueData = { label: label, code: colorCode };
+            
+            console.log('[Save New Color - Creating Checkbox]', {
+                valueId: valueId,
+                label: label,
+                colorCode: colorCode,
+                valueData: valueData,
+                jsonString: JSON.stringify(valueData),
+                willSetDataValueCode: colorCode
+            });
+            
             newValueHtml = `
-                <div class="form-check form-check-inline mb-2">
+                <div class="form-check form-check-inline mb-2 d-flex align-items-center attribute-value-item" data-value-index="${valueIndex}">
                     <input class="form-check-input attribute-value-checkbox" 
                            type="checkbox" 
                            id="${valueId}"
@@ -7752,15 +8144,34 @@ ${variantName}
                            data-value-label="${escapeHtml(label)}"
                            data-value-code="${escapeHtml(colorCode)}"
                            value="${escapeHtml(JSON.stringify(valueData))}">
-                    <label class="form-check-label d-flex align-items-center" for="${valueId}">
+                    <label class="form-check-label d-flex align-items-center me-2" for="${valueId}" style="cursor: pointer;">
                         <span class="rounded-circle me-2" style="width: 20px; height: 20px; background-color: ${colorCode}; border: 1px solid #ddd; display: inline-block;"></span>
-                        ${escapeHtml(label)}
+                        <span class="attribute-value-label">${escapeHtml(label)}</span>
                     </label>
+                    <div class="btn-group btn-group-sm ms-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm edit-attribute-value-btn" 
+                                data-attribute-key="${escapeHtml(attrKey)}"
+                                data-attribute-type="color"
+                                data-value-index="${valueIndex}"
+                                data-value-label="${escapeHtml(label)}"
+                                data-value-code="${escapeHtml(colorCode)}"
+                                title="Edit value">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm delete-attribute-value-btn" 
+                                data-attribute-key="${escapeHtml(attrKey)}"
+                                data-attribute-type="color"
+                                data-value-index="${valueIndex}"
+                                data-value-label="${escapeHtml(label)}"
+                                title="Delete value">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
             `;
         } else {
             newValueHtml = `
-                <div class="form-check form-check-inline mb-2">
+                <div class="form-check form-check-inline mb-2 d-flex align-items-center attribute-value-item" data-value-index="${valueIndex}">
                     <input class="form-check-input attribute-value-checkbox" 
                            type="checkbox" 
                            id="${valueId}"
@@ -7768,9 +8179,27 @@ ${variantName}
                            data-attribute-type="variable"
                            data-value-label="${escapeHtml(label)}"
                            value="${escapeHtml(label)}">
-                    <label class="form-check-label" for="${valueId}">
-                        ${escapeHtml(label)}
+                    <label class="form-check-label me-2" for="${valueId}" style="cursor: pointer;">
+                        <span class="attribute-value-label">${escapeHtml(label)}</span>
                     </label>
+                    <div class="btn-group btn-group-sm ms-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm edit-attribute-value-btn" 
+                                data-attribute-key="${escapeHtml(attrKey)}"
+                                data-attribute-type="variable"
+                                data-value-index="${valueIndex}"
+                                data-value-label="${escapeHtml(label)}"
+                                title="Edit value">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm delete-attribute-value-btn" 
+                                data-attribute-key="${escapeHtml(attrKey)}"
+                                data-attribute-type="variable"
+                                data-value-index="${valueIndex}"
+                                data-value-label="${escapeHtml(label)}"
+                                title="Delete value">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
             `;
         }
@@ -7795,12 +8224,541 @@ ${variantName}
         const $form = $(this).closest('.add-value-form');
         const $card = $form.closest('.card[data-attribute-key]');
         
+        // Clean up color picker instance if it exists
+        const $colorInput = $form.find('.new-value-color-code');
+        if ($colorInput.length) {
+            const colorInputId = $colorInput.attr('id');
+            if (colorInputId && window.variantColorPickers && window.variantColorPickers[colorInputId]) {
+                try {
+                    window.variantColorPickers[colorInputId].destroy();
+                    delete window.variantColorPickers[colorInputId];
+                } catch(e) {
+                    console.log('Error destroying color picker on cancel:', e);
+                }
+            }
+        }
+        
         // Remove the form
         $form.remove();
         
         // Show the "Add New Value" button again
         $card.find('.add-new-value-btn').show();
     });
+    
+    // Helper function to convert RGB to hex
+    function rgbToHex(rgb) {
+        if (!rgb) return null;
+        if (rgb.startsWith('#')) return rgb;
+        
+        const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (!match) return null;
+        
+        const r = parseInt(match[1], 10);
+        const g = parseInt(match[2], 10);
+        const b = parseInt(match[3], 10);
+        
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+    
+    // Handle edit attribute value
+    $(document).on('click', '.edit-attribute-value-btn', function() {
+        const $btn = $(this);
+        const attrKey = $btn.data('attribute-key');
+        const attrType = $btn.data('attribute-type');
+        const valueIndex = $btn.data('value-index');
+        
+        const $item = $btn.closest('.attribute-value-item');
+        const $checkbox = $item.find('.attribute-value-checkbox');
+        const $label = $item.find('.attribute-value-label');
+        const $colorSwatch = $item.find('.rounded-circle');
+        
+        // Get current values from checkbox (source of truth) instead of button data attributes
+        let currentLabel = '';
+        let currentCode = '#000000';
+        
+        if (attrType === 'color') {
+            // For color, get from checkbox data attributes or parse from checkbox value
+            currentLabel = $checkbox.attr('data-value-label') || $checkbox.data('value-label') || '';
+            currentCode = $checkbox.attr('data-value-code') || $checkbox.data('value-code') || '#000000';
+            
+            // If not found in data attributes, try parsing from checkbox value (JSON)
+            if (!currentLabel || currentCode === '#000000') {
+                try {
+                    const checkboxValue = $checkbox.val();
+                    if (checkboxValue) {
+                        const parsedValue = JSON.parse(checkboxValue);
+                        if (parsedValue.label) currentLabel = parsedValue.label;
+                        if (parsedValue.code) currentCode = parsedValue.code;
+                    }
+                } catch(e) {
+                    // If parsing fails, use fallback
+                }
+            }
+            
+            // Final fallback: get from color swatch background color
+            if (currentCode === '#000000' && $colorSwatch.length) {
+                const bgColor = $colorSwatch.css('background-color');
+                if (bgColor) {
+                    currentCode = rgbToHex(bgColor) || currentCode;
+                }
+            }
+        } else {
+            // For variable, get from checkbox value or data attribute
+            currentLabel = $checkbox.val() || $checkbox.attr('data-value-label') || $checkbox.data('value-label') || '';
+        }
+        
+        // Create edit form
+        let editFormHtml = '';
+        if (attrType === 'color') {
+            const editColorInputId = `editColorInput_${attrKey}_${valueIndex}_${Date.now()}`;
+            editFormHtml = `
+                <div class="border rounded p-2 mb-2 bg-light edit-value-form">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input type="text" class="form-control form-control-sm edit-value-label" value="${escapeHtml(currentLabel)}" placeholder="Color name">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="hidden" class="form-control form-control-sm edit-value-color-code" id="${editColorInputId}" value="${escapeHtml(currentCode)}">
+                            <button type="button" class="btn btn-sm w-100 edit-color-picker-btn" data-color-input="${editColorInputId}" style="background-color: ${escapeHtml(currentCode)}; height: 38px; border: 1px solid #ced4da; border-radius: 0.375rem; cursor: pointer;" title="Click to pick color"></button>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-sm btn-success save-edit-value-btn" 
+                                    data-attribute-key="${escapeHtml(attrKey)}"
+                                    data-attribute-type="${escapeHtml(attrType)}"
+                                    data-value-index="${valueIndex}">
+                                <i class="fas fa-check me-1"></i>Save
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary cancel-edit-value-btn mt-1">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            editFormHtml = `
+                <div class="border rounded p-2 mb-2 bg-light edit-value-form">
+                    <div class="row g-2">
+                        <div class="col-md-9">
+                            <input type="text" class="form-control form-control-sm edit-value-label" value="${escapeHtml(currentLabel)}" placeholder="Value">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-sm btn-success save-edit-value-btn" 
+                                    data-attribute-key="${escapeHtml(attrKey)}"
+                                    data-attribute-type="${escapeHtml(attrType)}"
+                                    data-value-index="${valueIndex}">
+                                <i class="fas fa-check me-1"></i>Save
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary cancel-edit-value-btn mt-1">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Hide the item and show edit form
+        $item.hide();
+        const $editForm = $(editFormHtml);
+        $item.after($editForm);
+        
+        // Initialize color picker for edit form if it's a color attribute
+        if (attrType === 'color') {
+            setTimeout(function() {
+                const editColorInputId = $editForm.find('.edit-value-color-code').attr('id');
+                if (editColorInputId) {
+                    const $colorBtn = $editForm.find('.edit-color-picker-btn');
+                    const $hiddenInput = $(`#${editColorInputId}`);
+                    if ($colorBtn.length && $hiddenInput.length) {
+                        // Mark as manually initialized to prevent MutationObserver from re-initializing
+                        $colorBtn.attr('data-pickr-manual-init', 'true');
+                        $colorBtn.attr('data-pickr-initialized', 'true');
+                        initializeVariantColorPicker(editColorInputId, $colorBtn[0], $hiddenInput[0], currentCode);
+                    }
+                }
+            }, 100);
+        }
+    });
+    
+    // Handle save edited value
+    $(document).on('click', '.save-edit-value-btn', function() {
+        const $btn = $(this);
+        const $form = $btn.closest('.edit-value-form');
+        const attrKey = $btn.data('attribute-key');
+        const attrType = $btn.data('attribute-type');
+        const valueIndex = $btn.data('value-index');
+        
+        const $labelInput = $form.find('.edit-value-label');
+        const newLabel = $labelInput.val().trim();
+        
+        if (!newLabel) {
+            alert('Please enter a value');
+            return;
+        }
+        
+        const $item = $form.prev('.attribute-value-item');
+        const $checkbox = $item.find('.attribute-value-checkbox');
+        const $label = $item.find('.attribute-value-label');
+        const $colorSwatch = $item.find('.rounded-circle');
+        const $editBtn = $item.find('.edit-attribute-value-btn');
+        const $deleteBtn = $item.find('.delete-attribute-value-btn');
+        
+        // Get the OLD label before updating (needed to match variants)
+        let oldLabel = '';
+        if (attrType === 'color') {
+            // Get old label from checkbox data or value
+            oldLabel = $checkbox.attr('data-value-label') || $checkbox.data('value-label') || '';
+            if (!oldLabel) {
+                try {
+                    const checkboxValue = $checkbox.val();
+                    if (checkboxValue) {
+                        const parsedValue = JSON.parse(checkboxValue);
+                        if (parsedValue.label) oldLabel = parsedValue.label;
+                    }
+                } catch(e) {
+                    // If parsing fails, try from label text
+                    oldLabel = $label.text().trim();
+                }
+            }
+            if (!oldLabel) {
+                oldLabel = $label.text().trim();
+            }
+        } else {
+            oldLabel = $checkbox.val() || $checkbox.attr('data-value-label') || $label.text().trim();
+        }
+        
+        if (attrType === 'color') {
+            // Get color code from hidden input (set by color picker)
+            const $colorInput = $form.find('.edit-value-color-code');
+            let newCode = $colorInput.val().trim() || '#000000';
+            
+            // Also check color picker instance if available
+            const editColorInputId = $colorInput.attr('id');
+            if (editColorInputId && window.variantColorPickers && window.variantColorPickers[editColorInputId]) {
+                try {
+                    const pickerColor = window.variantColorPickers[editColorInputId].getColor();
+                    if (pickerColor) {
+                        const hexColor = pickerColor.toHEXA().toString();
+                        newCode = hexColor;
+                    }
+                } catch(e) {
+                    console.warn('Error getting color from picker:', e);
+                }
+            }
+            
+            // Fallback: try to get from color picker button background
+            if (!newCode || newCode === '#000000') {
+                const $colorBtn = $form.find('.edit-color-picker-btn');
+                if ($colorBtn.length) {
+                    const bgColor = $colorBtn.css('background-color');
+                    if (bgColor && bgColor !== 'rgb(0, 0, 0)') {
+                        // Convert rgb to hex if needed
+                        newCode = rgbToHex(bgColor) || newCode;
+                    }
+                }
+            }
+            
+            // Update checkbox data and value
+            const valueData = { label: newLabel, code: newCode };
+            $checkbox.attr('data-value-label', newLabel);
+            $checkbox.attr('data-value-code', newCode);
+            $checkbox.val(JSON.stringify(valueData));
+            
+            // Update label and color swatch
+            $label.text(newLabel);
+            $colorSwatch.css('background-color', newCode);
+            
+            // Update edit button data
+            $editBtn.attr('data-value-label', newLabel);
+            $editBtn.attr('data-value-code', newCode);
+            
+            // Update all variants that use this color value (pass old label for matching)
+            updateVariantsWithAttributeValue(attrKey, attrType, { label: newLabel, code: newCode }, oldLabel);
+        } else {
+            // Update checkbox data and value
+            $checkbox.attr('data-value-label', newLabel);
+            $checkbox.val(newLabel);
+            
+            // Update label
+            $label.text(newLabel);
+            
+            // Update edit button data
+            $editBtn.attr('data-value-label', newLabel);
+            
+            // Update all variants that use this value (pass old label for matching)
+            updateVariantsWithAttributeValue(attrKey, attrType, newLabel, oldLabel);
+        }
+        
+        // Remove edit form and show item
+        $form.remove();
+        $item.show();
+    });
+    
+    // Handle cancel edit
+    $(document).on('click', '.cancel-edit-value-btn', function() {
+        const $form = $(this).closest('.edit-value-form');
+        const $item = $form.prev('.attribute-value-item');
+        
+        $form.remove();
+        $item.show();
+    });
+    
+    // Handle delete attribute value
+    $(document).on('click', '.delete-attribute-value-btn', function() {
+        const $btn = $(this);
+        const attrKey = $btn.data('attribute-key');
+        const attrType = $btn.data('attribute-type');
+        const valueIndex = $btn.data('value-index');
+        const valueLabel = $btn.data('value-label');
+        
+        if (!confirm(`Are you sure you want to delete "${valueLabel}"? This will remove it from all variants of this product.`)) {
+            return;
+        }
+        
+        const $item = $btn.closest('.attribute-value-item');
+        const $checkbox = $item.find('.attribute-value-checkbox');
+        
+        // Remove from all variants
+        removeAttributeValueFromVariants(attrKey, attrType, valueLabel);
+        
+        // Remove the item
+        $item.remove();
+        
+        // Update badge count
+        const $card = $btn.closest('.card[data-attribute-key]');
+        const $badge = $card.find('.badge');
+        const currentBadgeCount = parseInt($badge.text()) || 0;
+        $badge.text(Math.max(0, currentBadgeCount - 1) + ' values');
+        
+        showToast('success', `"${valueLabel}" has been removed from all variants.`);
+    });
+    
+    // Function to update all variants with a modified attribute value
+    function updateVariantsWithAttributeValue(attrKey, attrType, newValue, oldLabel) {
+        const $rows = $('#variantsTableBody tr');
+        let updatedCount = 0;
+        
+        $rows.each(function() {
+            const $row = $(this);
+            const attributesInput = $row.find('[data-variant-attributes-input]');
+            
+            if (attributesInput.length) {
+                try {
+                    const attributesStr = attributesInput.val();
+                    if (attributesStr) {
+                        const attributes = JSON.parse(attributesStr);
+                        
+                        if (attrType === 'color' && attributes.color) {
+                            // Match by comparing the variant's current color label with the old label
+                            if (attributes.color.label === oldLabel) {
+                                // Update color
+                                if (typeof newValue === 'object') {
+                                    attributes.color = { label: newValue.label, code: newValue.code };
+                                } else {
+                                    attributes.color.label = newValue;
+                                }
+                                attributesInput.val(JSON.stringify(attributes));
+                                updatedCount++;
+                                
+                                // Update variant name if needed
+                                updateVariantNameFromAttributes($row, attributes);
+                            }
+                        } else if (attrType === 'variable' && attributes.variable && attributes.variable[attrKey]) {
+                            // Match by comparing the variant's current variable value with the old label
+                            if (attributes.variable[attrKey] === oldLabel) {
+                                // Update variable value
+                                attributes.variable[attrKey] = typeof newValue === 'object' ? newValue.label : newValue;
+                                attributesInput.val(JSON.stringify(attributes));
+                                updatedCount++;
+                                
+                                // Update variant name if needed
+                                updateVariantNameFromAttributes($row, attributes);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error updating variant attributes:', e);
+                }
+            }
+        });
+        
+        if (updatedCount > 0) {
+            showToast('success', `Updated ${updatedCount} variant(s) with the new value.`);
+            syncGeneratedVariantsFromDOM();
+        } else {
+            console.warn('No variants were updated. Old label was:', oldLabel);
+        }
+    }
+    
+    // Function to remove attribute value from all variants
+    function removeAttributeValueFromVariants(attrKey, attrType, valueLabel) {
+        const $rows = $('#variantsTableBody tr');
+        let removedCount = 0;
+        let updatedCount = 0;
+        const variantsToDelete = [];
+        const variantsToUpdate = [];
+        
+        $rows.each(function() {
+            const $row = $(this);
+            const attributesInput = $row.find('[data-variant-attributes-input]');
+            const variantIdInput = $row.find('[data-variant-id-input]');
+            const variantId = variantIdInput.length ? variantIdInput.val() : null;
+            
+            if (attributesInput.length) {
+                try {
+                    const attributesStr = attributesInput.val();
+                    if (attributesStr) {
+                        const attributes = JSON.parse(attributesStr);
+                        let shouldDelete = false;
+                        let shouldUpdate = false;
+                        
+                        if (attrType === 'color' && attributes.color && attributes.color.label === valueLabel) {
+                            // This variant uses the deleted color - remove color attribute or delete variant
+                            delete attributes.color;
+                            shouldUpdate = true;
+                            // If variant has no other attributes, mark for deletion
+                            if (!attributes.variable || Object.keys(attributes.variable).length === 0) {
+                                shouldDelete = true;
+                            }
+                        } else if (attrType === 'variable' && attributes.variable && attributes.variable[attrKey] === valueLabel) {
+                            // This variant uses the deleted variable value - remove it from variable object
+                            delete attributes.variable[attrKey];
+                            shouldUpdate = true;
+                            // If variable object is now empty and no color, mark for deletion
+                            if (Object.keys(attributes.variable).length === 0 && !attributes.color) {
+                                shouldDelete = true;
+                            }
+                        }
+                        
+                        if (shouldDelete) {
+                            variantsToDelete.push({ $row: $row, variantId: variantId });
+                            removedCount++;
+                        } else if (shouldUpdate) {
+                            // Update attributes in DOM
+                            attributesInput.val(JSON.stringify(attributes));
+                            updateVariantNameFromAttributes($row, attributes);
+                            variantsToUpdate.push({ variantId: variantId, attributes: attributes });
+                            updatedCount++;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error checking variant attributes:', e);
+                }
+            }
+        });
+        
+        // Delete variants that used the deleted value and have no other attributes
+        variantsToDelete.forEach(function(item) {
+            item.$row.remove();
+        });
+        
+        // Update database for variants that had the attribute removed but still have other attributes
+        if (variantsToUpdate.length > 0 || variantsToDelete.length > 0) {
+            // Get product ID from URL
+            const urlMatch = window.location.pathname.match(/\/products\/(\d+)\/variants/);
+            const productId = urlMatch ? urlMatch[1] : null;
+            
+            if (productId) {
+                // Collect all variant data from DOM for the update (all fields, not just attributes)
+                const variantsData = [];
+                $('#variantsTableBody tr').each(function() {
+                    const $row = $(this);
+                    const variantIdInput = $row.find('[data-variant-id-input]');
+                    const variantId = variantIdInput.length ? variantIdInput.val() : null;
+                    
+                    if (variantId) {
+                        // Collect all variant fields from the row
+                        const variantData = {
+                            id: variantId,
+                            attributes: $row.find('[data-variant-attributes-input]').val() || '{}',
+                            name: $row.find('[data-variant-name-input]').val() || '',
+                            stock_quantity: $row.find('[data-variant-stock-quantity-input]').val() || 0,
+                            stock_status: $row.find('[data-variant-stock-status-input]').val() || 'in_stock',
+                            manage_stock: $row.find('[data-variant-manage-stock-input]').val() || '0',
+                            low_stock_threshold: $row.find('[data-variant-low-stock-threshold-input]').val() || 0,
+                            is_active: $row.find('[data-variant-status-input]').val() || '1',
+                            barcode: $row.find('[data-variant-barcode-input]').val() || '',
+                            discount_type: $row.find('[data-variant-discount-type-input]').val() || '',
+                            discount_value: $row.find('[data-variant-discount-value-input]').val() || '',
+                            discount_active: $row.find('[data-variant-discount-active-input]').val() || '',
+                            measurements: $row.find('[data-variant-measurements-input]').val() || '{}',
+                            weight: $row.find('[data-variant-weight-input]').val() || '',
+                            length: $row.find('[data-variant-length-input]').val() || '',
+                            width: $row.find('[data-variant-width-input]').val() || '',
+                            height: $row.find('[data-variant-height-input]').val() || '',
+                            diameter: $row.find('[data-variant-diameter-input]').val() || '',
+                            highlights_details: $row.find('[data-variant-highlights-details-input]').val() || '',
+                            description: $row.find('[data-variant-description-input]').val() || '',
+                            additional_information: $row.find('[data-variant-additional-information-input]').val() || ''
+                        };
+                        variantsData.push(variantData);
+                    }
+                });
+                
+                // Update database via AJAX
+                $.ajax({
+                    url: `{{ url('products') }}/${productId}/variants/update`,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    data: {
+                        variants: variantsData
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            if (removedCount > 0 && updatedCount > 0) {
+                                showToast('success', `Removed ${removedCount} variant(s) and updated ${updatedCount} variant(s) in the database.`);
+                            } else if (removedCount > 0) {
+                                showToast('success', `Removed ${removedCount} variant(s) from the database.`);
+                            } else if (updatedCount > 0) {
+                                showToast('success', `Updated ${updatedCount} variant(s) in the database.`);
+                            }
+                            syncGeneratedVariantsFromDOM();
+                        } else {
+                            showToast('error', 'Error updating variants: ' + (response.message || 'Unknown error'));
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error updating variants:', xhr);
+                        const errorMsg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unknown error';
+                        showToast('error', 'Error updating variants in database: ' + errorMsg + '. Please save the form manually.');
+                    }
+                });
+            } else {
+                // Fallback if product ID not found
+                if (removedCount > 0) {
+                    showToast('info', `Removed ${removedCount} variant(s) from the form. Please save to update the database.`);
+                }
+                if (updatedCount > 0) {
+                    showToast('info', `Updated ${updatedCount} variant(s) in the form. Please save to update the database.`);
+                }
+                syncGeneratedVariantsFromDOM();
+            }
+        }
+    }
+    
+    // Helper function to update variant name from attributes
+    function updateVariantNameFromAttributes($row, attributes) {
+        const nameParts = [];
+        
+        if (attributes.color && attributes.color.label) {
+            nameParts.push(attributes.color.label);
+        }
+        
+        if (attributes.variable) {
+            Object.keys(attributes.variable).forEach(key => {
+                nameParts.push(`${key}: ${attributes.variable[key]}`);
+            });
+        }
+        
+        const newName = nameParts.join(' - ');
+        const $nameInput = $row.find('[name*="[name]"]');
+        if ($nameInput.length) {
+            $nameInput.val(newName);
+        }
+    }
     
     // Handle generate variants from attributes button
     $(document).on('click', '#generateVariantsFromAttributesBtn', function() {
@@ -8004,12 +8962,39 @@ ${variantName}
 window.variantColorPickers = {};
 
 function initializeVariantColorPicker(pickerId, buttonElement, hiddenInput, initialColor) {
+    // Ensure window.variantColorPickers object exists
+    if (!window.variantColorPickers) {
+        window.variantColorPickers = {};
+    }
+    
+    // Ensure initialColor is set, default to #000000
+    if (!initialColor || initialColor === '') {
+        initialColor = '#000000';
+    }
+    
+    // Ensure hidden input has the initial color
+    if (hiddenInput) {
+        hiddenInput.value = initialColor;
+    }
+    
+    // Ensure button shows the initial color
+    if (buttonElement) {
+        buttonElement.style.backgroundColor = initialColor;
+    }
+    
     // Check if button element exists and is in the DOM
     const $buttonElement = $(buttonElement);
     if (!$buttonElement.length || !$buttonElement.parent().length) {
-        console.warn('Button element not in DOM yet, cannot initialize Pickr');
+        console.warn('[initializeVariantColorPicker] Button element not in DOM yet, cannot initialize Pickr:', pickerId);
         return null;
     }
+    
+    console.log('[initializeVariantColorPicker] Starting initialization:', {
+        pickerId: pickerId,
+        initialColor: initialColor,
+        buttonInDOM: $buttonElement.parent().length > 0,
+        hiddenInputId: hiddenInput ? hiddenInput.id : 'none'
+    });
     
     // Destroy existing picker if any
     if (window.variantColorPickers[pickerId]) {
@@ -8067,8 +9052,31 @@ function initializeVariantColorPicker(pickerId, buttonElement, hiddenInput, init
             const $hiddenInput = $(hiddenInput);
             if ($hiddenInput.length) {
                 $hiddenInput.val(hexColor);
+                console.log('[Color Picker Change]', {
+                    pickerId: pickerId,
+                    hexColor: hexColor,
+                    inputId: hiddenInput.id,
+                    inputValue: $hiddenInput.val(),
+                    buttonId: buttonElement.id || 'no-id'
+                });
             }
             $buttonElement.css('backgroundColor', hexColor);
+        });
+        
+        // Also log when picker is saved/confirmed - ensure input is updated
+        pickr.on('save', (color) => {
+            const hexColor = color.toHEXA().toString();
+            const $hiddenInput = $(hiddenInput);
+            if ($hiddenInput.length) {
+                $hiddenInput.val(hexColor);
+            }
+            $buttonElement.css('backgroundColor', hexColor);
+            console.log('[Color Picker Save]', {
+                pickerId: pickerId,
+                hexColor: hexColor,
+                inputId: hiddenInput.id,
+                inputUpdated: $hiddenInput.val() === hexColor
+            });
         });
         
         window.variantColorPickers[pickerId] = pickr;
@@ -8081,16 +9089,44 @@ function initializeVariantColorPicker(pickerId, buttonElement, hiddenInput, init
 
 // Initialize Pickr for dynamically created color inputs
 $(document).ready(function() {
-    // Use event delegation for dynamically created color picker buttons
-    $(document).on('click', '.color-picker-btn:not([data-pickr-initialized])', function(e) {
+    // Use event delegation for dynamically created color picker buttons (from combination wizard only)
+    $(document).on('click', '.color-picker-btn:not([data-pickr-initialized]):not(.new-color-picker-btn)', function(e) {
         const $btn = $(this);
-        if (!$btn.data('pickrInitialized')) {
-            const colorInputId = $btn.data('colorInput');
+        // Skip if this is a new-color-picker-btn (those are handled separately)
+        if (!$btn.hasClass('new-color-picker-btn') && !$btn.attr('data-pickr-initialized')) {
+            const colorInputId = $btn.data('colorInput') || $btn.attr('data-color-input');
             const $hiddenInput = $('#' + colorInputId);
-            if ($hiddenInput.length && $btn.parent().length) {
-                $btn.data('pickrInitialized', 'true');
+            if ($hiddenInput.length && $btn.parent().length && colorInputId) {
+                $btn.attr('data-pickr-initialized', 'true');
                 const initialColor = $hiddenInput.val() || '#000000';
+                console.log('[Click Handler] Initializing color picker (combination wizard):', colorInputId);
                 initializeVariantColorPicker(colorInputId, $btn[0], $hiddenInput[0], initialColor);
+            }
+        }
+    });
+    
+    // Separate handler for new-color-picker-btn (from Add New Value form)
+    $(document).on('click', '.new-color-picker-btn:not([data-pickr-initialized])', function(e) {
+        const $btn = $(this);
+        if (!$btn.attr('data-pickr-initialized')) {
+            // Find the hidden input in the same form (more reliable)
+            const $form = $btn.closest('.add-value-form');
+            const $hiddenInput = $form.find('.new-value-color-code');
+            
+            if ($hiddenInput.length) {
+                const colorInputId = $hiddenInput.attr('id');
+                
+                // Only initialize if this is a new color input (starts with newColorInput_)
+                if (colorInputId && colorInputId.startsWith('newColorInput_')) {
+                    $btn.attr('data-pickr-initialized', 'true');
+                    const initialColor = $hiddenInput.val() || '#000000';
+                    console.log('[Click Handler] Initializing new color picker:', colorInputId);
+                    initializeVariantColorPicker(colorInputId, $btn[0], $hiddenInput[0], initialColor);
+                } else {
+                    console.warn('[Click Handler] Invalid color input ID for new color picker:', colorInputId);
+                }
+            } else {
+                console.warn('[Click Handler] Hidden input not found for new color picker button');
             }
         }
     });
@@ -8101,17 +9137,73 @@ $(document).ready(function() {
             mutation.addedNodes.forEach(function(node) {
                 if (node.nodeType === 1) { // Element node
                     const $node = $(node);
-                    const $colorPickerBtns = $node.find('.color-picker-btn:not([data-pickr-initialized])');
+                    // Skip if this is manually initialized (from Add New Value form)
+                    const $colorPickerBtns = $node.find('.color-picker-btn:not([data-pickr-initialized]):not([data-pickr-manual-init])');
+                    // Also check for new-color-picker-btn but skip if already initialized
+                    const $newColorPickerBtns = $node.find('.new-color-picker-btn:not([data-pickr-initialized]):not([data-pickr-manual-init])');
+                    
+                    // Process regular color picker buttons (from combination wizard)
                     $colorPickerBtns.each(function() {
                         const $btn = $(this);
-                        // Only initialize if button is in DOM
-                        if ($btn.parent().length) {
-                            const colorInputId = $btn.data('colorInput');
+                        // Only initialize if button is in DOM and not manually initialized
+                        if ($btn.parent().length && !$btn.attr('data-pickr-manual-init')) {
+                            const colorInputId = $btn.data('colorInput') || $btn.attr('data-color-input');
+                            
+                            // Only process combination wizard pickers (pattern: colorInput_{number}_{number})
+                            // Skip Add New Value form pickers (pattern: newColorInput_*)
+                            if (colorInputId && colorInputId.startsWith('newColorInput_')) {
+                                console.log('[MutationObserver] Skipping Add New Value picker in combination wizard section:', colorInputId);
+                                return; // Skip this button
+                            }
+                            
+                            // Check if it matches combination wizard pattern: colorInput_{number}_{number}
+                            const comboWizardPattern = /^colorInput_\d+_\d+$/;
+                            if (!colorInputId || !comboWizardPattern.test(colorInputId)) {
+                                console.log('[MutationObserver] Skipping - not a combination wizard picker:', colorInputId);
+                                return; // Skip this button
+                            }
+                            
                             const $hiddenInput = $('#' + colorInputId);
-                            if ($hiddenInput.length) {
-                                $btn.data('pickrInitialized', 'true');
+                            if ($hiddenInput.length && colorInputId) {
+                                // Check if already initialized to prevent duplicate initialization
+                                if ($btn.attr('data-pickr-initialized') === 'true') {
+                                    console.log('[MutationObserver] Skipping - already initialized:', colorInputId);
+                                    return;
+                                }
+                                
+                                $btn.attr('data-pickr-initialized', 'true');
                                 const initialColor = $hiddenInput.val() || '#000000';
+                                console.log('[MutationObserver] Initializing color picker:', colorInputId);
                                 initializeVariantColorPicker(colorInputId, $btn[0], $hiddenInput[0], initialColor);
+                            }
+                        }
+                    });
+                    
+                    // Process new color picker buttons (from Add New Value form) - but skip if manually initialized
+                    $newColorPickerBtns.each(function() {
+                        const $btn = $(this);
+                        // Only initialize if button is in DOM and not manually initialized
+                        if ($btn.parent().length && !$btn.attr('data-pickr-manual-init') && !$btn.attr('data-pickr-initialized')) {
+                            // Find the hidden input in the same form
+                            const $form = $btn.closest('.add-value-form');
+                            const $hiddenInput = $form.find('.new-value-color-code');
+                            
+                            if ($hiddenInput.length) {
+                                const colorInputId = $hiddenInput.attr('id');
+                                
+                                if (colorInputId && colorInputId.startsWith('newColorInput_')) {
+                                    // Only initialize if this is a new color input (not from combination wizard)
+                                    $btn.attr('data-pickr-initialized', 'true');
+                                    const initialColor = $hiddenInput.val() || '#000000';
+                                    console.log('[MutationObserver] Initializing new color picker:', {
+                                        colorInputId: colorInputId,
+                                        initialColor: initialColor,
+                                        buttonFound: true
+                                    });
+                                    initializeVariantColorPicker(colorInputId, $btn[0], $hiddenInput[0], initialColor);
+                                } else {
+                                    console.log('[MutationObserver] Skipping - not a new color input:', colorInputId);
+                                }
                             }
                         }
                     });

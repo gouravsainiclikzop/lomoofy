@@ -1344,6 +1344,9 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
             $variant->fill([
                 'product_id' => $product->id,
                 'sku' => $variantSku,
+                'barcode' => isset($row['barcode']) && trim((string) $row['barcode']) !== '' 
+                    ? trim((string) $row['barcode']) 
+                    : ($variant->barcode ?? null),
                 'name' => $variantName,
                 'price' => $this->toDecimal($row['price'] ?? null) ?? 0,
                 'sale_price' => $this->toDecimal($row['sale_price'] ?? null),
@@ -1351,6 +1354,9 @@ if (!empty($cells[0]) && preg_match('/^\s*#/', trim($cells[0])) !== 0) {
                 'stock_quantity' => (int) ($row['stock_quantity'] ?? $variant->stock_quantity ?? 0),
                 'manage_stock' => $this->toBoolean($row['manage_stock_(0_or_1)'] ?? $row['manage_stock'] ?? null, true),
                 'stock_status' => $this->normalizeStockStatus($row['stock_status'] ?? $variant->stock_status ?? 'in_stock'),
+                'low_stock_threshold' => isset($row['low_stock_threshold']) && trim((string) $row['low_stock_threshold']) !== ''
+                    ? (int) trim((string) $row['low_stock_threshold'])
+                    : ($variant->low_stock_threshold ?? null),
                 'is_active' => $this->toBoolean($row['is_active_(0_or_1)'] ?? $row['is_active'] ?? null, true),
                 'discount_type' => $this->normalizeDiscountType($row['discount_type'] ?? null),
                 'discount_value' => $this->toDecimal($row['discount_value'] ?? null),

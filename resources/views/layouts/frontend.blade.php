@@ -21,6 +21,8 @@
 	<link href="{{ asset('frontend/css/styles.css') }}" rel="stylesheet">
 	<link href="{{ asset('frontend/css/customstyle.css') }}" rel="stylesheet">
 	<link href="{{ asset('frontend/css/customresponsive.css') }}" rel="stylesheet">
+	<link href="{{ asset('frontend/css/customresponsive_second.css') }}" rel="stylesheet">
+	
 	
 	@stack('styles')
 </head>

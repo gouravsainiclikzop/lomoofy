@@ -65,17 +65,33 @@
 								
 								@if($primaryCategory) 
 								<div class="prt_01 mb-2"><span class="text-success bg-light-success rounded px-2 py-1">{{ $primaryCategory->name }}</span></div>
-								@endif
+								@endif  
+
 								<div class="prt_02 mb-3">
 									<h2 class="ft-bold mb-1">{{ $product->name }}</h2>
+                                    
+								@php
+									$tags = collect(explode(',', (string) $product->tags))
+										->map(fn($t) => trim($t))
+										->filter(fn($t) => $t !== '');
+								@endphp
+
+								@if($tags->count())
+									<div class="mb-2">
+										@foreach($tags as $tag)
+											<small class="badge bg-primary me-1">{{ $tag }}</small>
+										@endforeach
+									</div>
+								@endif
+
 									<div class="text-left">
-										<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
-											<i class="fas fa-star filled"></i>
-											<i class="fas fa-star filled"></i>
-											<i class="fas fa-star filled"></i>
-											<i class="fas fa-star filled"></i>
-											<i class="fas fa-star"></i>
-											<span class="small">(0 Reviews)</span>
+										<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0" id="productRatingDisplay">
+											<i class="far fa-star"></i>
+											<i class="far fa-star"></i>
+											<i class="far fa-star"></i>
+											<i class="far fa-star"></i>
+											<i class="far fa-star"></i>
+											<span class="small ms-2" id="productReviewCount">(0 Reviews)</span>
 										</div>
                                     @php
                                         // Get first variant for initial pricing display
@@ -106,16 +122,10 @@
                                         @elseif($displayVariant)
                                             {{-- Fallback for price range display when no variant selected --}}
                                             @php
-                                                $gstPct = $gstPercentage ?? 0;
-                                                if ($gstType === false && $gstPct > 0) {
-                                                    $displayMinPrice = $minPrice ? $minPrice / (1 + ($gstPct / 100)) : 0;
-                                                    $displayMinSalePrice = $minSalePrice ? $minSalePrice / (1 + ($gstPct / 100)) : null;
-                                                    $displayMaxPrice = ($minPrice != $maxPrice && $maxPrice) ? ($maxPrice / (1 + ($gstPct / 100))) : 0;
-                                                } else {
-                                                    $displayMinPrice = $minPrice ?? 0;
-                                                    $displayMinSalePrice = $minSalePrice ?? null;
-                                                    $displayMaxPrice = ($minPrice != $maxPrice && $maxPrice) ? $maxPrice : 0;
-                                                }
+                                                // Use prices as-is without GST calculation
+                                                $displayMinPrice = $minPrice ?? 0;
+                                                $displayMinSalePrice = $minSalePrice ?? null;
+                                                $displayMaxPrice = ($minPrice != $maxPrice && $maxPrice) ? $maxPrice : 0;
                                                 $taxLabelDynamic = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
                                             @endphp
                                             <div class="product-pricing-component" data-base-price="{{ $minPrice ?? 0 }}" data-sale-price="{{ $minSalePrice ?? null }}">
@@ -250,8 +260,7 @@
 										</div>
 									@endif
 								@endif
-
-            
+ 
 
 								<div class="prt_04 ">
 									@if($primaryCategory)
@@ -266,35 +275,35 @@
 									@endif
 									<p class="d-flex align-items-center mb-0">SKU:<strong class="fs-sm text-dark ft-medium ms-1" id="variant-sku">{{ $displaySku ?? '' }}</strong></p>
 									
-@php
-    $hasMeasurements = false;
-    if ($activeVariants && $activeVariants->count() > 0) {
-        foreach ($activeVariants as $variant) {
-            if ($variant->measurements) {
-                $measurements = is_string($variant->measurements) 
-                    ? json_decode($variant->measurements, true) 
-                    : $variant->measurements;
-                if (is_array($measurements) && count($measurements) > 0) {
-                    $hasMeasurements = true;
-                    break;
-                }
-            }
-        }
-    }
-@endphp
+                                    @php
+                                        $hasMeasurements = false;
+                                        if ($activeVariants && $activeVariants->count() > 0) {
+                                            foreach ($activeVariants as $variant) {
+                                                if ($variant->measurements) {
+                                                    $measurements = is_string($variant->measurements) 
+                                                        ? json_decode($variant->measurements, true) 
+                                                        : $variant->measurements;
+                                                    if (is_array($measurements) && count($measurements) > 0) {
+                                                        $hasMeasurements = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    @endphp
 
-@if($hasMeasurements)
-<div class="mt-2">
-    <button 
-        type="button" 
-        class="btn btn-sm btn-outline-secondary" 
-        data-bs-toggle="modal" 
-        data-bs-target="#measurementChartModal"
-    >
-    Measurements
-    </button>
-</div>
-@endif
+                                    @if($hasMeasurements)
+                                    <div class="mt-2">
+                                        <button 
+                                            type="button" 
+                                            class="btn btn-sm btn-outline-secondary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#measurementChartModal"
+                                        >
+                                        Measurements
+                                        </button>
+                                    </div>
+                                    @endif
 								</div>
 								
 								<div class="prt_05 mb-4 mt-4">
@@ -307,6 +316,11 @@
 											  <option value="3">3</option>
 											  <option value="4">4</option>
 											  <option value="5">5</option>
+											  <option value="6">6</option>
+											  <option value="7">7</option>
+											  <option value="8">8</option>
+											  <option value="9">9</option>
+											  <option value="10">10</option>
 											</select>
 										</div>
 										<div class="col-12 col-md-12 col-lg-6">
@@ -490,94 +504,36 @@
 								
 								<!-- Reviews Content -->
 								<div class="tab-pane fade" id="reviews" role="tabpanel" aria-labelledby="reviews-tab">
-									<div class="reviews_info">
-										<div class="single_rev d-flex align-items-start br-bottom py-3">
-											<div class="single_rev_thumb"><img src="{{ asset('frontend/images/team-1.jpg') }}" class="img-fluid circle" width="90" alt="" /></div>
-											<div class="single_rev_caption d-flex align-items-start ps-3">
-												<div class="single_capt_left">
-													<h5 class="mb-0 fs-md ft-medium lh-1">Daniel Rajdesh</h5>
-													<span class="small">30 jul 2021</span>
-													<p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum</p>
+									<!-- Reviews Summary -->
+									<div id="reviewsSummary" class="mb-4">
+										<div class="d-flex align-items-center mb-3">
+											<div class="me-4">
+												<h3 class="mb-0" id="averageRatingDisplay">0.0</h3>
+												<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0" id="averageRatingStars">
+													<i class="far fa-star"></i>
+													<i class="far fa-star"></i>
+													<i class="far fa-star"></i>
+													<i class="far fa-star"></i>
+													<i class="far fa-star"></i>
 												</div>
-												<div class="single_capt_right">
-													<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
+												<small class="text-muted" id="totalReviewsDisplay">0 Reviews</small>
 													</div>
+											<div class="flex-grow-1">
+												<div id="ratingDistribution"></div>
 												</div>
 											</div>
 										</div>
 										
-										<!-- Single Review -->
-										<div class="single_rev d-flex align-items-start br-bottom py-3">
-											<div class="single_rev_thumb"><img src="{{ asset('frontend/images/team-2.jpg') }}" class="img-fluid circle" width="90" alt="" /></div>
-											<div class="single_rev_caption d-flex align-items-start ps-3">
-												<div class="single_capt_left">
-													<h5 class="mb-0 fs-md ft-medium lh-1">Seema Gupta</h5>
-													<span class="small">30 Aug 2021</span>
-													<p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum</p>
-												</div>
-												<div class="single_capt_right">
-													<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-													</div>
-												</div>
+									<!-- Reviews List -->
+									<div class="reviews_info" id="reviewsList">
+										<div class="text-center py-5">
+											<p class="text-muted">Select a product variant to view reviews</p>
 											</div>
 										</div>
 										
-										<!-- Single Review -->
-										<div class="single_rev d-flex align-items-start br-bottom py-3">
-											<div class="single_rev_thumb"><img src="{{ asset('frontend/images/team-3.jpg') }}" class="img-fluid circle" width="90" alt="" /></div>
-											<div class="single_rev_caption d-flex align-items-start ps-3">
-												<div class="single_capt_left">
-													<h5 class="mb-0 fs-md ft-medium lh-1">Mark Jugermi</h5>
-													<span class="small">10 Oct 2021</span>
-													<p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum</p>
-												</div>
-												<div class="single_capt_right">
-													<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-													</div>
-												</div>
-											</div>
-										</div>
-										
-										<!-- Single Review -->
-										<div class="single_rev d-flex align-items-start py-3">
-											<div class="single_rev_thumb"><img src="{{ asset('frontend/images/team-4.jpg') }}" class="img-fluid circle" width="90" alt="" /></div>
-											<div class="single_rev_caption d-flex align-items-start ps-3">
-												<div class="single_capt_left">
-													<h5 class="mb-0 fs-md ft-medium lh-1">Meena Rajpoot</h5>
-													<span class="small">17 Dec 2021</span>
-													<p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum</p>
-												</div>
-												<div class="single_capt_right">
-													<div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-														<i class="fas fa-star filled"></i>
-													</div>
-												</div>
-											</div>
-										</div>
-										
-									</div>
-									
-									<div class="reviews_rate">
-										<form class="row g-3">
+									<!-- Review Form (shown only for logged-in customers who can review) -->
+									<div class="reviews_rate" id="reviewFormContainer" style="display: none;">
+										<form id="reviewForm" class="row g-3">
 											<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 												<h4>Submit Rating</h4>
 											</div>
@@ -586,23 +542,23 @@
 												<div class="revie_stars d-flex align-items-center justify-content-between px-2 py-2 gray rounded">
 													<div class="srt_013">
 														<div class="submit-rating">
-														  <input id="star-5" type="radio" name="rating" value="star-5" />
+														  <input id="star-5" type="radio" name="rating" value="5" required />
 														  <label for="star-5" title="5 stars">
 															<i class="active fa fa-star" aria-hidden="true"></i>
 														  </label>
-														  <input id="star-4" type="radio" name="rating" value="star-4" />
+														  <input id="star-4" type="radio" name="rating" value="4" />
 														  <label for="star-4" title="4 stars">
 															<i class="active fa fa-star" aria-hidden="true"></i>
 														  </label>
-														  <input id="star-3" type="radio" name="rating" value="star-3" />
+														  <input id="star-3" type="radio" name="rating" value="3" />
 														  <label for="star-3" title="3 stars">
 															<i class="active fa fa-star" aria-hidden="true"></i>
 														  </label>
-														  <input id="star-2" type="radio" name="rating" value="star-2" />
+														  <input id="star-2" type="radio" name="rating" value="2" />
 														  <label for="star-2" title="2 stars">
 															<i class="active fa fa-star" aria-hidden="true"></i>
 														  </label>
-														  <input id="star-1" type="radio" name="rating" value="star-1" />
+														  <input id="star-1" type="radio" name="rating" value="1" />
 														  <label for="star-1" title="1 star">
 															<i class="active fa fa-star" aria-hidden="true"></i>
 														  </label>
@@ -610,39 +566,34 @@
 													</div>
 													
 													<div class="srt_014">
-														<h6 class="mb-0">4 Star</h6>
+														<h6 class="mb-0" id="selectedRatingDisplay">Select Rating</h6>
 													</div>
 												</div>
-											</div>
-											
-											<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
-												<div class="form-group">
-													<label class="medium text-dark ft-medium mb-2">Full Name</label>
-													<input type="text" class="form-control rounded-2" />
-												</div>
-											</div>
-											
-											<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
-												<div class="form-group">
-													<label class="medium text-dark ft-medium mb-2">Email Address</label>
-													<input type="email" class="form-control rounded-2" />
-												</div>
-											</div>
+											</div> 
 											
 											<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 												<div class="form-group">
 													<label class="medium text-dark ft-medium mb-2">Description</label>
-													<textarea class="form-control rounded-2"></textarea>
+													<textarea name="comment" id="reviewComment" class="form-control rounded-2" rows="4" maxlength="1000" placeholder="Share your experience with this product..."></textarea>
+													<small class="text-muted"><span id="commentCharCount">0</span>/1000 characters</small>
 												</div>
 											</div>
 											
 											<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 												<div class="form-group m-0">
-													<a class="btn btn-white stretched-links hover-black rounded-2">Submit Review <i class="lni lni-arrow-right"></i></a>
+													<button type="submit" class="btn btn-white stretched-links hover-black rounded-2">
+														Submit Review <i class="lni lni-arrow-right"></i>
+													</button>
 												</div>
 											</div>
 											
+											<input type="hidden" name="product_id" id="reviewProductId" value="{{ $product->id }}" />
 										</form>
+									</div>
+									
+									<!-- Login Prompt (shown when user is not logged in) -->
+									<div id="reviewLoginPrompt" class="text-center py-4" style="display: none;">
+										<p class="text-muted mb-3">Please <a href="#" data-bs-toggle="modal" data-bs-target="#login">login</a> to submit a review</p>
 									</div>
 									
 								</div>
@@ -1386,7 +1337,14 @@
                 console.log('Add to Cart - Variant ID:', variantId);
                 
                 if (!variant || !variantId) {
-                    alert('Please select all required attributes (size, color, etc.)');
+                    Snackbar.show({
+                        text: 'Please select all required attributes (size, color, etc.)',
+                        pos: 'top-right',
+                        showAction: false,
+                        duration: 3000,
+                        textColor: '#fff',
+                        backgroundColor: '#dc3545'
+                    });
                     $btn.prop('disabled', false);
                     return;
                 }
@@ -1394,7 +1352,14 @@
                 // Check if variant is in stock
                 const isInStock = variant.is_in_stock !== false && variant.is_in_stock !== undefined;
                 if (!isInStock) {
-                    alert('This product is currently out of stock.');
+                    Snackbar.show({
+                        text: 'This product is currently out of stock.',
+                        pos: 'top-right',
+                        showAction: false,
+                        duration: 3000,
+                        textColor: '#fff',
+                        backgroundColor: '#dc3545'
+                    });
                     $btn.prop('disabled', false);
                     return;
                 }
@@ -1586,6 +1551,297 @@ $(document).ready(function() {
             $icon.removeClass('fas fa-heart text-danger').addClass('lni lni-heart').css('color', '');
         }
     }
+    
+    // ==================== Reviews Functionality ====================
+    const productId = {{ $product->id }};
+    
+    // Load reviews for the product
+    function loadReviewsForProduct() {
+        if (!productId) {
+            $('#reviewsList').html('<div class="text-center py-5"><p class="text-danger">Product ID not found</p></div>');
+            return;
+        }
+        
+        $('#reviewProductId').val(productId);
+        
+        // Load reviews
+        $.ajax({
+            url: '/api/reviews/product/' + productId,
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.data) {
+                    displayReviews(response.data);
+                    checkCanReview(productId);
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading reviews:', xhr);
+                $('#reviewsList').html('<div class="text-center py-5"><p class="text-danger">Error loading reviews. Please try again.</p></div>');
+                // Reset product rating display on error
+                updateProductRatingDisplay(0, 0);
+            }
+        });
+    }
+    
+    // Display reviews
+    function displayReviews(data) {
+        const reviews = data.reviews || [];
+        const averageRating = data.average_rating || 0;
+        const totalReviews = data.total_reviews || 0;
+        const ratingDistribution = data.rating_distribution || {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+        
+        // Update summary
+        $('#averageRatingDisplay').text(averageRating.toFixed(1));
+        updateStarRating('#averageRatingStars', averageRating);
+        $('#totalReviewsDisplay').text(totalReviews + ' Review' + (totalReviews !== 1 ? 's' : ''));
+        
+        // Update product rating display (top of page)
+        updateProductRatingDisplay(averageRating, totalReviews);
+        
+        // Update rating distribution
+        let distributionHtml = '';
+        for (let i = 5; i >= 1; i--) {
+            const count = ratingDistribution[i] || 0;
+            const percentage = totalReviews > 0 ? (count / totalReviews * 100) : 0;
+            distributionHtml += `
+                <div class="d-flex align-items-center mb-2">
+                    <small class="me-2" style="width: 30px;">${i} <i class="fas fa-star text-warning"></i></small>
+                    <div class="progress flex-grow-1" style="height: 8px;">
+                        <div class="progress-bar" role="progressbar" style="width: ${percentage}%"></div>
+                    </div>
+                    <small class="ms-2 text-muted">${count}</small>
+                </div>
+            `;
+        }
+        $('#ratingDistribution').html(distributionHtml);
+        
+        // Display reviews list
+        if (reviews.length === 0) {
+            $('#reviewsList').html('<div class="text-center py-5"><p class="text-muted">No reviews yet. Be the first to review this product!</p></div>');
+        } else {
+            let reviewsHtml = '';
+            reviews.forEach(function(review) {
+                const customerImage = review.customer_image || '{{ asset("frontend/images/user-placeholder.jpg") }}';
+                reviewsHtml += `
+                    <div class="single_rev d-flex align-items-start ${reviews.indexOf(review) < reviews.length - 1 ? 'br-bottom' : ''} py-3">
+                        <div class="single_rev_thumb">
+                            <img src="${customerImage}" class="img-fluid circle" width="90" alt="${review.customer_name}" />
+                        </div>
+                        <div class="single_rev_caption d-flex align-items-start ps-3">
+                            <div class="single_capt_left">
+                                <h5 class="mb-0 fs-md ft-medium lh-1">${review.customer_name}</h5>
+                                <span class="small">${review.created_at}</span>
+                                ${review.comment ? '<p>' + escapeHtml(review.comment) + '</p>' : ''}
+                            </div>
+                            <div class="single_capt_right">
+                                <div class="star-rating align-items-center d-flex justify-content-left mb-1 p-0">
+                                    ${generateStarRating(review.rating)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            $('#reviewsList').html(reviewsHtml);
+        }
+    }
+    
+    // Check if user can review
+    function checkCanReview(productId) {
+        $.ajax({
+            url: '/api/reviews/can-review/' + productId,
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.data) {
+                    if (response.data.can_review) {
+                        $('#reviewFormContainer').show();
+                        $('#reviewLoginPrompt').hide();
+                    } else {
+                        $('#reviewFormContainer').hide();
+                        if (response.data.reason === 'not_logged_in') {
+                            $('#reviewLoginPrompt').show();
+                        } else {
+                            $('#reviewLoginPrompt').hide();
+                        }
+                    }
+                }
+            },
+            error: function(xhr) {
+                // If not logged in, show login prompt
+                if (xhr.status === 401 || xhr.status === 0) {
+                    $('#reviewFormContainer').hide();
+                    $('#reviewLoginPrompt').show();
+                }
+            }
+        });
+    }
+    
+    // Generate star rating HTML
+    function generateStarRating(rating) {
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rating) {
+                html += '<i class="fas fa-star filled"></i>';
+            } else {
+                html += '<i class="far fa-star"></i>';
+            }
+        }
+        return html;
+    }
+    
+    // Update star rating display
+    function updateStarRating(selector, rating) {
+        const $stars = $(selector).find('i');
+        $stars.each(function(index) {
+            if (index < Math.round(rating)) {
+                $(this).removeClass('far').addClass('fas filled');
+            } else {
+                $(this).removeClass('fas filled').addClass('far');
+            }
+        });
+    }
+    
+    // Update product rating display (top of product page)
+    function updateProductRatingDisplay(averageRating, totalReviews) {
+        // Update stars
+        updateStarRating('#productRatingDisplay', averageRating);
+        
+        // Update review count
+        const reviewText = totalReviews === 0 
+            ? '(No Reviews)' 
+            : '(' + totalReviews + ' Review' + (totalReviews !== 1 ? 's' : '') + ')';
+        $('#productReviewCount').text(reviewText);
+    }
+    
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text ? text.replace(/[&<>"']/g, function(m) { return map[m]; }) : '';
+    }
+    
+    // Handle review form submission
+    $('#reviewForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const productId = $('#reviewProductId').val();
+        const rating = $('input[name="rating"]:checked').val();
+        const comment = $('#reviewComment').val().trim();
+        
+        if (!productId) {
+            Snackbar.show({
+                text: 'Product ID not found',
+                pos: 'top-right',
+                showAction: false,
+                duration: 3000,
+                textColor: '#fff',
+                backgroundColor: '#dc3545'
+            });
+            return;
+        }
+        
+        if (!rating) {
+            Snackbar.show({
+                text: 'Please select a rating',
+                pos: 'top-right',
+                showAction: false,
+                duration: 3000,
+                textColor: '#fff',
+                backgroundColor: '#dc3545'
+            });
+            return;
+        }
+        
+        const formData = {
+            product_id: productId,
+            rating: rating,
+            comment: comment || null,
+            _token: $('meta[name="csrf-token"]').attr('content')
+        };
+        
+        const $submitBtn = $(this).find('button[type="submit"]');
+        const originalText = $submitBtn.html();
+        $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Submitting...');
+        
+        $.ajax({
+            url: '/api/reviews',
+            method: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    Snackbar.show({
+                        text: response.message || 'Review submitted successfully! It will be visible after admin approval.',
+                        pos: 'top-right',
+                        showAction: false,
+                        duration: 3000,
+                        textColor: '#fff',
+                        backgroundColor: '#28a745'
+                    });
+                    $('#reviewForm')[0].reset();
+                    $('#selectedRatingDisplay').text('Select Rating');
+                    $('#commentCharCount').text('0');
+                    // Reload reviews to update display (even though new review is inactive, it updates the form state)
+                    loadReviewsForProduct();
+                    checkCanReview(productId);
+                } else {
+                    Snackbar.show({
+                        text: response.error?.message || 'Failed to submit review. Please try again.',
+                        pos: 'top-right',
+                        showAction: false,
+                        duration: 3000,
+                        textColor: '#fff',
+                        backgroundColor: '#dc3545'
+                    });
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Failed to submit review. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error.message || errorMessage;
+                }
+                Snackbar.show({
+                    text: errorMessage,
+                    pos: 'top-right',
+                    showAction: false,
+                    duration: 3000,
+                    textColor: '#fff',
+                    backgroundColor: '#dc3545'
+                });
+            },
+            complete: function() {
+                $submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+    
+    // Update selected rating display
+    $('input[name="rating"]').on('change', function() {
+        const rating = $(this).val();
+        $('#selectedRatingDisplay').text(rating + ' Star' + (rating > 1 ? 's' : ''));
+    });
+    
+    // Update character count
+    $('#reviewComment').on('input', function() {
+        const length = $(this).val().length;
+        $('#commentCharCount').text(length);
+    });
+    
+    // Load reviews when reviews tab is clicked
+    $('#reviews-tab').on('click', function() {
+        loadReviewsForProduct();
+    });
+    
+    // Load initial reviews on page load
+    $(document).ready(function() {
+        setTimeout(function() {
+            loadReviewsForProduct();
+        }, 500);
+    });
 });
 </script>
 @endpush

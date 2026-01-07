@@ -532,7 +532,7 @@ $(function() {
 				  settings: {
 					arrows: true,
 					dots: false,
-					slidesToShow:1
+					slidesToShow:2
 				  }
 				}
 			  ]
@@ -815,5 +815,31 @@ $(function() {
 		const newUrl = wishlistUrl + separator + 'session_id=' + sessionId;
 		window.location.href = newUrl;
 	});
+	
+	// Mobile touch support for product hover overlay
+	if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+		// Touch device detected
+		$(document).on('touchstart', '.product_grid', function(e) {
+			// Don't trigger if clicking on the overlay link itself
+			if ($(e.target).closest('.product-hover-overlay').length === 0) {
+				$(this).addClass('touch-active');
+			}
+		});
+		
+		$(document).on('touchend', '.product_grid', function(e) {
+			// Keep overlay visible if clicking on overlay link
+			if ($(e.target).closest('.product-hover-overlay').length === 0) {
+				setTimeout(function() {
+					$('.product_grid').removeClass('touch-active');
+				}, 300);
+			}
+		});
+		
+		// Prevent overlay from hiding when clicking on quick view link
+		$(document).on('touchstart click', '.product-hover-overlay .quick-view-btn', function(e) {
+			e.stopPropagation();
+			$(this).closest('.product_grid').addClass('touch-active');
+		});
+	}
 	
 });

@@ -11,20 +11,15 @@ function generateCartItemPricing(item) {
     const discountValue = parseFloat(item.discount_value || 0);
     const discountActive = item.discount_active === true || item.discount_active === '1' || item.discount_active === 1;
     
-    // Get GST settings
+    // Get GST settings (for display label only, no price calculation)
     let gstType = true;
     if (typeof item.gst_type !== 'undefined') {
         gstType = (typeof item.gst_type === 'string') ? (item.gst_type !== 'false' && item.gst_type !== '0') : item.gst_type;
     }
     const gstPercentage = parseFloat(item.gst_percentage || 0);
     
-    // Helper to calculate display price
-    const getDisplayPrice = (price) => {
-        if (!gstType && gstPercentage > 0 && price > 0) {
-            return price / (1 + (gstPercentage / 100));
-        }
-        return price;
-    };
+    // Use prices as-is without GST calculation
+    const getDisplayPrice = (price) => price;
     
     // Round base price first for consistent calculations
     basePrice = Math.round(basePrice);
@@ -112,13 +107,13 @@ function generateCartItemPricing(item) {
         return '₹' + rounded.toLocaleString();
     };
     
-    // Calculate display prices
-    const displayBasePrice = getDisplayPrice(basePrice);
-    const displayFinalPrice = getDisplayPrice(finalPrice);
-    const displaySavings = getDisplayPrice(totalSavings);
+    // Use prices as-is (no GST calculation)
+    const displayBasePrice = basePrice;
+    const displayFinalPrice = finalPrice;
+    const displaySavings = totalSavings;
     
-    // Determine tax label
-    const taxLabel = gstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
+    // Determine tax label - show percentage only if exclusive
+    const taxLabel = gstType ? 'Inclusive of all taxes' : (gstPercentage > 0 ? 'Exclusive of taxes (GST ' + Math.round(gstPercentage) + '%)' : 'Exclusive of taxes');
     
     // Build HTML
     let html = '';

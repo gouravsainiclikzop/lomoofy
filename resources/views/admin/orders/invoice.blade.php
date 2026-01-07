@@ -651,7 +651,7 @@
         
         <div class="invoice-footer">
             <div class="tax-note">
-                <p>Whether tax is payable under reverse charge - No</p>
+                <!-- <p>Whether tax is payable under reverse charge - No</p> -->
             </div>
             <div class="signature-section">
                 <div class="authorized-signatory">

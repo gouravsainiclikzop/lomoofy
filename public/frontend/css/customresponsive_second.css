@@ -1,0 +1,104 @@
+/* ==============================================================
+   Responsive Styles
+   Extracted from customstyle.css
+   ============================================================== */
+
+/* ==============================================================
+   Navigation Responsive Styles
+   ============================================================== */
+
+/* Responsive - Mobile/Portrait Mode */
+@media (max-width: 992px) {
+    .modal.show .modal-dialog {
+        transform: none;
+        /* margin-top: 123px; */
+        margin-top: auto;
+        top: 10% !important;
+    }
+
+    .display-none-mobile {
+        display: none !important;
+    }
+}
+
+/* ==============================================================
+   Mega Menu Responsive Styles
+   ============================================================== */
+
+/* Responsive Mega Menu */
+@media (max-width: 992px) {
+    
+}
+
+@media (max-width: 768px) {
+   
+}
+
+/* ==============================================================
+   Search Input Responsive Styles
+   ============================================================== */
+
+@media (max-width: 992px) {
+    
+}
+
+@media (max-width: 768px) {
+    
+}
+
+/* ==============================================================
+   Mobile Search Hide
+   ============================================================== */
+
+@media (max-width: 992px) {
+ 
+}
+ 
+
+@media (max-width: 992px) {
+   
+}
+
+@media (max-width: 768px) {
+    
+}
+
+@media (max-width: 600px) {
+    
+}
+
+@media (max-width: 500px) {
+    
+}
+
+@media (max-width: 400px) {
+  
+}
+
+@media (max-width: 360px) {
+    
+}
+
+/* ==============================================================
+   Product Hover Overlay Mobile Support
+   ============================================================== */
+
+/* Make overlay visible on mobile devices */
+@media (max-width: 768px) {
+    .product_grid .product-hover-overlay {
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+        -webkit-transform: translateY(0) !important;
+    }
+    
+    /* Ensure overlay is always visible on touch devices */
+    .product_grid.touch-active .product-hover-overlay,
+    .product_grid:active .product-hover-overlay {
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+        -webkit-transform: translateY(0) !important;
+    }
+}
+

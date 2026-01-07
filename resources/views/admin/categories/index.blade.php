@@ -564,6 +564,7 @@
                                 </th>
                                 <th style="width: 80px;">Image</th>
                                 <th>Category Name</th>
+                                <th>Slug</th>
                                 <th>Parent</th>
                                 <th style="width: 150px;">Attributes</th>
                                 <th style="width: 100px;">Products</th>
@@ -573,7 +574,7 @@
                         </thead>
                         <tbody id="categoriesTableBody">
                             <tr>
-                                <td colspan="7" class="text-center py-5">
+                                <td colspan="9" class="text-center py-5">
                                     <div class="spinner-border text-primary" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
@@ -951,7 +952,7 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 console.error('Error loading categories:', xhr);
-                $('#categoriesTableBody').html('<tr><td colspan="8" class="text-center py-4 text-danger">Error loading categories</td></tr>');
+                $('#categoriesTableBody').html('<tr><td colspan="9" class="text-center py-4 text-danger">Error loading categories</td></tr>');
             }
         });
     }
@@ -1155,10 +1156,10 @@ $(document).ready(function() {
                     renderTableRowRecursive(category, tbody, 0);
                 });
             } else {
-                tbody.html('<tr><td colspan="8" class="text-center py-4">No categories found</td></tr>');
+                tbody.html('<tr><td colspan="9" class="text-center py-4">No categories found</td></tr>');
             }
         } else {
-            tbody.html('<tr><td colspan="8" class="text-center py-4">No categories found</td></tr>');
+            tbody.html('<tr><td colspan="9" class="text-center py-4">No categories found</td></tr>');
         }
     }
 
@@ -1241,10 +1242,12 @@ $(document).ready(function() {
         // Build popover content - conditionally show "Add Child" option
         let addChildOption = '';
         if (canHaveChildren) {
-            addChildOption = `<a href="#" class="manage-children-category d-block py-2 px-3 text-decoration-none text-primary" data-id="${category.id}" data-name="${category.name}"><i class="fas fa-sitemap me-2"></i>Manage Children</a><hr class="my-1">`;
+            addChildOption = `<a href="#" class="manage-children-category d-block py-2 px-3 text-decoration-none  " data-id="${category.id}" data-name="${category.name}"><i class="fas fa-sitemap me-2"></i>Manage Children</a><hr class="my-1">`;
         }
         
         let popoverContent = `<div class="category-actions-popover">${addChildOption}<a href="#" class="edit-category d-block py-2 px-3 text-decoration-none" data-id="${category.id}"><i class="fas fa-edit me-2"></i>Edit</a><hr class="my-1"><a href="#" class="delete-category d-block py-2 px-3 text-decoration-none text-danger" data-id="${category.id}"><i class="fas fa-trash me-2"></i>Delete</a></div>`;
+        
+        let slugCell = category.slug ? `<code class=" ">${escapeHtml(category.slug)}</code>` : '<span class="text-muted">—</span>';
         
         let row = `
             <tr data-id="${category.id}" data-parent-id="${parentIdValue}" class="${rowClass}" data-has-children="${hasChildren ? '1' : '0'}" data-level="${level}">
@@ -1253,6 +1256,7 @@ $(document).ready(function() {
                 </td>
                 <td>${imageCell}</td>
                 <td>${nameCell}</td>
+                <td>${slugCell}</td>
                 <td class="parent-cell" data-parent-id="${category.parent_id || ''}">
                     ${parentName}
                 </td>

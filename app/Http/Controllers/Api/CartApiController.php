@@ -144,7 +144,52 @@ class CartApiController extends Controller
             'coupon'
         ]);
         
-        $items = $cart->items->map(function($item) {
+        // Helper function to calculate final price after variant discount
+        $calculateItemFinalPrice = function($variant) {
+            if (!$variant) {
+                return 0;
+            }
+            
+            $basePrice = $variant->price ?? 0;
+            $salePrice = $variant->sale_price ?? null;
+            $discountType = $variant->discount_type ?? '';
+            $discountValue = $variant->discount_value ?? 0;
+            $discountActive = $variant->discount_active ?? false;
+            
+            // Round base price
+            $basePrice = round($basePrice);
+            
+            // Round sale price if it exists
+            $roundedSalePrice = null;
+            if ($salePrice !== null) {
+                $roundedSalePrice = round($salePrice);
+            }
+            
+            // Calculate final price
+            $priceToDiscount = $basePrice;
+            if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                $priceToDiscount = $roundedSalePrice;
+            }
+            
+            $finalPrice = $priceToDiscount;
+            
+            // Apply discount if active
+            if ($discountActive && $discountType && $discountValue > 0) {
+                if ($discountType === 'percentage') {
+                    $discountAmount = ($priceToDiscount * $discountValue) / 100;
+                    $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                    $finalPrice = max(0, $priceToDiscount - $discountValue);
+                }
+            } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                $finalPrice = $roundedSalePrice;
+            }
+            
+            // Round final price
+            return round($finalPrice);
+        };
+        
+        $items = $cart->items->map(function($item) use ($calculateItemFinalPrice) {
             $product = $item->product;
             $variant = $item->variant;
         
@@ -300,6 +345,21 @@ class CartApiController extends Controller
                 $originalVariantPrice = $variantSalePrice ?? $variantPrice ?? null;
             }
             
+            // Calculate final price after variant discount
+            $finalPriceAfterDiscount = $calculateItemFinalPrice($variant);
+            
+            // Calculate GST-inclusive final price for display
+            $finalPriceWithGst = $finalPriceAfterDiscount;
+            if ($gstPercentage > 0 && !$gstType) {
+                // GST exclusive: add GST to final price
+                $finalPriceWithGst = $finalPriceAfterDiscount * (1 + ($gstPercentage / 100));
+            }
+            // Round final price with GST
+            $finalPriceWithGst = round($finalPriceWithGst);
+            
+            // Calculate total price (final price * quantity)
+            $calculatedTotalPrice = $finalPriceWithGst * $item->quantity;
+            
             return [
                 'id' => $item->id,
                 'product_id' => $product->id,
@@ -311,8 +371,8 @@ class CartApiController extends Controller
                 'size_value' => $sizeValue,
                 'all_attributes' => $allAttributes, // All variant attributes for complete display
                 'quantity' => $item->quantity,
-                'unit_price' => (float)$item->unit_price,
-                'total_price' => (float)$item->total_price,
+                'unit_price' => (float)$finalPriceWithGst, // Use calculated final price after discount
+                'total_price' => (float)$calculatedTotalPrice, // Use calculated total price
                 'original_variant_price' => $originalVariantPrice ? (float)$originalVariantPrice : null, // Original variant price for display
                 'variant_price' => $variantPrice ? (float)$variantPrice : null,
                 'variant_sale_price' => $variantSalePrice ? (float)$variantSalePrice : null,

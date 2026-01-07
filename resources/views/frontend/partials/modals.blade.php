@@ -1393,24 +1393,9 @@ $(document).ready(function() {
             return parseFloat(price).toFixed(2);
         };
         
-        // Helper function to calculate display price (base price)
-        // For tax-inclusive: show complete price
-        // For tax-exclusive: extract base price (price already has tax added)
+        // Helper function to get display price (no GST calculation, use price as-is)
         const getDisplayPrice = (price) => {
-            const gstType = currentProductData.gst_type ?? true;
-            const gstPercentage = parseFloat(currentProductData.gst_percentage) || 0;
-            
-            // Normalize gstType
-            let normalizedGstType = gstType;
-            if (typeof gstType === 'string') {
-                normalizedGstType = (gstType === 'false' || gstType === '0') ? false : true;
-            }
-            
-            if (normalizedGstType === false && gstPercentage > 0 && price > 0) {
-                // Exclusive of tax: extract base price (price already has tax added)
-                return price / (1 + (gstPercentage / 100));
-            }
-            // Inclusive of tax: show complete price
+            // Use price as-is without GST calculation
             return price;
         };
         
@@ -1608,13 +1593,13 @@ $(document).ready(function() {
         
         if (!matchingVariant) {
             // No variant selected - disable button
-            $addToCartBtn.prop('disabled', true)
-                .html('<i class="lni lni-shopping-basket me-2"></i>Select Options')
-                .removeClass('btn-danger')
-                .addClass('bg-dark');
-            if ($stockStatusMsg.length) {
-                $stockStatusMsg.hide();
-            }
+            // $addToCartBtn.prop('disabled', true)
+            //     .html('<i class="lni lni-shopping-basket me-2"></i>Select Options')
+            //     .removeClass('btn-danger')
+            //     .addClass('bg-dark');
+            // if ($stockStatusMsg.length) {
+            //     $stockStatusMsg.hide();
+            // }
             return;
         }
         

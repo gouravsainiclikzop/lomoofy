@@ -21,8 +21,8 @@
                         <p class="text-muted mb-0">Product: <strong>{{ $product->name }}</strong></p>
                     </div>
                     <div>
-                        <a href="{{ route('products.edit', $product) }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> Back to Product
+                        <a href="{{ route('products.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Products 
                         </a>
                     </div>
                 </div>

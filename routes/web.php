@@ -39,6 +39,10 @@ Route::get('/faq', [FrontendController::class, 'faq'])->name('frontend.faq');
 // Public API Routes
 Route::get('/api/location-by-pincode', [FrontendController::class, 'getLocationByPincode'])->name('frontend.location-by-pincode');
 
+// Review Routes (Public - get reviews)
+Route::get('/api/reviews/product/{productId}', [\App\Http\Controllers\ReviewController::class, 'getProductReviews'])->name('reviews.product');
+Route::get('/api/reviews/can-review/{productId}', [\App\Http\Controllers\ReviewController::class, 'canReview'])->name('reviews.can-review');
+
 // Address API Routes (Protected - require customer authentication)
 Route::middleware(['customer.auth'])->group(function () {
     Route::get('/api/address/{id}', [FrontendController::class, 'getAddress'])->name('frontend.address.get');
@@ -48,7 +52,11 @@ Route::middleware(['customer.auth'])->group(function () {
 // Customer Dashboard Routes (Protected - require customer authentication)
 
 Route::middleware(['customer.auth'])->group(function () {
+    // Review submission (requires authentication)
+    Route::post('/api/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
+    
     Route::get('/my-orders', [FrontendController::class, 'myOrders'])->name('frontend.my-orders');
+    Route::get('/my-orders/{id}/invoice', [\App\Http\Controllers\OrderController::class, 'invoice'])->name('frontend.orders.invoice');
     Route::post('/orders/{id}/cancel', [FrontendController::class, 'cancelOrder'])->name('frontend.orders.cancel');
     Route::get('/profile-info', [FrontendController::class, 'profileInfo'])->name('frontend.profile-info');
     Route::post('/profile-info', [FrontendController::class, 'updateProfileInfo'])->name('frontend.profile-info.update');
@@ -520,6 +528,14 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/coupons/{id}', [\App\Http\Controllers\CouponController::class, 'update'])->name('coupons.update');
     Route::post('/coupons/{id}/toggle-status', [\App\Http\Controllers\CouponController::class, 'toggleStatus'])->name('coupons.toggleStatus');
     Route::delete('/coupons/{id}', [\App\Http\Controllers\CouponController::class, 'destroy'])->name('coupons.destroy');
+    
+    // Reviews Management
+    Route::get('/reviews', [\App\Http\Controllers\Admin\AdminReviewController::class, 'index'])->name('reviews.index');
+    Route::get('/reviews/data', [\App\Http\Controllers\Admin\AdminReviewController::class, 'getData'])->name('reviews.data');
+    Route::post('/reviews/{id}/update-status', [\App\Http\Controllers\Admin\AdminReviewController::class, 'updateStatus'])->name('reviews.update-status');
+    Route::post('/reviews/bulk-update-status', [\App\Http\Controllers\Admin\AdminReviewController::class, 'bulkUpdateStatus'])->name('reviews.bulk-update-status');
+    Route::delete('/reviews/{id}', [\App\Http\Controllers\Admin\AdminReviewController::class, 'destroy'])->name('reviews.destroy');
+    Route::post('/reviews/bulk-delete', [\App\Http\Controllers\Admin\AdminReviewController::class, 'bulkDelete'])->name('reviews.bulk-delete');
     
     // Carts
     Route::get('/carts', [\App\Http\Controllers\CartController::class, 'index'])->name('carts.index');

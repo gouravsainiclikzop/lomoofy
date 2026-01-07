@@ -319,7 +319,7 @@
                     const cart = response.data;
                     let html = `
                         <div class="row g-4">
-                            <div class="col-lg-8">
+                            <div class="col-lg-12">
                                 <div class="card mb-4">
                                     <div class="card-header">
                                         <h6 class="card-title mb-0">Cart Information</h6>
@@ -373,11 +373,14 @@
                                                         <th>Quantity</th>
                                                         <th>Unit Price</th>
                                                         <th>Total</th>
-                                                        <th>Reserved Stock</th>
+                                                            <th>Available Stock</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    ${cart.items.map(item => `
+                                                    ${cart.items.map(item => {
+                                                        const availableStock = item.available_stock !== null && item.available_stock !== undefined ? item.available_stock : 'N/A';
+                                                        const stockBadgeClass = availableStock === 'N/A' ? 'bg-secondary' : (availableStock === 0 ? 'bg-danger' : (availableStock < item.quantity ? 'bg-warning' : 'bg-success'));
+                                                        return `
                                                         <tr>
                                                             <td><img src="${item.image_url}" alt="${item.product_name}" class="cart-item-image"></td>
                                                             <td>
@@ -388,17 +391,116 @@
                                                             <td><span class="badge bg-info">${item.quantity}</span></td>
                                                             <td>₹${parseFloat(item.unit_price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                                             <td><strong>₹${parseFloat(item.total_price).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
-                                                            <td><span class="badge bg-warning">${item.reserved_stock}</span></td>
+                                                            <td><span class="badge ${stockBadgeClass}">${availableStock}</span></td>
                                                         </tr>
-                                                    `).join('')}
+                                                        `;
+                                                    }).join('')}
                                                 </tbody>
                                             </table>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-lg-4">
+
                                 <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Discount Breakdown - Pricing Details</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-sm">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Product</th>
+                                                        <th>Variant</th>
+                                                        <th>Original Price</th>
+                                                        <th>Sale Price</th>
+                                                        <th>Variant Discount</th>
+                                                        <th>Discount Amount</th>
+                                                        <th>Final Price (After Discount)</th>
+                                                        <th>Qty</th>
+                                                        <th>Item Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${cart.items.map(item => {
+                                                        const originalPrice = item.variant_price || 0;
+                                                        const salePrice = item.variant_sale_price || null;
+                                                        const discountType = item.discount_type;
+                                                        const discountValue = item.discount_value || 0;
+                                                        const discountActive = item.discount_active;
+                                                        const variantDiscountAmount = item.variant_discount_amount || 0;
+                                                        const finalPrice = item.final_price_after_discount || item.unit_price;
+                                                        const quantity = item.quantity;
+                                                        const itemTotal = finalPrice * quantity;
+                                                        
+                                                        // Determine price to show as base
+                                                        const basePrice = salePrice !== null ? salePrice : originalPrice;
+                                                        
+                                                        // Format discount display
+                                                        let discountDisplay = 'No Discount';
+                                                        if (discountActive && discountType && discountValue > 0) {
+                                                            if (discountType === 'percentage') {
+                                                                discountDisplay = `${discountValue}%`;
+                                                            } else {
+                                                                discountDisplay = `₹${discountValue.toFixed(2)}`;
+                                                            }
+                                                        }
+                                                        
+                                                        return `
+                                                            <tr>
+                                                                <td><strong>${item.product_name}</strong></td>
+                                                                <td>${item.variant_name || 'N/A'}</td>
+                                                                <td>₹${parseFloat(originalPrice).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                                                <td>${salePrice !== null ? '₹' + parseFloat(salePrice).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span class="text-muted">-</span>'}</td>
+                                                                <td>
+                                                                    ${discountActive && discountType ? `
+                                                                        <span class="badge bg-success">${discountDisplay}</span>
+                                                                        <br><small class="text-muted">${discountType}</small>
+                                                                    ` : '<span class="text-muted">-</span>'}
+                                                                </td>
+                                                                <td>
+                                                                    ${variantDiscountAmount > 0 ? `
+                                                                        <span class="text-success">-₹${parseFloat(variantDiscountAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                                                    ` : '<span class="text-muted">₹0.00</span>'}
+                                                                </td>
+                                                                <td><strong class="text-primary">₹${parseFloat(finalPrice).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                                                                <td><span class="badge bg-info">${quantity}</span></td>
+                                                                <td><strong>₹${parseFloat(itemTotal).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                                                            </tr>
+                                                        `;
+                                                    }).join('')}
+                                                </tbody>
+                                                <tfoot class="table-light">
+                                                    <tr>
+                                                        <th colspan="8" class="text-end">Subtotal (After Variant Discounts):</th>
+                                                        <th>₹${parseFloat(cart.summary.subtotal).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</th>
+                                                    </tr>
+                                                    ${cart.coupon ? `
+                                                        <tr>
+                                                            <th colspan="8" class="text-end">Coupon Discount (${cart.coupon.code}):</th>
+                                                            <th class="text-success">-₹${parseFloat(cart.summary.discount_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</th>
+                                                        </tr>
+                                                    ` : ''}
+                                                    <tr>
+                                                        <th colspan="8" class="text-end">Tax:</th>
+                                                        <th>₹${parseFloat(cart.summary.tax_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <th colspan="8" class="text-end">Shipping:</th>
+                                                        <th>₹${parseFloat(cart.summary.shipping_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</th>
+                                                    </tr>
+                                                    <tr class="table-primary">
+                                                        <th colspan="8" class="text-end">Grand Total:</th>
+                                                        <th>₹${parseFloat(cart.summary.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</th>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12">
+                                <div class="card mb-12">
                                     <div class="card-header">
                                         <h6 class="card-title mb-0">Summary</h6>
                                     </div>

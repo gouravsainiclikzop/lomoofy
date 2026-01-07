@@ -75,9 +75,7 @@ class ProductImportController extends Controller
                     'message' => 'Failed to store uploaded file. Storage operation returned false.',
                 ], 500);
             } 
-        } catch (Throwable $storageException) {
-            
-            
+        } catch (Throwable $storageException) { 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to store uploaded file: ' . $storageException->getMessage(),
@@ -116,9 +114,7 @@ class ProductImportController extends Controller
                 $filesInDir = [];
                 if (is_dir($importsDir)) {
                     $filesInDir = array_values(array_diff(scandir($importsDir), ['.', '..']));
-                }
-                
-               
+                } 
                 
                 return response()->json([
                     'success' => false,

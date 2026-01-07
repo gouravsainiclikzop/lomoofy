@@ -43,7 +43,7 @@
 										</div>	
 										<div class="olh_flex d-flex gap-2">
 											<a href="javascript:void(0);" class="btn btn-sm btn-dark">Track Order</a>
-											<a href="{{ route('orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+											<a href="{{ route('frontend.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
 												<i class="lni lni-download me-1"></i>Invoice
 											</a>
 										</div>	

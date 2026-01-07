@@ -29,7 +29,7 @@
 		<div class="row">
 			<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 				<div class="text-center d-block mb-5">
-					<h2>Shopping Cart</h2>
+					<h2>My Cart</h2>
 				</div>
 			</div>
 		</div>
@@ -307,18 +307,20 @@ $(document).ready(function() {
                         gstType = (gstType === 'false' || gstType === '0') ? false : true;
                     }
                     
-                    // Calculate display price (base price)
+                    // Use price as-is (no GST calculation for display)
                     var displayPrice = up;
-                    if (gstType === false && gstPct > 0) {
-                        // Exclusive: extract base price (unit_price already has tax added)
-                        displayPrice = up / (1 + (gstPct / 100));
-                    } else if (gstType !== false && originalPrice !== null) {
-                        // Inclusive: use original variant price (don't use stored unit_price which might be wrong)
+                    if (originalPrice !== null && gstType !== false) {
+                        // Use original variant price for inclusive items
                         displayPrice = originalPrice;
                     }
-                    // If no original price available, use unit_price as-is for inclusive
                     
-                    var taxLabel = (gstType === false) ? "Exclusive of taxes" : "Inclusive of taxes";
+                    // Build tax label - show percentage only if exclusive
+                    var taxLabel = '';
+                    if (gstType === false && gstPct > 0) {
+                        taxLabel = 'Exclusive of taxes (GST ' + Math.round(gstPct) + '%)';
+                    } else {
+                        taxLabel = 'Inclusive of taxes';
+                    }
                     return '<h4 class="fs-md ft-medium mb-0 lh-1">₹' + displayPrice.toFixed(2) + ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></h4>';
                 })()) + '</div>' +
                 '<select class="mb-2 custom-select w-auto cart-item-quantity' 
@@ -422,101 +424,36 @@ $(document).ready(function() {
             return Math.round(finalPrice);
         };
         
-        // Recalculate subtotal/tax from all items using final prices (after discounts)
-        // For inclusive items: Keep unit_price as base price (don't extract tax, don't recalculate)
-        // For exclusive items: Extract base price from unit_price and calculate tax separately
-        let computedSubtotal = 0; // Subtotal (final price after discounts - no computation for inclusive items)
-        let computedTaxForDisplay = 0; // Tax amount for display only (inclusive items: tax already in price, exclusive: tax to add)
-        let computedTaxToAdd = 0; // Tax amount to add to total (only for exclusive items)
-        let hasExclusiveItems = false;
-        let maxGstPercentage = 0; // Track highest GST percentage for display
+        // Recalculate subtotal from all items using final prices (after discounts)
+        let computedSubtotal = 0; // Subtotal (final price after discounts)
         
         const itemsForCalc = items;
         for (let idx = 0; idx < itemsForCalc.length; idx++) {
             const it = itemsForCalc[idx];
-            const unitPrice = parseFloat(it.unit_price) || 0; // This is already GST-inclusive
-            const originalPrice = it.original_variant_price ? parseFloat(it.original_variant_price) : null;
             const quantity = parseInt(it.quantity) || 1;
-            // Normalize gstType: handle both boolean and string values
-            let gstType = (typeof it.gst_type !== 'undefined') ? it.gst_type : true;
-            if (typeof gstType === 'string') {
-                gstType = gstType === 'false' || gstType === '0' ? false : true;
-            }
-            const gstPct = parseFloat(it.gst_percentage) || 0;
 
-            // Calculate final price for this item (after discounts)
+            // Calculate final price for this item (after variant discounts)
             const itemFinalPrice = calculateItemFinalPrice(it);
             
-            let subtotalPricePerUnit = 0; // Final price to show in subtotal (after discounts)
-            let taxForDisplay = 0; // Tax amount for display
-            let taxToAdd = 0; // Tax amount to add to total
-            
-            if (gstPct > 0) {
-                if (gstType === false) {
-                    // Exclusive of tax: Use final price and extract base price for tax calculation
-                    // Final price might already have tax, so extract base for tax calculation
-                    const baseForTax = itemFinalPrice / (1 + (gstPct / 100));
-                    taxToAdd = baseForTax * (gstPct / 100);
-                    taxForDisplay = taxToAdd;
-                    hasExclusiveItems = true;
-                    // Use final price in subtotal (will have tax added separately)
-                    subtotalPricePerUnit = itemFinalPrice;
-                } else {
-                    // Inclusive of tax: Use final price directly (tax already included)
-                    subtotalPricePerUnit = itemFinalPrice;
-                    // Calculate tax for display only (to show what tax is included)
-                    taxForDisplay = subtotalPricePerUnit - (subtotalPricePerUnit / (1 + (gstPct / 100)));
-                    // Don't add tax to total since it's already in the price
-                    taxToAdd = 0;
-                }
-                if (gstPct > maxGstPercentage) {
-                    maxGstPercentage = gstPct;
-                }
-            } else {
-                // No GST - use final price directly
-                subtotalPricePerUnit = itemFinalPrice;
-                taxForDisplay = 0;
-                taxToAdd = 0;
-            }
-            
-            // Subtotal: final price after discounts (no computation for inclusive items)
-            computedSubtotal += subtotalPricePerUnit * quantity;
-            
-            // Tax for display (both inclusive and exclusive)
-            computedTaxForDisplay += taxForDisplay * quantity;
-            // Tax to add to total (only exclusive items) - add once here
-            computedTaxToAdd += taxToAdd * quantity;
-            
-            console.log('Item calculation:', {
-                item: it.product_name,
-                gstType: gstType,
-                originalPrice: originalPrice,
-                unitPrice: unitPrice,
-                subtotalPricePerUnit: subtotalPricePerUnit,
-                taxForDisplay: taxForDisplay,
-                taxToAdd: taxToAdd,
-                quantity: quantity
-            });
+            // Subtotal: final price after discounts
+            computedSubtotal += itemFinalPrice * quantity;
         }
         
         // Update displayed subtotal
         computedSubtotal = computedSubtotal || 0;
-        console.log('Cart summary totals:', {
-            computedSubtotal: computedSubtotal,
-            computedTaxForDisplay: computedTaxForDisplay,
-            computedTaxToAdd: computedTaxToAdd,
-            hasExclusiveItems: hasExclusiveItems,
-            itemsCount: items.length
-        });
         
-        // Helper function to format price (round to whole number)
+        // Helper function to format price with 2 decimal places
         const formatPrice = (price) => {
+            return '₹' + parseFloat(price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        };
+        
+        // Helper function to format rounded price (for payable only)
+        const formatRoundedPrice = (price) => {
             const rounded = Math.round(price);
             return '₹' + rounded.toLocaleString();
         };
         
-        // Round subtotal to whole number
-        computedSubtotal = Math.round(computedSubtotal);
+        // Keep subtotal with decimals (don't round)
         
         // Ensure all summary elements exist and update them
         const $subtotalEl = $('#cartSubtotal');
@@ -528,19 +465,18 @@ $(document).ready(function() {
         
         // Always show discount row (for apply coupon functionality)
         const discountAmount = parseFloat(summary.discount_amount || 0);
-        const roundedDiscountAmount = Math.round(discountAmount);
         const $discountEl = $('#cartDiscount');
         if ($discountEl.length) {
-            if (roundedDiscountAmount > 0) {
-                $discountEl.text('-' + formatPrice(roundedDiscountAmount));
+            if (discountAmount > 0) {
+                $discountEl.text('-' + formatPrice(discountAmount));
             } else {
-                $discountEl.text('₹0');
+                $discountEl.text('₹0.00');
             }
         }
         $('#cartDiscountRow').show();
         
         // Calculate Total (Subtotal - Discount)
-        const totalAfterDiscount = computedSubtotal - roundedDiscountAmount;
+        const totalAfterDiscount = computedSubtotal - discountAmount;
         const $totalEl = $('#cartTotal');
         if ($totalEl.length) {
             $totalEl.text(formatPrice(totalAfterDiscount));
@@ -548,20 +484,57 @@ $(document).ready(function() {
             console.error('cartTotal element not found');
         }
         
-        // Round tax amounts
-        computedTaxToAdd = Math.round(computedTaxToAdd);
-        computedTaxForDisplay = Math.round(computedTaxForDisplay);
+        // Calculate tax AFTER discount is applied (only for exclusive items)
+        let computedTaxToAdd = 0; // Tax amount to add to total (only for exclusive items)
+        let hasExclusiveItems = false;
+        let maxGstPercentage = 0; // Track highest GST percentage for display
+        
+        // Calculate tax on the discounted amount for exclusive items
+        for (let idx = 0; idx < itemsForCalc.length; idx++) {
+            const it = itemsForCalc[idx];
+            const quantity = parseInt(it.quantity) || 1;
+            
+            // Normalize gstType: handle both boolean and string values
+            let gstType = (typeof it.gst_type !== 'undefined') ? it.gst_type : true;
+            if (typeof gstType === 'string') {
+                gstType = gstType === 'false' || gstType === '0' ? false : true;
+            }
+            const gstPct = parseFloat(it.gst_percentage) || 0;
+            
+            if (gstPct > 0 && gstType === false) {
+                // Exclusive of tax: itemFinalPrice is already the base price (exclusive of tax)
+                const itemFinalPrice = calculateItemFinalPrice(it);
+                
+                // Apply discount proportionally to this item's share
+                const itemSubtotal = itemFinalPrice * quantity;
+                const itemDiscountRatio = computedSubtotal > 0 ? (itemSubtotal / computedSubtotal) : 0;
+                const itemDiscount = discountAmount * itemDiscountRatio;
+                const itemTotalAfterDiscount = itemSubtotal - itemDiscount;
+                
+                // Calculate tax on discounted base amount (for exclusive items, price is already base)
+                // Tax = discounted_base_amount * GST%
+                const discountedTax = itemTotalAfterDiscount * (gstPct / 100);
+                
+                computedTaxToAdd += discountedTax;
+                hasExclusiveItems = true;
+                
+                if (gstPct > maxGstPercentage) {
+                    maxGstPercentage = gstPct;
+                }
+            }
+        }
+        
+        // Keep tax amount with decimals (don't round)
         
         // Show tax row with GST percentage and amount
         // Only show tax row if there are exclusive items (tax needs to be added separately)
-        // For inclusive items, tax is already in the price, so hide the tax row
         const $taxEl = $('#cartTax');
         const $taxLabelEl = $('#cartTaxLabel');
         if ($taxEl.length && $taxLabelEl.length) {
             if (hasExclusiveItems && computedTaxToAdd > 0) {
-                // Show tax row for exclusive items (tax needs to be added)
+                // Show tax row for exclusive items (tax needs to be added after discount)
                 if (maxGstPercentage > 0) {
-                    $taxLabelEl.html('Tax (GST ' + Math.round(maxGstPercentage) + '% ' + formatPrice(computedTaxToAdd) + ')');
+                    $taxLabelEl.html('Tax (GST ' + Math.round(maxGstPercentage) + '%)');
                     $taxEl.text(formatPrice(computedTaxToAdd));
                 } else {
                     $taxLabelEl.text('Tax');
@@ -571,25 +544,28 @@ $(document).ready(function() {
             } else {
                 // Hide tax row when all items are inclusive (tax already included in price)
                 $taxLabelEl.text('Tax');
-                $taxEl.text('₹0');
+                $taxEl.text('₹0.00');
                 $taxEl.closest('li.list-group-item').hide();
             }
         }
         
         const shippingAmount = parseFloat(summary.shipping_amount || 0);
-        const roundedShippingAmount = Math.round(shippingAmount);
         const $shippingEl = $('#cartShipping');
         if ($shippingEl.length) {
-            $shippingEl.text(formatPrice(roundedShippingAmount));
+            $shippingEl.text(formatPrice(shippingAmount));
         }
         
-        // Calculate Grand Total (Total + Tax to add + Shipping)
-        // For inclusive items, tax is already in total, so only add tax for exclusive items
-        const grandTotal = totalAfterDiscount + computedTaxToAdd + roundedShippingAmount;
+        // Calculate Grand Total following proper e-commerce flow:
+        // 1. Subtotal (sum of all items)
+        // 2. Apply Discount (subtotal - discount)
+        // 3. Calculate GST on discounted amount (for exclusive items)
+        // 4. Add Shipping
+        // Payable = Subtotal - Discount + Tax + Shipping
+        const grandTotal = totalAfterDiscount + computedTaxToAdd + shippingAmount;
         console.log('Grand Total calculation:', {
             totalAfterDiscount: totalAfterDiscount,
             computedTaxToAdd: computedTaxToAdd,
-            shippingAmount: roundedShippingAmount,
+            shippingAmount: shippingAmount,
             grandTotal: grandTotal,
             hasExclusiveItems: hasExclusiveItems
         });
@@ -606,13 +582,13 @@ $(document).ready(function() {
             $roundOffEl.text(formatPrice(roundOff));
         }
         
-        // Calculate Payable (Grand Total + Round Off = rounded grand total)
+        // Calculate Payable (rounded grand total - only this should be rounded)
         // For inclusive items: grandTotal = total (tax already included) + shipping
         // For exclusive items: grandTotal = total + tax + shipping
         const payable = Math.round(grandTotal);
         const $payableEl = $('#cartPayable');
         if ($payableEl.length) {
-            $payableEl.text(formatPrice(payable));
+            $payableEl.text(formatRoundedPrice(payable));
             console.log('Updated Payable:', payable, 'from Grand Total:', grandTotal, 'computedTaxToAdd:', computedTaxToAdd);
         } else {
             console.error('cartPayable element not found');

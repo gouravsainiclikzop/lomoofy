@@ -88,24 +88,33 @@
 		<div class="dashboard_author">
 			<h4 class="px-3 py-2 mb-0 lh-2 gray fs-sm ft-medium text-muted text-uppercase text-left">Dashboard Navigation</h4>
 			<ul class="dahs_navbar">
+				@if(Auth::guard('customer')->check())
 				<li>
 					<a href="{{ route('frontend.my-orders') }}" class="{{ $activePage === 'my-orders' ? 'active' : '' }}">
 						<i class="lni lni-shopping-basket me-2"></i>My Order
 					</a>
 				</li>
+				@endif
 				<li>
 					<a href="{{ route('frontend.wishlist') }}" class="{{ $activePage === 'wishlist' ? 'active' : '' }}">
 						<i class="lni lni-heart me-2"></i>Wishlist
 					</a>
-				</li>
+				</li> 
+				@if(Auth::guard('customer')->check())
 				<li>
 					<a href="{{ route('frontend.profile-info') }}" class="{{ $activePage === 'profile-info' ? 'active' : '' }}">
 						<i class="lni lni-user me-2"></i>Profile Info
 					</a>
-				</li>
+				</li> 
 				<li>
 					<a href="{{ route('frontend.change-password') }}" class="{{ $activePage === 'change-password' ? 'active' : '' }}">
 						<i class="lni lni-lock me-2"></i>Change Password
+					</a>
+				</li>
+				 
+				<li>
+					<a href="{{ route('frontend.payment-methode') }}" class="{{ $activePage === 'payment-methode' ? 'active' : '' }}">
+						<i class="lni lni-mastercard me-2"></i>Payment Methode
 					</a>
 				</li>
 				<li>
@@ -113,6 +122,7 @@
 						<i class="lni lni-map-marker me-2"></i>Addresses
 					</a>
 				</li>
+				
 				{{-- <li>
 					<a href="{{ route('frontend.payment-methode') }}" class="{{ $activePage === 'payment-methode' ? 'active' : '' }}">
 						<i class="lni lni-mastercard me-2"></i>Payment Methode
@@ -123,6 +133,7 @@
 						<i class="lni lni-power-switch me-2"></i>Log Out
 					</a>
 				</li>
+				@endif
 			</ul>
 		</div> 
 		

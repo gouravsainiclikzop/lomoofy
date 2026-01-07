@@ -40,6 +40,7 @@ class CheckComingSoon
                     'inventory',
                     'leads',
                     'coupons',
+                    'reviews',
                     'carts',
                     'roles',
                     'users',

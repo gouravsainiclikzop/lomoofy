@@ -186,6 +186,16 @@
                             </a>
                         </li>
                         
+                        <!-- Reviews -->
+                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('reviews.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('reviews.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__icon">
+                                    <i class='bx bx-star'></i>
+                                </span>
+                                <span class="sa-nav__title">Reviews</span>
+                            </a>
+                        </li>
+                        
                         <!-- Customer Management Menu -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('customers.*') || request()->routeIs('field-management.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
                             <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">

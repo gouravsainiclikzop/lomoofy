@@ -69,20 +69,14 @@
         // No discountBadgeText - don't show discount badge for sale price alone
     }
     
-    // Apply GST calculations if needed
+    // GST type for display only (no price calculation)
     $gstType = $gstType ?? true;
     $gstPercentage = $gstPercentage ?? 0;
     
-    $getDisplayPrice = function($price) use ($gstType, $gstPercentage) {
-        if ($gstType === false && $gstPercentage > 0 && $price > 0) {
-            return $price / (1 + ($gstPercentage / 100));
-        }
-        return $price;
-    };
-    
-    $displayBasePrice = $getDisplayPrice($basePrice);
-    $displayFinalPrice = $getDisplayPrice($finalPrice);
-    $displaySavings = $getDisplayPrice($totalSavings);
+    // Use prices as-is without GST calculation
+    $displayBasePrice = $basePrice;
+    $displayFinalPrice = $finalPrice;
+    $displaySavings = $totalSavings;
     
     $taxLabel = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
     $compact = $compact ?? false; // Compact mode for smaller displays

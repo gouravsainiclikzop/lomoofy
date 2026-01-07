@@ -7,17 +7,12 @@ function updateProductPricing(variant) {
     const pricingComponent = document.querySelector('.product-pricing-component');
     if (!pricingComponent) return;
     
-    // Get GST settings from component data attributes or defaults
+    // Get GST settings from component data attributes or defaults (for display label only)
     const gstType = pricingComponent.dataset.gstType === '1';
     const gstPercentage = parseFloat(pricingComponent.dataset.gstPercentage || 0);
     
-    // Helper function to calculate display price
-    const getDisplayPrice = (price) => {
-        if (!gstType && gstPercentage > 0 && price > 0) {
-            return price / (1 + (gstPercentage / 100));
-        }
-        return price;
-    };
+    // Use prices as-is without GST calculation
+    const getDisplayPrice = (price) => price;
     
     // Extract pricing data from variant
     let basePrice = parseFloat(variant.price || variant.base_price || 0);
@@ -107,10 +102,10 @@ function updateProductPricing(variant) {
     // Round total savings to nearest whole number
     totalSavings = Math.round(totalSavings);
     
-    // Calculate display prices
-    const displayBasePrice = getDisplayPrice(basePrice);
-    const displayFinalPrice = getDisplayPrice(finalPrice);
-    const displaySavings = getDisplayPrice(totalSavings);
+    // Use prices as-is (no GST calculation)
+    const displayBasePrice = basePrice;
+    const displayFinalPrice = finalPrice;
+    const displaySavings = totalSavings;
     
     // Determine tax label
     const taxLabel = gstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';

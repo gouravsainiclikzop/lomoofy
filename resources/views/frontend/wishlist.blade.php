@@ -34,7 +34,8 @@
 				<div class="row align-items-center" id="wishlistProductsContainer">
 					@if(isset($wishlistProducts) && $wishlistProducts->count() > 0)
 						@foreach($wishlistProducts as $index => $product)
-							<div class="col-xl-4 col-lg-6 col-md-6 col-sm-12">
+							<!-- <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12"> -->
+                            <div class="col-6 col-md-4 col-lg-3"> 
 								<div class="product_grid card b-0">
 									@if($product['has_sale'])
 										<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
@@ -51,12 +52,7 @@
 									<div class="card-body p-0">
 										<div class="shop_thumb position-relative">
 											<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
-												@php
-													$firstVariantImage = ($product['color_variants'] && $product['color_variants']->isNotEmpty()) 
-														? ($product['color_variants']->first()['image'] ?? $product['image_url'])
-														: $product['image_url'];
-												@endphp
-												<img class="card-img-top" src="{{ $firstVariantImage }}" alt="{{ $product['name'] }}">
+												<img class="card-img-top" src="{{ $product['image_url'] }}" alt="{{ $product['name'] }}">
 											</a>
 											<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
 												<div class="edlio">

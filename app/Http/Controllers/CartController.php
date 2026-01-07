@@ -94,7 +94,7 @@ class CartController extends Controller
      */
     public function show($id)
     {
-        $cart = Cart::with(['customer', 'items.product', 'items.variant'])
+        $cart = Cart::with(['customer', 'items.product', 'items.variant.inventoryStocks'])
                    ->findOrFail($id);
         
         // Load coupon separately
@@ -121,6 +121,109 @@ class CartController extends Controller
                     'discount_value' => (float)$cart->coupon->discount_value,
                 ] : null,
                 'items' => $cart->items->map(function($item) {
+                    $variant = $item->variant;
+                    
+                    // Calculate final price after variant discount
+                    $calculateItemFinalPrice = function($variant) {
+                        if (!$variant) {
+                            return 0;
+                        }
+                        
+                        $basePrice = $variant->price ?? 0;
+                        $salePrice = $variant->sale_price ?? null;
+                        $discountType = $variant->discount_type ?? '';
+                        $discountValue = $variant->discount_value ?? 0;
+                        $discountActive = $variant->discount_active ?? false;
+                        
+                        // Round base price
+                        $basePrice = round($basePrice);
+                        
+                        // Round sale price if it exists
+                        $roundedSalePrice = null;
+                        if ($salePrice !== null) {
+                            $roundedSalePrice = round($salePrice);
+                        }
+                        
+                        // Calculate final price
+                        $priceToDiscount = $basePrice;
+                        if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                            $priceToDiscount = $roundedSalePrice;
+                        }
+                        
+                        $finalPrice = $priceToDiscount;
+                        
+                        // Apply discount if active
+                        if ($discountActive && $discountType && $discountValue > 0) {
+                            if ($discountType === 'percentage') {
+                                $discountAmount = ($priceToDiscount * $discountValue) / 100;
+                                $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                            } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                                $finalPrice = max(0, $priceToDiscount - $discountValue);
+                            }
+                        } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                            $finalPrice = $roundedSalePrice;
+                        }
+                        
+                        // Round final price
+                        return round($finalPrice);
+                    };
+                    
+                    $variantPrice = $variant ? ($variant->price ?? 0) : 0;
+                    $variantSalePrice = $variant ? ($variant->sale_price ?? null) : null;
+                    $discountType = $variant ? ($variant->discount_type ?? null) : null;
+                    $discountValue = $variant ? ($variant->discount_value ?? 0) : 0;
+                    $discountActive = $variant ? ($variant->discount_active ?? false) : false;
+                    
+                    $finalPriceAfterDiscount = $calculateItemFinalPrice($variant);
+                    $variantDiscountAmount = 0;
+                    
+                    // Calculate variant discount amount
+                    if ($discountActive && $discountType && $discountValue > 0) {
+                        $priceToDiscount = $variantSalePrice ?? $variantPrice;
+                        if ($discountType === 'percentage') {
+                            $variantDiscountAmount = ($priceToDiscount * $discountValue) / 100;
+                        } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                            $variantDiscountAmount = $discountValue;
+                        }
+                    }
+                    
+                    // Calculate available stock (same logic as inventory page)
+                    $availableStock = null;
+                    if ($variant) {
+                        $product = $item->product;
+                        $stockSource = $variant;
+                        
+                        if ($stockSource && $stockSource->manage_stock) {
+                            // Use warehouse inventory if available, otherwise use variant stock_quantity
+                            $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+                            $warehouseReserved = $variant->inventoryStocks()->sum('reserved_quantity');
+                            
+                            // If has inventory_stocks records, use warehouse total (even if 0)
+                            // Otherwise, use variant stock_quantity
+                            if ($variant->inventoryStocks()->count() > 0) {
+                                $availableStock = max(0, $warehouseStock - $warehouseReserved);
+                            } else {
+                                $availableStock = $variant->stock_quantity ?? 0;
+                            }
+                        } else {
+                            // If not managing stock, still show available stock for display purposes
+                            if ($variant) {
+                                $warehouseStock = $variant->inventoryStocks()->sum('quantity');
+                                if ($variant->inventoryStocks()->count() > 0) {
+                                    $availableStock = $warehouseStock;
+                                } else {
+                                    $availableStock = $variant->stock_quantity ?? 0;
+                                }
+                            } else {
+                                $availableStock = $product->stock_quantity ?? 0;
+                            }
+                        }
+                    } else {
+                        // For products without variants, use product stock_quantity
+                        $product = $item->product;
+                        $availableStock = $product->stock_quantity ?? 0;
+                    }
+                    
                     return [
                         'id' => $item->id,
                         'product_id' => $item->product_id,
@@ -133,7 +236,16 @@ class CartController extends Controller
                         'unit_price' => (float)$item->unit_price,
                         'total_price' => (float)$item->total_price,
                         'reserved_stock' => $item->reserved_stock,
+                        'available_stock' => $availableStock !== null ? (int)$availableStock : null,
                         'image_url' => $item->product->image_url,
+                        // Variant pricing details
+                        'variant_price' => $variantPrice ? (float)$variantPrice : null,
+                        'variant_sale_price' => $variantSalePrice ? (float)$variantSalePrice : null,
+                        'discount_type' => $discountType,
+                        'discount_value' => $discountValue ? (float)$discountValue : null,
+                        'discount_active' => $discountActive,
+                        'variant_discount_amount' => (float)$variantDiscountAmount,
+                        'final_price_after_discount' => (float)$finalPriceAfterDiscount,
                     ];
                 }),
                 'summary' => [

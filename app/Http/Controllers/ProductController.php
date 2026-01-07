@@ -634,12 +634,19 @@ class ProductController extends Controller
             $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
             $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $uploadedFiles);
 
+            Log::info('Variants payload after filtering', [
+                'count' => count($variantsPayload),
+                'variant_ids' => array_map(function($v) { return $v['id'] ?? 'no-id'; }, $variantsPayload),
+                'raw_input_count' => count($request->input('variants', []))
+            ]);
+
             DB::beginTransaction();
 
             try {
-                if (!empty($variantsPayload)) {
-                    $this->synchronizeVariants($product, $variantsPayload);
-                }
+                // Always sync variants in the updateVariants method
+                // This ensures deleted variants are properly removed from the database
+                // Empty array means delete all variants (all existing variants will be deleted)
+                $this->synchronizeVariants($product, $variantsPayload);
 
                 // Handle static attributes if provided
                 if ($request->has('static_attributes')) {
@@ -1799,7 +1806,13 @@ class ProductController extends Controller
     private function synchronizeVariants(Product $product, array $variants): void
     {
         $existingVariants = $product->variants()->with('images')->get()->keyBy('id');
+        $existingIds = $existingVariants->keys()->toArray();
         $processedIds = [];
+
+        Log::info('Synchronizing variants', [
+            'existing_variant_ids' => $existingIds,
+            'variants_to_process' => count($variants)
+        ]);
 
         foreach ($variants as $index => $variantData) {
             $variantId = isset($variantData['id']) && $variantData['id'] !== ''
@@ -1809,25 +1822,49 @@ class ProductController extends Controller
             if ($variantId && $existingVariants->has($variantId)) {
                 $variant = $this->saveVariant($product, $variantData, $index, $existingVariants->get($variantId));
                 $processedIds[] = $variant->id;
+                Log::info("Updated existing variant ID: {$variant->id}");
             } else {
                 $variant = $this->saveVariant($product, $variantData, $index);
                 $processedIds[] = $variant->id;
+                Log::info("Created new variant ID: {$variant->id}");
             }
         }
 
         $idsToDelete = $existingVariants->keys()->diff($processedIds);
+        Log::info('Variants to delete', [
+            'ids_to_delete' => $idsToDelete->toArray(),
+            'processed_ids' => $processedIds,
+            'existing_ids' => $existingIds
+        ]);
+        
         foreach ($idsToDelete as $deleteId) {
+            Log::info("Deleting variant ID: {$deleteId}");
             $this->deleteVariantWithAssets($existingVariants->get($deleteId));
         }
     }
 
     private function saveVariant(Product $product, array $variantData, int $index, ?ProductVariant $variant = null): ProductVariant
     {
+        // Log incoming attributes for debugging
+        if (isset($variantData['attributes'])) {
+            Log::info("Variant {$index} incoming attributes", [
+                'raw' => $variantData['attributes'],
+                'decoded' => is_string($variantData['attributes']) ? json_decode($variantData['attributes'], true) : $variantData['attributes']
+            ]);
+        }
+        
         // Preserve structured attributes format when updating existing variants
         $attributes = $this->mergeVariantAttributes(
             $variantData['attributes'] ?? null,
             $variant ? $variant->attributes : null
         );
+        
+        // Log merged attributes
+        Log::info("Variant {$index} merged attributes", [
+            'attributes' => $attributes,
+            'has_color' => isset($attributes['color']),
+            'color_code' => $attributes['color']['code'] ?? 'N/A'
+        ]);
 
         $variantName = isset($variantData['name']) && trim((string) $variantData['name']) !== ''
             ? trim($variantData['name'])
@@ -2438,6 +2475,12 @@ class ProductController extends Controller
         $filtered = array_filter($variants, function ($variant) {
             if (!is_array($variant)) {
                 return false;
+            }
+
+            // Always include variants that have an ID (even if other fields are empty)
+            // This is critical for deletion tracking - backend needs to know which variants to keep
+            if (isset($variant['id']) && $variant['id'] !== null && trim((string) $variant['id']) !== '') {
+                return true;
             }
 
             foreach ($variant as $key => $value) {

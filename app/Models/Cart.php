@@ -91,13 +91,53 @@ class Cart extends Model
     {
         $this->load('items.product', 'items.variant', 'coupon');
         
+        // Helper function to calculate final price for an item (after discounts)
+        $calculateItemFinalPrice = function($variant) {
+            if (!$variant) {
+                return 0;
+            }
+            
+            $basePrice = $variant->price ?? 0;
+            $salePrice = $variant->sale_price ?? null;
+            $discountType = $variant->discount_type ?? '';
+            $discountValue = $variant->discount_value ?? 0;
+            $discountActive = $variant->discount_active ?? false;
+            
+            // Round base price
+            $basePrice = round($basePrice);
+            
+            // Round sale price if it exists
+            $roundedSalePrice = null;
+            if ($salePrice !== null) {
+                $roundedSalePrice = round($salePrice);
+            }
+            
+            // Calculate final price
+            $priceToDiscount = $basePrice;
+            if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                $priceToDiscount = $roundedSalePrice;
+            }
+            
+            $finalPrice = $priceToDiscount;
+            
+            // Apply discount if active
+            if ($discountActive && $discountType && $discountValue > 0) {
+                if ($discountType === 'percentage') {
+                    $discountAmount = ($priceToDiscount * $discountValue) / 100;
+                    $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                    $finalPrice = max(0, $priceToDiscount - $discountValue);
+                }
+            } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                $finalPrice = $roundedSalePrice;
+            }
+            
+            // Round final price
+            return round($finalPrice);
+        };
+        
         // Calculate subtotal (base price - no computation for inclusive items)
         $subtotal = 0;
-        
-        // Calculate GST from cart items
-        // For tax-inclusive items: tax is already included in price, don't add it again
-        // For tax-exclusive items: calculate tax and add it separately
-        $taxAmount = 0;
         
         foreach ($this->items as $item) {
             $product = $item->product;
@@ -106,49 +146,14 @@ class Cart extends Model
                 continue;
             }
             
-            // Get GST settings from product
-            $gstType = $product->gst_type ?? true; // Default to inclusive
-            $gstPercentage = $product->gst_percentage ?? 0;
-            
-            // Get original variant price (sale_price or price)
-            $originalVariantPrice = null;
-            if ($variant) {
-                $originalVariantPrice = $variant->sale_price ?? $variant->price ?? null;
-            }
-            
-            // Current item unit price (stored in cart, already GST-inclusive)
-            $itemUnitPrice = $item->unit_price ?? 0;
+            // Calculate final price for this item (after variant discounts)
+            $itemFinalPrice = $calculateItemFinalPrice($variant);
             $quantity = $item->quantity ?? 1;
             
-            // Calculate base price per unit for subtotal
-            $basePricePerUnit = 0;
-            $itemGstAmount = 0;
-            
-            if ($gstPercentage > 0) {
-                if ($gstType) {
-                    // GST inclusive: Use original variant price as base (no extraction)
-                    // Don't recalculate tax - it's already in the price
-                    $basePricePerUnit = $originalVariantPrice !== null ? $originalVariantPrice : $itemUnitPrice;
-                    $itemGstAmount = 0; // Tax already included, don't add it again
-                } else {
-                    // GST exclusive: Extract base price from unit_price (unit_price = base + tax)
-                    $basePricePerUnit = $itemUnitPrice / (1 + ($gstPercentage / 100));
-                    $itemGstAmount = $basePricePerUnit * ($gstPercentage / 100);
-                }
-            } else {
-                // No GST for this item
-                $basePricePerUnit = $originalVariantPrice !== null ? $originalVariantPrice : $itemUnitPrice;
-                $itemGstAmount = 0;
-            }
-            
-            // Add to subtotal (base price * quantity)
-            $subtotal += $basePricePerUnit * $quantity;
-            
-            // Add tax amount (only for exclusive items)
-            $taxAmount += $itemGstAmount * $quantity;
+            // Add to subtotal (final price after discounts)
+            $subtotal += $itemFinalPrice * $quantity;
         }
         
-        $this->tax_amount = $taxAmount;
         $this->subtotal = $subtotal;
         
         // Calculate discount from coupon if exists (after subtotal is calculated)
@@ -177,6 +182,47 @@ class Cart extends Model
         }
         $this->discount_amount = $discountAmount;
         
+        // Calculate tax AFTER discount is applied (only for exclusive items)
+        // For tax-inclusive items: tax is already included in price, don't add it again
+        // For tax-exclusive items: calculate tax on discounted amount and add it separately
+        $taxAmount = 0;
+        $totalAfterDiscount = $subtotal - $discountAmount;
+        
+        foreach ($this->items as $item) {
+            $product = $item->product;
+            $variant = $item->variant;
+            if (!$product) {
+                continue;
+            }
+            
+            // Calculate final price for this item (after variant discounts)
+            $itemFinalPrice = $calculateItemFinalPrice($variant);
+            
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true; // Default to inclusive
+            $gstPercentage = $product->gst_percentage ?? 0;
+            $quantity = $item->quantity ?? 1;
+            
+            if ($gstPercentage > 0 && !$gstType) {
+                // Exclusive of tax: $itemFinalPrice is already the base price (exclusive of tax)
+                $itemSubtotal = $itemFinalPrice * $quantity;
+                
+                // Apply discount proportionally to this item's share
+                $itemDiscountRatio = $subtotal > 0 ? ($itemSubtotal / $subtotal) : 0;
+                $itemDiscount = $discountAmount * $itemDiscountRatio;
+                $itemTotalAfterDiscount = $itemSubtotal - $itemDiscount;
+                
+                // Calculate tax on discounted base amount (for exclusive items, price is already base)
+                // Tax = discounted_base_amount * GST%
+                $discountedTax = $itemTotalAfterDiscount * ($gstPercentage / 100);
+                
+                $taxAmount += $discountedTax;
+            }
+            // For inclusive items, tax is already in the price, so don't add it again
+        }
+        
+        $this->tax_amount = $taxAmount;
+        
         // Calculate shipping
         $allItemsFreeShipping = $this->items->every(function($item) {
             return $item->product && $item->product->free_shipping;
@@ -196,7 +242,12 @@ class Cart extends Model
         
         $this->shipping_amount = $shippingAmount;
         
-        // Calculate total (Subtotal - Discount + Tax to add + Shipping)
+        // Calculate total following proper e-commerce flow:
+        // 1. Subtotal (sum of all items)
+        // 2. Apply Discount (subtotal - discount)
+        // 3. Calculate GST on discounted amount (for exclusive items)
+        // 4. Add Shipping
+        // Total = Subtotal - Discount + Tax + Shipping
         // For inclusive items, tax is already in subtotal, so only add tax for exclusive items
         $this->total_amount = $subtotal - $discountAmount + $taxAmount + $shippingAmount;
         

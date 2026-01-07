@@ -130,6 +130,22 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class)->orderBy('sort_order');
     }
 
+    /**
+     * Relationship with reviews
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'product_id');
+    }
+
+    /**
+     * Get only active reviews for this product
+     */
+    public function activeReviews()
+    {
+        return $this->hasMany(Review::class, 'product_id')->where('status', 'active');
+    }
+
     // Single category relationship (primary)
     public function category()
     {

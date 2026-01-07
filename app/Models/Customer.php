@@ -124,6 +124,14 @@ class Customer extends Authenticatable
     }
 
     /**
+     * Relationship with reviews
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'user_id');
+    }
+
+    /**
      * Scope to get only active customers
      */
     public function scopeActive($query)

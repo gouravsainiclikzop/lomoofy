@@ -43,12 +43,21 @@ class CategoryController extends Controller
         $query = Category::whereNull('deleted_at')->with(['parent.parent.parent.parent'])->withCount('products');
         
         // Search functionality - qualify columns with table name to avoid ambiguity
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('categories.name', 'like', '%' . $search . '%')
-                  ->orWhere('categories.description', 'like', '%' . $search . '%')
-                  ->orWhere('categories.slug', 'like', '%' . $search . '%');
+        $hasSearch = $request->has('search') && $request->search;
+        if ($hasSearch) {
+            $search = trim($request->search);
+            // Normalize search term: remove hyphens, spaces, convert to lowercase for flexible matching
+            $normalizedSearch = strtolower(preg_replace('/[\s\-_]+/', '', $search));
+            
+            $query->where(function($q) use ($search, $normalizedSearch) {
+                // Direct match (case-insensitive)
+                $q->whereRaw('LOWER(categories.name) LIKE ?', ['%' . strtolower($search) . '%'])
+                  ->orWhereRaw('LOWER(categories.description) LIKE ?', ['%' . strtolower($search) . '%'])
+                  ->orWhereRaw('LOWER(categories.slug) LIKE ?', ['%' . strtolower($search) . '%'])
+                  // Normalized match (handles hyphens, spaces variations)
+                  ->orWhereRaw('LOWER(REPLACE(REPLACE(REPLACE(categories.name, \'-\', \'\'), \'_\', \'\'), \' \', \'\')) LIKE ?', ['%' . $normalizedSearch . '%'])
+                  ->orWhereRaw('LOWER(REPLACE(REPLACE(REPLACE(categories.description, \'-\', \'\'), \'_\', \'\'), \' \', \'\')) LIKE ?', ['%' . $normalizedSearch . '%'])
+                  ->orWhereRaw('LOWER(REPLACE(REPLACE(REPLACE(categories.slug, \'-\', \'\'), \'_\', \'\'), \' \', \'\')) LIKE ?', ['%' . $normalizedSearch . '%']);
             });
         }
         
@@ -60,6 +69,54 @@ class CategoryController extends Controller
         // Get all categories first to compute root parent sort_order
         // This allows us to order by the root/main parent category's sort_order
         $allCategories = $query->with('productAttributes')->get();
+        
+        // If searching, include all parent categories of matching categories to preserve hierarchy
+        if ($hasSearch && $allCategories->isNotEmpty()) {
+            $existingIds = $allCategories->pluck('id')->toArray();
+            $parentIdsToFetch = collect();
+            
+            // Collect all parent IDs from matching categories (including nested parents)
+            foreach ($allCategories as $category) {
+                if ($category->parent_id && !in_array($category->parent_id, $existingIds)) {
+                    $parentIdsToFetch->push($category->parent_id);
+                }
+            }
+            
+            // Recursively fetch all parent levels
+            $fetchedParentIds = [];
+            while ($parentIdsToFetch->isNotEmpty()) {
+                $currentBatch = $parentIdsToFetch->unique()->diff($existingIds)->diff($fetchedParentIds)->toArray();
+                
+                if (empty($currentBatch)) {
+                    break;
+                }
+                
+                $parentQuery = Category::whereNull('deleted_at')
+                    ->whereIn('id', $currentBatch)
+                    ->with(['parent.parent.parent.parent', 'productAttributes'])
+                    ->withCount('products');
+                
+                // Apply status filter to parents too if set
+                if ($request->has('status') && $request->status !== '') {
+                    $parentQuery->where('categories.is_active', $request->status);
+                }
+                
+                $parentCategories = $parentQuery->get();
+                
+                // Collect parent IDs of fetched parents for next iteration
+                $parentIdsToFetch = collect();
+                foreach ($parentCategories as $parent) {
+                    if ($parent->parent_id && !in_array($parent->parent_id, $existingIds) && !in_array($parent->parent_id, $fetchedParentIds)) {
+                        $parentIdsToFetch->push($parent->parent_id);
+                    }
+                    $fetchedParentIds[] = $parent->id;
+                }
+                
+                // Merge parent categories with matching categories
+                $allCategories = $allCategories->merge($parentCategories)->unique('id');
+                $existingIds = $allCategories->pluck('id')->toArray();
+            }
+        }
         
         // Add root parent sort_order to each category for sorting
         // Only use sort_order from root categories (categories with no parent_id)
@@ -181,11 +238,19 @@ class CategoryController extends Controller
         
         // Search functionality
         if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('description', 'like', '%' . $search . '%')
-                  ->orWhere('slug', 'like', '%' . $search . '%');
+            $search = trim($request->search);
+            // Normalize search term: remove hyphens, spaces, convert to lowercase for flexible matching
+            $normalizedSearch = strtolower(preg_replace('/[\s\-_]+/', '', $search));
+            
+            $query->where(function($q) use ($search, $normalizedSearch) {
+                // Direct match (case-insensitive)
+                $q->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%'])
+                  ->orWhereRaw('LOWER(description) LIKE ?', ['%' . strtolower($search) . '%'])
+                  ->orWhereRaw('LOWER(slug) LIKE ?', ['%' . strtolower($search) . '%'])
+                  // Normalized match (handles hyphens, spaces variations)
+                  ->orWhereRaw('LOWER(REPLACE(REPLACE(REPLACE(name, \'-\', \'\'), \'_\', \'\'), \' \', \'\')) LIKE ?', ['%' . $normalizedSearch . '%'])
+                  ->orWhereRaw('LOWER(REPLACE(REPLACE(REPLACE(description, \'-\', \'\'), \'_\', \'\'), \' \', \'\')) LIKE ?', ['%' . $normalizedSearch . '%'])
+                  ->orWhereRaw('LOWER(REPLACE(REPLACE(REPLACE(slug, \'-\', \'\'), \'_\', \'\'), \' \', \'\')) LIKE ?', ['%' . $normalizedSearch . '%']);
             });
         }
         

@@ -117,6 +117,7 @@ class ProductVariant extends Model
         return $this->hasMany(ProductImage::class, 'product_variant_id')->orderBy('sort_order');
     }
 
+
     /**
      * Get inventory stocks for this variant across all warehouses
      */

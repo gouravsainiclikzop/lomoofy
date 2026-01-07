@@ -8,21 +8,15 @@
     $discountBadgeText = $variant->discount_badge_text ?? null;
     $isDiscountActive = $variant->hasActiveDiscount() || $variant->isOnSale();
     
-    // Apply GST calculations if needed
+    // GST type for display only (no price calculation)
     $gstType = $gstType ?? true;
     $gstPercentage = $gstPercentage ?? 0;
     
-    $getDisplayPrice = function($price) use ($gstType, $gstPercentage) {
-        if ($gstType === false && $gstPercentage > 0 && $price > 0) {
-            return $price / (1 + ($gstPercentage / 100));
-        }
-        return $price;
-    };
-    
-    $displayBasePrice = $getDisplayPrice($basePrice);
-    $displaySalePrice = $salePrice ? $getDisplayPrice($salePrice) : null;
-    $displayFinalPrice = $getDisplayPrice($finalPrice);
-    $displaySavings = $getDisplayPrice($totalSavings);
+    // Use prices as-is without GST calculation
+    $displayBasePrice = $basePrice;
+    $displaySalePrice = $salePrice;
+    $displayFinalPrice = $finalPrice;
+    $displaySavings = $totalSavings;
     
     $taxLabel = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
 @endphp

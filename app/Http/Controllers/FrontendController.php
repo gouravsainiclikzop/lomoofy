@@ -1855,40 +1855,19 @@ class FrontendController extends Controller
         // Get active variants
         $activeVariants = $product->variants->where('is_active', true);
         
-        // Helper function to calculate GST-inclusive price
-        $calculateGstInclusivePrice = function($basePrice, $gstType, $gstPercentage) {
-            if ($basePrice <= 0) return 0;
-            
-            // If gst_type is true, price is already inclusive
-            if ($gstType === true || $gstType === 1 || $gstType === '1') {
-                return $basePrice;
-            }
-            
-            // If gst_type is false, add GST
-            if ($gstType === false || $gstType === 0 || $gstType === '0') {
-                $gstPercent = $gstPercentage ?? 0;
-                if ($gstPercent > 0) {
-                    return $basePrice + ($basePrice * $gstPercent / 100);
-                }
-            }
-            
-            return $basePrice;
-        };
-        
-        // Get GST settings from product
+        // Get GST settings from product (for display only, no price calculation)
         $gstType = $product->gst_type ?? true; // Default to inclusive
         $gstPercentage = $product->gst_percentage ?? 0;
         
-        // Get price range with GST applied
-        $prices = $activeVariants->map(function($variant) use ($calculateGstInclusivePrice, $gstType, $gstPercentage) {
-            $basePrice = $variant->price ?? 0;
-            return $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
+        // Get price range without GST calculation (use base prices as-is)
+        $prices = $activeVariants->map(function($variant) {
+            return $variant->price ?? 0;
         })->filter();
         
-        $salePrices = $activeVariants->map(function($variant) use ($calculateGstInclusivePrice, $gstType, $gstPercentage) {
+        $salePrices = $activeVariants->map(function($variant) {
             $baseSalePrice = $variant->sale_price;
             if ($baseSalePrice && $baseSalePrice > 0) {
-                return $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage);
+                return $baseSalePrice;
             }
             return null;
         })->filter();
@@ -1982,9 +1961,9 @@ class FrontendController extends Controller
             $basePrice = $variant->price ?? 0;
             $baseSalePrice = $variant->sale_price;
             
-            // Calculate GST-inclusive prices
-            $price = $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
-            $salePrice = $baseSalePrice ? $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage) : null;
+            // Use base prices as-is (no GST calculation)
+            $price = $basePrice;
+            $salePrice = $baseSalePrice;
             $hasVariantSale = $salePrice && $salePrice < $price;
             
             // Extract color from new structured format
@@ -2234,9 +2213,9 @@ class FrontendController extends Controller
             $basePrice = $variant->price ?? 0;
             $baseSalePrice = $variant->sale_price;
             
-            // Calculate GST-inclusive prices
-            $price = $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
-            $salePrice = $baseSalePrice ? $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage) : null;
+            // Use base prices as-is (no GST calculation)
+            $price = $basePrice;
+            $salePrice = $baseSalePrice;
             $hasVariantSale = $salePrice && $salePrice < $price;
             
             // Get variant images
@@ -2482,40 +2461,19 @@ class FrontendController extends Controller
         // Get active variants
         $activeVariants = $product->variants->where('is_active', true);
         
-        // Helper function to calculate GST-inclusive price
-        $calculateGstInclusivePrice = function($basePrice, $gstType, $gstPercentage) {
-            if ($basePrice <= 0) return 0;
-            
-            // If gst_type is true, price is already inclusive
-            if ($gstType === true || $gstType === 1 || $gstType === '1') {
-                return $basePrice;
-            }
-            
-            // If gst_type is false, add GST
-            if ($gstType === false || $gstType === 0 || $gstType === '0') {
-                $gstPercent = $gstPercentage ?? 0;
-                if ($gstPercent > 0) {
-                    return $basePrice + ($basePrice * $gstPercent / 100);
-                }
-            }
-            
-            return $basePrice;
-        };
-        
-        // Get GST settings from product
+        // Get GST settings from product (for display only, no price calculation)
         $gstType = $product->gst_type ?? true; // Default to inclusive
         $gstPercentage = $product->gst_percentage ?? 0;
         
-        // Get price range with GST applied
-        $prices = $activeVariants->map(function($variant) use ($calculateGstInclusivePrice, $gstType, $gstPercentage) {
-            $basePrice = $variant->price ?? 0;
-            return $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
+        // Get price range without GST calculation (use base prices as-is)
+        $prices = $activeVariants->map(function($variant) {
+            return $variant->price ?? 0;
         })->filter();
         
-        $salePrices = $activeVariants->map(function($variant) use ($calculateGstInclusivePrice, $gstType, $gstPercentage) {
+        $salePrices = $activeVariants->map(function($variant) {
             $baseSalePrice = $variant->sale_price;
             if ($baseSalePrice && $baseSalePrice > 0) {
-                return $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage);
+                return $baseSalePrice;
             }
             return null;
         })->filter();
@@ -2806,7 +2764,7 @@ class FrontendController extends Controller
                 'color_variants' => $colorVariantsMap, // Legacy support
                 'attributes' => $attributesData, // New: All variant attributes dynamically
                 'in_stock' => $inStock,
-                'variants' => $activeVariants->map(function($variant) use ($allVariantAttributes, $calculateGstInclusivePrice, $gstType, $gstPercentage) {
+                'variants' => $activeVariants->map(function($variant) use ($allVariantAttributes) {
                     // Parse attributes using new helper function
                     $parsed = self::parseVariantAttributes($variant->attributes);
                     
@@ -2901,11 +2859,11 @@ class FrontendController extends Controller
                         }
                     }
                     
-                    // Calculate GST-inclusive prices
+                    // Use base prices as-is (no GST calculation)
                     $basePrice = $variant->price ?? 0;
                     $baseSalePrice = $variant->sale_price;
-                    $price = $calculateGstInclusivePrice($basePrice, $gstType, $gstPercentage);
-                    $salePrice = $baseSalePrice ? $calculateGstInclusivePrice($baseSalePrice, $gstType, $gstPercentage) : null;
+                    $price = $basePrice;
+                    $salePrice = $baseSalePrice;
                     $hasSale = $salePrice && $salePrice < $price;
                     
                     return [
@@ -3121,12 +3079,20 @@ class FrontendController extends Controller
             
             $hasSale = $minSalePrice && $minSalePrice < $minPrice;
             
-            // Get product image
-            $imageUrl = $product->primaryImage 
-                ? asset('storage/' . $product->primaryImage->image_path)
-                : ($product->images->first() 
-                    ? asset('storage/' . $product->images->first()->image_path)
-                    : asset('frontend/images/product/sample-product.jpg'));
+            // Get variant image - use placeholder if no variant images (same as best seller)
+            $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+            $firstVariant = $activeVariants->first();
+            if ($firstVariant && $firstVariant->images && $firstVariant->images->count() > 0) {
+                $primaryVariantImage = $firstVariant->images->where('is_primary', true)->first();
+                if ($primaryVariantImage) {
+                    $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+                } else {
+                    $firstVariantImage = $firstVariant->images->first();
+                    if ($firstVariantImage) {
+                        $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                    }
+                }
+            }
             
             // Get color variants (similar to index method)
             $colorAttributes = collect();
@@ -5202,11 +5168,23 @@ class FrontendController extends Controller
         $discountAmount = 0;
         if ($cart->coupon_code && $cart->coupon) {
             $coupon = $cart->coupon;
-            if (property_exists($coupon, 'discount_type') && property_exists($coupon, 'discount_value')) {
-                if ($coupon->discount_type === 'percentage') {
-                    $discountAmount = ($subtotal * $coupon->discount_value) / 100;
-                } else {
-                    $discountAmount = min($coupon->discount_value, $subtotal);
+            
+            // Check if coupon has required methods, otherwise use basic calculation
+            if (method_exists($coupon, 'isActive') && method_exists($coupon, 'canBeUsed') && method_exists($coupon, 'calculateDiscount')) {
+                if ($coupon->isActive() && $coupon->canBeUsed()) {
+                    // Check minimum order amount if property exists
+                    if (!property_exists($coupon, 'min_order_amount') || !$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount) {
+                        $discountAmount = $coupon->calculateDiscount($subtotal);
+                    }
+                }
+            } else {
+                // Fallback to basic discount calculation
+                if (property_exists($coupon, 'discount_type') && property_exists($coupon, 'discount_value')) {
+                    if ($coupon->discount_type === 'percentage') {
+                        $discountAmount = ($subtotal * $coupon->discount_value) / 100;
+                    } else {
+                        $discountAmount = min($coupon->discount_value, $subtotal);
+                    }
                 }
             }
         }
