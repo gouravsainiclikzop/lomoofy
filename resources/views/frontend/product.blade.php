@@ -123,9 +123,9 @@
                                             {{-- Fallback for price range display when no variant selected --}}
                                             @php
                                                 // Use prices as-is without GST calculation
-                                                $displayMinPrice = $minPrice ?? 0;
-                                                $displayMinSalePrice = $minSalePrice ?? null;
-                                                $displayMaxPrice = ($minPrice != $maxPrice && $maxPrice) ? $maxPrice : 0;
+                                                    $displayMinPrice = $minPrice ?? 0;
+                                                    $displayMinSalePrice = $minSalePrice ?? null;
+                                                    $displayMaxPrice = ($minPrice != $maxPrice && $maxPrice) ? $maxPrice : 0;
                                                 $taxLabelDynamic = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
                                             @endphp
                                             <div class="product-pricing-component" data-base-price="{{ $minPrice ?? 0 }}" data-sale-price="{{ $minSalePrice ?? null }}">

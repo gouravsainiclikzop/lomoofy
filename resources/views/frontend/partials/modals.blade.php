@@ -1388,75 +1388,242 @@ $(document).ready(function() {
         // Update Add to Cart button based on stock status
         updateQuickViewAddToCartButton(matchingVariant);
         
-        // Helper function to format price with 2 decimal places
-        const formatPrice = (price) => {
-            return parseFloat(price).toFixed(2);
-        };
-        
-        // Helper function to get display price (no GST calculation, use price as-is)
-        const getDisplayPrice = (price) => {
-            // Use price as-is without GST calculation
-            return price;
-        };
-        
-        // Determine tax label
-        const getTaxLabel = () => {
-            const gstType = currentProductData.gst_type ?? true;
-            let normalizedGstType = gstType;
-            if (typeof gstType === 'string') {
-                normalizedGstType = (gstType === 'false' || gstType === '0') ? false : true;
-            }
-            return (normalizedGstType === false) ? 'Exclusive of taxes' : 'Inclusive of taxes';
-        };
-        
-        // Update price using pricing component
-        let priceHtml = '';
-        const taxLabel = getTaxLabel();
-        
         // Get GST settings
         const gstType = currentProductData.gst_type ?? true;
         let normalizedGstType = gstType;
         if (typeof gstType === 'string') {
             normalizedGstType = (gstType === 'false' || gstType === '0') ? false : true;
         }
-        const gstPercentage = parseFloat(currentProductData.gst_percentage) || 0;
+        const gstPercentage = parseFloat(currentProductData.gst_percentage || 0);
+        
+        // Helper function to format price (round to nearest whole number)
+        const formatPriceDisplay = (price) => {
+            const rounded = Math.round(price);
+            return '₹' + rounded.toLocaleString();
+        };
+        
+        // Update price using same logic as product page
+        let priceHtml = '';
         
         if (matchingVariant) {
-            // Use variant pricing with discount support
-            const variantData = {
-                price: parseFloat(matchingVariant.price) || 0,
-                variant_sale_price: matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null,
-                original_variant_price: parseFloat(matchingVariant.price) || 0,
-                unit_price: parseFloat(matchingVariant.price) || 0,
-                sale_price: matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null,
-                discount_type: matchingVariant.discount_type || null,
-                discount_value: matchingVariant.discount_value ? parseFloat(matchingVariant.discount_value) : null,
-                discount_active: matchingVariant.discount_active === true || matchingVariant.discount_active === '1' || matchingVariant.discount_active === 1,
-                gst_type: normalizedGstType,
-                gst_percentage: gstPercentage
-            };
+            // Extract pricing data from variant
+            let basePrice = parseFloat(matchingVariant.price || 0);
+            const salePrice = matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null;
+            const discountType = matchingVariant.discount_type || '';
+            const discountValue = parseFloat(matchingVariant.discount_value || 0);
+            const discountActive = matchingVariant.discount_active === true || matchingVariant.discount_active === '1' || matchingVariant.discount_active === 1;
             
-            // Use pricing component JavaScript if available
-            if (typeof generateCartItemPricing === 'function') {
-                priceHtml = generateCartItemPricing(variantData);
-            } else {
-                // Fallback to simple display
-                const price = parseFloat(matchingVariant.price) || 0;
-                const salePrice = matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null;
-                const hasSale = salePrice && salePrice < price;
+            // Round base price first for consistent calculations
+            basePrice = Math.round(basePrice);
+            
+            // Round sale price if it exists
+            let roundedSalePrice = null;
+            if (salePrice !== null && salePrice !== undefined) {
+                roundedSalePrice = Math.round(salePrice);
+            }
+            
+            // Determine price to use (sale price if available, otherwise base price)
+            let priceToUse = basePrice;
+            if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
+                priceToUse = roundedSalePrice;
+            }
+            
+            // Check if product has exclusive tax
+            const hasExclusiveTax = (!normalizedGstType && gstPercentage > 0);
+            
+            // Check if has extra discount
+            const hasExtraDiscount = discountActive && discountType && discountValue > 0;
+            
+            // Initialize display variables
+            let displayBasePrice = basePrice;
+            let displayFinalPrice = basePrice;
+            let displaySavings = 0;
+            let showBasePrice = false;
+            let hasDiscount = false;
+            let discountBadgeText = null;
+            let taxLabel = 'Inclusive of all taxes';
+            
+            // Condition One: Exclusive tax without extra discount
+            if (hasExclusiveTax && !hasExtraDiscount) {
+                // Calculate tax on sale price (or base price if no sale)
+                const gstAmount = priceToUse * (gstPercentage / 100);
+                displayFinalPrice = Math.round(priceToUse + gstAmount);
                 
-                const displayPrice = getDisplayPrice(price);
-                const displaySalePrice = salePrice ? getDisplayPrice(salePrice) : null;
+                // Don't show base price
+                showBasePrice = false;
+                taxLabel = 'Inclusive of taxes';
+            }
+            // Condition Two: Exclusive tax with extra discount
+            else if (hasExclusiveTax && hasExtraDiscount) {
+                // Step 1: Calculate tax-inclusive price first
+                const gstAmount = priceToUse * (gstPercentage / 100);
+                const taxInclusivePrice = Math.round(priceToUse + gstAmount);
                 
-                if (hasSale && displaySalePrice) {
-                    priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2"> ₹' + 
-                               formatPrice(displayPrice) + '</span>' +
-                               '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(displaySalePrice) + 
-                               ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></span>';
+                // Step 2: Apply extra discount on tax-inclusive price
+                let discountAmount = 0;
+                if (discountType === 'percentage') {
+                    discountAmount = (taxInclusivePrice * discountValue) / 100;
+                    displayFinalPrice = Math.round(Math.max(0, taxInclusivePrice - discountAmount));
+                } else if (discountType === 'amount' || discountType === 'flat') {
+                    displayFinalPrice = Math.round(Math.max(0, taxInclusivePrice - discountValue));
                 } else {
-                    priceHtml = '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(displayPrice) + 
-                               ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></span>';
+                    displayFinalPrice = taxInclusivePrice;
                 }
+                
+                // Show tax-inclusive price as base price (strikethrough)
+                displayBasePrice = taxInclusivePrice;
+                showBasePrice = true;
+                hasDiscount = true;
+                
+                // Calculate savings from base price to final price
+                displaySavings = Math.round(basePrice - displayFinalPrice);
+                
+                // Update discount badge text
+                if (displayFinalPrice < taxInclusivePrice) {
+                    let discountPercentage = 0;
+                    if (discountType === 'percentage') {
+                        discountPercentage = Math.round(discountValue);
+                    } else if ((discountType === 'amount' || discountType === 'flat') && taxInclusivePrice > 0) {
+                        discountPercentage = Math.round(((discountValue / taxInclusivePrice) * 100));
+                    }
+                    
+                    if (roundedSalePrice !== null && roundedSalePrice < basePrice && basePrice > 0) {
+                        const salePercentage = Math.round(((basePrice - roundedSalePrice) / basePrice) * 100);
+                        discountBadgeText = salePercentage + '% OFF';
+                        if (discountPercentage > 0) {
+                            discountBadgeText += ' (+ extra ' + discountPercentage + '% discount)';
+                        }
+                    } else {
+                        discountBadgeText = discountPercentage + '% OFF';
+                    }
+                }
+                
+                taxLabel = 'Inclusive of taxes';
+            }
+            // Default: Inclusive tax or no tax
+            else {
+                // Calculate final price
+                let priceToDiscount = basePrice;
+                if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
+                    priceToDiscount = roundedSalePrice;
+                }
+                
+                let finalPrice = priceToDiscount;
+                
+                // Apply discount if active
+                if (discountActive && discountType && discountValue > 0) {
+                    if (discountType === 'percentage') {
+                        const discountAmount = (priceToDiscount * discountValue) / 100;
+                        finalPrice = Math.max(0, priceToDiscount - discountAmount);
+                    } else if (discountType === 'amount' || discountType === 'flat') {
+                        finalPrice = Math.max(0, priceToDiscount - discountValue);
+                    }
+                    
+                    finalPrice = Math.round(finalPrice);
+                    
+                    if (finalPrice < priceToDiscount) {
+                        hasDiscount = true;
+                        displaySavings = basePrice - finalPrice;
+                        
+                        // Generate badge text
+                        if (roundedSalePrice !== null && roundedSalePrice < basePrice && basePrice > 0) {
+                            const salePercentage = Math.round(((basePrice - roundedSalePrice) / basePrice) * 100);
+                            let extraDiscountPercentage = 0;
+                            if (discountType === 'percentage') {
+                                extraDiscountPercentage = Math.round(discountValue);
+                            } else if (discountType === 'amount' || discountType === 'flat') {
+                                if (roundedSalePrice > 0) {
+                                    extraDiscountPercentage = Math.round(((discountValue / roundedSalePrice) * 100));
+                                }
+                            }
+                            discountBadgeText = salePercentage + '% OFF';
+                            if (extraDiscountPercentage > 0) {
+                                discountBadgeText += ' (+ extra ' + extraDiscountPercentage + '% discount)';
+                            }
+                        } else {
+                            if (discountType === 'percentage') {
+                                discountBadgeText = Math.round(discountValue) + '% OFF';
+                            } else if (discountType === 'amount' || discountType === 'flat') {
+                                discountBadgeText = '₹' + Math.round(discountValue).toLocaleString() + ' OFF';
+                            }
+                        }
+                    }
+                } else if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
+                    finalPrice = roundedSalePrice;
+                    hasDiscount = true;
+                    if (basePrice > 0) {
+                        const salePercentage = ((basePrice - roundedSalePrice) / basePrice) * 100;
+                        discountBadgeText = Math.round(salePercentage) + '% OFF';
+                    }
+                    displaySavings = basePrice - roundedSalePrice;
+                }
+                
+                // Round total savings
+                displaySavings = Math.round(displaySavings);
+                
+                // Use prices as-is
+                displayBasePrice = basePrice;
+                displayFinalPrice = finalPrice;
+                showBasePrice = (displayBasePrice > displayFinalPrice);
+                taxLabel = normalizedGstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
+            }
+            
+            // Build HTML (same structure as product page)
+            // Discount Badge
+            if (hasDiscount && discountBadgeText) {
+                priceHtml += '<div class="pricing-badge mb-2">';
+                priceHtml += '<span class="badge bg-danger px-3 py-2 fs-sm fw-bold">';
+                priceHtml += '<i class="fas fa-tag me-1"></i>' + discountBadgeText;
+                priceHtml += '</span></div>';
+            }
+            
+            // Main Price Display
+            priceHtml += '<div class="pricing-main mb-2">';
+            priceHtml += '<div class="d-flex align-items-baseline flex-wrap gap-2">';
+            
+            // Base Price (with strikethrough if needed)
+            if (showBasePrice && displayBasePrice > displayFinalPrice) {
+                priceHtml += '<span class="base-price text-muted text-decoration-line-through fs-5 fw-normal">';
+                priceHtml += formatPriceDisplay(displayBasePrice);
+                priceHtml += '</span>';
+            }
+            
+            // Final Price (prominent)
+            priceHtml += '<span class="final-price theme-cl fw-bold ' + (hasDiscount ? 'fs-2' : 'fs-3') + '" style="color: #dc3545;">';
+            priceHtml += formatPriceDisplay(displayFinalPrice);
+            priceHtml += '</span>';
+            
+            // Tax Label
+            priceHtml += '<span class="tax-label text-muted fs-sm align-self-end">';
+            priceHtml += '(' + taxLabel + ')';
+            priceHtml += '</span>';
+            
+            priceHtml += '</div></div>';
+            
+            // Savings Display
+            if (displaySavings > 0) {
+                priceHtml += '<div class="pricing-savings mb-2">';
+                priceHtml += '<span class="text-success fs-sm fw-medium">';
+                priceHtml += '<i class="fas fa-wallet me-1"></i>You save ' + formatPriceDisplay(displaySavings);
+                priceHtml += '</span></div>';
+            }
+            
+            // Discount Status Row
+            if (hasDiscount) {
+                priceHtml += '<div class="pricing-status mt-2 pt-2 border-top border-light">';
+                priceHtml += '<div class="d-flex align-items-center gap-2">';
+                priceHtml += '<span class="status-indicator">';
+                priceHtml += '<span class="badge bg-success badge-dot me-1"></span>';
+                priceHtml += '</span>';
+                priceHtml += '<span class="status-text text-success fs-sm fw-medium">';
+                
+                if (salePrice && salePrice < basePrice) {
+                    priceHtml += 'On Sale';
+                } else if (discountActive) {
+                    priceHtml += 'Discount Active';
+                }
+                
+                priceHtml += '</span></div></div>';
             }
             
             // Stock status
@@ -1465,51 +1632,33 @@ $(document).ready(function() {
                 priceHtml += '<div class="mt-2"><span class="ft-regular text-danger bg-light-danger py-1 px-2 fs-sm">Out of Stock</span></div>';
             }
         } else {
-            // Fallback to product price range
-            const productData = {
-                price: parseFloat(currentProductData.min_price) || 0,
-                variant_sale_price: currentProductData.min_sale_price ? parseFloat(currentProductData.min_sale_price) : null,
-                original_variant_price: parseFloat(currentProductData.min_price) || 0,
-                unit_price: parseFloat(currentProductData.min_price) || 0,
-                sale_price: currentProductData.min_sale_price ? parseFloat(currentProductData.min_sale_price) : null,
-                discount_type: null,
-                discount_value: null,
-                discount_active: false,
-                gst_type: normalizedGstType,
-                gst_percentage: gstPercentage,
-                has_price_range: (currentProductData.min_price != currentProductData.max_price && currentProductData.max_price > 0),
-                max_price: currentProductData.max_price ? parseFloat(currentProductData.max_price) : null,
-                max_sale_price: currentProductData.max_sale_price ? parseFloat(currentProductData.max_sale_price) : null
-            };
+            // Fallback to product price range (same logic as product page)
+            const minPrice = parseFloat(currentProductData.min_price || 0);
+            const maxPrice = currentProductData.max_price ? parseFloat(currentProductData.max_price) : null;
+            const minSalePrice = currentProductData.min_sale_price ? parseFloat(currentProductData.min_sale_price) : null;
+            const maxSalePrice = currentProductData.max_sale_price ? parseFloat(currentProductData.max_sale_price) : null;
             
-            if (typeof generateCartItemPricing === 'function' && !productData.has_price_range) {
-                // Use pricing component for single price
-                priceHtml = generateCartItemPricing(productData);
-            } else {
-                // Fallback: show price range
-                if (currentProductData.has_sale && currentProductData.min_sale_price) {
-                    const displayMinPrice = getDisplayPrice(currentProductData.min_price);
-                    const displayMinSalePrice = getDisplayPrice(currentProductData.min_sale_price);
-                    const displayMaxSalePrice = currentProductData.max_sale_price ? getDisplayPrice(currentProductData.max_sale_price) : null;
-                    
-                    priceHtml = '<span class="ft-medium text-muted line-through fs-md me-2"> ₹' + 
-                               formatPrice(displayMinPrice) + '</span>' +
-                               '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + 
-                               formatPrice(displayMinSalePrice);
-                    if (displayMaxSalePrice && displayMinSalePrice != displayMaxSalePrice) {
-                        priceHtml += ' - ₹' + formatPrice(displayMaxSalePrice);
-                    }
-                    priceHtml += ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></span>';
-                } else {
-                    const displayMinPrice = getDisplayPrice(currentProductData.min_price);
-                    const displayMaxPrice = currentProductData.max_price ? getDisplayPrice(currentProductData.max_price) : null;
-                    
-                    priceHtml = '<span class="ft-bold theme-cl fs-lg me-2"> ₹' + formatPrice(displayMinPrice);
-                    if (displayMaxPrice && displayMinPrice != displayMaxPrice) {
-                        priceHtml += ' - ₹' + formatPrice(displayMaxPrice);
-                    }
-                    priceHtml += ' <span class="text-muted fs-sm">(' + taxLabel + ')</span></span>';
+            const displayMinPrice = Math.round(minPrice);
+            const displayMaxPrice = maxPrice ? Math.round(maxPrice) : null;
+            const displayMinSalePrice = minSalePrice ? Math.round(minSalePrice) : null;
+            const displayMaxSalePrice = maxSalePrice ? Math.round(maxSalePrice) : null;
+            
+            if (currentProductData.has_sale && displayMinSalePrice) {
+                priceHtml = '<span class="ft-medium text-muted text-decoration-line-through fs-5 fw-normal me-2">' + 
+                           formatPriceDisplay(displayMinPrice) + '</span>' +
+                           '<span class="final-price theme-cl fw-bold fs-3 me-2" style="color: #dc3545;">' + 
+                           formatPriceDisplay(displayMinSalePrice);
+                if (displayMaxSalePrice && displayMinSalePrice != displayMaxSalePrice) {
+                    priceHtml += ' - ' + formatPriceDisplay(displayMaxSalePrice);
                 }
+                priceHtml += ' <span class="tax-label text-muted fs-sm align-self-end">(' + taxLabel + ')</span></span>';
+            } else {
+                priceHtml = '<span class="final-price theme-cl fw-bold fs-3 me-2" style="color: #dc3545;">' + 
+                           formatPriceDisplay(displayMinPrice);
+                if (displayMaxPrice && displayMinPrice != displayMaxPrice) {
+                    priceHtml += ' - ' + formatPriceDisplay(displayMaxPrice);
+                }
+                priceHtml += ' <span class="tax-label text-muted fs-sm align-self-end">(' + taxLabel + ')</span></span>';
             }
             
             if (!currentProductData.in_stock) {

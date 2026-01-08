@@ -79,10 +79,20 @@
 															: null;
 														$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
 														$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
-														$hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+														$hasPriceRange = $product['has_price_range'] ?? ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
 														
-														if ($firstColorVariant && !$hasPriceRange) {
-															// Use variant-level pricing with discount
+														// Check if we have first_variant data (for single variant products)
+														$hasFirstVariantData = isset($product['first_variant_price']) && !$hasPriceRange;
+														
+														if ($hasFirstVariantData) {
+															// Use first variant data from controller
+															$variantPrice = $product['first_variant_price'];
+															$variantSalePrice = $product['first_variant_sale_price'] ?? null;
+															$discountType = $product['first_variant_discount_type'] ?? null;
+															$discountValue = $product['first_variant_discount_value'] ?? null;
+															$discountActive = $product['first_variant_discount_active'] ?? false;
+														} elseif ($firstColorVariant && !$hasPriceRange) {
+															// Use variant-level pricing with discount from color variant
 															$variantPrice = $firstColorVariant['price'] ?? $minDisplayPrice;
 															$variantSalePrice = $firstColorVariant['sale_price'] ?? null;
 															$discountType = $firstColorVariant['discount_type'] ?? null;
@@ -98,7 +108,7 @@
 														}
 													@endphp
 													
-													@if($firstColorVariant && !$hasPriceRange)
+													@if(($hasFirstVariantData || $firstColorVariant) && !$hasPriceRange)
 														{{-- Use variant-level pricing when single variant --}}
 														@include('frontend.partials.product-pricing-compact', [
 															'price' => $variantPrice,
@@ -107,8 +117,8 @@
 															'discount_type' => $discountType,
 															'discount_value' => $discountValue,
 															'discount_active' => $discountActive,
-															'gstType' => true,
-															'gstPercentage' => 0,
+															'gstType' => $product['gst_type'] ?? true,
+															'gstPercentage' => $product['gst_percentage'] ?? 0,
 															'compact' => true
 														])
 													@else

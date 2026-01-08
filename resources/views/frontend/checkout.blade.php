@@ -392,40 +392,53 @@
                                                         $gstType = $product->gst_type ?? true;
                                                         $gstPercentage = $product->gst_percentage ?? 0;
                                                         
-                                                        // Get original variant price for display
-                                                        $originalVariantPrice = null;
-                                                        $variantSalePrice = null;
-                                                        $variantPrice = null;
+                                                        // Calculate final price after variant discounts
+                                                        $basePrice = $variant ? ($variant->price ?? 0) : 0;
+                                                        $salePrice = $variant ? ($variant->sale_price ?? null) : null;
+                                                        $discountType = $variant ? ($variant->discount_type ?? null) : null;
+                                                        $discountValue = $variant ? ($variant->discount_value ?? 0) : 0;
+                                                        $discountActive = $variant ? ($variant->discount_active ?? false) : false;
                                                         
-                                                        if ($variant) {
-                                                            $variantPrice = $variant->price ?? null;
-                                                            $variantSalePrice = $variant->sale_price ?? null;
-                                                            // Use variant price as base price (not sale price)
-                                                            $originalVariantPrice = $variantPrice ?? null;
-                                                        } else {
-                                                            $variantPrice = null;
-                                                            $variantSalePrice = null;
-                                                            $originalVariantPrice = null;
+                                                        // Determine price to apply discount to
+                                                        $priceToDiscount = $basePrice;
+                                                        if ($salePrice !== null && $salePrice < $basePrice) {
+                                                            $priceToDiscount = $salePrice;
                                                         }
                                                         
-                                                        // Calculate display price per unit (for compact component)
-                                                        $displayPricePerUnit = $item->unit_price ?? 0;
-                                                        if ($gstType && $originalVariantPrice !== null) {
-                                                            // Inclusive: use original variant price (base price)
-                                                            $displayPricePerUnit = $originalVariantPrice;
-                                                        } elseif (!$gstType && $gstPercentage > 0) {
-                                                            // Exclusive: extract base price from unit_price
-                                                            $displayPricePerUnit = $item->unit_price / (1 + ($gstPercentage / 100));
+                                                        // Calculate final price after discounts
+                                                        $finalPrice = $priceToDiscount;
+                                                        if ($discountActive && $discountType && $discountValue > 0) {
+                                                            if ($discountType === 'percentage') {
+                                                                $discountAmount = ($priceToDiscount * $discountValue) / 100;
+                                                                $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                                                            } elseif (in_array($discountType, ['amount', 'flat'])) {
+                                                                $finalPrice = max(0, $priceToDiscount - $discountValue);
+                                                            }
+                                                        } elseif ($salePrice !== null && $salePrice < $basePrice) {
+                                                            $finalPrice = $salePrice;
                                                         }
+                                                        
+                                                        // Base price: Show as-is (no GST calculation) - matching product page
+                                                        // Sale price and final price: Apply GST calculation only if exclusive and based on sale price
+                                                        $displayPricePerUnit = $finalPrice;
+                                                        
+                                                        // Check if final price is based on sale price
+                                                        $isFinalPriceBasedOnSale = $salePrice !== null && $salePrice < $basePrice && ($finalPrice === $salePrice || ($discountActive && $priceToDiscount === $salePrice));
+                                                        
+                                                        if (!$gstType && $gstPercentage > 0 && $isFinalPriceBasedOnSale) {
+                                                            // Exclusive and final price is based on sale price: add GST to final price
+                                                            $displayPricePerUnit = $finalPrice + ($finalPrice * ($gstPercentage / 100));
+                                                        }
+                                                        // If final price is based on base price, show as-is (no GST calculation)
                                                     @endphp
                                                     <div class="mb-3">
                                                         @include('frontend.partials.product-pricing-compact', [
-                                                            'price' => $variantPrice ?? $displayPricePerUnit,
-                                                            'sale_price' => $variantSalePrice,
-                                                            'original_price' => $variantPrice ?? $displayPricePerUnit,
-                                                            'discount_type' => $variant->discount_type ?? null,
-                                                            'discount_value' => $variant->discount_value ?? null,
-                                                            'discount_active' => $variant->discount_active ?? false,
+                                                            'price' => $finalPrice,
+                                                            'sale_price' => $salePrice,
+                                                            'original_price' => $basePrice,
+                                                            'discount_type' => $discountType,
+                                                            'discount_value' => $discountValue,
+                                                            'discount_active' => $discountActive,
                                                             'gstType' => $gstType,
                                                             'gstPercentage' => $gstPercentage,
                                                             'compact' => false
@@ -444,62 +457,35 @@
                             <div class="card-body">
                                 <ul class="list-group list-group-sm list-group-flush-y list-group-flush-x">
                                     @php
-                                        // Round all amounts to whole numbers for display
-                                        $subtotal = round($cart->subtotal ?? 0);
-                                        $discountAmount = round($cart->discount_amount ?? 0);
-                                        $totalAfterDiscount = $subtotal - $discountAmount;
+                                        // Calculate totals with decimals (no rounding except for final total)
+                                        // Subtotal is already calculated with inclusive prices in Cart model
+                                        $subtotal = $cart->subtotal ?? 0;
+                                        $discountAmount = $cart->discount_amount ?? 0;
+                                        $shippingAmount = $cart->shipping_amount ?? 0;
                                         
-                                        // Calculate tax display with GST percentage if available
-                                        $hasExclusiveItems = false;
-                                        $maxGstPercentage = 0;
-                                        foreach ($cart->items ?? [] as $item) {
-                                            $product = $item->product;
-                                            if ($product) {
-                                                $gstType = $product->gst_type ?? true;
-                                                $gstPercentage = $product->gst_percentage ?? 0;
-                                                if ($gstPercentage > 0 && !$gstType) {
-                                                    $hasExclusiveItems = true;
-                                                    if ($gstPercentage > $maxGstPercentage) {
-                                                        $maxGstPercentage = $gstPercentage;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        $taxAmount = round($cart->tax_amount ?? 0);
-                                        $shippingAmount = round($cart->shipping_amount ?? 0);
-                                        $grandTotal = $totalAfterDiscount + $taxAmount + $shippingAmount;
-                                        $payable = round($grandTotal);
+                                        // Calculate Total (Incl. of all taxes)
+                                        // Total = Subtotal - Discount + Shipping (all prices are already inclusive)
+                                        $totalInclusive = $subtotal - $discountAmount + $shippingAmount;
                                         
-                                        $taxLabel = ($taxAmount > 0 && $maxGstPercentage > 0 && $hasExclusiveItems) 
-                                            ? 'Tax (GST ' . round($maxGstPercentage) . '% ₹' . number_format($taxAmount, 0) . ')' 
-                                            : 'Tax';
+                                        // Round total to whole number for display
+                                        $totalRounded = round($totalInclusive);
                                     @endphp
                                     <li class="list-group-item d-flex text-dark fs-sm ft-regular">
                                         <span>Subtotal</span> 
-                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($subtotal, 0) }}</span>
+                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($subtotal, 2) }}</span>
                                     </li>
                                     <!-- Discount row - always shown -->
                                     <li class="list-group-item d-flex text-dark fs-sm ft-regular">
                                         <span>Discount</span> 
-                                        <span class="ms-auto text-dark ft-medium text-success">-₹{{ number_format($discountAmount, 0) }}</span>
+                                        <span class="ms-auto text-dark ft-medium text-success">-₹{{ number_format($discountAmount, 2) }}</span>
                                     </li>
-                                    <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-                                        <span>Total</span> 
-                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($totalAfterDiscount, 0) }}</span>
-                                    </li>
-                                    @if($hasExclusiveItems && $taxAmount > 0)
-                                    <li class="list-group-item d-flex text-dark fs-sm ft-regular">
-                                        <span>{{ $taxLabel }}</span> 
-                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($taxAmount, 0) }}</span>
-                                    </li>
-                                    @endif
                                     <li class="list-group-item d-flex text-dark fs-sm ft-regular">
                                         <span>Shipping</span> 
-                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($shippingAmount, 0) }}</span>
+                                        <span class="ms-auto text-dark ft-medium">₹{{ number_format($shippingAmount, 2) }}</span>
                                     </li>
                                     <li class="list-group-item d-flex text-dark fs-sm ft-medium border-top">
-                                        <span>Payable</span> 
-                                        <span class="ms-auto text-dark ft-bold">₹{{ number_format($payable, 0) }}</span>
+                                        <span>Total (Incl. of all taxes)</span> 
+                                        <span class="ms-auto text-dark ft-bold">₹{{ number_format($totalRounded, 0) }}</span>
                                     </li>
                                     <li class="list-group-item fs-sm text-center">
                                         Shipping cost calculated at Checkout *

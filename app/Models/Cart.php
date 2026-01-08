@@ -136,7 +136,9 @@ class Cart extends Model
             return round($finalPrice);
         };
         
-        // Calculate subtotal (base price - no computation for inclusive items)
+        // Calculate subtotal using inclusive prices (base + GST for exclusive items)
+        // For exclusive items: base price + GST = inclusive price
+        // For inclusive items: use price as-is
         $subtotal = 0;
         
         foreach ($this->items as $item) {
@@ -150,8 +152,20 @@ class Cart extends Model
             $itemFinalPrice = $calculateItemFinalPrice($variant);
             $quantity = $item->quantity ?? 1;
             
-            // Add to subtotal (final price after discounts)
-            $subtotal += $itemFinalPrice * $quantity;
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true; // Default to inclusive
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
+            // Calculate inclusive price
+            $inclusivePrice = $itemFinalPrice;
+            if ($gstPercentage > 0 && !$gstType) {
+                // Exclusive: Add GST to base price to get inclusive price
+                $inclusivePrice = $itemFinalPrice + ($itemFinalPrice * ($gstPercentage / 100));
+            }
+            // For inclusive items, $itemFinalPrice is already inclusive
+            
+            // Add to subtotal (inclusive price after discounts)
+            $subtotal += $inclusivePrice * $quantity;
         }
         
         $this->subtotal = $subtotal;
@@ -182,46 +196,8 @@ class Cart extends Model
         }
         $this->discount_amount = $discountAmount;
         
-        // Calculate tax AFTER discount is applied (only for exclusive items)
-        // For tax-inclusive items: tax is already included in price, don't add it again
-        // For tax-exclusive items: calculate tax on discounted amount and add it separately
-        $taxAmount = 0;
-        $totalAfterDiscount = $subtotal - $discountAmount;
-        
-        foreach ($this->items as $item) {
-            $product = $item->product;
-            $variant = $item->variant;
-            if (!$product) {
-                continue;
-            }
-            
-            // Calculate final price for this item (after variant discounts)
-            $itemFinalPrice = $calculateItemFinalPrice($variant);
-            
-            // Get GST settings from product
-            $gstType = $product->gst_type ?? true; // Default to inclusive
-            $gstPercentage = $product->gst_percentage ?? 0;
-            $quantity = $item->quantity ?? 1;
-            
-            if ($gstPercentage > 0 && !$gstType) {
-                // Exclusive of tax: $itemFinalPrice is already the base price (exclusive of tax)
-                $itemSubtotal = $itemFinalPrice * $quantity;
-                
-                // Apply discount proportionally to this item's share
-                $itemDiscountRatio = $subtotal > 0 ? ($itemSubtotal / $subtotal) : 0;
-                $itemDiscount = $discountAmount * $itemDiscountRatio;
-                $itemTotalAfterDiscount = $itemSubtotal - $itemDiscount;
-                
-                // Calculate tax on discounted base amount (for exclusive items, price is already base)
-                // Tax = discounted_base_amount * GST%
-                $discountedTax = $itemTotalAfterDiscount * ($gstPercentage / 100);
-                
-                $taxAmount += $discountedTax;
-            }
-            // For inclusive items, tax is already in the price, so don't add it again
-        }
-        
-        $this->tax_amount = $taxAmount;
+        // Tax is already included in subtotal (inclusive prices), so set to 0
+        $this->tax_amount = 0;
         
         // Calculate shipping
         $allItemsFreeShipping = $this->items->every(function($item) {
@@ -243,13 +219,11 @@ class Cart extends Model
         $this->shipping_amount = $shippingAmount;
         
         // Calculate total following proper e-commerce flow:
-        // 1. Subtotal (sum of all items)
+        // 1. Subtotal (sum of all items with inclusive prices)
         // 2. Apply Discount (subtotal - discount)
-        // 3. Calculate GST on discounted amount (for exclusive items)
-        // 4. Add Shipping
-        // Total = Subtotal - Discount + Tax + Shipping
-        // For inclusive items, tax is already in subtotal, so only add tax for exclusive items
-        $this->total_amount = $subtotal - $discountAmount + $taxAmount + $shippingAmount;
+        // 3. Add Shipping
+        // Total = Subtotal - Discount + Shipping (all prices are already inclusive)
+        $this->total_amount = $subtotal - $discountAmount + $shippingAmount;
         
         $this->save();
         

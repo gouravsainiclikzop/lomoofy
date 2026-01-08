@@ -185,16 +185,7 @@
                                 <span class="sa-nav__title">Coupons</span>
                             </a>
                         </li>
-                        
-                        <!-- Reviews -->
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('reviews.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('reviews.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <i class='bx bx-star'></i>
-                                </span>
-                                <span class="sa-nav__title">Reviews</span>
-                            </a>
-                        </li>
+                         
                         
                         <!-- Customer Management Menu -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('customers.*') || request()->routeIs('field-management.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
@@ -317,7 +308,7 @@
                 </li>
 
                 <!-- Website Management Menu -->
-                <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('website.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open" style="margin-bottom: 8px;">
+                <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('website.*') ?  (request()->routeIs('home-sliders.*') || request()->routeIs('featured-category-style.*') || request()->routeIs('our-collection.*') || request()->routeIs('testimonials.*') || request()->routeIs('reviews.*') || request()->routeIs('service-highlights.*') ? 'sa-nav__menu-item--open' : '') : '' }}" data-sa-collapse-item="sa-nav__menu-item--open" style="margin-bottom: 8px;">
                     <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
                         <span class="sa-nav__icon">
                             <i class='bx bx-globe'></i>
@@ -331,7 +322,15 @@
                     </a>
 
                     <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content="">
-                        <li class="sa-nav__menu-item {{ request()->routeIs('featured-category-style.*') ? 'sa-nav__menu-item--active' : '' }}">
+                       
+
+                    <li class="sa-nav__menu-item {{ request()->routeIs('home-sliders.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('home-sliders.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__menu-item-padding"></span>
+                                <span class="sa-nav__title">Home Sliders</span>
+                            </a>
+                        </li>
+                    <li class="sa-nav__menu-item {{ request()->routeIs('featured-category-style.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('featured-category-style.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__menu-item-padding"></span>
                                 <span class="sa-nav__title">Featured Category Style</span>
@@ -352,12 +351,6 @@
                             </a>
                         </li>
 
-                        <li class="sa-nav__menu-item {{ request()->routeIs('home-sliders.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('home-sliders.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__menu-item-padding"></span>
-                                <span class="sa-nav__title">Home Sliders</span>
-                            </a>
-                        </li>
 
                         <li class="sa-nav__menu-item {{ request()->routeIs('service-highlights.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('service-highlights.index') }}" class="sa-nav__link">
@@ -365,6 +358,19 @@
                                 <span class="sa-nav__title">Service Highlights</span>
                             </a>
                         </li>
+                        
+
+                        <!-- Reviews -->
+                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('reviews.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('reviews.index') }}" class="sa-nav__link">
+                                <!-- <span class="sa-nav__icon">
+                                    <i class='bx bx-star'></i>
+                                </span> -->
+                                <span class="sa-nav__menu-item-padding"></span> 
+                                <span class="sa-nav__title">Reviews</span>
+                            </a>
+                        </li>
+                        
                     </ul>
                 </li>
 

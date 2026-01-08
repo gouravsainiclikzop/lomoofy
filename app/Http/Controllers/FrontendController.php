@@ -169,6 +169,27 @@ class FrontendController extends Controller
                 }
             }
             
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true;
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
+            // Check if has price range
+            $hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+            
+            // Get first variant for single variant pricing
+            $firstVariantPrice = null;
+            $firstVariantSalePrice = null;
+            $firstVariantDiscountType = null;
+            $firstVariantDiscountValue = null;
+            $firstVariantDiscountActive = false;
+            if (!$hasPriceRange && $firstVariant) {
+                $firstVariantPrice = $firstVariant->price ?? 0;
+                $firstVariantSalePrice = $firstVariant->sale_price ?? null;
+                $firstVariantDiscountType = $firstVariant->discount_type ?? null;
+                $firstVariantDiscountValue = $firstVariant->discount_value ?? null;
+                $firstVariantDiscountActive = $firstVariant->discount_active ?? false;
+            }
+            
             return [
                 'id' => $product->id,
                 'name' => $product->name,
@@ -185,6 +206,14 @@ class FrontendController extends Controller
                 'is_new' => $product->created_at->isAfter(now()->subDays(30)), // New if created within 30 days
                 'is_featured' => $product->featured,
                 'in_wishlist' => in_array($product->id, $wishlistProductIds), // Check if product is in wishlist
+                'gst_type' => $gstType,
+                'gst_percentage' => $gstPercentage,
+                'has_price_range' => ($minPrice != $maxPrice && $maxPrice > 0),
+                'first_variant_price' => $firstVariantPrice,
+                'first_variant_sale_price' => $firstVariantSalePrice,
+                'first_variant_discount_type' => $firstVariantDiscountType,
+                'first_variant_discount_value' => $firstVariantDiscountValue,
+                'first_variant_discount_active' => $firstVariantDiscountActive,
                 'color_variants' => $colorVariants->map(function($variant) use ($imageUrl, $activeVariants) {
                     // Parse attributes using new helper function
                     $parsed = self::parseVariantAttributes($variant->attributes);
@@ -393,6 +422,10 @@ class FrontendController extends Controller
                 $priceDisplay = 'Price on request';
             }
             
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true;
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
             // Get first variant discount info for pricing component
             $firstVariant = $activeVariants->first();
             $firstVariantPrice = $firstVariant ? ($firstVariant->price ?? 0) : $minPrice;
@@ -427,6 +460,8 @@ class FrontendController extends Controller
                 'price_display' => $priceDisplay,
                 'badge' => $badge,
                 'in_wishlist' => in_array($product->id, $wishlistProductIds),
+                'gst_type' => $gstType,
+                'gst_percentage' => $gstPercentage,
                 // Add first variant discount info for pricing component
                 'first_variant_price' => $firstVariantPrice,
                 'first_variant_sale_price' => $firstVariantSalePrice,
@@ -514,6 +549,10 @@ class FrontendController extends Controller
                     }
                 }
                 
+                // Get GST settings from product
+                $gstType = $product->gst_type ?? true;
+                $gstPercentage = $product->gst_percentage ?? 0;
+                
                 // Get first variant discount info for pricing component
                 $firstVariant = $activeVariants->first();
                 $firstVariantPrice = $firstVariant ? ($firstVariant->price ?? 0) : $minPrice;
@@ -548,6 +587,8 @@ class FrontendController extends Controller
                     'price_display' => $priceDisplay,
                     'badge' => $badge,
                     'in_wishlist' => in_array($product->id, $wishlistProductIds),
+                    'gst_type' => $gstType,
+                    'gst_percentage' => $gstPercentage,
                     // Add first variant discount info for pricing component
                     'first_variant_price' => $firstVariantPrice,
                     'first_variant_sale_price' => $firstVariantSalePrice,
@@ -1084,6 +1125,25 @@ class FrontendController extends Controller
                     return false;
                 });
                 
+                // Get GST settings from product
+                $gstType = $product->gst_type ?? true;
+                $gstPercentage = $product->gst_percentage ?? 0;
+                
+                // Get first variant for single variant pricing
+                $firstVariantPrice = null;
+                $firstVariantSalePrice = null;
+                $firstVariantDiscountType = null;
+                $firstVariantDiscountValue = null;
+                $firstVariantDiscountActive = false;
+                $hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+                if (!$hasPriceRange && $firstVariant) {
+                    $firstVariantPrice = $firstVariant->price ?? 0;
+                    $firstVariantSalePrice = $firstVariant->sale_price ?? null;
+                    $firstVariantDiscountType = $firstVariant->discount_type ?? null;
+                    $firstVariantDiscountValue = $firstVariant->discount_value ?? null;
+                    $firstVariantDiscountActive = $firstVariant->discount_active ?? false;
+                }
+                
                 // Format price display
                 $priceDisplay = '';
                 if ($hasSale && $minSalePrice) {
@@ -1115,6 +1175,14 @@ class FrontendController extends Controller
                     'is_new' => $product->created_at->isAfter(now()->subDays(30)), // New if created within 30 days
                     'is_featured' => $product->featured,
                     'in_wishlist' => in_array($product->id, $wishlistProductIds), // Check if product is in wishlist
+                    'gst_type' => $gstType,
+                    'gst_percentage' => $gstPercentage,
+                    'has_price_range' => $hasPriceRange,
+                    'first_variant_price' => $firstVariantPrice,
+                    'first_variant_sale_price' => $firstVariantSalePrice,
+                    'first_variant_discount_type' => $firstVariantDiscountType,
+                    'first_variant_discount_value' => $firstVariantDiscountValue,
+                    'first_variant_discount_active' => $firstVariantDiscountActive,
                     'color_variants' => $colorVariants->map(function($variant) use ($imageUrl, $activeVariants) {
                         // Parse attributes using new helper function
                         $parsed = self::parseVariantAttributes($variant->attributes);
@@ -3225,6 +3293,25 @@ class FrontendController extends Controller
                 ];
             })->unique('color')->values()->take(4);
             
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true;
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
+            // Get first variant for single variant pricing
+            $firstVariantPrice = null;
+            $firstVariantSalePrice = null;
+            $firstVariantDiscountType = null;
+            $firstVariantDiscountValue = null;
+            $firstVariantDiscountActive = false;
+            $hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+            if (!$hasPriceRange && $firstVariant) {
+                $firstVariantPrice = $firstVariant->price ?? 0;
+                $firstVariantSalePrice = $firstVariant->sale_price ?? null;
+                $firstVariantDiscountType = $firstVariant->discount_type ?? null;
+                $firstVariantDiscountValue = $firstVariant->discount_value ?? null;
+                $firstVariantDiscountActive = $firstVariant->discount_active ?? false;
+            }
+            
             return [
                 'wishlist_id' => $wishlist->id,
                 'id' => $product->id,
@@ -3243,6 +3330,14 @@ class FrontendController extends Controller
                     : '₹' . number_format($minPrice, 0),
                 'is_new' => $product->created_at->isAfter(now()->subDays(30)),
                 'is_featured' => $product->featured,
+                'gst_type' => $gstType,
+                'gst_percentage' => $gstPercentage,
+                'has_price_range' => $hasPriceRange,
+                'first_variant_price' => $firstVariantPrice,
+                'first_variant_sale_price' => $firstVariantSalePrice,
+                'first_variant_discount_type' => $firstVariantDiscountType,
+                'first_variant_discount_value' => $firstVariantDiscountValue,
+                'first_variant_discount_active' => $firstVariantDiscountActive,
                 'color_variants' => $formattedColorVariants,
             ];
         })->filter(); // Remove null entries (deleted products)
@@ -4598,8 +4693,8 @@ class FrontendController extends Controller
             'coupon'
         ]);
         
-        // Recalculate cart totals using final prices (after discounts) - matching shopping cart logic
-        $this->recalculateCartTotalsWithFinalPrices($cart);
+        // Recalculate cart totals using Cart model's method for consistency
+        $cart->recalculateTotals();
         
         // Persist checkout data in session for validation errors
         session()->put('checkout_data', [
@@ -5125,9 +5220,10 @@ class FrontendController extends Controller
             return round($finalPrice);
         };
         
+        // Calculate subtotal using inclusive prices (base + GST for exclusive items)
+        // For exclusive items: base price + GST = inclusive price
+        // For inclusive items: use price as-is
         $subtotal = 0;
-        $taxAmount = 0;
-        $hasExclusiveItems = false;
         
         foreach ($cart->items as $item) {
             $product = $item->product;
@@ -5136,35 +5232,27 @@ class FrontendController extends Controller
                 continue;
             }
             
-            // Calculate final price for this item (after discounts)
+            // Calculate final price for this item (after variant discounts)
             $itemFinalPrice = $calculateItemFinalPrice($variant);
-            
-            // Get GST settings
-            $gstType = $product->gst_type ?? true;
-            $gstPercentage = $product->gst_percentage ?? 0;
             $quantity = $item->quantity ?? 1;
             
-            if ($gstPercentage > 0) {
-                if (!$gstType) {
-                    // Exclusive of tax: Extract base price for tax calculation
-                    $baseForTax = $itemFinalPrice / (1 + ($gstPercentage / 100));
-                    $itemTax = $baseForTax * ($gstPercentage / 100);
-                    $taxAmount += $itemTax * $quantity;
-                    $hasExclusiveItems = true;
-                    // Use final price in subtotal (will have tax added separately)
-                    $subtotal += $itemFinalPrice * $quantity;
-                } else {
-                    // Inclusive of tax: Use final price directly (tax already included)
-                    $subtotal += $itemFinalPrice * $quantity;
-                    // Don't add tax since it's already in the price
-                }
-            } else {
-                // No GST - use final price directly
-                $subtotal += $itemFinalPrice * $quantity;
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true; // Default to inclusive
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
+            // Calculate inclusive price
+            $inclusivePrice = $itemFinalPrice;
+            if ($gstPercentage > 0 && !$gstType) {
+                // Exclusive: Add GST to base price to get inclusive price
+                $inclusivePrice = $itemFinalPrice + ($itemFinalPrice * ($gstPercentage / 100));
             }
+            // For inclusive items, $itemFinalPrice is already inclusive
+            
+            // Add to subtotal (inclusive price after discounts)
+            $subtotal += $inclusivePrice * $quantity;
         }
         
-        // Calculate discount from coupon if exists
+        // Calculate discount from coupon if exists (after subtotal is calculated)
         $discountAmount = 0;
         if ($cart->coupon_code && $cart->coupon) {
             $coupon = $cart->coupon;
@@ -5189,6 +5277,9 @@ class FrontendController extends Controller
             }
         }
         
+        // Tax is already included in subtotal (inclusive prices), so set to 0
+        $taxAmount = 0;
+        
         // Calculate shipping
         $allItemsFreeShipping = $cart->items->every(function($item) {
             return $item->product && $item->product->free_shipping;
@@ -5206,12 +5297,16 @@ class FrontendController extends Controller
             $shippingAmount = $subtotal > $freeShippingThreshold ? 0 : $defaultShippingCost;
         }
         
-        // Update cart totals
+        // Update cart totals following proper e-commerce flow:
+        // 1. Subtotal (sum of all items with inclusive prices)
+        // 2. Apply Discount (subtotal - discount)
+        // 3. Add Shipping
+        // Total = Subtotal - Discount + Shipping (all prices are already inclusive)
         $cart->subtotal = $subtotal;
         $cart->discount_amount = $discountAmount;
         $cart->tax_amount = $taxAmount;
         $cart->shipping_amount = $shippingAmount;
-        $cart->total_amount = $subtotal - $discountAmount + $taxAmount + $shippingAmount;
+        $cart->total_amount = $subtotal - $discountAmount + $shippingAmount;
         $cart->save();
         
         return $cart;

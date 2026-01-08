@@ -23,7 +23,11 @@ class OrderItem extends Model
         'variant_sale_price',
         'discount_type',
         'discount_value',
+        'discount_percentage',
         'discount_active',
+        'tax_type',
+        'tax_value',
+        'tax_percentage',
     ];
 
     protected $casts = [
@@ -33,7 +37,11 @@ class OrderItem extends Model
         'original_variant_price' => 'decimal:2',
         'variant_sale_price' => 'decimal:2',
         'discount_value' => 'decimal:2',
+        'discount_percentage' => 'decimal:2',
         'discount_active' => 'boolean',
+        'tax_type' => 'boolean',
+        'tax_value' => 'decimal:2',
+        'tax_percentage' => 'decimal:2',
     ];
 
     // Relationships

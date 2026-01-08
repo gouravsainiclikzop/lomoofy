@@ -69,16 +69,100 @@
         // No discountBadgeText - don't show discount badge for sale price alone
     }
     
-    // GST type for display only (no price calculation)
+    // GST settings
     $gstType = $gstType ?? true;
     $gstPercentage = $gstPercentage ?? 0;
     
-    // Use prices as-is without GST calculation
+    // Round prices for consistent calculations
+    $basePrice = round($basePrice);
+    $salePrice = $salePrice !== null ? round($salePrice) : null;
+    $finalPrice = round($finalPrice);
+    
+    // Determine price to use (sale price if available, otherwise base price)
+    $priceToUse = $salePrice !== null && $salePrice < $basePrice ? $salePrice : $basePrice;
+    
+    // Check if product has exclusive tax
+    $hasExclusiveTax = ($gstType === false && $gstPercentage > 0);
+    
+    // Check if has extra discount
+    $hasExtraDiscount = isset($discount_active) && $discount_active && isset($discount_type) && isset($discount_value) && $discount_value > 0;
+    
+    // Initialize display variables
     $displayBasePrice = $basePrice;
     $displayFinalPrice = $finalPrice;
     $displaySavings = $totalSavings;
+    $showBasePrice = false;
+    $taxLabel = 'Inclusive of all taxes';
     
-    $taxLabel = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
+    // Condition One: Exclusive tax without extra discount
+    if ($hasExclusiveTax && !$hasExtraDiscount) {
+        // Calculate tax on sale price (or base price if no sale)
+        $gstAmount = $priceToUse * ($gstPercentage / 100);
+        $displayFinalPrice = round($priceToUse + $gstAmount);
+        
+        // Don't show base price
+        $showBasePrice = false;
+        $taxLabel = 'Inclusive of taxes';
+    }
+    // Condition Two: Exclusive tax with extra discount
+    elseif ($hasExclusiveTax && $hasExtraDiscount) {
+        // Step 1: Calculate tax-inclusive price first
+        $gstAmount = $priceToUse * ($gstPercentage / 100);
+        $taxInclusivePrice = round($priceToUse + $gstAmount);
+        
+        // Step 2: Apply extra discount on tax-inclusive price
+        if ($discount_type === 'percentage') {
+            $discountAmount = ($taxInclusivePrice * $discount_value) / 100;
+            $displayFinalPrice = round(max(0, $taxInclusivePrice - $discountAmount));
+        } elseif (in_array($discount_type, ['amount', 'flat'])) {
+            $displayFinalPrice = round(max(0, $taxInclusivePrice - $discount_value));
+        } else {
+            $displayFinalPrice = $taxInclusivePrice;
+        }
+        
+        // Show tax-inclusive price as base price (strikethrough)
+        $displayBasePrice = $taxInclusivePrice;
+        $showBasePrice = true;
+        
+        // Calculate savings from base price to final price
+        $displaySavings = $basePrice - $displayFinalPrice;
+        
+        // Update discount badge text
+        if ($displayFinalPrice < $taxInclusivePrice) {
+            $discountPercentage = 0;
+            if ($discount_type === 'percentage') {
+                $discountPercentage = round($discount_value);
+            } elseif (in_array($discount_type, ['amount', 'flat']) && $taxInclusivePrice > 0) {
+                $discountPercentage = round((($discount_value / $taxInclusivePrice) * 100));
+            }
+            
+            if ($salePrice !== null && $salePrice < $basePrice && $basePrice > 0) {
+                $salePercentage = round((($basePrice - $salePrice) / $basePrice) * 100);
+                $discountBadgeText = $salePercentage . '% OFF';
+                if ($discountPercentage > 0) {
+                    $discountBadgeText .= ' (+ extra ' . $discountPercentage . '% discount)';
+                }
+            } else {
+                $discountBadgeText = $discountPercentage . '% OFF';
+            }
+        }
+        
+        $taxLabel = 'Inclusive of taxes';
+    }
+    // Default: Inclusive tax or no tax
+    else {
+        // Use prices as-is
+        $displayBasePrice = $basePrice;
+        $displayFinalPrice = $finalPrice;
+        $displaySavings = $totalSavings;
+        $showBasePrice = ($displayBasePrice > $displayFinalPrice);
+        $taxLabel = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
+    }
+    
+    // Round display values
+    $displayBasePrice = round($displayBasePrice);
+    $displayFinalPrice = round($displayFinalPrice);
+    $displaySavings = round($displaySavings);
     $compact = $compact ?? false; // Compact mode for smaller displays
 @endphp
 
@@ -103,16 +187,16 @@
     {{-- Main Price Display --}}
     <div class="pricing-main-compact">
         <div class="d-flex align-items-baseline flex-wrap gap-1">
-            {{-- Base Price (with strikethrough if sale price or discount active) --}}
-            @if($displayBasePrice > $displayFinalPrice)
+            {{-- Base Price (with strikethrough if needed) --}}
+            @if($showBasePrice && $displayBasePrice > $displayFinalPrice)
             <span class="base-price-compact text-muted text-decoration-line-through {{ $compact ? 'fs-sm' : 'fs-md' }} fw-normal">
-                ₹{{ number_format($displayBasePrice, 2) }}
+                ₹{{ number_format($displayBasePrice, 0) }}
             </span>
             @endif
             
             {{-- Final Price (prominent) --}}
             <span class="final-price-compact theme-cl fw-bold {{ $compact ? 'fs-md' : 'fs-lg' }}" style="color: #dc3545;">
-                ₹{{ number_format($displayFinalPrice, 2) }}
+                ₹{{ number_format($displayFinalPrice, 0) }}
             </span>
             
             {{-- Tax Label (only if not compact) --}}

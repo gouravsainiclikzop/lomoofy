@@ -203,8 +203,8 @@ class CheckoutService
         
         return DB::transaction(function () use ($cart, $customer, $shippingAddress, $billingAddress, $billingSameAsShipping, $additionalData) {
             
-            // Recalculate cart totals using final prices (after discounts) - matching checkout logic
-            $this->recalculateCartTotalsWithFinalPricesForOrder($cart);
+            // Recalculate cart totals using Cart model's method for consistency
+            $cart->recalculateTotals();
             
             // Create immutable address snapshots
             $shippingSnapshot = $this->createAddressSnapshot($shippingAddress);
@@ -258,6 +258,80 @@ class CheckoutService
                 $warehouseId = null;
                 $locationId = null;
                 
+                // Helper function to calculate final price for an item (after discounts)
+                $calculateItemFinalPrice = function($variant) {
+                    if (!$variant) {
+                        return 0;
+                    }
+                    
+                    $basePrice = $variant->price ?? 0;
+                    $salePrice = $variant->sale_price ?? null;
+                    $discountType = $variant->discount_type ?? '';
+                    $discountValue = $variant->discount_value ?? 0;
+                    $discountActive = $variant->discount_active ?? false;
+                    
+                    // Round base price
+                    $basePrice = round($basePrice);
+                    
+                    // Round sale price if it exists
+                    $roundedSalePrice = null;
+                    if ($salePrice !== null) {
+                        $roundedSalePrice = round($salePrice);
+                    }
+                    
+                    // Calculate final price
+                    $priceToDiscount = $basePrice;
+                    if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                        $priceToDiscount = $roundedSalePrice;
+                    }
+                    
+                    $finalPrice = $priceToDiscount;
+                    
+                    // Apply discount if active
+                    if ($discountActive && $discountType && $discountValue > 0) {
+                        if ($discountType === 'percentage') {
+                            $discountAmount = ($priceToDiscount * $discountValue) / 100;
+                            $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                        } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                            $finalPrice = max(0, $priceToDiscount - $discountValue);
+                        }
+                    } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
+                        $finalPrice = $roundedSalePrice;
+                    }
+                    
+                    // Round final price
+                    return round($finalPrice);
+                };
+                
+                // Calculate item final price (after variant discounts)
+                $itemFinalPrice = $calculateItemFinalPrice($variant);
+                
+                // Get GST settings from product
+                $gstType = $product->gst_type ?? true; // Default to inclusive
+                $gstPercentage = $product->gst_percentage ?? 0;
+                
+                // Calculate tax info for this item
+                $taxType = $gstType;
+                $taxPercentage = $gstPercentage;
+                $taxValue = 0;
+                
+                if ($gstPercentage > 0) {
+                    if (!$gstType) {
+                        // Exclusive: Calculate tax on the final price (after discounts)
+                        $taxValue = $itemFinalPrice * ($gstPercentage / 100);
+                    } else {
+                        // Inclusive: Tax is already included, calculate the tax portion
+                        // For inclusive: tax = price - (price / (1 + tax_rate))
+                        $taxValue = $itemFinalPrice - ($itemFinalPrice / (1 + ($gstPercentage / 100)));
+                    }
+                }
+                
+                // Calculate discount_percentage if discount_type is percentage
+                $discountPercentage = null;
+                if ($variant && $variant->discount_active && $variant->discount_type === 'percentage') {
+                    $discountPercentage = $variant->discount_value;
+                }
+                
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
@@ -275,7 +349,11 @@ class CheckoutService
                     'variant_sale_price' => $variant ? ($variant->sale_price ?? null) : null,
                     'discount_type' => $variant ? ($variant->discount_type ?? null) : null,
                     'discount_value' => $variant ? ($variant->discount_value ?? null) : null,
+                    'discount_percentage' => $discountPercentage,
                     'discount_active' => $variant ? ($variant->discount_active ?? false) : false,
+                    'tax_type' => $taxType,
+                    'tax_value' => $taxValue,
+                    'tax_percentage' => $taxPercentage > 0 ? $taxPercentage : null,
                 ]);
                 
                 // Decrement stock (handles warehouse-based inventory)

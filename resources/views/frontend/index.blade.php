@@ -264,8 +264,8 @@
 																	'discount_type' => $product['first_variant_discount_type'] ?? null,
 																	'discount_value' => $product['first_variant_discount_value'] ?? null,
 																	'discount_active' => $product['first_variant_discount_active'] ?? false,
-																	'gstType' => true,
-																	'gstPercentage' => 0,
+																	'gstType' => $product['gst_type'] ?? true,
+																	'gstPercentage' => $product['gst_percentage'] ?? 0,
 																	'compact' => true
 																])
 															@else
@@ -497,8 +497,8 @@
 															'discount_type' => $firstColorVariant['discount_type'] ?? null,
 															'discount_value' => $firstColorVariant['discount_value'] ?? null,
 															'discount_active' => $firstColorVariant['discount_active'] ?? false,
-															'gstType' => true,
-															'gstPercentage' => 0,
+															'gstType' => $product['gst_type'] ?? true,
+															'gstPercentage' => $product['gst_percentage'] ?? 0,
 															'compact' => true
 														])
 													@else
@@ -650,8 +650,8 @@
 																	'discount_type' => $product['first_variant_discount_type'] ?? null,
 																	'discount_value' => $product['first_variant_discount_value'] ?? null,
 																	'discount_active' => $product['first_variant_discount_active'] ?? false,
-																	'gstType' => true,
-																	'gstPercentage' => 0,
+																	'gstType' => $product['gst_type'] ?? true,
+																	'gstPercentage' => $product['gst_percentage'] ?? 0,
 																	'compact' => true
 																])
 															@else
