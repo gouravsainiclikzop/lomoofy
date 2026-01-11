@@ -153,6 +153,9 @@ Route::prefix('api/catalog')->group(function () {
     // Products
     Route::get('/products', [\App\Http\Controllers\Api\CatalogApiController::class, 'getProducts']);
     Route::get('/products/{identifier}', [\App\Http\Controllers\Api\CatalogApiController::class, 'getProduct']);
+    
+    // Variant Pricing - Centralized pricing endpoint
+    Route::get('/variants/{variantId}/pricing', [FrontendController::class, 'getVariantPricing'])->name('api.variant.pricing');
 });
 
 // Sections API Routes - Single endpoint for frontend

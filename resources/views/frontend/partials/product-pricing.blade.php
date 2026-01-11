@@ -1,110 +1,60 @@
 @php
-    // Calculate pricing values
-    $basePrice = $variant->price ?? 0;
-    $salePrice = $variant->sale_price ?? null;
-    $finalPrice = $variant->final_price ?? $basePrice;
-    $totalSavings = $variant->total_savings ?? 0;
-    $hasDiscount = $variant->hasDiscountOrSale();
-    $discountBadgeText = $variant->discount_badge_text ?? null;
-    $isDiscountActive = $variant->hasActiveDiscount() || $variant->isOnSale();
+    // Use centralized pricing method from ProductVariant
+    // This component now uses the centralized getPricingData() method
     
-    // GST settings
-    $gstType = $gstType ?? true;
-    $gstPercentage = $gstPercentage ?? 0;
-    
-    // Round prices for consistent calculations
-    $basePrice = round($basePrice);
-    $salePrice = $salePrice !== null ? round($salePrice) : null;
-    $finalPrice = round($finalPrice);
-    
-    // Determine price to use (sale price if available, otherwise base price)
-    $priceToUse = $salePrice !== null && $salePrice < $basePrice ? $salePrice : $basePrice;
-    
-    // Check if product has exclusive tax
-    $hasExclusiveTax = ($gstType === false && $gstPercentage > 0);
-    
-    // Check if has extra discount
-    $hasExtraDiscount = $variant->hasActiveDiscount();
-    
-    // Initialize display variables
-    $displayBasePrice = $basePrice;
-    $displayFinalPrice = $finalPrice;
-    $displaySavings = $totalSavings;
-    $showBasePrice = false;
-    $taxLabel = 'Inclusive of all taxes';
-    
-    // Condition One: Exclusive tax without extra discount
-    if ($hasExclusiveTax && !$hasExtraDiscount) {
-        // Calculate tax on sale price (or base price if no sale)
-        $gstAmount = $priceToUse * ($gstPercentage / 100);
-        $displayFinalPrice = round($priceToUse + $gstAmount);
+    if (isset($variant) && $variant instanceof \App\Models\ProductVariant) {
+        // Get GST settings - priority: passed params > product relationship > defaults
+        $gstTypeParam = $gstType ?? null;
+        $gstPercentageParam = $gstPercentage ?? null;
         
-        // Don't show base price
-        $showBasePrice = false;
-        $taxLabel = 'Inclusive of taxes';
-    }
-    // Condition Two: Exclusive tax with extra discount
-    elseif ($hasExclusiveTax && $hasExtraDiscount) {
-        // Step 1: Calculate tax-inclusive price first
-        $gstAmount = $priceToUse * ($gstPercentage / 100);
-        $taxInclusivePrice = round($priceToUse + $gstAmount);
-        
-        // Step 2: Apply extra discount on tax-inclusive price
-        $discountType = $variant->discount_type ?? '';
-        $discountValue = $variant->discount_value ?? 0;
-        
-        if ($discountType === 'percentage') {
-            $discountAmount = ($taxInclusivePrice * $discountValue) / 100;
-            $displayFinalPrice = round(max(0, $taxInclusivePrice - $discountAmount));
-        } elseif (in_array($discountType, ['amount', 'flat'])) {
-            $displayFinalPrice = round(max(0, $taxInclusivePrice - $discountValue));
-        } else {
-            $displayFinalPrice = $taxInclusivePrice;
+        // If not provided, try to get from product relationship
+        if ($gstTypeParam === null && $variant->relationLoaded('product')) {
+            $gstTypeParam = $variant->product->gst_type ?? true;
+            $gstPercentageParam = $variant->product->gst_percentage ?? 0;
+        } elseif ($gstTypeParam === null && isset($product) && $product instanceof \App\Models\Product) {
+            $gstTypeParam = $product->gst_type ?? true;
+            $gstPercentageParam = $product->gst_percentage ?? 0;
         }
         
-        // Show tax-inclusive price as base price (strikethrough)
-        $displayBasePrice = $taxInclusivePrice;
-        $showBasePrice = true;
+        // Use centralized pricing method
+        $pricing = $variant->getPricingData($gstTypeParam, $gstPercentageParam);
         
-        // Calculate savings from base price to final price
-        $displaySavings = $basePrice - $displayFinalPrice;
+        // Extract values from pricing data
+        // Raw values (in 2 decimals) for calculations
+        $basePrice = $pricing['base_price'];
+        $salePrice = $pricing['sale_price'];
+        $finalPrice = $pricing['final_price'];
+        // Use rounded values for display
+        $displayBasePrice = $pricing['display_base_price_rounded'] ?? round($pricing['display_base_price']);
+        $displayFinalPrice = $pricing['display_final_price_rounded'] ?? round($pricing['display_final_price']);
+        $displaySavings = $pricing['display_savings_rounded'] ?? round($pricing['display_savings']);
+        $showBasePrice = $pricing['show_base_price'];
+        $taxLabel = $pricing['tax_label'];
+        $discountBadgeText = $pricing['discount_badge_text'];
+        $hasDiscount = $pricing['has_discount_or_sale'];
+        $totalSavings = $pricing['total_savings'];
+        $isDiscountActive = $pricing['has_discount_or_sale'];
         
-        // Update discount badge text
-        if ($displayFinalPrice < $taxInclusivePrice) {
-            $discountPercentage = 0;
-            if ($discountType === 'percentage') {
-                $discountPercentage = round($discountValue);
-            } elseif (in_array($discountType, ['amount', 'flat']) && $taxInclusivePrice > 0) {
-                $discountPercentage = round((($discountValue / $taxInclusivePrice) * 100));
-            }
-            
-            if ($salePrice !== null && $salePrice < $basePrice && $basePrice > 0) {
-                $salePercentage = round((($basePrice - $salePrice) / $basePrice) * 100);
-                $discountBadgeText = $salePercentage . '% OFF';
-                if ($discountPercentage > 0) {
-                    $discountBadgeText .= ' (+ extra ' . $discountPercentage . '% discount)';
-                }
-            } else {
-                $discountBadgeText = $discountPercentage . '% OFF';
-            }
-        }
-        
-        $taxLabel = 'Inclusive of taxes';
-    }
-    // Default: Inclusive tax or no tax
-    else {
-        // Use prices as-is
-        $displayBasePrice = $basePrice;
-        $displayFinalPrice = $finalPrice;
-        $displaySavings = $totalSavings;
+        // For backward compatibility with old accessors
+        $gstType = $pricing['gst_type'];
+        $gstPercentage = $pricing['gst_percentage'];
+    } else {
+        // Fallback if variant is not provided (should not happen, but keep for safety)
+        $basePrice = $variant->price ?? 0;
+        $salePrice = $variant->sale_price ?? null;
+        $finalPrice = $variant->final_price ?? $basePrice;
+        $totalSavings = $variant->total_savings ?? 0;
+        $hasDiscount = $variant->hasDiscountOrSale();
+        $discountBadgeText = $variant->discount_badge_text ?? null;
+        $isDiscountActive = $variant->hasActiveDiscount() || $variant->isOnSale();
+        $gstType = $gstType ?? true;
+        $gstPercentage = $gstPercentage ?? 0;
+        $displayBasePrice = round($basePrice);
+        $displayFinalPrice = round($finalPrice);
+        $displaySavings = round($totalSavings);
         $showBasePrice = ($displayBasePrice > $displayFinalPrice);
         $taxLabel = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
     }
-    
-    // Round display values
-    $displayBasePrice = round($displayBasePrice);
-    $displayFinalPrice = round($displayFinalPrice);
-    $displaySavings = round($displaySavings);
 @endphp
 
 <div class="product-pricing-component" data-base-price="{{ $basePrice }}" data-sale-price="{{ $salePrice }}" 

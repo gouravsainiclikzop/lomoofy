@@ -1406,167 +1406,92 @@ $(document).ready(function() {
         let priceHtml = '';
         
         if (matchingVariant) {
-            // Extract pricing data from variant
-            let basePrice = parseFloat(matchingVariant.price || 0);
-            const salePrice = matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null;
-            const discountType = matchingVariant.discount_type || '';
-            const discountValue = parseFloat(matchingVariant.discount_value || 0);
-            const discountActive = matchingVariant.discount_active === true || matchingVariant.discount_active === '1' || matchingVariant.discount_active === 1;
-            
-            // Round base price first for consistent calculations
-            basePrice = Math.round(basePrice);
-            
-            // Round sale price if it exists
-            let roundedSalePrice = null;
-            if (salePrice !== null && salePrice !== undefined) {
-                roundedSalePrice = Math.round(salePrice);
-            }
-            
-            // Determine price to use (sale price if available, otherwise base price)
-            let priceToUse = basePrice;
-            if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
-                priceToUse = roundedSalePrice;
-            }
-            
-            // Check if product has exclusive tax
-            const hasExclusiveTax = (!normalizedGstType && gstPercentage > 0);
-            
-            // Check if has extra discount
-            const hasExtraDiscount = discountActive && discountType && discountValue > 0;
-            
-            // Initialize display variables
-            let displayBasePrice = basePrice;
-            let displayFinalPrice = basePrice;
-            let displaySavings = 0;
-            let showBasePrice = false;
-            let hasDiscount = false;
-            let discountBadgeText = null;
-            let taxLabel = 'Inclusive of all taxes';
-            
-            // Condition One: Exclusive tax without extra discount
-            if (hasExclusiveTax && !hasExtraDiscount) {
-                // Calculate tax on sale price (or base price if no sale)
-                const gstAmount = priceToUse * (gstPercentage / 100);
-                displayFinalPrice = Math.round(priceToUse + gstAmount);
+            // Check if variant has pricing data from centralized method (preferred)
+            let pricing = null;
+            if (matchingVariant.pricing && typeof matchingVariant.pricing === 'object') {
+                // Use pricing data from backend (centralized method)
+                pricing = matchingVariant.pricing;
+            } else {
+                // Fallback: Calculate pricing (legacy - should use API in future)
+                // Extract pricing data from variant
+                let basePrice = parseFloat(matchingVariant.price || 0);
+                const salePrice = matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null;
+                const discountType = matchingVariant.discount_type || '';
+                const discountValue = parseFloat(matchingVariant.discount_value || 0);
+                const discountActive = matchingVariant.discount_active === true || matchingVariant.discount_active === '1' || matchingVariant.discount_active === 1;
                 
-                // Don't show base price
-                showBasePrice = false;
-                taxLabel = 'Inclusive of taxes';
-            }
-            // Condition Two: Exclusive tax with extra discount
-            else if (hasExclusiveTax && hasExtraDiscount) {
-                // Step 1: Calculate tax-inclusive price first
-                const gstAmount = priceToUse * (gstPercentage / 100);
-                const taxInclusivePrice = Math.round(priceToUse + gstAmount);
+                // Round prices
+                basePrice = Math.round(basePrice);
+                const roundedSalePrice = salePrice !== null ? Math.round(salePrice) : null;
                 
-                // Step 2: Apply extra discount on tax-inclusive price
-                let discountAmount = 0;
-                if (discountType === 'percentage') {
-                    discountAmount = (taxInclusivePrice * discountValue) / 100;
-                    displayFinalPrice = Math.round(Math.max(0, taxInclusivePrice - discountAmount));
-                } else if (discountType === 'amount' || discountType === 'flat') {
-                    displayFinalPrice = Math.round(Math.max(0, taxInclusivePrice - discountValue));
-                } else {
-                    displayFinalPrice = taxInclusivePrice;
-                }
-                
-                // Show tax-inclusive price as base price (strikethrough)
-                displayBasePrice = taxInclusivePrice;
-                showBasePrice = true;
-                hasDiscount = true;
-                
-                // Calculate savings from base price to final price
-                displaySavings = Math.round(basePrice - displayFinalPrice);
-                
-                // Update discount badge text
-                if (displayFinalPrice < taxInclusivePrice) {
-                    let discountPercentage = 0;
-                    if (discountType === 'percentage') {
-                        discountPercentage = Math.round(discountValue);
-                    } else if ((discountType === 'amount' || discountType === 'flat') && taxInclusivePrice > 0) {
-                        discountPercentage = Math.round(((discountValue / taxInclusivePrice) * 100));
-                    }
-                    
-                    if (roundedSalePrice !== null && roundedSalePrice < basePrice && basePrice > 0) {
-                        const salePercentage = Math.round(((basePrice - roundedSalePrice) / basePrice) * 100);
-                        discountBadgeText = salePercentage + '% OFF';
-                        if (discountPercentage > 0) {
-                            discountBadgeText += ' (+ extra ' + discountPercentage + '% discount)';
-                        }
-                    } else {
-                        discountBadgeText = discountPercentage + '% OFF';
-                    }
-                }
-                
-                taxLabel = 'Inclusive of taxes';
-            }
-            // Default: Inclusive tax or no tax
-            else {
-                // Calculate final price
-                let priceToDiscount = basePrice;
+                // Determine price to use
+                let priceToUse = basePrice;
                 if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
-                    priceToDiscount = roundedSalePrice;
+                    priceToUse = roundedSalePrice;
                 }
                 
-                let finalPrice = priceToDiscount;
+                // Calculate final price
+                let finalPrice = priceToUse;
+                let hasDiscount = false;
+                let totalSavings = 0;
                 
                 // Apply discount if active
                 if (discountActive && discountType && discountValue > 0) {
                     if (discountType === 'percentage') {
-                        const discountAmount = (priceToDiscount * discountValue) / 100;
-                        finalPrice = Math.max(0, priceToDiscount - discountAmount);
+                        const discountAmount = (priceToUse * discountValue) / 100;
+                        finalPrice = Math.max(0, priceToUse - discountAmount);
                     } else if (discountType === 'amount' || discountType === 'flat') {
-                        finalPrice = Math.max(0, priceToDiscount - discountValue);
+                        finalPrice = Math.max(0, priceToUse - discountValue);
                     }
-                    
                     finalPrice = Math.round(finalPrice);
                     
-                    if (finalPrice < priceToDiscount) {
+                    if (finalPrice < priceToUse) {
                         hasDiscount = true;
-                        displaySavings = basePrice - finalPrice;
-                        
-                        // Generate badge text
-                        if (roundedSalePrice !== null && roundedSalePrice < basePrice && basePrice > 0) {
-                            const salePercentage = Math.round(((basePrice - roundedSalePrice) / basePrice) * 100);
-                            let extraDiscountPercentage = 0;
-                            if (discountType === 'percentage') {
-                                extraDiscountPercentage = Math.round(discountValue);
-                            } else if (discountType === 'amount' || discountType === 'flat') {
-                                if (roundedSalePrice > 0) {
-                                    extraDiscountPercentage = Math.round(((discountValue / roundedSalePrice) * 100));
-                                }
-                            }
-                            discountBadgeText = salePercentage + '% OFF';
-                            if (extraDiscountPercentage > 0) {
-                                discountBadgeText += ' (+ extra ' + extraDiscountPercentage + '% discount)';
-                            }
-                        } else {
-                            if (discountType === 'percentage') {
-                                discountBadgeText = Math.round(discountValue) + '% OFF';
-                            } else if (discountType === 'amount' || discountType === 'flat') {
-                                discountBadgeText = '₹' + Math.round(discountValue).toLocaleString() + ' OFF';
-                            }
-                        }
+                        totalSavings = basePrice - finalPrice;
                     }
                 } else if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
                     finalPrice = roundedSalePrice;
                     hasDiscount = true;
-                    if (basePrice > 0) {
-                        const salePercentage = ((basePrice - roundedSalePrice) / basePrice) * 100;
-                        discountBadgeText = Math.round(salePercentage) + '% OFF';
-                    }
-                    displaySavings = basePrice - roundedSalePrice;
+                    totalSavings = basePrice - roundedSalePrice;
                 }
                 
-                // Round total savings
-                displaySavings = Math.round(displaySavings);
+                // Simple display (no GST calculation for Quick View - should use API)
+                let displayBasePrice = basePrice;
+                let displayFinalPrice = finalPrice;
+                let displaySavings = totalSavings;
+                let showBasePrice = displayBasePrice > displayFinalPrice;
+                let taxLabel = normalizedGstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
                 
-                // Use prices as-is
-                displayBasePrice = basePrice;
-                displayFinalPrice = finalPrice;
-                showBasePrice = (displayBasePrice > displayFinalPrice);
-                taxLabel = normalizedGstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
+                // Calculate OFF badge text based on actual savings (base_price vs display_final_price)
+                // This shows the total discount percentage, regardless of how it was achieved
+                let discountBadgeText = null;
+                if (hasDiscount && displayFinalPrice < displayBasePrice && displayBasePrice > 0) {
+                    const offPercentage = Math.round(((displayBasePrice - displayFinalPrice) / displayBasePrice) * 100);
+                    if (offPercentage > 0) {
+                        discountBadgeText = offPercentage + '% OFF';
+                    }
+                }
+                
+                // Store values for use in HTML generation
+                pricing = {
+                    display_base_price: displayBasePrice,
+                    display_final_price: displayFinalPrice,
+                    display_savings: displaySavings,
+                    show_base_price: showBasePrice,
+                    tax_label: taxLabel,
+                    discount_badge_text: discountBadgeText,
+                    has_discount_or_sale: hasDiscount
+                };
             }
+            
+            // Extract values from pricing (either from API or calculated)
+            const displayBasePrice = Math.round(pricing.display_base_price || 0);
+            const displayFinalPrice = Math.round(pricing.display_final_price || 0);
+            const displaySavings = Math.round(pricing.display_savings || 0);
+            const showBasePrice = pricing.show_base_price || false;
+            const taxLabel = pricing.tax_label || 'Inclusive of all taxes';
+            const discountBadgeText = pricing.discount_badge_text || null;
+            const hasDiscount = pricing.has_discount_or_sale || false;
             
             // Build HTML (same structure as product page)
             // Discount Badge
@@ -1617,9 +1542,14 @@ $(document).ready(function() {
                 priceHtml += '</span>';
                 priceHtml += '<span class="status-text text-success fs-sm fw-medium">';
                 
-                if (salePrice && salePrice < basePrice) {
+                // Check status from variant data
+                const variantSalePrice = matchingVariant.sale_price ? parseFloat(matchingVariant.sale_price) : null;
+                const variantBasePrice = parseFloat(matchingVariant.price || 0);
+                const variantDiscountActive = matchingVariant.discount_active === true || matchingVariant.discount_active === '1' || matchingVariant.discount_active === 1;
+                
+                if (variantSalePrice && variantSalePrice < variantBasePrice) {
                     priceHtml += 'On Sale';
-                } else if (discountActive) {
+                } else if (variantDiscountActive) {
                     priceHtml += 'Discount Active';
                 }
                 

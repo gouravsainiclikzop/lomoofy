@@ -284,7 +284,7 @@ $(document).ready(function() {
                     ? '<p class="text-danger mb-2"><small>Available stock: ' + (item.available_stock || 0) + '</small></p>'
                     : ''
                     )+
-                '<div class="mb-3">' + (typeof generateCartItemPricing === 'function' ? generateCartItemPricing(item) : (function(){ 
+                '<div class="mb-3 cart-item-pricing" data-item-id="' + item.id + '">' + (typeof generateCartItemPricing === 'function' ? generateCartItemPricing(item) : (function(){ 
                     var up = parseFloat(item.unit_price) || 0;
                     var originalPrice = item.original_variant_price ? parseFloat(item.original_variant_price) : null;
                     var gstType = item.gst_type;

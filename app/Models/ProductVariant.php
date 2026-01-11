@@ -254,51 +254,19 @@ class ProductVariant extends Model
 
     /**
      * Get discount badge text
-     * Shows discount applied to sale price if sale exists, otherwise discount on base price
+     * Shows total OFF percentage based on base price vs final price
+     * Calculates the actual savings percentage, regardless of how discount was applied
      */
     public function getDiscountBadgeTextAttribute()
     {
         $basePrice = round($this->price ?? 0);
-        $salePrice = $this->sale_price ? round($this->sale_price) : null;
-        $hasSale = $this->isOnSale() && $salePrice && $salePrice < $basePrice;
+        $finalPrice = round($this->final_price ?? $basePrice);
         
-        // If we have both sale price and active discount, show sale discount + extra discount
-        if ($hasSale && $this->hasActiveDiscount()) {
-            $finalPrice = round($this->final_price);
+        // Calculate OFF percentage based on actual savings (base_price - final_price)
             if ($finalPrice < $basePrice && $basePrice > 0) {
-                $salePercentage = round((($basePrice - $salePrice) / $basePrice) * 100);
-                // Show the actual discount percentage that was applied
-                $extraDiscountPercentage = 0;
-                if ($this->discount_type === 'percentage') {
-                    $extraDiscountPercentage = round($this->discount_value);
-                } elseif ($this->discount_type === 'amount' || $this->discount_type === 'flat') {
-                    if ($salePrice > 0) {
-                        $extraDiscountPercentage = round((($this->discount_value / $salePrice) * 100));
-                    }
-                }
-                
-                $badgeText = $salePercentage . '% OFF';
-                if ($extraDiscountPercentage > 0) {
-                    $badgeText .= ' (+ extra ' . $extraDiscountPercentage . '% discount)';
-                }
-                return $badgeText;
-            }
-        }
-        
-        // If only discount is active (no sale price)
-        if ($this->hasActiveDiscount() && !$hasSale) {
-            if ($this->discount_type === 'percentage') {
-                return round($this->discount_value) . '% OFF';
-            } elseif ($this->discount_type === 'amount' || $this->discount_type === 'flat') {
-                return '₹' . number_format($this->discount_value, 0) . ' OFF';
-            }
-        }
-        
-        // If only sale price (no discount)
-        if ($hasSale && !$this->hasActiveDiscount()) {
-            if ($basePrice > 0) {
-                $percentage = round((($basePrice - $salePrice) / $basePrice) * 100);
-                return $percentage . '% OFF';
+            $offPercentage = round((($basePrice - $finalPrice) / $basePrice) * 100);
+            if ($offPercentage > 0) {
+                return $offPercentage . '% OFF';
             }
         }
 
@@ -386,5 +354,180 @@ class ProductVariant extends Model
                      ->where('stock_quantity', '>', 0);
               });
         });
+    }
+
+    /**
+     * Get comprehensive pricing information for this variant
+     * This is the centralized pricing method used across all pages (Home, Wishlist, Shop, Cart)
+     * 
+     * @param bool|null $gstType GST type from product (true = inclusive, false = exclusive, null = default true)
+     * @param float $gstPercentage GST percentage from product (default 0)
+     * @return array Structured pricing data with all calculated values
+     */
+    public function getPricingData($gstType = null, $gstPercentage = 0)
+    {
+        // Get GST settings - use provided values or get from product relationship
+        if ($gstType === null && $this->relationLoaded('product')) {
+            $gstType = $this->product->gst_type ?? true;
+            $gstPercentage = $this->product->gst_percentage ?? 0;
+        } elseif ($gstType === null) {
+            $gstType = true; // Default to inclusive
+        }
+        
+        // Ensure boolean type
+        $gstType = (bool) $gstType;
+        
+        // Base pricing values - keep in 2 decimals for accurate calculations
+        $basePrice = round($this->price ?? 0, 2);
+        $salePrice = $this->sale_price ? round($this->sale_price, 2) : null;
+        $isOnSale = $this->isOnSale() && $salePrice !== null && $salePrice < $basePrice;
+        
+        // Determine price to use for discount calculation (sale price if available, otherwise base price)
+        $priceToDiscount = $isOnSale ? $salePrice : $basePrice;
+        
+        // Calculate final price after discount - keep 2 decimals during calculation
+        $finalPrice = $priceToDiscount;
+        $hasActiveDiscount = $this->hasActiveDiscount();
+        
+        if ($hasActiveDiscount) {
+            if ($this->discount_type === 'percentage') {
+                $discountAmount = round(($priceToDiscount * $this->discount_value) / 100, 2);
+                $finalPrice = round(max(0, $priceToDiscount - $discountAmount), 2);
+            } elseif (in_array($this->discount_type, ['amount', 'flat'])) {
+                $finalPrice = round(max(0, $priceToDiscount - $this->discount_value), 2);
+            }
+        } elseif ($isOnSale) {
+            $finalPrice = $salePrice;
+        }
+        
+        // Calculate total savings (base price - final price) - keep 2 decimals
+        $totalSavings = round(max(0, $basePrice - $finalPrice), 2);
+        
+        // Check if product has exclusive tax
+        $hasExclusiveTax = (!$gstType && $gstPercentage > 0);
+        $hasExtraDiscount = $hasActiveDiscount;
+        
+        // Initialize display variables - keep 2 decimals during calculations
+        $displayBasePrice = $basePrice;
+        $displayFinalPrice = $finalPrice;
+        $displaySavings = $totalSavings;
+        $showBasePrice = false;
+        $taxLabel = 'Inclusive of all taxes';
+        $gstAmount = 0;
+        
+        // Apply GST calculations for display - use 2 decimals throughout
+        if ($hasExclusiveTax && !$hasExtraDiscount) {
+            // Condition One: Exclusive tax without extra discount
+            // Calculate tax on sale price (or base price if no sale) - keep 2 decimals
+            $gstAmount = round($priceToDiscount * ($gstPercentage / 100), 2);
+            $displayFinalPrice = round($priceToDiscount + $gstAmount, 2);
+            $showBasePrice = false;
+            $taxLabel = 'Inclusive of taxes';
+        } elseif ($hasExclusiveTax && $hasExtraDiscount) {
+            // Condition Two: Exclusive tax with extra discount
+            // Step 1: Calculate tax-inclusive price first - keep 2 decimals
+            $gstAmount = round($priceToDiscount * ($gstPercentage / 100), 2);
+            $taxInclusivePrice = round($priceToDiscount + $gstAmount, 2);
+            
+            // Step 2: Apply extra discount on tax-inclusive price - keep 2 decimals
+            if ($this->discount_type === 'percentage') {
+                $discountAmount = round(($taxInclusivePrice * $this->discount_value) / 100, 2);
+                $displayFinalPrice = round(max(0, $taxInclusivePrice - $discountAmount), 2);
+            } elseif (in_array($this->discount_type, ['amount', 'flat'])) {
+                $displayFinalPrice = round(max(0, $taxInclusivePrice - $this->discount_value), 2);
+            } else {
+                $displayFinalPrice = $taxInclusivePrice;
+            }
+            
+            // Show tax-inclusive price as base price (strikethrough)
+            $displayBasePrice = $taxInclusivePrice;
+            $showBasePrice = true;
+            
+            // Calculate savings from original base price to final price - keep 2 decimals
+            $displaySavings = round($basePrice - $displayFinalPrice, 2);
+            
+            $taxLabel = 'Inclusive of taxes';
+        } else {
+            // Default: Inclusive tax or no tax
+            // Use prices as-is (already in 2 decimals)
+            $displayBasePrice = $basePrice;
+            $displayFinalPrice = $finalPrice;
+            $displaySavings = $totalSavings;
+            $showBasePrice = ($displayBasePrice > $displayFinalPrice);
+            $taxLabel = $gstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
+        }
+        
+        // Round display values only at the end for cart total display
+        // Keep raw values in 2 decimals for accurate calculations
+        $displayBasePriceRounded = round($displayBasePrice);
+        $displayFinalPriceRounded = round($displayFinalPrice);
+        $displaySavingsRounded = round($displaySavings);
+        
+        // Calculate OFF badge text based on actual savings (base_price vs display_final_price)
+        // Use rounded values for badge calculation
+        $discountBadgeText = $this->generateDiscountBadgeText($displayBasePriceRounded, $displayFinalPriceRounded);
+        
+        // Check if any discount or sale is active
+        $hasDiscountOrSale = $isOnSale || $hasActiveDiscount;
+        
+        return [
+            // Raw pricing values (in 2 decimals for accurate calculations)
+            'base_price' => $basePrice,
+            'sale_price' => $salePrice,
+            'final_price' => $finalPrice,
+            'is_on_sale' => $isOnSale,
+            'has_active_discount' => $hasActiveDiscount,
+            'has_discount_or_sale' => $hasDiscountOrSale,
+            
+            // Display values (after GST calculations if applicable)
+            // Raw values in 2 decimals for cart calculations
+            'display_base_price' => $displayBasePrice,
+            'display_final_price' => $displayFinalPrice,
+            'display_savings' => $displaySavings,
+            // Rounded values for display only
+            'display_base_price_rounded' => $displayBasePriceRounded,
+            'display_final_price_rounded' => $displayFinalPriceRounded,
+            'display_savings_rounded' => $displaySavingsRounded,
+            'show_base_price' => $showBasePrice,
+            
+            // Discount information
+            'discount_badge_text' => $discountBadgeText,
+            'total_savings' => $totalSavings,
+            'discount_type' => $this->discount_type,
+            'discount_value' => $this->discount_value,
+            'discount_active' => $this->discount_active ?? false,
+            
+            // Tax information
+            'gst_type' => $gstType,
+            'gst_percentage' => $gstPercentage,
+            'gst_amount' => $gstAmount,
+            'tax_label' => $taxLabel,
+            'has_exclusive_tax' => $hasExclusiveTax,
+            
+            // Additional metadata
+            'price_to_discount' => $priceToDiscount,
+        ];
+    }
+
+    /**
+     * Generate discount badge text for display
+     * Calculates total OFF percentage based on base price vs final display price
+     * This ensures accurate OFF percentage regardless of sale/discount combinations
+     * 
+     * @param float $basePrice Original base price
+     * @param float $displayFinalPrice Final price to display (after all discounts/taxes)
+     * @return string|null OFF badge text or null if no discount
+     */
+    protected function generateDiscountBadgeText($basePrice, $displayFinalPrice)
+    {
+        // Calculate OFF percentage based on actual savings
+        if ($displayFinalPrice < $basePrice && $basePrice > 0) {
+            $offPercentage = round((($basePrice - $displayFinalPrice) / $basePrice) * 100);
+            if ($offPercentage > 0) {
+                return $offPercentage . '% OFF';
+            }
+        }
+        
+        return null;
     }
 }

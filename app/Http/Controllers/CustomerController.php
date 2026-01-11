@@ -189,7 +189,7 @@ class CustomerController extends Controller
                     'address_type' => $defaultAddress->address_type,
                 ] : null,
                 'orders_count' => $ordersCount,
-                'orders_total' => number_format($ordersTotal, 2),
+                'orders_total' => number_format(round($ordersTotal), 0),
                 'orders_total_raw' => $ordersTotal, // For sorting
                 'pending_orders_count' => $pendingOrdersCount,
                 'cart_items_count' => $cartItemsCount,

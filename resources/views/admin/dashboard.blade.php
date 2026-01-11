@@ -32,7 +32,7 @@
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
                                         <h6 class="text-muted mb-1 small text-uppercase">Total Sales</h6>
-                                        <h3 class="mb-0" id="totalSales">₹0.00</h3>
+                                        <h3 class="mb-0" id="totalSales">₹0</h3>
                                     </div>
                                     <div class="bg-primary bg-opacity-10 rounded p-2">
                                         <i class='bx bx-dollar-circle text-primary' style='font-size: 1.75rem;'></i>
@@ -73,7 +73,7 @@
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
                                         <h6 class="text-muted mb-1 small text-uppercase">Avg Order Value</h6>
-                                        <h3 class="mb-0" id="avgOrderValue">₹0.00</h3>
+                                        <h3 class="mb-0" id="avgOrderValue">₹0</h3>
                                     </div>
                                     <div class="bg-success bg-opacity-10 rounded p-2">
                                         <i class='bx bx-trending-up text-success' style='font-size: 1.75rem;'></i>
@@ -297,7 +297,7 @@
                                         <div class="col-4">
                                             <div class="d-flex flex-column">
                                                 <span class="text-muted small mb-1">Total Revenue</span>
-                                                <span class="fw-bold text-success" id="summaryTotalRevenue">₹0.00</span>
+                                                <span class="fw-bold text-success" id="summaryTotalRevenue">₹0</span>
                                             </div>
                                         </div>
                                         <div class="col-4">
@@ -672,9 +672,9 @@ $(document).ready(function() {
                     const data = response.data;
                     
                     // Update all KPI cards
-                    $('#totalSales').text('₹' + parseFloat(data.total_sales || 0).toFixed(2));
+                    $('#totalSales').text('₹' + Math.round(parseFloat(data.total_sales || 0)).toLocaleString());
                     $('#totalOrders').text(data.total_orders || 0);
-                    $('#avgOrderValue').text('₹' + parseFloat(data.avg_order_value || 0).toFixed(2));
+                    $('#avgOrderValue').text('₹' + Math.round(parseFloat(data.avg_order_value || 0)).toLocaleString());
                     $('#totalCustomers').text(data.total_customers || 0);
                     $('#activeProducts').text(data.active_products || 0);
                     $('#refundCount').text(data.refund_count || 0);
@@ -876,9 +876,9 @@ $(document).ready(function() {
                                                     : (value / (data.orders[context.dataIndex] || 1));
                                                 
                                                 return [
-                                                    datasetLabel + ': ₹' + parseFloat(value).toFixed(2),
+                                                    datasetLabel + ': ₹' + Math.round(parseFloat(value)).toLocaleString(),
                                                     'Orders: ' + data.orders[context.dataIndex],
-                                                    'Avg Order Value: ₹' + parseFloat(avgValue).toFixed(2)
+                                                    'Avg Order Value: ₹' + Math.round(parseFloat(avgValue)).toLocaleString()
                                                 ];
                                             } else {
                                                 // Orders dataset
@@ -1160,15 +1160,15 @@ $(document).ready(function() {
                                                     const product = products[context.dataIndex];
                                                     if(viewType === 'revenue') {
                                                         return [
-                                                            'Revenue: ₹' + parseFloat(product.revenue || 0).toFixed(2),
+                                                            'Revenue: ₹' + Math.round(parseFloat(product.revenue || 0)).toLocaleString(),
                                                             'Quantity Sold: ' + product.quantity,
-                                                            'Avg Price: ₹' + (product.quantity > 0 ? (product.revenue / product.quantity).toFixed(2) : '0.00')
+                                                            'Avg Price: ₹' + (product.quantity > 0 ? Math.round(product.revenue / product.quantity).toLocaleString() : '0')
                                                         ];
                                                     } else {
                                                         return [
                                                             'Quantity: ' + product.quantity,
-                                                            'Revenue: ₹' + parseFloat(product.revenue || 0).toFixed(2),
-                                                            'Avg Price: ₹' + (product.quantity > 0 ? (product.revenue / product.quantity).toFixed(2) : '0.00')
+                                                            'Revenue: ₹' + Math.round(parseFloat(product.revenue || 0)).toLocaleString(),
+                                                            'Avg Price: ₹' + (product.quantity > 0 ? Math.round(product.revenue / product.quantity).toLocaleString() : '0')
                                                         ];
                                                     }
                                                 }
@@ -1211,6 +1211,17 @@ $(document).ready(function() {
                         
                         // Populate product details list
                         populateTopProductsList(products);
+                        
+                        // Update summary KPIs if available
+                        if(response.data.summary) {
+                            const summary = response.data.summary;
+                            $('#summaryTotalUnits').text(summary.total_units_sold || 0);
+                            $('#summaryTotalRevenue').text('₹' + Math.round(parseFloat(summary.total_revenue || 0)).toLocaleString());
+                            $('#summaryShareOfSales').text((summary.share_of_sales || 0).toFixed(1) + '%');
+                            $('#topProductsSummary').show();
+                        } else {
+                            $('#topProductsSummary').hide();
+                        }
                     } else {
                         // No data
                         if(topProductsChart) {
@@ -1266,7 +1277,7 @@ $(document).ready(function() {
                             <h6 class="mb-1">${product.name}</h6>
                             <div class="d-flex gap-3 align-items-center">
                                 <small class="text-muted">Qty: <strong>${product.quantity}</strong></small>
-                                <small class="text-muted">Revenue: <strong>₹${product.revenue}</strong></small>
+                                <small class="text-muted">Revenue: <strong>₹${Math.round(parseFloat(product.revenue || 0)).toLocaleString()}</strong></small>
                                 ${trendText}
                             </div>
                         </div>
@@ -1340,7 +1351,7 @@ $(document).ready(function() {
                                     </td>
                                     <td>
                                         <div class="d-flex flex-column">
-                                            <span class="fw-semibold text-primary">₹${parseFloat(order.total || 0).toFixed(2)}</span>
+                                            <span class="fw-semibold text-primary">₹${Math.round(parseFloat(order.total || 0)).toLocaleString()}</span>
                                             <small class="text-muted">
                                                 <span class="badge ${paymentStatusClass} badge-sm">${paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1)}</span>
                                             </small>

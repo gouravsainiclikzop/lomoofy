@@ -1,85 +1,85 @@
-{{-- Compact Pricing Component for Cart/Order Items --}}
+{{-- Compact Pricing Component - Uses Centralized Pricing from ProductVariant --}}
 @php
-    // This component is for cart items or order items that may not have full variant data
-    // Accepts: price, sale_price, original_price, discount_type, discount_value, discount_active, gstType, gstPercentage
+    // This component accepts either:
+    // 1. A ProductVariant instance ($variant) - uses centralized getPricingData() method
+    // 2. Individual values (for backward compatibility) - price, sale_price, original_price, discount_type, discount_value, discount_active, gstType, gstPercentage
     
-    $basePrice = $original_price ?? $price ?? 0;
-    $salePrice = $sale_price ?? null;
-    $unitPrice = $unit_price ?? $basePrice;
-    
-    // Calculate final price
-    // Discount is applied to sale_price if it exists, otherwise to base price
-    $priceToDiscount = $basePrice;
-    if ($salePrice && $salePrice < $basePrice) {
-        $priceToDiscount = $salePrice;
-    }
-    
-    $finalPrice = $priceToDiscount;
-    $hasDiscount = false;
-    $discountBadgeText = null;
-    $totalSavings = 0;
-    
-    // Apply discount to the determined price (sale_price if available, otherwise base price)
-    if (isset($discount_active) && $discount_active && isset($discount_type) && isset($discount_value) && $discount_value > 0) {
-        if ($discount_type === 'percentage') {
-            $discountAmount = ($priceToDiscount * $discount_value) / 100;
-            $finalPrice = max(0, $priceToDiscount - $discountAmount);
-        } elseif (in_array($discount_type, ['amount', 'flat'])) {
-            $finalPrice = max(0, $priceToDiscount - $discount_value);
+    // Check if variant instance is provided (preferred method)
+    if (isset($variant) && $variant instanceof \App\Models\ProductVariant) {
+        // Use centralized pricing method from ProductVariant
+        // Get GST settings - priority: passed params > product relationship > defaults
+        $gstTypeParam = $gstType ?? null;
+        $gstPercentageParam = $gstPercentage ?? null;
+        
+        // If not provided, try to get from product relationship
+        if ($gstTypeParam === null && $variant->relationLoaded('product')) {
+            $gstTypeParam = $variant->product->gst_type ?? true;
+            $gstPercentageParam = $variant->product->gst_percentage ?? 0;
+        } elseif ($gstTypeParam === null && isset($product) && $product instanceof \App\Models\Product) {
+            $gstTypeParam = $product->gst_type ?? true;
+            $gstPercentageParam = $product->gst_percentage ?? 0;
         }
         
-        if ($finalPrice < $priceToDiscount) {
-            $hasDiscount = true;
-            // Calculate savings from base price to final price (after discount on sale)
-            $totalSavings = $basePrice - $finalPrice;
-            
-            // Generate badge text - show combined savings if both sale and discount exist
-            if ($salePrice && $salePrice < $basePrice && $basePrice > 0) {
-                // Both sale price and active discount - show sale discount + extra discount
-                $salePercentage = round((($basePrice - $salePrice) / $basePrice) * 100);
-                // Show the actual discount percentage that was applied (not percentage of base price)
-                $extraDiscountPercentage = 0;
-                if ($discount_type === 'percentage') {
-                    $extraDiscountPercentage = round($discount_value);
-                } elseif (in_array($discount_type, ['amount', 'flat'])) {
-                    // For flat discounts, calculate percentage from sale price
-                    if ($salePrice > 0) {
-                        $extraDiscountPercentage = round((($discount_value / $salePrice) * 100));
-                    }
-                }
-                $discountBadgeText = $salePercentage . '% OFF';
-                if ($extraDiscountPercentage > 0) {
-                    $discountBadgeText .= ' (+ extra ' . $extraDiscountPercentage . '% discount)';
-                }
-            } else {
-                // Only active discount - show discount amount/percentage
-                if ($discount_type === 'percentage') {
-                    $discountBadgeText = round($discount_value) . '% OFF';
-                } elseif (in_array($discount_type, ['amount', 'flat'])) {
-                    $discountBadgeText = '₹' . number_format($discount_value, 0) . ' OFF';
-                }
+        $pricing = $variant->getPricingData($gstTypeParam, $gstPercentageParam);
+        
+        // Extract values from pricing data
+        // Use rounded values for display, unrounded values are kept in pricing array for calculations
+        $basePrice = $pricing['base_price'] ?? ($variant->price ?? 0);
+        $salePrice = $pricing['sale_price'] ?? null;
+        $gstType = $gstTypeParam ?? true;
+        $gstPercentage = $gstPercentageParam ?? 0;
+        $discount_type = $variant->discount_type ?? null;
+        $discount_value = $variant->discount_value ?? 0;
+        $discount_active = $variant->discount_active ?? false;
+        $displayBasePrice = $pricing['display_base_price_rounded'] ?? round($pricing['display_base_price']);
+        $displayFinalPrice = $pricing['display_final_price_rounded'] ?? round($pricing['display_final_price']);
+        $displaySavings = $pricing['display_savings_rounded'] ?? round($pricing['display_savings']);
+        $showBasePrice = $pricing['show_base_price'];
+        $taxLabel = $pricing['tax_label'];
+        $discountBadgeText = $pricing['discount_badge_text'];
+        $hasDiscount = $pricing['has_discount_or_sale'];
+    } else {
+        // Fallback to individual values (for backward compatibility - will be removed in future)
+        // Use 2-decimal precision for all calculations, round only for display (matches centralized method)
+        $basePrice = round($original_price ?? $price ?? 0, 2);
+        $salePrice = $sale_price ? round($sale_price, 2) : null;
+        $unitPrice = $unit_price ?? $basePrice;
+        
+        $isOnSale = $salePrice !== null && $salePrice < $basePrice;
+        $priceToDiscount = $isOnSale ? $salePrice : $basePrice;
+        
+        $finalPrice = $priceToDiscount;
+        $hasDiscount = false;
+        $discountBadgeText = null;
+        $totalSavings = 0;
+        
+        // Apply discount to the determined price (sale_price if available, otherwise base price)
+        if (isset($discount_active) && $discount_active && isset($discount_type) && isset($discount_value) && $discount_value > 0) {
+            if ($discount_type === 'percentage') {
+                $discountAmount = round(($priceToDiscount * $discount_value) / 100, 2);
+                $finalPrice = round(max(0, $priceToDiscount - $discountAmount), 2);
+            } elseif (in_array($discount_type, ['amount', 'flat'])) {
+                $finalPrice = round(max(0, $priceToDiscount - $discount_value), 2);
             }
+            
+            if ($finalPrice < $priceToDiscount) {
+                $hasDiscount = true;
+                // Calculate savings from base price to final price (after discount on sale)
+                $totalSavings = round($basePrice - $finalPrice, 2);
+            }
+        } elseif ($isOnSale) {
+            // Only sale price, no active discount
+            $finalPrice = $salePrice;
+            $hasDiscount = true;
+            $totalSavings = round($basePrice - $salePrice, 2);
         }
-    } elseif ($salePrice && $salePrice < $basePrice) {
-        // Only sale price, no active discount - show sale price but NO discount badge
-        $finalPrice = $salePrice;
-        // Don't set $hasDiscount = true here to avoid showing discount badge
-        // Just show the price difference
-        $totalSavings = $basePrice - $salePrice;
-        // No discountBadgeText - don't show discount badge for sale price alone
-    }
-    
-    // GST settings
-    $gstType = $gstType ?? true;
-    $gstPercentage = $gstPercentage ?? 0;
-    
-    // Round prices for consistent calculations
-    $basePrice = round($basePrice);
-    $salePrice = $salePrice !== null ? round($salePrice) : null;
-    $finalPrice = round($finalPrice);
-    
-    // Determine price to use (sale price if available, otherwise base price)
-    $priceToUse = $salePrice !== null && $salePrice < $basePrice ? $salePrice : $basePrice;
+        
+        // GST settings
+        $gstType = $gstType ?? true;
+        $gstPercentage = $gstPercentage ?? 0;
+        
+        // Determine price to use (sale price if available, otherwise base price) - keep 2 decimals
+        $priceToUse = $isOnSale ? $salePrice : $basePrice;
     
     // Check if product has exclusive tax
     $hasExclusiveTax = ($gstType === false && $gstPercentage > 0);
@@ -96,9 +96,9 @@
     
     // Condition One: Exclusive tax without extra discount
     if ($hasExclusiveTax && !$hasExtraDiscount) {
-        // Calculate tax on sale price (or base price if no sale)
-        $gstAmount = $priceToUse * ($gstPercentage / 100);
-        $displayFinalPrice = round($priceToUse + $gstAmount);
+        // Calculate tax on sale price (or base price if no sale) - keep 2 decimals
+        $gstAmount = round($priceToUse * ($gstPercentage / 100), 2);
+        $displayFinalPrice = round($priceToUse + $gstAmount, 2);
         
         // Don't show base price
         $showBasePrice = false;
@@ -106,16 +106,16 @@
     }
     // Condition Two: Exclusive tax with extra discount
     elseif ($hasExclusiveTax && $hasExtraDiscount) {
-        // Step 1: Calculate tax-inclusive price first
-        $gstAmount = $priceToUse * ($gstPercentage / 100);
-        $taxInclusivePrice = round($priceToUse + $gstAmount);
+        // Step 1: Calculate tax-inclusive price first - keep 2 decimals
+        $gstAmount = round($priceToUse * ($gstPercentage / 100), 2);
+        $taxInclusivePrice = round($priceToUse + $gstAmount, 2);
         
-        // Step 2: Apply extra discount on tax-inclusive price
+        // Step 2: Apply extra discount on tax-inclusive price - keep 2 decimals
         if ($discount_type === 'percentage') {
-            $discountAmount = ($taxInclusivePrice * $discount_value) / 100;
-            $displayFinalPrice = round(max(0, $taxInclusivePrice - $discountAmount));
+            $discountAmount = round(($taxInclusivePrice * $discount_value) / 100, 2);
+            $displayFinalPrice = round(max(0, $taxInclusivePrice - $discountAmount), 2);
         } elseif (in_array($discount_type, ['amount', 'flat'])) {
-            $displayFinalPrice = round(max(0, $taxInclusivePrice - $discount_value));
+            $displayFinalPrice = round(max(0, $taxInclusivePrice - $discount_value), 2);
         } else {
             $displayFinalPrice = $taxInclusivePrice;
         }
@@ -124,34 +124,14 @@
         $displayBasePrice = $taxInclusivePrice;
         $showBasePrice = true;
         
-        // Calculate savings from base price to final price
-        $displaySavings = $basePrice - $displayFinalPrice;
-        
-        // Update discount badge text
-        if ($displayFinalPrice < $taxInclusivePrice) {
-            $discountPercentage = 0;
-            if ($discount_type === 'percentage') {
-                $discountPercentage = round($discount_value);
-            } elseif (in_array($discount_type, ['amount', 'flat']) && $taxInclusivePrice > 0) {
-                $discountPercentage = round((($discount_value / $taxInclusivePrice) * 100));
-            }
-            
-            if ($salePrice !== null && $salePrice < $basePrice && $basePrice > 0) {
-                $salePercentage = round((($basePrice - $salePrice) / $basePrice) * 100);
-                $discountBadgeText = $salePercentage . '% OFF';
-                if ($discountPercentage > 0) {
-                    $discountBadgeText .= ' (+ extra ' . $discountPercentage . '% discount)';
-                }
-            } else {
-                $discountBadgeText = $discountPercentage . '% OFF';
-            }
-        }
+        // Calculate savings from base price to final price - keep 2 decimals
+        $displaySavings = round($basePrice - $displayFinalPrice, 2);
         
         $taxLabel = 'Inclusive of taxes';
     }
     // Default: Inclusive tax or no tax
     else {
-        // Use prices as-is
+        // Use prices as-is (already in 2-decimal precision)
         $displayBasePrice = $basePrice;
         $displayFinalPrice = $finalPrice;
         $displaySavings = $totalSavings;
@@ -159,10 +139,21 @@
         $taxLabel = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
     }
     
-    // Round display values
+    // Round display values only for display (keep calculations in 2 decimals)
     $displayBasePrice = round($displayBasePrice);
     $displayFinalPrice = round($displayFinalPrice);
     $displaySavings = round($displaySavings);
+        
+        // Calculate OFF badge text based on actual savings (base_price vs display_final_price)
+        // This shows the total discount percentage, regardless of how it was achieved (sale + discount, etc.)
+        if ($displayFinalPrice < $basePrice && $basePrice > 0 && $hasDiscount) {
+            $offPercentage = round((($basePrice - $displayFinalPrice) / $basePrice) * 100);
+            if ($offPercentage > 0) {
+                $discountBadgeText = $offPercentage . '% OFF';
+            }
+        }
+    }
+    
     $compact = $compact ?? false; // Compact mode for smaller displays
 @endphp
 
@@ -175,10 +166,10 @@
      data-gst-type="{{ $gstType ? '1' : '0' }}" 
      data-gst-percentage="{{ $gstPercentage }}">
     
-    {{-- Discount Badge --}}
-    @if($hasDiscount && $discountBadgeText && !$compact)
+    {{-- Discount Badge - Show OFF badge when discount is active --}}
+    @if($hasDiscount && $discountBadgeText)
     <div class="pricing-badge-compact mb-1">
-        <span class="badge bg-danger px-2 py-1 fs-xs fw-bold">
+        <span class="badge bg-danger px-2 py-1 {{ $compact ? 'fs-xxs' : 'fs-xs' }} fw-bold">
             {{ $discountBadgeText }}
         </span>
     </div>

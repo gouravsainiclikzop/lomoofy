@@ -2832,7 +2832,7 @@ class FrontendController extends Controller
                 'color_variants' => $colorVariantsMap, // Legacy support
                 'attributes' => $attributesData, // New: All variant attributes dynamically
                 'in_stock' => $inStock,
-                'variants' => $activeVariants->map(function($variant) use ($allVariantAttributes) {
+                'variants' => $activeVariants->map(function($variant) use ($allVariantAttributes, $gstType, $gstPercentage) {
                     // Parse attributes using new helper function
                     $parsed = self::parseVariantAttributes($variant->attributes);
                     
@@ -2927,22 +2927,21 @@ class FrontendController extends Controller
                         }
                     }
                     
-                    // Use base prices as-is (no GST calculation)
-                    $basePrice = $variant->price ?? 0;
-                    $baseSalePrice = $variant->sale_price;
-                    $price = $basePrice;
-                    $salePrice = $baseSalePrice;
-                    $hasSale = $salePrice && $salePrice < $price;
+                    // Use centralized pricing method from ProductVariant
+                    $pricing = $variant->getPricingData($gstType, $gstPercentage);
                     
                     return [
                         'id' => $variant->id,
                         'sku' => $variant->sku,
-                        'price' => $price,
-                        'sale_price' => $salePrice,
-                        'has_sale' => $hasSale,
+                        // Include raw pricing for backward compatibility
+                        'price' => $pricing['base_price'],
+                        'sale_price' => $pricing['sale_price'],
+                        'has_sale' => $pricing['is_on_sale'],
                         'discount_type' => $variant->discount_type ?? null,
                         'discount_value' => $variant->discount_value ?? null,
                         'discount_active' => $variant->discount_active ?? false,
+                        // Include complete pricing data from centralized method
+                        'pricing' => $pricing,
                         'color' => $colorValue, // Legacy support
                         'size' => $sizeValue, // Legacy support
                         'attributes' => $allAttributes, // New: All attributes for this variant
@@ -5310,5 +5309,61 @@ class FrontendController extends Controller
         $cart->save();
         
         return $cart;
+    }
+
+    /**
+     * Get variant pricing data using centralized pricing method
+     * This endpoint returns all pricing calculations from ProductVariant::getPricingData()
+     * 
+     * @param Request $request
+     * @param int $variantId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getVariantPricing(Request $request, $variantId)
+    {
+        try {
+            $variant = \App\Models\ProductVariant::with('product')->find($variantId);
+            
+            if (!$variant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Variant not found'
+                ], 404);
+            }
+
+            // Get GST settings from product or request parameters
+            $gstType = $request->get('gst_type');
+            $gstPercentage = $request->get('gst_percentage');
+            
+            if ($gstType === null && $variant->relationLoaded('product')) {
+                $gstType = $variant->product->gst_type ?? true;
+                $gstPercentage = $variant->product->gst_percentage ?? 0;
+            } elseif ($gstType === null) {
+                $gstType = true; // Default to inclusive
+                $gstPercentage = 0;
+            }
+
+            // Use centralized pricing method
+            $pricing = $variant->getPricingData($gstType, $gstPercentage);
+
+            // Include additional variant information for context
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'variant_id' => $variant->id,
+                    'sku' => $variant->sku,
+                    'stock_status' => $variant->stock_status,
+                    'is_in_stock' => $variant->isInStock(),
+                    'manage_stock' => $variant->manage_stock,
+                    'stock_quantity' => $variant->stock_quantity,
+                    'pricing' => $pricing,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating pricing: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -927,7 +927,7 @@ $(document).ready(function() {
                                     <div class="text-muted small">${order.customer_phone}</div>
                                 </td>
                                 <td><span class="badge bg-info">${order.items_count}</span></td>
-                                <td><strong>₹${parseFloat(order.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                                <td><strong>₹${Math.round(parseFloat(order.total_amount)).toLocaleString('en-IN')}</strong></td>
                                 <td>
                                     ${order.source === 'frontend' || order.source === 'online' 
                                         ? '<span class="badge bg-primary">Online</span>' 

@@ -1,193 +1,65 @@
-{{-- JavaScript Helper for Dynamic Pricing Updates --}}
+{{-- JavaScript Helper for Dynamic Pricing Updates - Uses Centralized Pricing from Backend --}}
 <script>
 /**
  * Update product pricing display based on variant data
+ * Now consumes pricing data from centralized ProductVariant::getPricingData() method
+ * No calculation logic - only UI rendering
  */
 function updateProductPricing(variant) {
     const pricingComponent = document.querySelector('.product-pricing-component');
     if (!pricingComponent) return;
     
-    // Get GST settings from component data attributes or defaults (for display label only)
-    const gstType = pricingComponent.dataset.gstType === '1';
-    const gstPercentage = parseFloat(pricingComponent.dataset.gstPercentage || 0);
-    
-    // Use prices as-is without GST calculation
-    const getDisplayPrice = (price) => price;
-    
-    // Extract pricing data from variant
-    let basePrice = parseFloat(variant.price || variant.base_price || 0);
-    const salePrice = variant.sale_price ? parseFloat(variant.sale_price) : null;
-    const discountType = variant.discount_type || '';
-    const discountValue = parseFloat(variant.discount_value || 0);
-    const discountActive = variant.discount_active === true || variant.discount_active === '1' || variant.discount_active === 1;
-    
-    // Round base price first for consistent calculations
-    basePrice = Math.round(basePrice);
-    
-    // Round sale price if it exists
-    let roundedSalePrice = null;
-    if (salePrice !== null && salePrice !== undefined) {
-        roundedSalePrice = Math.round(salePrice);
-    }
-    
-    // Determine price to use (sale price if available, otherwise base price)
-    let priceToUse = basePrice;
-    if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
-        priceToUse = roundedSalePrice;
-    }
-    
-    // Check if product has exclusive tax
-    const hasExclusiveTax = (!gstType && gstPercentage > 0);
-    
-    // Check if has extra discount
-    const hasExtraDiscount = discountActive && discountType && discountValue > 0;
-    
-    // Initialize display variables
-    let displayBasePrice = basePrice;
-    let displayFinalPrice = basePrice;
-    let displaySavings = 0;
-    let showBasePrice = false;
-    let hasDiscount = false;
-    let discountBadgeText = null;
-    let taxLabel = 'Inclusive of all taxes';
-    
-    // Condition One: Exclusive tax without extra discount
-    if (hasExclusiveTax && !hasExtraDiscount) {
-        // Calculate tax on sale price (or base price if no sale)
-        const gstAmount = priceToUse * (gstPercentage / 100);
-        displayFinalPrice = Math.round(priceToUse + gstAmount);
-        
-        // Don't show base price
-        showBasePrice = false;
-        taxLabel = 'Inclusive of taxes';
-    }
-    // Condition Two: Exclusive tax with extra discount
-    else if (hasExclusiveTax && hasExtraDiscount) {
-        // Step 1: Calculate tax-inclusive price first
-        const gstAmount = priceToUse * (gstPercentage / 100);
-        const taxInclusivePrice = Math.round(priceToUse + gstAmount);
-        
-        // Step 2: Apply extra discount on tax-inclusive price
-        let discountAmount = 0;
-        if (discountType === 'percentage') {
-            discountAmount = (taxInclusivePrice * discountValue) / 100;
-            displayFinalPrice = Math.round(Math.max(0, taxInclusivePrice - discountAmount));
-        } else if (discountType === 'amount' || discountType === 'flat') {
-            displayFinalPrice = Math.round(Math.max(0, taxInclusivePrice - discountValue));
-        } else {
-            displayFinalPrice = taxInclusivePrice;
-        }
-        
-        // Show tax-inclusive price as base price (strikethrough)
-        displayBasePrice = taxInclusivePrice;
-        showBasePrice = true;
-        hasDiscount = true;
-        
-        // Calculate savings from base price to final price
-        displaySavings = Math.round(basePrice - displayFinalPrice);
-        
-        // Update discount badge text
-        if (displayFinalPrice < taxInclusivePrice) {
-            let discountPercentage = 0;
-            if (discountType === 'percentage') {
-                discountPercentage = Math.round(discountValue);
-            } else if ((discountType === 'amount' || discountType === 'flat') && taxInclusivePrice > 0) {
-                discountPercentage = Math.round(((discountValue / taxInclusivePrice) * 100));
+    // Check if variant has pricing data from centralized method (preferred)
+    let pricing = null;
+    if (variant.pricing && typeof variant.pricing === 'object') {
+        // Use pricing data from backend (centralized method)
+        pricing = variant.pricing;
+        renderPricingHTML(pricing, pricingComponent);
+    } else if (variant.id) {
+        // If variant has ID but no pricing, fetch it via API
+        fetch(`/api/catalog/variants/${variant.id}/pricing`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
             }
-            
-            if (roundedSalePrice !== null && roundedSalePrice < basePrice && basePrice > 0) {
-                const salePercentage = Math.round(((basePrice - roundedSalePrice) / basePrice) * 100);
-                discountBadgeText = salePercentage + '% OFF';
-                if (discountPercentage > 0) {
-                    discountBadgeText += ' (+ extra ' + discountPercentage + '% discount)';
-                }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.pricing) {
+                renderPricingHTML(data.data.pricing, pricingComponent);
             } else {
-                discountBadgeText = discountPercentage + '% OFF';
+                // Fallback to legacy calculation if API fails
+                calculatePricingLegacy(variant, pricingComponent);
             }
-        }
-        
-        taxLabel = 'Inclusive of taxes';
+        })
+        .catch(error => {
+            console.warn('Failed to fetch pricing from API, using fallback:', error);
+            calculatePricingLegacy(variant, pricingComponent);
+        });
+        return; // Exit early, will update via callback
+    } else {
+        // Fallback: Legacy calculation for backward compatibility (should be removed eventually)
+        calculatePricingLegacy(variant, pricingComponent);
+        return;
     }
-    // Default: Inclusive tax or no tax
-    else {
-        // Calculate final price
-        // Discount is applied to sale_price if it exists, otherwise to base price
-        let priceToDiscount = basePrice;
-        if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
-            priceToDiscount = roundedSalePrice;
-        }
-        
-        let finalPrice = priceToDiscount;
-        
-        // Apply discount to the determined price (sale_price if available, otherwise base price)
-        // Only apply discount if discount_active is true
-        if (discountActive && discountType && discountValue > 0) {
-            if (discountType === 'percentage') {
-                const discountAmount = (priceToDiscount * discountValue) / 100;
-                finalPrice = Math.max(0, priceToDiscount - discountAmount);
-            } else if (discountType === 'amount' || discountType === 'flat') {
-                finalPrice = Math.max(0, priceToDiscount - discountValue);
-            }
-            
-            // Round final price to nearest whole number
-            finalPrice = Math.round(finalPrice);
-            
-            if (finalPrice < priceToDiscount) {
-                hasDiscount = true;
-                // Calculate savings from base price to final price (after discount on sale)
-                totalSavings = basePrice - finalPrice;
-                
-                // Generate badge text - show combined savings if both sale and discount exist
-                if (roundedSalePrice !== null && roundedSalePrice < basePrice && basePrice > 0) {
-                    // Both sale price and active discount - show sale discount + extra discount
-                    const salePercentage = Math.round(((basePrice - roundedSalePrice) / basePrice) * 100);
-                    // Show the actual discount percentage that was applied (not percentage of base price)
-                    let extraDiscountPercentage = 0;
-                    if (discountType === 'percentage') {
-                        extraDiscountPercentage = Math.round(discountValue);
-                    } else if (discountType === 'amount' || discountType === 'flat') {
-                        // For flat discounts, calculate percentage from sale price
-                        if (roundedSalePrice > 0) {
-                            extraDiscountPercentage = Math.round(((discountValue / roundedSalePrice) * 100));
-                        }
-                    }
-                    discountBadgeText = salePercentage + '% OFF';
-                    if (extraDiscountPercentage > 0) {
-                        discountBadgeText += ' (+ extra ' + extraDiscountPercentage + '% discount)';
-                    }
-                } else {
-                    // Only active discount - show discount amount/percentage
-                    if (discountType === 'percentage') {
-                        discountBadgeText = Math.round(discountValue) + '% OFF';
-                    } else if (discountType === 'amount' || discountType === 'flat') {
-                        discountBadgeText = '₹' + Math.round(discountValue).toLocaleString() + ' OFF';
-                    }
-                }
-            }
-        } else if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
-            // Only sale price, no active discount - show sale price with discount badge
-            finalPrice = roundedSalePrice;
-            hasDiscount = true;
-            // Calculate percentage off for sale price (round properly)
-            if (basePrice > 0) {
-                const salePercentage = ((basePrice - roundedSalePrice) / basePrice) * 100;
-                discountBadgeText = Math.round(salePercentage) + '% OFF';
-            }
-            totalSavings = basePrice - roundedSalePrice;
-        }
-        
-        // Round total savings to nearest whole number
-        totalSavings = Math.round(totalSavings);
-        
-        // Use prices as-is
-        displayBasePrice = basePrice;
-        displayFinalPrice = finalPrice;
-        displaySavings = totalSavings;
-        showBasePrice = (displayBasePrice > displayFinalPrice);
-        taxLabel = gstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
-    }
+}
+
+/**
+ * Render pricing HTML from centralized pricing data (UI only, no calculation)
+ */
+function renderPricingHTML(pricing, pricingComponent) {
+    // Extract values from centralized pricing data
+    const displayBasePrice = pricing.display_base_price || 0;
+    const displayFinalPrice = pricing.display_final_price || 0;
+    const displaySavings = pricing.display_savings || 0;
+    const showBasePrice = pricing.show_base_price || false;
+    const taxLabel = pricing.tax_label || 'Inclusive of all taxes';
+    const discountBadgeText = pricing.discount_badge_text || null;
+    const hasDiscount = pricing.has_discount_or_sale || false;
+    const isOnSale = pricing.is_on_sale || false;
+    const hasActiveDiscount = pricing.has_active_discount || false;
     
-    // Helper function to format price (round to nearest whole number)
+    // Helper function to format price
     const formatPriceDisplay = (price) => {
         const rounded = Math.round(price);
         return '₹' + rounded.toLocaleString();
@@ -203,7 +75,6 @@ function updateProductPricing(variant) {
         html += '<i class="fas fa-tag me-1"></i>' + discountBadgeText;
         html += '</span></div>';
     } else {
-        // Clear badge area if no discount
         html += '<div class="pricing-badge mb-2" style="display: none;"></div>';
     }
     
@@ -230,7 +101,7 @@ function updateProductPricing(variant) {
     
     html += '</div></div>';
     
-    // Savings Display (show if there are savings, regardless of discount badge)
+    // Savings Display
     if (displaySavings > 0) {
         html += '<div class="pricing-savings mb-2">';
         html += '<span class="text-success fs-sm fw-medium">';
@@ -249,9 +120,9 @@ function updateProductPricing(variant) {
         html += '</span>';
         html += '<span class="status-text text-success fs-sm fw-medium">';
         
-        if (salePrice && salePrice < basePrice) {
+        if (isOnSale) {
             html += 'On Sale';
-        } else if (discountActive) {
+        } else if (hasActiveDiscount) {
             html += 'Discount Active';
         }
         
@@ -272,10 +143,97 @@ function updateProductPricing(variant) {
         badgeDiv.style.display = (hasDiscount && discountBadgeText) ? 'block' : 'none';
     }
     if (savingsDiv) {
-        savingsDiv.style.display = (hasDiscount && displaySavings > 0) ? 'block' : 'none';
+        savingsDiv.style.display = (displaySavings > 0) ? 'block' : 'none';
     }
     if (statusDiv) {
         statusDiv.style.display = hasDiscount ? 'block' : 'none';
     }
+}
+
+/**
+ * Legacy pricing calculation (fallback only - should be removed once all endpoints use centralized pricing)
+ * This is kept for backward compatibility but should not be used in new code
+ * @deprecated Use renderPricingHTML with pricing data from API instead
+ */
+function calculatePricingLegacy(variant, pricingComponent) {
+    console.warn('Using legacy pricing calculation. Please update to use centralized pricing API.');
+    
+    // Get GST settings from component data attributes
+    const gstType = pricingComponent.dataset.gstType === '1';
+    const gstPercentage = parseFloat(pricingComponent.dataset.gstPercentage || 0);
+    
+    // Extract pricing data from variant (legacy format)
+    let basePrice = parseFloat(variant.price || variant.base_price || 0);
+    const salePrice = variant.sale_price ? parseFloat(variant.sale_price) : null;
+    const discountType = variant.discount_type || '';
+    const discountValue = parseFloat(variant.discount_value || 0);
+    const discountActive = variant.discount_active === true || variant.discount_active === '1' || variant.discount_active === 1;
+    
+    // Round prices
+    basePrice = Math.round(basePrice);
+    const roundedSalePrice = salePrice !== null ? Math.round(salePrice) : null;
+    
+    // Determine price to use
+    let priceToUse = basePrice;
+    if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
+        priceToUse = roundedSalePrice;
+    }
+    
+    // Calculate final price (simplified legacy logic)
+    let finalPrice = priceToUse;
+    let hasDiscount = false;
+    let discountBadgeText = null;
+    let totalSavings = 0;
+    
+    // Apply discount if active
+    if (discountActive && discountType && discountValue > 0) {
+        if (discountType === 'percentage') {
+            const discountAmount = (priceToUse * discountValue) / 100;
+            finalPrice = Math.max(0, priceToUse - discountAmount);
+        } else if (discountType === 'amount' || discountType === 'flat') {
+            finalPrice = Math.max(0, priceToUse - discountValue);
+        }
+        finalPrice = Math.round(finalPrice);
+        
+        if (finalPrice < priceToUse) {
+            hasDiscount = true;
+            totalSavings = basePrice - finalPrice;
+        }
+    } else if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
+        finalPrice = roundedSalePrice;
+        hasDiscount = true;
+        totalSavings = basePrice - roundedSalePrice;
+    }
+    
+    totalSavings = Math.round(totalSavings);
+    
+    // Simple display (no GST calculation for legacy)
+    const displayBasePrice = basePrice;
+    const displayFinalPrice = finalPrice;
+    const displaySavings = totalSavings;
+    const showBasePrice = displayBasePrice > displayFinalPrice;
+    const taxLabel = gstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
+    
+    // Calculate OFF badge text based on actual savings (base_price vs display_final_price)
+    // This shows the total discount percentage, regardless of how it was achieved
+    if (hasDiscount && displayFinalPrice < displayBasePrice && displayBasePrice > 0) {
+        const offPercentage = Math.round(((displayBasePrice - displayFinalPrice) / displayBasePrice) * 100);
+        if (offPercentage > 0) {
+            discountBadgeText = offPercentage + '% OFF';
+        }
+    }
+    
+    // Use renderPricingHTML with simplified data
+    renderPricingHTML({
+        display_base_price: displayBasePrice,
+        display_final_price: displayFinalPrice,
+        display_savings: displaySavings,
+        show_base_price: showBasePrice,
+        tax_label: taxLabel,
+        discount_badge_text: discountBadgeText,
+        has_discount_or_sale: hasDiscount,
+        is_on_sale: roundedSalePrice !== null && roundedSalePrice < basePrice,
+        has_active_discount: discountActive && discountType && discountValue > 0
+    }, pricingComponent);
 }
 </script>

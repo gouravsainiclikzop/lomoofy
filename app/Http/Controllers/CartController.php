@@ -122,68 +122,40 @@ class CartController extends Controller
                 ] : null,
                 'items' => $cart->items->map(function($item) {
                     $variant = $item->variant;
+                    $product = $item->product;
                     
-                    // Calculate final price after variant discount
-                    $calculateItemFinalPrice = function($variant) {
-                        if (!$variant) {
-                            return 0;
-                        }
-                        
-                        $basePrice = $variant->price ?? 0;
-                        $salePrice = $variant->sale_price ?? null;
-                        $discountType = $variant->discount_type ?? '';
-                        $discountValue = $variant->discount_value ?? 0;
-                        $discountActive = $variant->discount_active ?? false;
-                        
-                        // Round base price
-                        $basePrice = round($basePrice);
-                        
-                        // Round sale price if it exists
-                        $roundedSalePrice = null;
-                        if ($salePrice !== null) {
-                            $roundedSalePrice = round($salePrice);
-                        }
-                        
-                        // Calculate final price
-                        $priceToDiscount = $basePrice;
-                        if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
-                            $priceToDiscount = $roundedSalePrice;
-                        }
-                        
-                        $finalPrice = $priceToDiscount;
-                        
-                        // Apply discount if active
-                        if ($discountActive && $discountType && $discountValue > 0) {
-                            if ($discountType === 'percentage') {
-                                $discountAmount = ($priceToDiscount * $discountValue) / 100;
-                                $finalPrice = max(0, $priceToDiscount - $discountAmount);
-                            } elseif ($discountType === 'amount' || $discountType === 'flat') {
-                                $finalPrice = max(0, $priceToDiscount - $discountValue);
-                            }
-                        } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
-                            $finalPrice = $roundedSalePrice;
-                        }
-                        
-                        // Round final price
-                        return round($finalPrice);
-                    };
-                    
+                    // Use centralized pricing method from ProductVariant
                     $variantPrice = $variant ? ($variant->price ?? 0) : 0;
                     $variantSalePrice = $variant ? ($variant->sale_price ?? null) : null;
                     $discountType = $variant ? ($variant->discount_type ?? null) : null;
                     $discountValue = $variant ? ($variant->discount_value ?? 0) : 0;
                     $discountActive = $variant ? ($variant->discount_active ?? false) : false;
                     
-                    $finalPriceAfterDiscount = $calculateItemFinalPrice($variant);
+                    $finalPriceAfterDiscount = 0;
                     $variantDiscountAmount = 0;
                     
-                    // Calculate variant discount amount
+                    // Initialize pricing data
+                    $pricing = null;
+                    $gstType = true;
+                    $gstPercentage = 0;
+                    
+                    if ($variant && $product) {
+                        // Get GST settings from product
+                        $gstType = $product->gst_type ?? true;
+                        $gstPercentage = $product->gst_percentage ?? 0;
+                        
+                        // Use centralized pricing method
+                        $pricing = $variant->getPricingData($gstType, $gstPercentage);
+                        $finalPriceAfterDiscount = $pricing['final_price'];
+                        
+                        // Calculate variant discount amount for display
                     if ($discountActive && $discountType && $discountValue > 0) {
                         $priceToDiscount = $variantSalePrice ?? $variantPrice;
                         if ($discountType === 'percentage') {
                             $variantDiscountAmount = ($priceToDiscount * $discountValue) / 100;
-                        } elseif ($discountType === 'amount' || $discountType === 'flat') {
+                            } elseif (in_array($discountType, ['amount', 'flat'])) {
                             $variantDiscountAmount = $discountValue;
+                            }
                         }
                     }
                     
@@ -228,6 +200,7 @@ class CartController extends Controller
                         'id' => $item->id,
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->name,
+                        'product_slug' => $item->product->slug ?? null,
                         'product_sku' => $item->product->sku,
                         'variant_id' => $item->product_variant_id,
                         'variant_name' => $item->variant?->name,
@@ -237,8 +210,9 @@ class CartController extends Controller
                         'total_price' => (float)$item->total_price,
                         'reserved_stock' => $item->reserved_stock,
                         'available_stock' => $availableStock !== null ? (int)$availableStock : null,
+                        'manage_stock' => $variant ? ($variant->manage_stock ?? false) : false,
                         'image_url' => $item->product->image_url,
-                        // Variant pricing details
+                        // Variant pricing details (for legacy support)
                         'variant_price' => $variantPrice ? (float)$variantPrice : null,
                         'variant_sale_price' => $variantSalePrice ? (float)$variantSalePrice : null,
                         'discount_type' => $discountType,
@@ -246,6 +220,33 @@ class CartController extends Controller
                         'discount_active' => $discountActive,
                         'variant_discount_amount' => (float)$variantDiscountAmount,
                         'final_price_after_discount' => (float)$finalPriceAfterDiscount,
+                        // GST settings (for legacy fallback)
+                        'gst_type' => $gstType,
+                        'gst_percentage' => (float)$gstPercentage,
+                        // Full pricing data from centralized method (preferred)
+                        'pricing' => $pricing ? [
+                            'base_price' => (float)$pricing['base_price'],
+                            'sale_price' => $pricing['sale_price'] ? (float)$pricing['sale_price'] : null,
+                            'final_price' => (float)$pricing['final_price'],
+                            'display_base_price' => (float)$pricing['display_base_price'],
+                            'display_final_price' => (float)$pricing['display_final_price'],
+                            'display_savings' => (float)$pricing['display_savings'],
+                            'display_base_price_rounded' => (float)($pricing['display_base_price_rounded'] ?? round($pricing['display_base_price'])),
+                            'display_final_price_rounded' => (float)($pricing['display_final_price_rounded'] ?? round($pricing['display_final_price'])),
+                            'display_savings_rounded' => (float)($pricing['display_savings_rounded'] ?? round($pricing['display_savings'])),
+                            'show_base_price' => $pricing['show_base_price'],
+                            'tax_label' => $pricing['tax_label'],
+                            'discount_badge_text' => $pricing['discount_badge_text'],
+                            'has_discount_or_sale' => $pricing['has_discount_or_sale'],
+                            'is_on_sale' => $pricing['is_on_sale'],
+                            'has_active_discount' => $pricing['has_active_discount'],
+                            'total_savings' => (float)$pricing['total_savings'],
+                            'gst_amount' => (float)$pricing['gst_amount'],
+                        ] : null,
+                        // Size and color attributes for display
+                        'size_value' => $item->size_value,
+                        'color_value' => $item->color_value,
+                        'all_attributes' => $item->all_attributes ?? [],
                     ];
                 }),
                 'summary' => [

@@ -92,20 +92,73 @@
 													}
 												}
 					
-												// GST + price logic
+												// Use centralized pricing method
 												$product = $item->product;
+												$variant = $item->variant;
 												$gstType = $product ? ($product->gst_type !== null ? (bool)$product->gst_type : true) : true;
 												$gstPercentage = $product ? ($product->gst_percentage ?? 0) : 0;
 					
-												$variantPrice = $item->original_variant_price ?? null;
-												$variantSalePrice = $item->variant_sale_price ?? null;
-					
-												$displayPricePerUnit = $item->unit_price ?? 0;
-					
-												if ($gstType && $variantPrice !== null) {
-													$displayPricePerUnit = $variantPrice;
-												} elseif (!$gstType && $gstPercentage > 0) {
-													$displayPricePerUnit = $item->unit_price / (1 + ($gstPercentage / 100));
+												// Get pricing data from centralized method if variant exists
+												$pricing = null;
+												if ($variant) {
+													$pricing = $variant->getPricingData($gstType, $gstPercentage);
+												} else {
+													// Fallback: Use stored order item data (for historical orders where variant may not exist)
+													$basePrice = round($item->original_variant_price ?? $item->unit_price ?? 0, 2);
+													$salePrice = $item->variant_sale_price ? round($item->variant_sale_price, 2) : null;
+													$isOnSale = $salePrice !== null && $salePrice < $basePrice;
+													$priceToDiscount = $isOnSale ? $salePrice : $basePrice;
+													
+													$finalPrice = $priceToDiscount;
+													$hasActiveDiscount = $item->discount_active ?? false;
+													
+													if ($hasActiveDiscount && $item->discount_type && $item->discount_value > 0) {
+														if ($item->discount_type === 'percentage') {
+															$discountAmount = ($priceToDiscount * $item->discount_value) / 100;
+															$finalPrice = max(0, $priceToDiscount - $discountAmount);
+														} elseif (in_array($item->discount_type, ['amount', 'flat'])) {
+															$finalPrice = max(0, $priceToDiscount - $item->discount_value);
+														}
+														$finalPrice = round($finalPrice, 2);
+													} elseif ($isOnSale) {
+														$finalPrice = $salePrice;
+													}
+													
+													$totalSavings = max(0, $basePrice - $finalPrice);
+													$displayBasePrice = $basePrice;
+													$displayFinalPrice = $finalPrice;
+													$displaySavings = $totalSavings;
+													
+													// Handle GST exclusive case
+													if (!$gstType && $gstPercentage > 0) {
+														$gstAmount = round($priceToDiscount * ($gstPercentage / 100), 2);
+														$displayFinalPrice = round($priceToDiscount + $gstAmount, 2);
+														$displayBasePrice = $displayFinalPrice;
+													}
+													
+													$pricing = [
+														'base_price' => $basePrice,
+														'sale_price' => $salePrice,
+														'final_price' => $finalPrice,
+														'display_base_price' => $displayBasePrice,
+														'display_final_price' => $displayFinalPrice,
+														'display_savings' => $displaySavings,
+														'display_base_price_rounded' => round($displayBasePrice),
+														'display_final_price_rounded' => round($displayFinalPrice),
+														'display_savings_rounded' => round($displaySavings),
+														'show_base_price' => $displayBasePrice > $displayFinalPrice,
+														'tax_label' => $gstType ? 'Inclusive of all taxes' : 'Inclusive of taxes',
+														'discount_badge_text' => null,
+														'has_discount_or_sale' => $isOnSale || $hasActiveDiscount,
+													];
+													
+													// Calculate discount badge
+													if ($pricing['has_discount_or_sale'] && $displayFinalPrice < $basePrice && $basePrice > 0) {
+														$offPercentage = round((($basePrice - $displayFinalPrice) / $basePrice) * 100);
+														if ($offPercentage > 0) {
+															$pricing['discount_badge_text'] = $offPercentage . '% OFF';
+														}
+													}
 												}
 					
 												// Status badge
@@ -157,17 +210,27 @@
 					
 															<p class="mb-1"><span class="text-muted small">Qty: {{ $item->quantity }}</span></p>
 					
-															@include('frontend.partials.product-pricing-compact', [
-																'price' => $variantPrice ?? $displayPricePerUnit,
-																'sale_price' => $variantSalePrice,
-																'original_price' => $variantPrice ?? $displayPricePerUnit,
-																'discount_type' => $item->discount_type ?? null,
-																'discount_value' => $item->discount_value ?? null,
-																'discount_active' => $item->discount_active ?? false,
-																'gstType' => $gstType,
-																'gstPercentage' => $gstPercentage,
-																'compact' => true
-															])
+															@if($variant && $pricing)
+																@include('frontend.partials.product-pricing-compact', [
+																	'variant' => $variant,
+																	'product' => $product,
+																	'gstType' => $gstType,
+																	'gstPercentage' => $gstPercentage,
+																	'compact' => true
+																])
+															@else
+																@include('frontend.partials.product-pricing-compact', [
+																	'original_price' => $pricing['base_price'] ?? ($item->original_variant_price ?? $item->unit_price ?? 0),
+																	'price' => $pricing['base_price'] ?? ($item->original_variant_price ?? $item->unit_price ?? 0),
+																	'sale_price' => $pricing['sale_price'] ?? ($item->variant_sale_price ?? null),
+																	'discount_type' => $item->discount_type ?? null,
+																	'discount_value' => $item->discount_value ?? null,
+																	'discount_active' => $item->discount_active ?? false,
+																	'gstType' => $gstType,
+																	'gstPercentage' => $gstPercentage,
+																	'compact' => true
+																])
+															@endif
 														</div>
 													</div>
 												</div>
@@ -214,92 +277,13 @@
 					
 											<div class="olf_inner_right">
 												@php
-													// Helper function to calculate final price for an order item (after discounts)
-													$calculateItemFinalPrice = function($item) {
-														$basePrice = $item->original_variant_price ?? $item->unit_price ?? 0;
-														$salePrice = $item->variant_sale_price ?? null;
-														$discountType = $item->discount_type ?? '';
-														$discountValue = $item->discount_value ?? 0;
-														$discountActive = $item->discount_active ?? false;
-														
-														// Round base price
-														$basePrice = round($basePrice);
-														
-														// Round sale price if it exists
-														$roundedSalePrice = null;
-														if ($salePrice !== null) {
-															$roundedSalePrice = round($salePrice);
-														}
-														
-														// Calculate final price
-														$priceToDiscount = $basePrice;
-														if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
-															$priceToDiscount = $roundedSalePrice;
-														}
-														
-														$finalPrice = $priceToDiscount;
-														
-														// Apply discount if active
-														if ($discountActive && $discountType && $discountValue > 0) {
-															if ($discountType === 'percentage') {
-																$discountAmount = ($priceToDiscount * $discountValue) / 100;
-																$finalPrice = max(0, $priceToDiscount - $discountAmount);
-															} elseif ($discountType === 'amount' || $discountType === 'flat') {
-																$finalPrice = max(0, $priceToDiscount - $discountValue);
-															}
-														} elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
-															$finalPrice = $roundedSalePrice;
-														}
-														
-														// Round final price
-														return round($finalPrice);
-													};
-													
-													// Recalculate subtotal and tax from order items using final prices (after discounts)
-													$recalculatedSubtotal = 0;
-													$recalculatedTax = 0;
-													$hasExclusiveItems = false;
-													
-													foreach ($order->items ?? [] as $orderItem) {
-														// Calculate final price for this item (after discounts)
-														$itemFinalPrice = $calculateItemFinalPrice($orderItem);
-														
-														$orderProduct = $orderItem->product;
-														$gstType = $orderProduct ? ($orderProduct->gst_type ?? true) : true;
-														$gstPercentage = $orderProduct ? ($orderProduct->gst_percentage ?? 0) : 0;
-														$quantity = $orderItem->quantity ?? 1;
-														
-														if ($gstPercentage > 0) {
-															if (!$gstType) {
-																// Exclusive of tax: Extract base price for tax calculation
-																$baseForTax = $itemFinalPrice / (1 + ($gstPercentage / 100));
-																$itemTax = $baseForTax * ($gstPercentage / 100);
-																$recalculatedTax += $itemTax * $quantity;
-																$hasExclusiveItems = true;
-																// Use final price in subtotal (will have tax added separately)
-																$recalculatedSubtotal += $itemFinalPrice * $quantity;
-															} else {
-																// Inclusive of tax: Use final price directly (tax already included)
-																$recalculatedSubtotal += $itemFinalPrice * $quantity;
-																// Tax is already included, don't add separately
-															}
-														} else {
-															// No GST - use final price directly
-															$recalculatedSubtotal += $itemFinalPrice * $quantity;
-														}
-													}
-													
-													// Round all amounts to whole numbers
-													$subtotal = round($recalculatedSubtotal);
-													// Use coupon discount from order (order-level discount)
-													$couponDiscountAmount = round($order->discount_amount ?? 0);
-													$totalAfterDiscount = $subtotal - $couponDiscountAmount;
-													
-													// Use recalculated tax if we have exclusive items, otherwise use saved tax
-													$taxAmount = $hasExclusiveItems ? round($recalculatedTax) : round($order->tax_amount ?? 0);
-													$shippingAmount = round($order->shipping_amount ?? 0);
-													$grandTotal = $totalAfterDiscount + $taxAmount + $shippingAmount;
-													$payableAmount = round($grandTotal);
+													// Use the stored total_amount from the order
+													// This is the actual amount that was charged when the order was placed
+													// Recalculating can lead to discrepancies due to:
+													// 1. Price changes since order was placed
+													// 2. Rounding differences
+													// 3. Different calculation logic
+													$payableAmount = round($order->total_amount ?? 0);
 												@endphp
 												<h5 class="mb-0 fs-sm ft-bold">Payable: ₹{{ number_format($payableAmount, 0) }}</h5>
 

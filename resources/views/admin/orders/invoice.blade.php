@@ -286,44 +286,34 @@
             $invoiceItems = [];
             
             // Helper function to calculate final price for an order item (after discounts)
+            // Uses 2-decimal precision for calculations, rounds only for display
             $calculateItemFinalPrice = function($item) {
-                $basePrice = isset($item['original_variant_price']) ? floatval($item['original_variant_price']) : floatval($item['unit_price']);
-                $salePrice = isset($item['variant_sale_price']) ? floatval($item['variant_sale_price']) : null;
+                // Use 2-decimal precision for all calculations
+                $basePrice = round(isset($item['original_variant_price']) ? floatval($item['original_variant_price']) : floatval($item['unit_price']), 2);
+                $salePrice = isset($item['variant_sale_price']) && $item['variant_sale_price'] > 0 ? round(floatval($item['variant_sale_price']), 2) : null;
                 $discountType = $item['discount_type'] ?? '';
-                $discountValue = isset($item['discount_value']) ? floatval($item['discount_value']) : 0;
+                $discountValue = isset($item['discount_value']) ? round(floatval($item['discount_value']), 2) : 0;
                 $discountActive = $item['discount_active'] ?? false;
                 
-                // Round base price
-                $basePrice = round($basePrice);
-                
-                // Round sale price if it exists
-                $roundedSalePrice = null;
-                if ($salePrice !== null && $salePrice > 0) {
-                    $roundedSalePrice = round($salePrice);
-                }
-                
-                // Calculate final price
-                $priceToDiscount = $basePrice;
-                if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
-                    $priceToDiscount = $roundedSalePrice;
-                }
+                $isOnSale = $salePrice !== null && $salePrice < $basePrice;
+                $priceToDiscount = $isOnSale ? $salePrice : $basePrice;
                 
                 $finalPrice = $priceToDiscount;
                 
                 // Apply discount if active
                 if ($discountActive && $discountType && $discountValue > 0) {
                     if ($discountType === 'percentage') {
-                        $discountAmount = ($priceToDiscount * $discountValue) / 100;
-                        $finalPrice = max(0, $priceToDiscount - $discountAmount);
+                        $discountAmount = round(($priceToDiscount * $discountValue) / 100, 2);
+                        $finalPrice = round(max(0, $priceToDiscount - $discountAmount), 2);
                     } elseif ($discountType === 'amount' || $discountType === 'flat') {
-                        $finalPrice = max(0, $priceToDiscount - $discountValue);
+                        $finalPrice = round(max(0, $priceToDiscount - $discountValue), 2);
                     }
-                } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
-                    $finalPrice = $roundedSalePrice;
+                } elseif ($isOnSale) {
+                    $finalPrice = $salePrice;
                 }
                 
-                // Round final price
-                return round($finalPrice);
+                // Return final price with 2-decimal precision (not rounded to whole number)
+                return $finalPrice;
             };
             
             foreach ($order['items'] as $index => $item) {
@@ -335,20 +325,21 @@
                 $itemFinalPrice = $calculateItemFinalPrice($item);
                 
                 // Calculate base price per unit for net amount (before GST)
+                // Use 2-decimal precision for all calculations
                 $basePricePerUnit = 0;
                 if ($gstType) {
                     // GST inclusive: Final price already includes tax
-                    // Extract base price for net amount display
-                    $basePricePerUnit = $itemFinalPrice / (1 + ($gstPercentage / 100));
+                    // Extract base price for net amount display (keep 2 decimals)
+                    $basePricePerUnit = round($itemFinalPrice / (1 + ($gstPercentage / 100)), 2);
                 } else {
                     // GST exclusive: Final price is the base price
                     $basePricePerUnit = $itemFinalPrice;
                 }
                 
-                // Net amount = base price * quantity
-                $netAmount = $basePricePerUnit * $quantity;
+                // Net amount = base price * quantity (keep 2 decimals)
+                $netAmount = round($basePricePerUnit * $quantity, 2);
                 
-                // Calculate GST amount
+                // Calculate GST amount (keep 2 decimals)
                 $itemGstAmount = 0;
                 $cgstAmount = 0;
                 $sgstAmount = 0;
@@ -357,26 +348,26 @@
                 if ($gstPercentage > 0) {
                     if ($gstType) {
                         // GST inclusive: Calculate tax from final price (tax already included)
-                        // Tax = final_price - base_price
-                        $itemGstAmount = ($itemFinalPrice * $quantity) - $netAmount;
+                        // Tax = (final_price * quantity) - net_amount
+                        $itemGstAmount = round(($itemFinalPrice * $quantity) - $netAmount, 2);
                         // Don't add to exclusiveGstAmount since tax is already in the price
                     } else {
                         // GST exclusive: Calculate tax to be added on base price
-                        $itemGstAmount = $netAmount * ($gstPercentage / 100);
+                        $itemGstAmount = round($netAmount * ($gstPercentage / 100), 2);
                         $exclusiveGstAmount += $itemGstAmount;
                     }
                     
                     if ($isSameState) {
-                        $cgstAmount = $itemGstAmount / 2;
-                        $sgstAmount = $itemGstAmount / 2;
+                        $cgstAmount = round($itemGstAmount / 2, 2);
+                        $sgstAmount = round($itemGstAmount / 2, 2);
                         $cgstKey = 'CGST ' . ($gstPercentage/2) . '%';
                         $sgstKey = 'SGST ' . ($gstPercentage/2) . '%';
-                        $cgstBreakdown[$cgstKey] = ($cgstBreakdown[$cgstKey] ?? 0) + $cgstAmount;
-                        $sgstBreakdown[$sgstKey] = ($sgstBreakdown[$sgstKey] ?? 0) + $sgstAmount;
+                        $cgstBreakdown[$cgstKey] = round(($cgstBreakdown[$cgstKey] ?? 0) + $cgstAmount, 2);
+                        $sgstBreakdown[$sgstKey] = round(($sgstBreakdown[$sgstKey] ?? 0) + $sgstAmount, 2);
                     } else {
                         $igstAmount = $itemGstAmount;
                         $igstKey = 'IGST ' . $gstPercentage . '%';
-                        $igstBreakdown[$igstKey] = ($igstBreakdown[$igstKey] ?? 0) + $igstAmount;
+                        $igstBreakdown[$igstKey] = round(($igstBreakdown[$igstKey] ?? 0) + $igstAmount, 2);
                     }
                 }
                 
@@ -392,16 +383,17 @@
                 
                 // Display unit price should be final price per unit (after discounts, before GST extraction for inclusive)
                 // For invoice display: show the price that customer pays per unit
+                // Keep 2-decimal precision for calculations
                 if ($gstType) {
                     // GST inclusive: Show final price (what customer pays per unit)
                     $displayUnitPrice = $itemFinalPrice;
-                    // Total amount = final price * quantity (includes tax)
-                    $totalAmount = $itemFinalPrice * $quantity;
+                    // Total amount = final price * quantity (includes tax, keep 2 decimals)
+                    $totalAmount = round($itemFinalPrice * $quantity, 2);
                 } else {
                     // GST exclusive: Show base price per unit
                     $displayUnitPrice = $basePricePerUnit;
-                    // Total amount = base + tax
-                    $totalAmount = $netAmount + $itemGstAmount;
+                    // Total amount = base + tax (keep 2 decimals)
+                    $totalAmount = round($netAmount + $itemGstAmount, 2);
                 }
                 
                 $invoiceItems[] = [
@@ -419,20 +411,23 @@
             }
             
             // Recalculate subtotal from invoice items (sum of all item totals after discounts)
+            // Keep 2-decimal precision for calculations
             $recalculatedSubtotal = 0;
             foreach ($invoiceItems as $invoiceItem) {
                 $recalculatedSubtotal += $invoiceItem['total'];
             }
+            $recalculatedSubtotal = round($recalculatedSubtotal, 2);
             
             // Use recalculated subtotal (from items) or fallback to order subtotal
-            $subtotal = round($recalculatedSubtotal);
-            $discount = round(floatval($order['discount_amount'] ?? 0));
-            $shipping = round(floatval($order['shipping_amount'] ?? 0));
-            $taxAmount = round(floatval($order['tax_amount'] ?? 0));
+            // Keep 2-decimal precision for all calculations
+            $subtotal = round($recalculatedSubtotal, 2);
+            $discount = round(floatval($order['discount_amount'] ?? 0), 2);
+            $shipping = round(floatval($order['shipping_amount'] ?? 0), 2);
+            $taxAmount = round(floatval($order['tax_amount'] ?? 0), 2);
             
-            // Calculate grand total: subtotal - discount + tax (for exclusive items) + shipping
-            // For inclusive items, tax is already in subtotal, so we only add exclusive tax
-            $calculatedGrandTotal = $subtotal - $discount + $exclusiveGstAmount + $shipping;
+            // Use the stored total_amount from the order (this is the actual amount charged)
+            // Recalculating can lead to discrepancies due to price changes or rounding differences
+            $calculatedGrandTotal = round($order['total_amount'] ?? ($subtotal - $discount + $exclusiveGstAmount + $shipping), 2);
             
             // Number to words function
             function numberToWords($amount) {
@@ -639,7 +634,7 @@
                 <!-- Payable (Grand Total) -->
                 <tr class="grand-total-row">
                     <td colspan="7" style="text-align: right; font-weight: bold; background-color: #f8f9fa;">Payable:</td>
-                    <td style="font-weight: bold; background-color: #f8f9fa;">₹{{ number_format(round($calculatedGrandTotal), 2) }}</td>
+                    <td style="font-weight: bold; background-color: #f8f9fa;">₹{{ number_format(round($calculatedGrandTotal), 0) }}</td>
                 </tr>
             </tbody>
         </table>

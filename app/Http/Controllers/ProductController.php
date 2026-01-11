@@ -1156,29 +1156,29 @@ class ProductController extends Controller
             $variants = $product->variants ?? collect();
             $variantCount = $variants->count();
 
-            // Calculate current price for each variant (considering sale_price)
-            $priceValues = $variants->map(function($variant) {
-                // Use sale_price if on sale, otherwise use price
-                $currentPrice = null;
-                
-                if ($variant->isOnSale() && $variant->sale_price) {
-                    $currentPrice = (float) $variant->sale_price;
-                } elseif ($variant->price !== null && $variant->price !== '') {
-                    $currentPrice = (float) $variant->price;
-                }
-                
-                return $currentPrice;
-            })->filter(fn($value) => $value !== null);
+            // Calculate price range using centralized pricing method
+            // Get GST settings from product
+            $gstType = $product->gst_type ?? true;
+            $gstPercentage = $product->gst_percentage ?? 0;
+            
+            // Get display prices (rounded) for each variant using centralized pricing
+            $displayPrices = $variants->map(function($variant) use ($gstType, $gstPercentage) {
+                $pricing = $variant->getPricingData($gstType, $gstPercentage);
+                // Use rounded display price for range calculation
+                return $pricing['display_final_price_rounded'] ?? round($pricing['display_final_price']);
+            })->filter(fn($value) => $value !== null && $value > 0);
 
-            $minPrice = $priceValues->isNotEmpty() ? $priceValues->min() : null;
-            $maxPrice = $priceValues->isNotEmpty() ? $priceValues->max() : null;
+            $minPrice = $displayPrices->isNotEmpty() ? $displayPrices->min() : null;
+            $maxPrice = $displayPrices->isNotEmpty() ? $displayPrices->max() : null;
 
             $priceRangeDisplay = '—';
             if (!is_null($minPrice)) {
                 if (!is_null($maxPrice) && $minPrice !== $maxPrice) {
-                    $priceRangeDisplay = sprintf('₹%s - ₹%s', number_format($minPrice, 2), number_format($maxPrice, 2));
+                    // Show rounded price range
+                    $priceRangeDisplay = sprintf('₹%s - ₹%s', number_format($minPrice, 0), number_format($maxPrice, 0));
                 } else {
-                    $priceRangeDisplay = sprintf('₹%s', number_format($minPrice, 2));
+                    // Single price, show rounded
+                    $priceRangeDisplay = sprintf('₹%s', number_format($minPrice, 0));
                 }
             }
 
@@ -1230,9 +1230,9 @@ class ProductController extends Controller
                 'sku' => $variants->isNotEmpty() ? $variants->pluck('sku')->filter()->implode(', ') : '—',
                 'variant_count' => $variantCount,
                 'has_variants' => $variantCount > 0,
-                'variant_price_min' => $minPrice,
-                'variant_price_max' => $maxPrice,
-                'variant_price_range' => $priceRangeDisplay,
+                'variant_price_min' => $minPrice, // Rounded display price (for sorting)
+                'variant_price_max' => $maxPrice, // Rounded display price (for sorting)
+                'variant_price_range' => $priceRangeDisplay, // Formatted price range string
                 'variant_units' => $unitSymbols,
                 'variant_units_display' => $unitDisplay ?: '—',
                 'variant_stock_total' => $stockTotal,

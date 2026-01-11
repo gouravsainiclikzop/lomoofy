@@ -656,7 +656,7 @@ function initializeDataTable() {
             {
                 data: 'orders_total',
                 render: function(data) {
-                    return data ? `₹${data}` : '<span class="text-muted">₹0.00</span>';
+                    return data ? `₹${data}` : '<span class="text-muted">₹0</span>';
                 }
             },
             {

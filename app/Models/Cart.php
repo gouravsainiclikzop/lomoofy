@@ -91,52 +91,7 @@ class Cart extends Model
     {
         $this->load('items.product', 'items.variant', 'coupon');
         
-        // Helper function to calculate final price for an item (after discounts)
-        $calculateItemFinalPrice = function($variant) {
-            if (!$variant) {
-                return 0;
-            }
-            
-            $basePrice = $variant->price ?? 0;
-            $salePrice = $variant->sale_price ?? null;
-            $discountType = $variant->discount_type ?? '';
-            $discountValue = $variant->discount_value ?? 0;
-            $discountActive = $variant->discount_active ?? false;
-            
-            // Round base price
-            $basePrice = round($basePrice);
-            
-            // Round sale price if it exists
-            $roundedSalePrice = null;
-            if ($salePrice !== null) {
-                $roundedSalePrice = round($salePrice);
-            }
-            
-            // Calculate final price
-            $priceToDiscount = $basePrice;
-            if ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
-                $priceToDiscount = $roundedSalePrice;
-            }
-            
-            $finalPrice = $priceToDiscount;
-            
-            // Apply discount if active
-            if ($discountActive && $discountType && $discountValue > 0) {
-                if ($discountType === 'percentage') {
-                    $discountAmount = ($priceToDiscount * $discountValue) / 100;
-                    $finalPrice = max(0, $priceToDiscount - $discountAmount);
-                } elseif ($discountType === 'amount' || $discountType === 'flat') {
-                    $finalPrice = max(0, $priceToDiscount - $discountValue);
-                }
-            } elseif ($roundedSalePrice !== null && $roundedSalePrice < $basePrice) {
-                $finalPrice = $roundedSalePrice;
-            }
-            
-            // Round final price
-            return round($finalPrice);
-        };
-        
-        // Calculate subtotal using inclusive prices (base + GST for exclusive items)
+        // Calculate subtotal using centralized pricing from ProductVariant
         // For exclusive items: base price + GST = inclusive price
         // For inclusive items: use price as-is
         $subtotal = 0;
@@ -144,28 +99,23 @@ class Cart extends Model
         foreach ($this->items as $item) {
             $product = $item->product;
             $variant = $item->variant;
-            if (!$product) {
+            if (!$product || !$variant) {
                 continue;
             }
             
-            // Calculate final price for this item (after variant discounts)
-            $itemFinalPrice = $calculateItemFinalPrice($variant);
-            $quantity = $item->quantity ?? 1;
-            
-            // Get GST settings from product
+            // Use centralized pricing method from ProductVariant
             $gstType = $product->gst_type ?? true; // Default to inclusive
             $gstPercentage = $product->gst_percentage ?? 0;
             
-            // Calculate inclusive price
-            $inclusivePrice = $itemFinalPrice;
-            if ($gstPercentage > 0 && !$gstType) {
-                // Exclusive: Add GST to base price to get inclusive price
-                $inclusivePrice = $itemFinalPrice + ($itemFinalPrice * ($gstPercentage / 100));
-            }
-            // For inclusive items, $itemFinalPrice is already inclusive
+            // Get pricing data using centralized method
+            $pricing = $variant->getPricingData($gstType, $gstPercentage);
+            
+            // Use display_final_price which already accounts for GST calculations
+            $itemFinalPrice = $pricing['display_final_price'];
+            $quantity = $item->quantity ?? 1;
             
             // Add to subtotal (inclusive price after discounts)
-            $subtotal += $inclusivePrice * $quantity;
+            $subtotal += $itemFinalPrice * $quantity;
         }
         
         $this->subtotal = $subtotal;

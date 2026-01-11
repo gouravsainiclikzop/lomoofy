@@ -453,10 +453,11 @@ class CartApiController extends Controller
             $cart->save();
         }
         
-        // Count unique products instead of summing variant quantities
+        // Count cart items (variant combinations) instead of unique products
+        // Each cart item represents a unique product-variant combination
         $count = 0;
         if ($cart && $cart->items) {
-            $count = $cart->items->pluck('product_id')->unique()->count();
+            $count = $cart->items->count();
         }
         
         return response()->json([
