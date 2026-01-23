@@ -11,7 +11,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use App\Mail\OrderPlaced;
+use App\Mail\OrderStatusUpdated;
 
 class CheckoutService
 {
@@ -375,6 +378,9 @@ class CheckoutService
                     }
                 }
             }
+            
+            // Send order confirmation email
+            $this->sendOrderPlacedEmail($order);
             
             return $order;
         });
@@ -886,5 +892,79 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
         $cart->save();
         
         return $cart;
+    }
+
+    /**
+     * Send order placed email to customer
+     */
+    protected function sendOrderPlacedEmail(Order $order)
+    {
+        try {
+            $emailService = app(EmailService::class);
+            
+            // Check if email service is configured
+            if (!$emailService->isConfigured()) {
+                Log::info('Email service not configured, skipping order confirmation email', [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number
+                ]);
+                return;
+            }
+
+            // Send email
+            Mail::to($order->customer->email)->send(new OrderPlaced($order));
+
+            Log::info('Order placed email sent successfully', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'customer_email' => $order->customer->email
+            ]);
+
+        } catch (\Exception $e) {
+            // Log error but don't fail the order
+            Log::error('Failed to send order placed email', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Send order status updated email to customer
+     */
+    public function sendOrderStatusEmail(Order $order, $oldStatus = null, $newStatus = null)
+    {
+        try {
+            $emailService = app(EmailService::class);
+            
+            // Check if email service is configured
+            if (!$emailService->isConfigured()) {
+                Log::info('Email service not configured, skipping order status email', [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number
+                ]);
+                return;
+            }
+
+            // Send email
+            Mail::to($order->customer->email)->send(new OrderStatusUpdated($order, $oldStatus, $newStatus));
+
+            Log::info('Order status email sent successfully', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'customer_email' => $order->customer->email,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus
+            ]);
+
+        } catch (\Exception $e) {
+            // Log error but don't fail the update
+            Log::error('Failed to send order status email', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }

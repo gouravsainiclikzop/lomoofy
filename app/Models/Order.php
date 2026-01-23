@@ -4,10 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Services\CheckoutService;
 
 class Order extends Model
 {
     use SoftDeletes;
+
+    /**
+     * Track original status for email notifications
+     */
+    protected $originalStatus;
 
     protected $fillable = [
         'order_number',
@@ -80,6 +86,28 @@ class Order extends Model
         static::creating(function ($order) {
             if (empty($order->order_number)) {
                 $order->order_number = 'ORD-' . strtoupper(uniqid());
+            }
+        });
+
+        // Track status changes for email notifications
+        static::updating(function ($order) {
+            if ($order->isDirty('status')) {
+                $order->originalStatus = $order->getOriginal('status');
+            }
+        });
+
+        static::updated(function ($order) {
+            // Send email if status changed
+            if (isset($order->originalStatus) && $order->originalStatus !== $order->status) {
+                try {
+                    $checkoutService = app(CheckoutService::class);
+                    $checkoutService->sendOrderStatusEmail($order, $order->originalStatus, $order->status);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send order status email in model observer', [
+                        'order_id' => $order->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
         });
     }

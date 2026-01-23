@@ -74,11 +74,11 @@ class EmailService
                 'name' => $this->config['from_name'] ?? config('app.name'),
             ]);
 
-            Log::info('Email configuration loaded from database', [
-                'smtp_host' => $this->config['smtp_host'],
-                'smtp_port' => $this->config['smtp_port'] ?? 587,
-                'from_email' => $this->config['from_email'],
-            ]);
+            // Log::info('Email configuration loaded from database', [
+            //     'smtp_host' => $this->config['smtp_host'],
+            //     'smtp_port' => $this->config['smtp_port'] ?? 587,
+            //     'from_email' => $this->config['from_email'],
+            // ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to apply email configuration', [

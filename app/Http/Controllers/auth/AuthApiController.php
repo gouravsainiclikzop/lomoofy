@@ -603,6 +603,22 @@ class AuthApiController extends Controller
                 ], 422);
             }
 
+            // Double-check customer exists before sending OTP 
+            $customer = Customer::where('email', $request->email)->first();  
+            
+            if (!$customer) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'EMAIL_NOT_FOUND',
+                        'message' => 'No account found with this email address.',
+                        'errors' => [
+                            'email' => ['No account found with this email address.']
+                        ],
+                    ],
+                ], 422);
+            }
+
             // Generate and send OTP
             CustomerOtp::generateAndSend($request->email, 'password_reset');
 

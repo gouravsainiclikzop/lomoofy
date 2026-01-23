@@ -27,6 +27,15 @@ class CustomerOtp extends Model
      */
     public static function generateAndSend($email, $purpose = 'registration')
     {
+        // For password_reset purpose, verify customer exists
+        if ($purpose === 'password_reset') {
+            $customer = Customer::where('email', $email)->first();
+            if (!$customer) {
+                \Log::warning("Attempted to send password reset OTP to non-existent email: {$email}");
+                return null; // Return null if customer doesn't exist
+            }
+        }
+        
         // Generate 6-digit OTP
         $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
         
@@ -46,10 +55,17 @@ class CustomerOtp extends Model
         ]);
         
         // Send OTP email
-        Mail::send('emails.otp', ['otp' => $otp, 'purpose' => $purpose], function ($message) use ($email) {
-            $message->to($email)
-                    ->subject('Your OTP Code - ' . config('app.name'));
-        });
+        try {
+            Mail::send('emails.otp', ['otp' => $otp, 'purpose' => $purpose], function ($message) use ($email) {
+                $message->to($email)
+                        ->subject('Your OTP Code - ' . config('app.name'));
+            });
+        } catch (\Exception $e) {
+            \Log::error("Failed to send OTP email to {$email}: " . $e->getMessage());
+            // Delete the OTP record if email sending fails
+            $otpRecord->delete();
+            return null;
+        }
         
         return $otpRecord;
     }
