@@ -4,6 +4,7 @@ namespace App\Http\Controllers\auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\CustomerOtp;
 use App\Models\FieldManagement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -109,13 +110,128 @@ class AuthApiController extends Controller
     }
 
     /**
+     * Send OTP to email for registration
+     * POST /api/auth/send-otp
+     */
+    public function sendOtp(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|unique:customers,email',
+                'purpose' => 'nullable|string|in:registration,login,password_reset',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => 'Validation failed',
+                        'errors' => $validator->errors(),
+                    ],
+                ], 422);
+            }
+
+            $purpose = $request->input('purpose', 'registration');
+
+            // Generate and send OTP
+            CustomerOtp::generateAndSend($request->email, $purpose);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP sent successfully to your email',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'OTP_SEND_ERROR',
+                    'message' => 'Failed to send OTP: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify OTP
+     * POST /api/auth/verify-otp
+     */
+    public function verifyOtp(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'otp' => 'required|string|size:6',
+                'purpose' => 'nullable|string|in:registration,login,password_reset',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => 'Validation failed',
+                        'errors' => $validator->errors(),
+                    ],
+                ], 422);
+            }
+
+            $purpose = $request->input('purpose', 'registration');
+
+            // Verify OTP
+            $isValid = CustomerOtp::verify($request->email, $request->otp, $purpose);
+
+            if ($isValid) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'OTP verified successfully',
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'INVALID_OTP',
+                    'message' => 'Invalid or expired OTP',
+                ],
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'OTP_VERIFY_ERROR',
+                    'message' => 'Failed to verify OTP: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+
+    /**
      * Register a new customer using dynamic field management
      * POST /api/auth/register
      * Accepts fields based on field_management_fields configuration
+     * Requires OTP verification before registration
      */
     public function register(Request $request)
     {
         try {
+            // First, verify that OTP was verified for this email
+            $otpVerified = CustomerOtp::where('email', $request->email)
+                ->where('purpose', 'registration')
+                ->where('is_verified', true)
+                ->where('expires_at', '>', now())
+                ->exists();
+
+            if (!$otpVerified) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'OTP_NOT_VERIFIED',
+                        'message' => 'Please verify your email with OTP before registering',
+                    ],
+                ], 400);
+            }
+
             // Get registration fields from field management
             $systemFieldKeys = FieldManagement::getRegistrationSystemFields();
             $fields = FieldManagement::whereIn('field_key', $systemFieldKeys)
@@ -441,9 +557,11 @@ class AuthApiController extends Controller
     public function logout(Request $request)
     {
         try {
-            // Logout using session
+            // Logout only the customer guard without affecting admin guard
             Auth::guard('customer')->logout();
-            $request->session()->invalidate();
+            
+            // Don't invalidate the entire session - just regenerate the CSRF token
+            // This allows admin to stay logged in
             $request->session()->regenerateToken();
 
             return response()->json([
@@ -456,6 +574,177 @@ class AuthApiController extends Controller
                 'error' => [
                     'code' => 'LOGOUT_ERROR',
                     'message' => 'Failed to logout: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+
+    /**
+     * Send OTP for password reset
+     * POST /api/auth/forgot-password/send-otp
+     */
+    public function forgotPasswordSendOtp(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|exists:customers,email',
+            ], [
+                'email.exists' => 'No account found with this email address.',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => 'Validation failed',
+                        'errors' => $validator->errors(),
+                    ],
+                ], 422);
+            }
+
+            // Generate and send OTP
+            CustomerOtp::generateAndSend($request->email, 'password_reset');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification code sent to your email',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'OTP_SEND_ERROR',
+                    'message' => 'Failed to send verification code: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify OTP for password reset
+     * POST /api/auth/forgot-password/verify-otp
+     */
+    public function forgotPasswordVerifyOtp(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|exists:customers,email',
+                'otp' => 'required|string|size:6',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => 'Validation failed',
+                        'errors' => $validator->errors(),
+                    ],
+                ], 422);
+            }
+
+            // Verify OTP
+            $isValid = CustomerOtp::verify($request->email, $request->otp, 'password_reset');
+
+            if ($isValid) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Verification code verified successfully',
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'INVALID_OTP',
+                    'message' => 'Invalid or expired verification code',
+                ],
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'OTP_VERIFY_ERROR',
+                    'message' => 'Failed to verify code: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password after OTP verification
+     * POST /api/auth/forgot-password/reset
+     */
+    public function resetPassword(Request $request)
+    {
+        try {
+            // First, verify that OTP was verified for this email
+            $otpVerified = CustomerOtp::where('email', $request->email)
+                ->where('purpose', 'password_reset')
+                ->where('is_verified', true)
+                ->where('expires_at', '>', now())
+                ->exists();
+
+            if (!$otpVerified) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'OTP_NOT_VERIFIED',
+                        'message' => 'Please verify your email with OTP before resetting password',
+                    ],
+                ], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|exists:customers,email',
+                'password' => 'required|string|min:8|confirmed',
+                'password_confirmation' => 'required|string|min:8',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => 'Validation failed',
+                        'errors' => $validator->errors(),
+                    ],
+                ], 422);
+            }
+
+            // Find customer and update password
+            $customer = Customer::where('email', $request->email)->first();
+            
+            if (!$customer) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'CUSTOMER_NOT_FOUND',
+                        'message' => 'Customer not found',
+                    ],
+                ], 404);
+            }
+
+            // Update password
+            $customer->password = Hash::make($request->password);
+            $customer->save();
+
+            // Invalidate all OTPs for this email
+            CustomerOtp::where('email', $request->email)
+                ->where('purpose', 'password_reset')
+                ->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'PASSWORD_RESET_ERROR',
+                    'message' => 'Failed to reset password: ' . $e->getMessage(),
                 ],
             ], 500);
         }

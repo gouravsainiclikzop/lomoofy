@@ -187,7 +187,12 @@
                     data: 'customer_name', 
                     name: 'customer_name',
                     render: function(data, type, row) {
-                        return `${data}<br><small class="text-muted">${row.customer_email}</small>`;
+                        let html = `<div class="fw-medium">${data}</div>`;
+                        html += `<small class="text-muted d-block"><i class="fas fa-envelope me-1"></i>${row.customer_email}</small>`;
+                        if (row.customer_phone && row.customer_phone !== 'N/A') {
+                            html += `<small class="text-muted d-block"><i class="fas fa-phone me-1"></i>${row.customer_phone}</small>`;
+                        }
+                        return html;
                     }
                 },
                 { 

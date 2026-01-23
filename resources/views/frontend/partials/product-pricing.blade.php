@@ -24,9 +24,9 @@
         $basePrice = $pricing['base_price'];
         $salePrice = $pricing['sale_price'];
         $finalPrice = $pricing['final_price'];
-        // Use rounded values for display
-        $displayBasePrice = $pricing['display_base_price_rounded'] ?? round($pricing['display_base_price']);
-        $displayFinalPrice = $pricing['display_final_price_rounded'] ?? round($pricing['display_final_price']);
+        // Use 2-decimal precise values for display (base price and final price should show 2 decimals)
+        $displayBasePrice = $pricing['display_base_price'] ?? $pricing['base_price'] ?? 0;
+        $displayFinalPrice = $pricing['display_final_price'] ?? $pricing['final_price'] ?? 0;
         $displaySavings = $pricing['display_savings_rounded'] ?? round($pricing['display_savings']);
         $showBasePrice = $pricing['show_base_price'];
         $taxLabel = $pricing['tax_label'];
@@ -49,8 +49,9 @@
         $isDiscountActive = $variant->hasActiveDiscount() || $variant->isOnSale();
         $gstType = $gstType ?? true;
         $gstPercentage = $gstPercentage ?? 0;
-        $displayBasePrice = round($basePrice);
-        $displayFinalPrice = round($finalPrice);
+        // Keep 2-decimal precise values for display (don't round base price and final price)
+        $displayBasePrice = round($basePrice, 2);
+        $displayFinalPrice = round($finalPrice, 2);
         $displaySavings = round($totalSavings);
         $showBasePrice = ($displayBasePrice > $displayFinalPrice);
         $taxLabel = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
@@ -76,16 +77,16 @@
     {{-- Main Price Display --}}
     <div class="pricing-main mb-2">
         <div class="d-flex align-items-baseline flex-wrap gap-2">
-            {{-- Base Price (with strikethrough if needed) --}}
+            {{-- Base Price (with strikethrough if needed) - Show 2 decimals --}}
             @if($showBasePrice && $displayBasePrice > $displayFinalPrice)
             <span class="base-price text-muted text-decoration-line-through fs-5 fw-normal">
-                ₹{{ number_format($displayBasePrice, 0) }}
+                ₹{{ number_format($displayBasePrice, 2) }}
             </span>
             @endif
             
-            {{-- Final/Sale Price (prominent) --}}
+            {{-- Final/Sale Price (prominent) - Show 2 decimals --}}
             <span class="final-price theme-cl fw-bold {{ $hasDiscount ? 'fs-2' : 'fs-3' }}" style="color: #dc3545;">
-                ₹{{ number_format($displayFinalPrice, 0) }}
+                ₹{{ number_format($displayFinalPrice, 2) }}
             </span>
             
             {{-- Tax Label --}}

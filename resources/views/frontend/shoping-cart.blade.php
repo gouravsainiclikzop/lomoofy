@@ -376,6 +376,7 @@ $(document).ready(function() {
         }
         
         // Helper function to calculate final price for an item (after discounts)
+        // Keep prices with 2 decimals (don't round)
         const calculateItemFinalPrice = (item) => {
             let basePrice = parseFloat(item.variant_price || item.original_variant_price || item.unit_price || 0);
             const salePrice = item.variant_sale_price ? parseFloat(item.variant_sale_price) : null;
@@ -383,13 +384,13 @@ $(document).ready(function() {
             const discountValue = parseFloat(item.discount_value || 0);
             const discountActive = item.discount_active === true || item.discount_active === '1' || item.discount_active === 1;
             
-            // Round base price
-            basePrice = Math.round(basePrice);
+            // Keep base price with 2 decimals (don't round)
+            basePrice = parseFloat(basePrice.toFixed(2));
             
-            // Round sale price if it exists
+            // Keep sale price with 2 decimals if it exists (don't round)
             let roundedSalePrice = null;
             if (salePrice !== null && salePrice !== undefined) {
-                roundedSalePrice = Math.round(salePrice);
+                roundedSalePrice = parseFloat(salePrice.toFixed(2));
             }
             
             // Calculate final price
@@ -400,20 +401,20 @@ $(document).ready(function() {
             
             let finalPrice = priceToDiscount;
             
-            // Apply discount if active
+            // Apply discount if active (keep 2 decimals)
             if (discountActive && discountType && discountValue > 0) {
                 if (discountType === 'percentage') {
-                    const discountAmount = (priceToDiscount * discountValue) / 100;
-                    finalPrice = Math.max(0, priceToDiscount - discountAmount);
+                    const discountAmount = parseFloat(((priceToDiscount * discountValue) / 100).toFixed(2));
+                    finalPrice = parseFloat(Math.max(0, priceToDiscount - discountAmount).toFixed(2));
                 } else if (discountType === 'amount' || discountType === 'flat') {
-                    finalPrice = Math.max(0, priceToDiscount - discountValue);
+                    finalPrice = parseFloat(Math.max(0, priceToDiscount - discountValue).toFixed(2));
                 }
             } else if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
                 finalPrice = roundedSalePrice;
             }
             
-            // Round final price
-            return Math.round(finalPrice);
+            // Return final price with 2 decimals (don't round)
+            return parseFloat(finalPrice.toFixed(2));
         };
         
         // Recalculate subtotal from all items using inclusive prices (after discounts)
@@ -436,16 +437,17 @@ $(document).ready(function() {
             }
             const gstPct = parseFloat(it.gst_percentage) || 0;
             
-            // Calculate inclusive price
+            // Calculate inclusive price (keep 2 decimals)
             let inclusivePrice = itemFinalPrice;
             if (gstPct > 0 && gstType === false) {
                 // Exclusive: Add GST to base price to get inclusive price
-                inclusivePrice = itemFinalPrice + (itemFinalPrice * (gstPct / 100));
+                const gstAmount = parseFloat((itemFinalPrice * (gstPct / 100)).toFixed(2));
+                inclusivePrice = parseFloat((itemFinalPrice + gstAmount).toFixed(2));
             }
             // For inclusive items, itemFinalPrice is already inclusive
             
-            // Subtotal: inclusive price after discounts
-            computedSubtotal += inclusivePrice * quantity;
+            // Subtotal: inclusive price after discounts (keep 2 decimals)
+            computedSubtotal = parseFloat((computedSubtotal + (inclusivePrice * quantity)).toFixed(2));
         }
         
         // Update displayed subtotal
@@ -495,13 +497,12 @@ $(document).ready(function() {
         // 2. Apply Discount (subtotal - discount)
         // 3. Add Shipping
         // Total = Subtotal - Discount + Shipping (all prices are already inclusive)
-        const totalInclusive = computedSubtotal - discountAmount + shippingAmount;
+        // Keep total with 2 decimals (don't round)
+        const totalInclusive = parseFloat((computedSubtotal - discountAmount + shippingAmount).toFixed(2));
         
-        // Round total to whole number for display
-        const totalRounded = Math.round(totalInclusive);
         const $totalEl = $('#cartTotal');
         if ($totalEl.length) {
-            $totalEl.text(formatRoundedPrice(totalRounded));
+            $totalEl.text(formatPrice(totalInclusive));
         } else {
             console.error('cartTotal element not found');
         }
@@ -510,8 +511,7 @@ $(document).ready(function() {
             computedSubtotal: computedSubtotal,
             discountAmount: discountAmount,
             shippingAmount: shippingAmount,
-            totalInclusive: totalInclusive,
-            totalRounded: totalRounded
+            totalInclusive: totalInclusive
         });
         
         // Force update visibility of summary section

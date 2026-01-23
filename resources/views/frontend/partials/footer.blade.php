@@ -104,20 +104,31 @@
 					</div>
 				</div>
 			
-				<div class="col-xl-2 col-lg-2 col-md-2 col-sm-12">
-					<div class="footer_widget">
-						<h4 class="widget_title">Userfull Links</h4>
-						<ul class="footer-menu">
-							<li><a href="{{ route('frontend.privacy') }}">Terms & Conditions</a></li>
-							<li><a href="#">Shipping </a></li>
-							<li><a href="#">Cancellation & Refund</a></li> 
-							<li><a href="#">Return & Refund Policy</a></li> 
-							<li><a href="#">Privacy Policy</a></li> 
-							<li><a href="#">Disclaimer</a></li>   
-						</ul>
-						
-					</div>
+			<div class="col-xl-2 col-lg-2 col-md-2 col-sm-12">
+				<div class="footer_widget">
+					<h4 class="widget_title">Legal</h4>
+					<ul class="footer-menu">
+						@if($legalPages->terms_conditions_status)
+							<li><a href="{{ route('frontend.terms') }}">Terms & Conditions</a></li>
+						@endif
+						@if($legalPages->shipping_status)
+							<li><a href="{{ route('frontend.shipping') }}">Shipping Policy</a></li>
+						@endif
+						@if($legalPages->cancellation_refund_status)
+							<li><a href="{{ route('frontend.cancellation-refund') }}">Cancellation & Refund</a></li>
+						@endif
+						@if($legalPages->return_refund_policy_status)
+							<li><a href="{{ route('frontend.return-refund') }}">Return & Refund Policy</a></li>
+						@endif
+						@if($legalPages->privacy_policy_status)
+							<li><a href="{{ route('frontend.privacy') }}">Privacy Policy</a></li>
+						@endif
+						@if($legalPages->disclaimer_status)
+							<li><a href="{{ route('frontend.disclaimer') }}">Disclaimer</a></li>
+						@endif
+					</ul> 
 				</div>
+			</div>
 
 				<div class="col-xl-2 col-lg-2 col-md-2 col-sm-12">
 					<div class="footer_widget">
@@ -125,10 +136,9 @@
 						<ul class="footer-menu"> 
 							<li><a href="{{ route('frontend.contact') }}">Contact</a></li>
 							<li><a href="{{ route('frontend.faq') }}">FAQs</a></li>
-							<li><a href="#">Blog</a></li>
+							<li><a href="{{ route('frontend.blog') }}">Blog</a></li>
 							<li><a href="{{ route('frontend.about-us') }}">About</a></li>
-							<li><a href="#">Careers</a></li>
-							<li><a href="{{ route('frontend.privacy') }}">Privacy Policy</a></li>
+							<li><a href="#">Careers</a></li> 
 						</ul>
 						
 					</div>

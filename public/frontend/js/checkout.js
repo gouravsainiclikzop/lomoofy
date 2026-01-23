@@ -166,17 +166,23 @@ class CheckoutManager {
             isValid = false;
         }
 
-        // Validate shipping address
-        const shippingAddress = document.querySelector('input[name="shipping_address_id"]:checked');
-        if (!shippingAddress) {
+        // Validate shipping address (check for both radio and hidden inputs)
+        const shippingAddressRadio = document.querySelector('input[name="shipping_address_id"]:checked');
+        const shippingAddressHidden = document.querySelector('input[type="hidden"][name="shipping_address_id"]');
+        const shippingAddress = shippingAddressRadio || shippingAddressHidden;
+        
+        if (!shippingAddress || !shippingAddress.value) {
             errors.push('Please select a shipping address');
             isValid = false;
         }
 
         // Validate billing address (if not same as shipping)
-        if (!this.billingSameCheckbox.checked) {
-            const billingAddress = document.querySelector('input[name="billing_address_id"]:checked');
-            if (!billingAddress) {
+        if (this.billingSameCheckbox && !this.billingSameCheckbox.checked) {
+            const billingAddressRadio = document.querySelector('input[name="billing_address_id"]:checked');
+            const billingAddressHidden = document.querySelector('input[type="hidden"][name="billing_address_id"]');
+            const billingAddress = billingAddressRadio || billingAddressHidden;
+            
+            if (!billingAddress || !billingAddress.value) {
                 errors.push('Please select a billing address');
                 isValid = false;
             }

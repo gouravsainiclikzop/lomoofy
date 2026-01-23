@@ -23,7 +23,7 @@ class CustomerController extends Controller
 
     /**
      * Get fields for customer form dynamically
-     * Always includes system fields even if they're inactive
+     * Only returns active fields with simplified properties
      */
     public function getFields()
     {
@@ -57,20 +57,18 @@ class CustomerController extends Controller
             $allFields->put($key, $systemField);
         }
 
+        // Return only specified fields: Active, Required, Field Key, Label, Placeholder, Field Group
         $fieldsData = $allFields->values()->map(function($field) {
             return [
                 'field_key' => $field->field_key,
                 'label' => $field->label,
                 'input_type' => $field->input_type,
                 'placeholder' => $field->placeholder,
-                'is_required' => (bool) $field->is_required, // Respect field management is_required setting
+                'is_required' => (bool) $field->is_required, // Used in validation
                 'field_group' => $field->field_group,
-                'options' => $field->options,
-                'conditional_rules' => $field->conditional_rules,
-                'validation_rules' => $field->validation_rules,
-                'help_text' => $field->help_text,
+                'options' => $field->options, // Keep for select/radio fields
                 'sort_order' => $field->sort_order,
-                'is_system' => $field->is_system ?? false,
+                'is_active' => (bool) $field->is_active, // Active status
             ];
         })->sortBy('sort_order')->values();
 
@@ -236,10 +234,7 @@ class CustomerController extends Controller
         $systemFields = FieldManagement::whereIn('field_key', FieldManagement::getSystemFields())->get();
         $fields = $fields->merge($systemFields)->unique('field_key');
         
-        // Build validation rules dynamically
-        // Note: required/optional status comes from field management
-        // Format validation (email format, phone regex) is always enforced when field has value
-        // Password is now always set (either from form or default), so it's required
+        // Build validation rules dynamically - only use is_required from field management
         $rules = [
             'password' => 'required|string|min:8|confirmed',
             'password_confirmation' => 'required|string|min:8',
@@ -259,55 +254,31 @@ class CustomerController extends Controller
             
             $rule = [];
             
-            // Add custom validation rules first if provided
-            if ($field->validation_rules && !empty(trim($field->validation_rules))) {
-                $customRules = array_filter(explode('|', $field->validation_rules), function($r) {
-                    return !empty(trim($r));
-                });
-                $rule = array_merge($rule, $customRules);
-            }
-            
-            // Add required/nullable based on field configuration (override if not in custom rules)
-            $hasRequired = in_array('required', $rule);
-            $hasNullable = in_array('nullable', $rule);
-            
-            if (!$hasRequired && !$hasNullable) {
-                if ($field->is_required) {
-                    $rule[] = 'required';
-                } else {
-                    $rule[] = 'nullable';
-                }
+            // Only use is_required for validation - no custom validation rules
+            if ($field->is_required) {
+                $rule[] = 'required';
+            } else {
+                $rule[] = 'nullable';
             }
 
-            // Add type-specific rules (only if not already present)
+            // Add basic type-specific rules
             switch ($field->input_type) {
                 case 'email':
-                    if (!in_array('email', $rule)) {
-                        $rule[] = 'email';
-                    }
+                    $rule[] = 'email';
                     break;
                 case 'number':
-                    if (!in_array('numeric', $rule)) {
-                        $rule[] = 'numeric';
-                    }
+                    $rule[] = 'numeric';
                     break;
                 case 'file':
-                    if (!in_array('file', $rule)) {
-                        $rule[] = 'file';
-                    }
-                    if ($field->field_key === 'profile_image' && !in_array('image', $rule)) {
+                    $rule[] = 'file';
+                    if ($field->field_key === 'profile_image') {
                         $rule[] = 'image|mimes:jpeg,png,jpg,gif,webp|max:2048';
                     }
                     break;
                 case 'date':
-                    if (!in_array('date', $rule)) {
-                        $rule[] = 'date';
-                    }
+                    $rule[] = 'date';
                     break;
             }
-
-            // Remove duplicates while preserving order
-            $rule = array_values(array_unique($rule));
             
             $fieldRules[$fieldKey] = implode('|', $rule);
         }
@@ -315,14 +286,9 @@ class CustomerController extends Controller
         // Merge field rules
         $rules = array_merge($rules, $fieldRules);
         
-        // Ensure email has unique constraint even if field management overrides it
+        // Ensure email has unique constraint
         if (isset($fieldRules['email'])) {
-            // Merge unique constraint with field rules
-            $emailRules = explode('|', $fieldRules['email']);
-            if (!in_array('unique:customers,email', $emailRules)) {
-                $emailRules[] = 'unique:customers,email';
-            }
-            $rules['email'] = implode('|', $emailRules);
+            $rules['email'] = $fieldRules['email'] . '|unique:customers,email';
         }
         
         // Handle address validation for multiple addresses
@@ -634,9 +600,7 @@ class CustomerController extends Controller
         $customer = Customer::findOrFail($id);
         $fields = FieldManagement::active()->visible()->get();
 
-        // Build validation rules dynamically
-        // Note: required/optional status comes from field management
-        // Format validation (email format, phone regex) is always enforced when field has value
+        // Build validation rules dynamically - only use is_required from field management
         $rules = [];
 
         // Password is optional on update
@@ -658,76 +622,41 @@ class CustomerController extends Controller
             
             $rule = [];
             
-            // Add custom validation rules first if provided
-            if ($field->validation_rules && !empty(trim($field->validation_rules))) {
-                $customRules = array_filter(explode('|', $field->validation_rules), function($r) {
-                    return !empty(trim($r));
-                });
-                $rule = array_merge($rule, $customRules);
-            }
-            
-            // Add required/nullable based on field configuration (override if not in custom rules)
-            $hasRequired = in_array('required', $rule);
-            $hasNullable = in_array('nullable', $rule);
-            
-            if (!$hasRequired && !$hasNullable) {
-                if ($field->is_required) {
-                    $rule[] = 'required';
-                } else {
-                    $rule[] = 'nullable';
-                }
+            // Only use is_required for validation - no custom validation rules
+            if ($field->is_required) {
+                $rule[] = 'required';
+            } else {
+                $rule[] = 'nullable';
             }
 
-            // Add type-specific rules (only if not already present)
+            // Add basic type-specific rules
             switch ($field->input_type) {
                 case 'email':
-                    if (!in_array('email', $rule)) {
-                        $rule[] = 'email';
-                    }
-                    // Always add max length for email
-                    if (!in_array('max:255', $rule)) {
-                        $rule[] = 'max:255';
-                    }
-                    // Add unique constraint for email (only if not already present)
+                    $rule[] = 'email';
+                    $rule[] = 'max:255';
                     if ($field->field_key === 'email') {
-                        $uniqueRule = 'unique:customers,email,' . $id;
-                        if (!in_array($uniqueRule, $rule) && !in_array('unique:customers,email', $rule)) {
-                            $rule[] = $uniqueRule;
-                        }
+                        $rule[] = 'unique:customers,email,' . $id;
                     }
                     break;
                 case 'tel':
-                    // Add phone format validation for tel fields
-                    if (($field->field_key === 'phone' || $field->field_key === 'alternate_phone') && !in_array('regex:/^[\\+]?[0-9]{10,15}$/', $rule)) {
+                    if ($field->field_key === 'phone' || $field->field_key === 'alternate_phone') {
                         $rule[] = 'regex:/^[\+]?[0-9]{10,15}$/';
                     }
-                    // Always add max length for phone
-                    if (!in_array('max:20', $rule)) {
-                        $rule[] = 'max:20';
-                    }
+                    $rule[] = 'max:20';
                     break;
                 case 'number':
-                    if (!in_array('numeric', $rule)) {
-                        $rule[] = 'numeric';
-                    }
+                    $rule[] = 'numeric';
                     break;
                 case 'file':
-                    if (!in_array('file', $rule)) {
-                        $rule[] = 'file';
-                    }
-                    if ($field->field_key === 'profile_image' && !in_array('image', $rule)) {
+                    $rule[] = 'file';
+                    if ($field->field_key === 'profile_image') {
                         $rule[] = 'image|mimes:jpeg,png,jpg,gif,webp|max:2048';
                     }
                     break;
                 case 'date':
-                    if (!in_array('date', $rule)) {
-                        $rule[] = 'date';
-                    }
+                    $rule[] = 'date';
                     break;
             }
-
-            // Remove duplicates while preserving order
-            $rule = array_values(array_unique($rule));
 
             $fieldRules[$fieldKey] = implode('|', $rule);
         }

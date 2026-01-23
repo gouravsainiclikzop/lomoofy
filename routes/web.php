@@ -9,11 +9,12 @@ use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\FrontendController;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+ 
 
 Route::get('/test-db', function () {
     return DB::table('inventory_stocks')->whereIn('product_variant_id', ['15','16','19'])->get();  
 });
-
 
 Route::get('/debug-log', function () {
     Log::info('Manual log trigger executed', [
@@ -33,11 +34,20 @@ Route::get('/product', [FrontendController::class, 'product'])->name('frontend.p
 Route::get('/api/product-quick-view', [FrontendController::class, 'getProductQuickView'])->name('frontend.product.quickview');
 Route::get('/about-us', [FrontendController::class, 'aboutUs'])->name('frontend.about-us');
 Route::get('/contact', [FrontendController::class, 'contact'])->name('frontend.contact');
-Route::get('/privacy', [FrontendController::class, 'privacy'])->name('frontend.privacy');
+Route::get('/privacy', [FrontendController::class, 'privacy'])->name('frontend.privacy'); 
+Route::get('/terms-and-conditions', [FrontendController::class, 'termAndCondition'])->name('frontend.terms');
+Route::get('/shipping-policy', [FrontendController::class, 'shipping'])->name('frontend.shipping');
+Route::get('/cancellation-refund', [FrontendController::class, 'cancellationRefund'])->name('frontend.cancellation-refund');
+Route::get('/return-refund-policy', [FrontendController::class, 'returnRefundPolicy'])->name('frontend.return-refund');
+Route::get('/disclaimer', [FrontendController::class, 'disclaimer'])->name('frontend.disclaimer');
 Route::get('/faq', [FrontendController::class, 'faq'])->name('frontend.faq');
-
+Route::get('/blog', [FrontendController::class, 'blog'])->name('frontend.blog');
+Route::get('/blog/{slug}', [FrontendController::class, 'blogDetail'])->name('frontend.blog-detail');
 // Public API Routes
 Route::get('/api/location-by-pincode', [FrontendController::class, 'getLocationByPincode'])->name('frontend.location-by-pincode');
+
+// Razorpay Webhook (Public - no auth required)
+Route::post('/webhook/razorpay', [\App\Http\Controllers\RazorpayWebhookController::class, 'handle'])->name('webhook.razorpay');
 
 // Review Routes (Public - get reviews)
 Route::get('/api/reviews/product/{productId}', [\App\Http\Controllers\ReviewController::class, 'getProductReviews'])->name('reviews.product');
@@ -97,9 +107,17 @@ Route::get('/wishlist', [FrontendController::class, 'wishlist'])->name('frontend
 Route::prefix('api/auth')->group(function () {
     Route::get('/login-fields', [\App\Http\Controllers\auth\AuthApiController::class, 'getLoginFields']); // Get system fields for login (email, password)
     Route::get('/register-fields', [\App\Http\Controllers\auth\AuthApiController::class, 'getRegistrationFields']); // Get system fields for registration
+    Route::post('/send-otp', [\App\Http\Controllers\auth\AuthApiController::class, 'sendOtp']); // Send OTP to email
+    Route::post('/verify-otp', [\App\Http\Controllers\auth\AuthApiController::class, 'verifyOtp']); // Verify OTP
     Route::post('/register', [\App\Http\Controllers\auth\AuthApiController::class, 'register']); // Register new customer using dynamic field management
     Route::post('/login', [\App\Http\Controllers\auth\AuthApiController::class, 'login']); // Login customer (supports email OR phone)
     Route::get('/me', [\App\Http\Controllers\auth\AuthApiController::class, 'me']); // Get authenticated customer (optional auth)
+    
+    // Forgot Password Routes
+    Route::post('/forgot-password/send-otp', [\App\Http\Controllers\auth\AuthApiController::class, 'forgotPasswordSendOtp']); // Send OTP for password reset
+    Route::post('/forgot-password/verify-otp', [\App\Http\Controllers\auth\AuthApiController::class, 'forgotPasswordVerifyOtp']); // Verify OTP for password reset
+    Route::post('/forgot-password/reset', [\App\Http\Controllers\auth\AuthApiController::class, 'resetPassword']); // Reset password
+    
     Route::middleware('customer.auth')->group(function () {
         Route::post('/logout', [\App\Http\Controllers\auth\AuthApiController::class, 'logout']); // Logout customer
     });
@@ -224,6 +242,31 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     // Our Collection Management
     Route::get('/our-collection', [\App\Http\Controllers\OurCollectionController::class, 'index'])->name('our-collection.index');
     Route::post('/our-collection/update', [\App\Http\Controllers\OurCollectionController::class, 'update'])->name('our-collection.update');
+    
+    // About Us Management
+    Route::get('/admin/about-us', [\App\Http\Controllers\AboutUsController::class, 'index'])->name('about-us.index');
+    Route::post('/admin/about-us/update', [\App\Http\Controllers\AboutUsController::class, 'update'])->name('about-us.update');
+    
+    // Legal Pages Management
+    Route::get('/admin/legal-pages', [\App\Http\Controllers\LegalPageController::class, 'index'])->name('legal-pages.index');
+    Route::post('/admin/legal-pages/update', [\App\Http\Controllers\LegalPageController::class, 'update'])->name('legal-pages.update');
+    
+    // FAQ Management
+    Route::get('/admin/faqs', [\App\Http\Controllers\FaqController::class, 'index'])->name('faqs.index');
+    Route::post('/admin/faqs', [\App\Http\Controllers\FaqController::class, 'store'])->name('faqs.store');
+    Route::put('/admin/faqs/{id}', [\App\Http\Controllers\FaqController::class, 'update'])->name('faqs.update');
+    Route::delete('/admin/faqs/{id}', [\App\Http\Controllers\FaqController::class, 'destroy'])->name('faqs.destroy');
+    Route::post('/admin/faqs/{id}/toggle-status', [\App\Http\Controllers\FaqController::class, 'toggleStatus'])->name('faqs.toggle-status');
+    
+    // Blogs Management
+    Route::get('/admin/blogs', [\App\Http\Controllers\BlogController::class, 'index'])->name('blogs.index');
+    Route::get('/admin/blogs/data', [\App\Http\Controllers\BlogController::class, 'getData'])->name('blogs.data');
+    Route::get('/admin/blogs/create', [\App\Http\Controllers\BlogController::class, 'create'])->name('blogs.create');
+    Route::post('/admin/blogs', [\App\Http\Controllers\BlogController::class, 'store'])->name('blogs.store');
+    Route::get('/admin/blogs/{id}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blogs.show');
+    Route::get('/admin/blogs/{id}/edit', [\App\Http\Controllers\BlogController::class, 'edit'])->name('blogs.edit');
+    Route::match(['post', 'put'], '/admin/blogs/{id}', [\App\Http\Controllers\BlogController::class, 'update'])->name('blogs.update');
+    Route::delete('/admin/blogs/{id}', [\App\Http\Controllers\BlogController::class, 'destroy'])->name('blogs.destroy');
     
     // Testimonials Management
     Route::get('/testimonials', [\App\Http\Controllers\TestimonialController::class, 'index'])->name('testimonials.index');
@@ -482,10 +525,20 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/field-management/{id}/toggle-visible', [\App\Http\Controllers\FieldManagementController::class, 'toggleVisible'])->name('field-management.toggle-visible');
     Route::post('/field-management/{id}/toggle-required', [\App\Http\Controllers\FieldManagementController::class, 'toggleRequired'])->name('field-management.toggle-required');
     Route::post('/field-management/{fieldKey}/update-order', [\App\Http\Controllers\FieldManagementController::class, 'updateOrder'])->name('field-management.update-order');
+    
     Route::get('/field-management/{id}/edit', [\App\Http\Controllers\FieldManagementController::class, 'edit'])->name('field-management.edit');
     Route::post('/field-management', [\App\Http\Controllers\FieldManagementController::class, 'store'])->name('field-management.store');
     Route::post('/field-management/{id}', [\App\Http\Controllers\FieldManagementController::class, 'update'])->name('field-management.update');
     Route::delete('/field-management/{id}', [\App\Http\Controllers\FieldManagementController::class, 'destroy'])->name('field-management.destroy');
+    
+    
+    // Integrations Management Routes
+    Route::get('/integrations', [\App\Http\Controllers\IntegrationController::class, 'index'])->name('integrations.index');
+    Route::post('/integrations', [\App\Http\Controllers\IntegrationController::class, 'store'])->name('integrations.store');
+    Route::post('/integrations/test-email', [\App\Http\Controllers\IntegrationController::class, 'testEmail'])->name('integrations.test-email');
+    Route::get('/integrations/{id}', [\App\Http\Controllers\IntegrationController::class, 'show'])->name('integrations.show');
+    Route::delete('/integrations/{id}', [\App\Http\Controllers\IntegrationController::class, 'destroy'])->name('integrations.destroy');
+    
     
     // Customer Routes
     Route::get('/customers', [\App\Http\Controllers\CustomerController::class, 'index'])->name('customers.index');

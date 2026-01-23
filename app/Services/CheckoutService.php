@@ -23,8 +23,7 @@ class CheckoutService
     public function validateCart(Cart $cart): array
     {
         $errors = [];
-        
-        // Check if cart exists and has items
+         
         if (!$cart || $cart->items->count() === 0) {
             $errors[] = 'Cart is empty';
             return ['valid' => false, 'errors' => $errors];
@@ -41,8 +40,7 @@ class CheckoutService
         foreach ($cart->items as $item) {
             $product = $item->product;
             $variant = $item->variant;
-            
-            // Get product name for error messages
+             
             $productName = $product ? $product->name : ($item->product_name ?? 'Unknown Product');
             
             // Check if product exists and is active
@@ -61,24 +59,19 @@ class CheckoutService
             $stockSource = $variant ?: $product;
         
             if ($stockSource && $stockSource->manage_stock) {
-                // Use warehouse inventory if available, otherwise use stock_quantity
                 $availableStock = 0;
                 
                 if ($variant) {
-                    // Check warehouse-based inventory if available
                     $variant->load('inventoryStocks');
                     $warehouseStock = $variant->inventoryStocks()->sum('quantity');
                     $reservedStock = $variant->inventoryStocks()->sum('reserved_quantity');
                     
                     if ($warehouseStock > 0) {
-                        // Use warehouse inventory
                         $availableStock = max(0, $warehouseStock - $reservedStock);
                     } else {
-                        // Fall back to variant stock_quantity if no warehouse stocks
                         $availableStock = $variant->stock_quantity ?? 0;
                     }
                 } else {
-                    // For products without variants, use product stock_quantity
                     $availableStock = $product->stock_quantity ?? 0;
                 }
           
@@ -502,8 +495,7 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
             ]);
         
         self::addDebugLog("DECREMENT_STOCK: After update - variant_id: {$variant->id}, rows_updated: $updated, new_stock: $newStock");
-        
-        // Verify the update actually happened by querying database directly (bypass Eloquent cache)
+         
         $actualStock = DB::table('product_variants')
             ->where('id', $variant->id)
             ->value('stock_quantity');
@@ -525,8 +517,7 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
                 ->value('stock_quantity');
             self::addDebugLog("DECREMENT_STOCK: After retry - variant_id: {$variant->id}, rows_updated: $retryUpdated, actual_stock_quantity: $actualStock");
         }
-        
-        // Refresh variant to get new stock value
+         
         $variant->refresh();
         self::addDebugLog("DECREMENT_STOCK: After refresh - variant_id: {$variant->id}, model_stock_quantity: {$variant->stock_quantity}");
 
@@ -551,16 +542,13 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
     private function incrementStock($product, $variant, int $quantity, $warehouseId = null, $locationId = null): void
     {
         self::addDebugLog("INCREMENT_STOCK: Method called - variant: " . ($variant ? $variant->id : 'null') . ", manage_stock: " . ($variant ? ($variant->manage_stock ? 'true' : 'false') : 'n/a') . ", quantity: $quantity, warehouseId: " . ($warehouseId ?? 'null') . ", locationId: " . ($locationId ?? 'null'));
-        
-        // Variant priority
+         
         if ($variant && $variant->manage_stock) {
             self::addDebugLog("INCREMENT_STOCK: Inside IF - will increment stock for variant {$variant->id}");
-            
-            // Check if warehouse-based inventory exists
+             
             if ($variant->inventoryStocks()->exists()) {
                 self::addDebugLog("INCREMENT_STOCK: Warehouse inventory exists for variant {$variant->id}");
-                
-                // Get or determine warehouse
+                 
                 if (!$warehouseId) {
                     $warehouse = \App\Models\Warehouse::getDefault();
                     $warehouseId = $warehouse?->id;
@@ -580,7 +568,6 @@ private function decrementStock($product, $variant, int $quantity, $warehouseId 
                     
                     self::addDebugLog("INCREMENT_STOCK: Warehouse stock - old: $oldStock, quantity: $quantity, new: $newStock");
                     
-                    // Update inventory stock
                     $inventoryStock->quantity = $newStock;
                     $inventoryStock->save();
                     

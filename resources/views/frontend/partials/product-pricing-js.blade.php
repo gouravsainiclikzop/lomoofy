@@ -59,10 +59,10 @@ function renderPricingHTML(pricing, pricingComponent) {
     const isOnSale = pricing.is_on_sale || false;
     const hasActiveDiscount = pricing.has_active_discount || false;
     
-    // Helper function to format price
+    // Helper function to format price with 2 decimals
     const formatPriceDisplay = (price) => {
-        const rounded = Math.round(price);
-        return '₹' + rounded.toLocaleString();
+        const value = parseFloat(price) || 0;
+        return '₹' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     };
     
     // Build HTML
@@ -169,9 +169,9 @@ function calculatePricingLegacy(variant, pricingComponent) {
     const discountValue = parseFloat(variant.discount_value || 0);
     const discountActive = variant.discount_active === true || variant.discount_active === '1' || variant.discount_active === 1;
     
-    // Round prices
-    basePrice = Math.round(basePrice);
-    const roundedSalePrice = salePrice !== null ? Math.round(salePrice) : null;
+    // Keep prices in 2 decimals (don't round)
+    basePrice = parseFloat(basePrice.toFixed(2));
+    const roundedSalePrice = salePrice !== null ? parseFloat(salePrice.toFixed(2)) : null;
     
     // Determine price to use
     let priceToUse = basePrice;
@@ -179,7 +179,7 @@ function calculatePricingLegacy(variant, pricingComponent) {
         priceToUse = roundedSalePrice;
     }
     
-    // Calculate final price (simplified legacy logic)
+    // Calculate final price (keep 2 decimals)
     let finalPrice = priceToUse;
     let hasDiscount = false;
     let discountBadgeText = null;
@@ -188,26 +188,26 @@ function calculatePricingLegacy(variant, pricingComponent) {
     // Apply discount if active
     if (discountActive && discountType && discountValue > 0) {
         if (discountType === 'percentage') {
-            const discountAmount = (priceToUse * discountValue) / 100;
-            finalPrice = Math.max(0, priceToUse - discountAmount);
+            const discountAmount = parseFloat(((priceToUse * discountValue) / 100).toFixed(2));
+            finalPrice = parseFloat(Math.max(0, priceToUse - discountAmount).toFixed(2));
         } else if (discountType === 'amount' || discountType === 'flat') {
-            finalPrice = Math.max(0, priceToUse - discountValue);
+            finalPrice = parseFloat(Math.max(0, priceToUse - discountValue).toFixed(2));
         }
-        finalPrice = Math.round(finalPrice);
         
         if (finalPrice < priceToUse) {
             hasDiscount = true;
-            totalSavings = basePrice - finalPrice;
+            totalSavings = parseFloat((basePrice - finalPrice).toFixed(2));
         }
     } else if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
         finalPrice = roundedSalePrice;
         hasDiscount = true;
-        totalSavings = basePrice - roundedSalePrice;
+        totalSavings = parseFloat((basePrice - roundedSalePrice).toFixed(2));
     }
     
     totalSavings = Math.round(totalSavings);
     
     // Simple display (no GST calculation for legacy)
+    // Keep 2-decimal precise values for display
     const displayBasePrice = basePrice;
     const displayFinalPrice = finalPrice;
     const displaySavings = totalSavings;

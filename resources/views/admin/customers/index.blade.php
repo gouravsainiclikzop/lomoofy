@@ -804,8 +804,7 @@ function renderFormFields() {
     // Initialize password toggle functionality
     initializePasswordToggle();
     
-    // Note: Select2 initialization for location fields is disabled
-    // Country, state, city are now simple text inputs
+    // Note: Select2 initialization for location fields is disabled 
 }
 
 function initializePasswordToggle() {
@@ -863,13 +862,11 @@ function initializeFieldValidation() {
         
         // Allow only digits and + at the start
         value = value.replace(/[^\d+]/g, '');
-        
-        // Ensure + is only at the start
+         
         if (value.includes('+') && value.indexOf('+') !== 0) {
             value = value.replace(/\+/g, '');
         }
-        
-        // If + is present, ensure it's at the start
+         
         if (value.startsWith('+')) {
             // Keep + and digits only
             value = '+' + value.substring(1).replace(/[^\d]/g, '');
@@ -979,9 +976,6 @@ function addAddressBlock(addressData = null, index = null) {
 
 function renderAddressField(field, fieldId, fieldName, addressData = null) {
     const required = field.is_required ? '<span class="text-danger">*</span>' : '';
-    const helpText = field.help_text ? `<div class="field-help-text">${field.help_text}</div>` : '';
-    const conditionalClass = field.conditional_rules ? 'conditional-field' : '';
-    const conditionalAttrs = field.conditional_rules ? `data-conditional="${JSON.stringify(field.conditional_rules)}"` : '';
     
     // Get value from addressData if provided
     const fieldValue = addressData ? (addressData[field.field_key] || '') : '';
@@ -995,7 +989,7 @@ function renderAddressField(field, fieldId, fieldName, addressData = null) {
     
     if (isLocationField) {
         return `
-            <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+            <div class="${colClass}">
                 <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                 <input type="text" 
                        class="form-control" 
@@ -1003,7 +997,6 @@ function renderAddressField(field, fieldId, fieldName, addressData = null) {
                        name="${fieldName}"
                        value="${fieldValue}"
                        placeholder="${field.placeholder || 'Enter ' + field.label}">
-                ${helpText}
                 <div class="invalid-feedback"></div>
             </div>
         `;
@@ -1015,7 +1008,7 @@ function renderAddressField(field, fieldId, fieldName, addressData = null) {
         case 'tel':
         case 'number':
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <input type="${field.input_type}" 
                            class="form-control" 
@@ -1023,7 +1016,6 @@ function renderAddressField(field, fieldId, fieldName, addressData = null) {
                            name="${fieldName}" 
                            value="${fieldValue}"
                            placeholder="${field.placeholder || ''}">
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
@@ -1032,7 +1024,7 @@ function renderAddressField(field, fieldId, fieldName, addressData = null) {
             // Handle checkbox fields (like make_default_address)
             const isChecked = fieldValue == '1' || fieldValue === true || fieldValue === 1 || (addressData && addressData.is_default && field.field_key === 'make_default_address');
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <div class="form-check">
                         <input type="checkbox" 
                                class="form-check-input" 
@@ -1044,21 +1036,19 @@ function renderAddressField(field, fieldId, fieldName, addressData = null) {
                             ${field.label} ${required}
                         </label>
                     </div>
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
             break;
         case 'textarea':
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <textarea class="form-control" 
                               id="${fieldId}" 
                               name="${fieldName}" 
                               rows="3"
                               placeholder="${field.placeholder || ''}">${fieldValue}</textarea>
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
@@ -1074,21 +1064,20 @@ function renderAddressField(field, fieldId, fieldName, addressData = null) {
             });
             
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <select class="form-select" 
                             id="${fieldId}" 
                             name="${fieldName}">
                         ${optionsHtml}
                     </select>
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
             break;
         default:
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <input type="text" 
                            class="form-control" 
@@ -1096,7 +1085,6 @@ function renderAddressField(field, fieldId, fieldName, addressData = null) {
                            name="${fieldName}" 
                            value="${fieldValue}"
                            placeholder="${field.placeholder || ''}">
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
@@ -1197,9 +1185,6 @@ function renderGroupFields(fields) {
 function renderField(field) {
     const fieldId = `field_${field.field_key}`;
     const required = field.is_required ? '<span class="text-danger">*</span>' : '';
-    const helpText = field.help_text ? `<div class="field-help-text">${field.help_text}</div>` : '';
-    const conditionalClass = field.conditional_rules ? 'conditional-field' : '';
-    const conditionalAttrs = field.conditional_rules ? `data-conditional="${JSON.stringify(field.conditional_rules)}"` : '';
 
     // Location fields (country, state, city) - render as text inputs for now
     const isLocationField = ['country', 'state', 'city'].includes(field.field_key);
@@ -1210,14 +1195,13 @@ function renderField(field) {
     if (isLocationField) {
         // Render as simple text input
         return `
-            <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+            <div class="${colClass}">
                 <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                 <input type="text" 
                        class="form-control" 
                        id="${fieldId}" 
                        name="${field.field_key}"
                        placeholder="${field.placeholder || 'Enter ' + field.label}">
-                ${helpText}
                 <div class="invalid-feedback"></div>
             </div>
         `;
@@ -1253,7 +1237,7 @@ function renderField(field) {
             const titleAttr = validationMessage ? `title="${validationMessage}"` : '';
             
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <input type="${field.input_type}" 
                            class="form-control" 
@@ -1264,7 +1248,6 @@ function renderField(field) {
                            ${maxLengthAttr}
                            ${titleAttr}
                            placeholder="${field.placeholder || ''}">
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
@@ -1278,16 +1261,14 @@ function renderField(field) {
             const passwordValue = shouldUseDefault ? defaultPassword : '';
             const passwordPlaceholder = shouldUseDefault ? defaultPassword : (field.placeholder || '');
             
-            // Build help text - use helpText if editing, otherwise show default password info
+            // Build help text for password field showing default password
             let passwordHelpText = '';
             if (isPasswordField && !isEditMode) {
                 passwordHelpText = '<div class="field-help-text text-info"><i class="fas fa-info-circle"></i> Default password: <strong>' + defaultPassword + '</strong> (can be changed)</div>';
-            } else if (helpText) {
-                passwordHelpText = helpText;
             }
             
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <div class="position-relative">
                         <input type="password" 
@@ -1312,14 +1293,13 @@ function renderField(field) {
             break;
         case 'textarea':
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <textarea class="form-control" 
                               id="${fieldId}" 
                               name="${field.field_key}" 
                               rows="3"
                               placeholder="${field.placeholder || ''}"></textarea>
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
@@ -1336,7 +1316,7 @@ function renderField(field) {
             const selectClass = 'form-select';
             
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <select class="${selectClass}" 
                             id="${fieldId}" 
@@ -1344,7 +1324,6 @@ function renderField(field) {
                             >
                         ${optionsHtml}
                     </select>
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
@@ -1368,17 +1347,16 @@ function renderField(field) {
                 `;
             });
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label class="form-label">${field.label} ${required}</label>
                     ${radioHtml}
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
             break;
         case 'checkbox':
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <div class="form-check">
                         <input class="form-check-input" 
                                type="checkbox" 
@@ -1387,47 +1365,43 @@ function renderField(field) {
                                value="1">
                         <label class="form-check-label" for="${fieldId}">${field.label}</label>
                     </div>
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
             break;
         case 'date':
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <input type="date" 
                            class="form-control" 
                            id="${fieldId}" 
                            name="${field.field_key}">
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
             break;
         case 'file':
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <input type="file" 
                            class="form-control" 
                            id="${fieldId}" 
                            name="${field.field_key}">
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;
             break;
         default:
             fieldHtml = `
-                <div class="${colClass} ${conditionalClass}" ${conditionalAttrs}>
+                <div class="${colClass}">
                     <label for="${fieldId}" class="form-label">${field.label} ${required}</label>
                     <input type="text" 
                            class="form-control" 
                            id="${fieldId}" 
                            name="${field.field_key}" 
                            placeholder="${field.placeholder || ''}">
-                    ${helpText}
                     <div class="invalid-feedback"></div>
                 </div>
             `;

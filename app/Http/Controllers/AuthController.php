@@ -72,9 +72,11 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        Auth::logout();
+        // Logout only the admin guard (web) without affecting customer guard
+        Auth::guard('web')->logout();
         
-        $request->session()->invalidate();
+        // Don't invalidate the entire session - just regenerate the CSRF token
+        // This allows customer to stay logged in
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login');

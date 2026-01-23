@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jan 11, 2026 at 06:48 PM
+-- Generation Time: Jan 23, 2026 at 12:01 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,46 @@ SET time_zone = "+00:00";
 --
 -- Database: `lomoofy_industriesv3`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `about_us`
+--
+
+CREATE TABLE `about_us` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `description` text DEFAULT NULL,
+  `image` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `about_us`
+--
+
+INSERT INTO `about_us` (`id`, `description`, `image`, `created_at`, `updated_at`) VALUES
+(1, '<p>\r\n<h4 class=\"ft-medium \">Lorem ipsum dolor sit amet,    </h4>\r\n					<p class=\"mb-4\">Lorem ipsum dolo mmodo consequat. Duis aute irure \r\ndolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat \r\nnulla pariatur.</p>\r\n					<h4 class=\"ft-medium \">Lorem ipsum dolor sit amet, consectetur ?</h4>\r\n					<p class=\"mb-4\">Lorem ipsu  incididunt ut labore et dolore magna \r\naliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco \r\nlaboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor \r\nin reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla \r\npariatur.</p>\r\n					<h4 class=\"ft-medium \">Lorem ipsum  consectetur ?</h4>\r\n					<p class=\"mb-4\">Lorem ipsum dolor sit amet, consectetur adipiscing \r\nelit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\r\n Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi\r\n ut aliquip   nulla pariatur.</p>\r\n					<h4 class=\"ft-medium \">Lorem  it amet, consectetur ?</h4>\r\n					<p class=\"mb-4\">Lorem ipsum dolor sit amet,  uis nostrud \r\nexercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. \r\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum \r\ndolore eu fugiat nulla pariatur.</p>\r\n						<h4 class=\"ft-medium \">Lorem ipsum dolor sit amet, consectetur ?</h4>\r\n					<p class=\"mb-4\">Lorem ipsum   nisi ut aliquip ex ea commodo \r\nconsequat. Duis aute irure dolor in reprehenderit in voluptate velit \r\nesse cillum dolore eu fugiat nulla pariatur.</p>\r\n<br /></p>', 'about-us/hfOMrd17B7yJcedfNylldzYT8RysBBSKhnPgwG0N.jpg', '2026-01-21 06:09:28', '2026-01-21 06:56:21');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `blogs`
+--
+
+CREATE TABLE `blogs` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `thumbnail_image` varchar(255) DEFAULT NULL,
+  `featured_image` varchar(255) DEFAULT NULL,
+  `title` varchar(255) NOT NULL,
+  `slug` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `added_by` varchar(255) DEFAULT NULL,
+  `published_date` date NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -45,11 +85,14 @@ CREATE TABLE `brands` (
 --
 
 INSERT INTO `brands` (`id`, `name`, `slug`, `description`, `logo`, `website`, `is_active`, `sort_order`, `created_at`, `updated_at`) VALUES
-(19, 'GRUNT', 'grunt', NULL, 'brands/vqZRf9vtMIqADXSEglkcTIWvL1QXaO6BeRverU3P.webp', NULL, 1, 1, '2025-12-02 01:33:42', '2025-12-02 03:25:58'),
-(20, 'Sayuri Designer', 'sayuri-designer', NULL, 'brands/y3bI5ReiPRNJ0yVOVmNBxz5OM7a8r1bsC3wrMOVD.webp', NULL, 1, 2, '2025-12-02 03:24:32', '2025-12-02 03:24:59'),
-(21, 'Adorify', 'adorify', NULL, 'brands/tMEYlPHfGLkYGibLu0iKMAMmQzhwBzyC6BfpktCt.png', NULL, 1, 0, '2025-12-02 03:25:37', '2025-12-02 03:25:37'),
-(22, 'Other', 'other', 'Generic brand for unbranded products', NULL, NULL, 1, 0, '2025-12-02 03:26:13', '2025-12-02 03:26:13'),
-(25, 'Soulgrip', 'soulgrip', NULL, 'brands/0X6BjzroRo2sRglDrPHsQyMVqUuqaUmqlAehURmy.png', 'https://www.soulgrip.in/collections/vendors?q=Soulgrip%20', 1, 0, '2025-12-29 00:15:20', '2025-12-29 00:15:20');
+(19, 'GRUNT', 'grunt', NULL, 'brands/vqZRf9vtMIqADXSEglkcTIWvL1QXaO6BeRverU3P.webp', NULL, 1, 1, '2025-12-01 20:03:42', '2025-12-01 21:55:58'),
+(20, 'Sayuri Designer', 'sayuri-designer', NULL, 'brands/y3bI5ReiPRNJ0yVOVmNBxz5OM7a8r1bsC3wrMOVD.webp', NULL, 1, 2, '2025-12-01 21:54:32', '2025-12-01 21:54:59'),
+(21, 'Adorify', 'adorify', NULL, 'brands/tMEYlPHfGLkYGibLu0iKMAMmQzhwBzyC6BfpktCt.png', NULL, 1, 0, '2025-12-01 21:55:37', '2025-12-01 21:55:37'),
+(22, 'Other', 'other', 'Generic brand for unbranded products', NULL, NULL, 1, 0, '2025-12-01 21:56:13', '2025-12-01 21:56:13'),
+(25, 'Soulgrip', 'soulgrip', NULL, 'brands/0X6BjzroRo2sRglDrPHsQyMVqUuqaUmqlAehURmy.png', 'https://www.soulgrip.in/collections/vendors?q=Soulgrip%20', 1, 0, '2025-12-28 18:45:20', '2025-12-28 18:45:20'),
+(26, 'Nike', 'nike', NULL, NULL, NULL, 1, 0, '2026-01-05 23:16:40', '2026-01-05 23:16:40'),
+(27, 'Puma', 'puma', NULL, NULL, NULL, 1, 0, '2026-01-05 23:16:48', '2026-01-05 23:16:48'),
+(28, 'Lomoofy', 'lomoofy', 'Welcome to Lomoofy Industries! We are a dynamic and forward-thinking clothing brand based in Panchkula, Haryana. Our headquarters are located at Plot No. 302, Industrial Area, Phase 2, Panchkula, Haryana 134113. At Lomoofy Industries, we strive to create trendy and stylish clothing that caters to the modern individual. We are dedicated to providing high-quality, comfortable, and fashionable apparel that represents the essence of contemporary fashion. Our brand is committed to sustainability and ethical practices, ensuring that every piece you wear from Lomoofy Industries is not only chic but also environmentally friendly. Join us on our fashion journey and experience the essence of Lomoofy Industries - where style meets sustainability.', 'brands/13CnC4qaBS5tu3XdSZivKxSQjsYqbhUfUGRUq7bL.jpg', NULL, 1, 0, '2026-01-10 08:41:12', '2026-01-10 08:41:12');
 
 -- --------------------------------------------------------
 
@@ -68,7 +111,7 @@ CREATE TABLE `cache` (
 --
 
 INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('lomoofy-industries-cache-storage_refresh_check', 'b:0;', 1768153541);
+('lomoofy-industries-cache-storage_refresh_check', 'b:0;', 1769166116);
 
 -- --------------------------------------------------------
 
@@ -108,7 +151,7 @@ CREATE TABLE `carts` (
 --
 
 INSERT INTO `carts` (`id`, `session_id`, `customer_id`, `coupon_code`, `subtotal`, `tax_amount`, `shipping_amount`, `discount_amount`, `total_amount`, `expires_at`, `created_at`, `updated_at`) VALUES
-(47, NULL, 15, NULL, 1529.28, 0.00, 0.00, 0.00, 1529.28, '2026-02-10 12:08:21', '2026-01-11 12:08:21', '2026-01-11 12:08:46');
+(57, NULL, 15, NULL, 1899.00, 0.00, 0.00, 0.00, 1899.00, '2026-02-21 07:20:34', '2026-01-22 07:20:34', '2026-01-22 07:25:47');
 
 -- --------------------------------------------------------
 
@@ -134,8 +177,7 @@ CREATE TABLE `cart_items` (
 --
 
 INSERT INTO `cart_items` (`id`, `cart_id`, `product_id`, `product_variant_id`, `quantity`, `unit_price`, `total_price`, `reserved_stock`, `created_at`, `updated_at`) VALUES
-(86, 47, 8, 57, 2, 566.40, 1132.80, 0, '2026-01-11 12:08:21', '2026-01-11 12:08:46'),
-(87, 47, 8, 58, 1, 566.40, 566.40, 0, '2026-01-11 12:08:26', '2026-01-11 12:08:26');
+(101, 57, 37, 148, 1, 1899.00, 1899.00, 0, '2026-01-22 07:20:34', '2026-01-22 07:20:34');
 
 -- --------------------------------------------------------
 
@@ -166,80 +208,82 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `name`, `slug`, `description`, `parent_id`, `image`, `is_active`, `featured`, `sort_order`, `meta_title`, `meta_description`, `meta_keywords`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'Apparel', 'apparel', 'Clothing and apparel', NULL, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-27 02:03:20', '2025-12-02 00:55:21', '2025-12-02 00:55:21'),
-(2, 'Shirts', 'shirts-1', NULL, 7, 'categories/NFywb1OQPynSUX6RyOCpdN7GiZ9zBNPLPl69NapN.webp', 1, 0, 2, NULL, NULL, NULL, '2025-11-27 02:03:20', '2025-12-18 03:53:16', NULL),
-(3, 'Electronics', 'electronics', 'Electronic devices', NULL, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-27 02:03:20', '2025-12-02 00:55:21', '2025-12-02 00:55:21'),
-(4, 'Jewelry', 'jewelry', 'Jewelry and accessories', NULL, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-27 02:03:20', '2025-12-02 00:55:21', '2025-12-02 00:55:21'),
-(5, 'Accessories', 'accessories', NULL, 7, 'categories/9FhZvIu5IDkUL7Ac5u6137RG7PsqkDSH5tcafRsG.webp', 1, 0, 5, NULL, NULL, NULL, '2025-11-27 02:03:20', '2025-12-18 03:53:13', NULL),
-(6, 'Sports & Outdoors', 'sports-outdoors', 'Sports and outdoor equipment', NULL, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-27 02:03:20', '2025-12-02 00:55:21', '2025-12-02 00:55:21'),
-(7, 'Men', 'men', NULL, NULL, 'categories/HrfmVLTbxXcbnAdzyVMjniMEg5N30cXo75WBf7yq.png', 1, 0, 1, NULL, NULL, NULL, '2025-11-27 06:58:42', '2025-12-18 05:19:39', NULL),
-(8, 'Jeans', 'jeans', NULL, 7, 'categories/xRuAgoZKQgWPzxZYU7YytaFYILpaoFk6Wohpt5df.webp', 1, 0, 3, NULL, NULL, NULL, '2025-11-27 06:59:22', '2025-12-18 03:53:16', NULL),
-(9, 'casual wear', 'casual-wear', NULL, 8, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-27 06:59:45', '2025-12-02 00:55:32', '2025-12-02 00:55:32'),
-(10, 'Denim Shirts', 'denim-shirts', NULL, 19, 'categories/whJ7MUrEPAjZJTQsqS8EBYT8dFvZ9t44Kiq4Vxoe.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-11-27 07:00:15', '2025-12-18 05:22:45', '2025-12-18 05:22:45'),
-(15, 'Winter Wear', 'winter-wear', NULL, 7, 'categories/mGBXUSdbYnpFLjj1c4RHOcay2LaXluCIbgocwtyO.jpg', 1, 0, 4, NULL, NULL, NULL, '2025-12-02 01:25:47', '2025-12-18 03:53:16', NULL),
-(16, 'Zipper', 'zipper', NULL, 15, 'categories/6943d8f2c8387_1766054130.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-02 01:30:10', '2025-12-18 05:05:30', NULL),
-(17, 'T-Shirts', 't-shirts', NULL, 7, 'categories/Tk6yUjHTuzKKq0IOKZMbBvH9dzB3DNthkY9ikWBA.webp', 1, 0, 1, NULL, NULL, NULL, '2025-12-02 01:37:46', '2025-12-18 03:53:15', NULL),
-(18, 'Regular Fit Jeans', 'regular-fit-jeans', NULL, 17, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-02 01:42:36', '2025-12-18 04:59:33', '2025-12-18 04:59:33'),
-(19, 'Regular Fit Jeans', 'regular-fit-jeans', NULL, 8, 'categories/6943d96d799b2_1766054253.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-02 01:51:30', '2025-12-18 05:07:33', NULL),
-(20, 'Women', 'women', NULL, NULL, 'categories/JI6TBofoNzDxRJDljj91utlCN35nALlG1ZkEOUjL.png', 1, 0, 2, NULL, NULL, NULL, '2025-12-02 01:53:35', '2025-12-18 05:19:51', NULL),
-(21, 'Winter Wear', 'winter-wear-1', NULL, 20, 'categories/yxGLredQ96Pg0oj84fX00MLA7Io81Yq0ov1lZ0Gi.jpg', 1, 0, 2, NULL, NULL, NULL, '2025-12-02 01:54:04', '2025-12-18 04:36:28', NULL),
-(22, 'Poncho and Shawls', 'poncho-and-shawls', NULL, 21, 'categories/E4hdYbjfovspKmYjCI6Ss13AQMZkX0KGC1G0WCTz.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-12-02 01:54:18', '2025-12-02 01:59:21', NULL),
-(23, 'Ethnic Wear', 'ethnic-wear', NULL, 20, 'categories/4wC6Ho7iPsHvIxbnlxIcvRxBydPgoa0hOpm4qlvG.jpg', 1, 0, 3, NULL, NULL, NULL, '2025-12-02 01:54:55', '2025-12-18 04:36:28', NULL),
-(24, 'Sarees', 'sarees', NULL, 23, 'categories/PtQlBhO0TjIuPKCV1XfkdgwinStsuID5vlLzKwUE.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-12-02 01:55:07', '2025-12-02 02:01:30', NULL),
-(25, 'Designer Sarees', 'designer-sarees', NULL, 24, 'categories/Tsv5hO0RPhHjapDH9OglQusd1R4nIGtod34zKcH9.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-12-02 01:55:20', '2025-12-02 01:56:06', NULL),
-(26, 'Printed Sarees', 'printed-sarees', NULL, 24, 'categories/YuqJJU2YvhOjpSNNt6iOHpcYx6NLzuykKX90wAAI.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-12-02 01:55:38', '2025-12-02 01:56:36', NULL),
-(28, 'assential denim', 'assential-denim', NULL, 10, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-03 06:50:35', '2025-12-09 23:17:13', '2025-12-09 23:17:13'),
-(29, 'children', 'children', NULL, NULL, 'categories/56ZaKkOvlUXylR8tlayQn2968pRWlSB0lQCg6L4Z.png', 1, 0, 3, NULL, NULL, NULL, '2025-12-15 01:09:10', '2025-12-18 05:19:58', NULL),
-(30, 'Boys Clothing', 'boys-clothing', NULL, 29, 'categories/6943d73a1b422_1766053690.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-15 01:10:12', '2025-12-18 04:58:10', NULL),
-(31, 'Kurtas', 'kurtas', NULL, 7, 'categories/k3G8HWdzFMmI6hm8BmbqF1aXxJASfWtPI3mFKalL.webp', 1, 0, 6, NULL, NULL, NULL, '2025-12-18 03:50:51', '2025-12-18 03:53:14', NULL),
-(32, 'Footwear', 'footwear-1', NULL, 7, 'categories/e8FoYOm96eTGYF1lc9ycMgObAWIefp2oKdGwkeVI.jpg', 1, 0, 7, NULL, NULL, NULL, '2025-12-18 03:50:52', '2025-12-18 03:53:14', NULL),
-(33, 'Men-Innerwear', 'men-innerwear', NULL, 7, 'categories/K2gXoX9HD7qrWoMRRPmItFXB9kokyYClxL3tD4MF.webp', 1, 0, 8, NULL, NULL, NULL, '2025-12-18 03:50:52', '2025-12-18 03:53:14', NULL),
-(34, 'Men’s Jewellery', 'mens-jewellery', NULL, 7, 'categories/wEUburl106yn8e90jHdYPPVpj2vsRa8g6J4Wte6b.webp', 1, 0, 9, NULL, NULL, NULL, '2025-12-18 03:50:52', '2025-12-18 03:53:43', NULL),
-(35, 'Western Wear', 'western-wear', NULL, 20, 'categories/6943d4e105117_1766053089.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 04:46:43', '2025-12-18 04:48:09', NULL),
-(36, 'Jewellery', 'jewellery', NULL, 20, 'categories/6943d4e029d19_1766053088.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-18 04:48:08', '2025-12-18 04:48:08', NULL),
-(37, 'Sports and Gym Wear', 'sports-and-gym-wear', NULL, 20, 'categories/6943d4e03850e_1766053088.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-18 04:48:08', '2025-12-18 04:48:08', NULL),
-(38, 'Bags', 'bags', NULL, 20, 'categories/6943d52c8062f_1766053164.jpeg', 1, 0, 6, NULL, NULL, NULL, '2025-12-18 04:49:24', '2025-12-18 04:49:24', NULL),
-(39, 'Girls Clothing', 'girls-clothing', NULL, 29, 'categories/6943d73a0437b_1766053690.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-18 04:58:10', '2025-12-18 04:58:10', NULL),
-(40, 'Stationary', 'stationary', NULL, 29, 'categories/6943d73a10308_1766053690.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-18 04:58:10', '2025-12-18 04:58:10', NULL),
-(41, 'Jewellery and Hair Accesories', 'jewellery-and-hair-accesories', NULL, 29, 'categories/6943d73a12cb4_1766053690.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-18 04:58:10', '2025-12-18 04:58:10', NULL),
-(42, 'Kid\'s Bag', 'kids-bag', NULL, 29, 'categories/6943d73a15911_1766053690.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-18 04:58:10', '2025-12-18 04:58:10', NULL),
-(43, 'Water Bottle', 'water-bottle', NULL, 29, 'categories/6943d73a189f5_1766053690.jpeg', 1, 0, 6, NULL, NULL, NULL, '2025-12-18 04:58:10', '2025-12-18 04:58:10', NULL),
-(44, 'Polos', 'polos', NULL, 17, 'categories/6943d7db4c21e_1766053851.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:00:51', '2025-12-18 05:00:51', NULL),
-(45, 'Printed T-Shirts', 'printed-t-shirts', NULL, 17, 'categories/6943d7db5401a_1766053851.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-18 05:00:51', '2025-12-18 05:00:51', NULL),
-(46, 'Full Sleeve Tees', 'full-sleeve-tees', NULL, 17, 'categories/6943d7db56de7_1766053851.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-18 05:00:51', '2025-12-18 05:00:51', NULL),
-(47, 'Plain T-Shirts', 'plain-t-shirts', NULL, 17, 'categories/6943d7db5a2cc_1766053851.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-18 05:00:51', '2025-12-18 05:00:51', NULL),
-(48, 'Sports Tees', 'sports-tees', NULL, 17, 'categories/6943d7db5d58c_1766053851.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-18 05:00:51', '2025-12-18 05:00:51', NULL),
-(49, 'Casual Wear Shirts', 'casual-wear-shirts-1', NULL, 2, 'categories/6943d83ab91b9_1766053946.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:02:26', '2025-12-18 05:02:32', NULL),
-(50, 'Formal Shirts', 'formal-shirts', NULL, 2, 'categories/6943d83ac0fa4_1766053946.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-18 05:02:26', '2025-12-18 05:02:32', NULL),
-(51, 'Linen Shirts', 'linen-shirts', NULL, 2, 'categories/6943d83ac42d1_1766053946.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-18 05:02:26', '2025-12-18 05:02:32', NULL),
-(52, 'Hoodie', 'hoodie', NULL, 15, 'categories/6943d8f2b0ced_1766054130.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-18 05:05:30', '2025-12-18 05:05:30', NULL),
-(53, 'Sweatshirt', 'sweatshirt', NULL, 15, 'categories/6943d8f2b94c1_1766054130.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-18 05:05:30', '2025-12-18 05:05:30', NULL),
-(54, 'Sweater', 'sweater', NULL, 15, 'categories/6943d8f2bc698_1766054130.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-18 05:05:30', '2025-12-18 05:05:30', NULL),
-(55, 'Jackets', 'jackets', NULL, 15, 'categories/6943d8f2bedd7_1766054130.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-18 05:05:30', '2025-12-18 05:05:30', NULL),
-(56, 'Sleeveless', 'sleeveless', NULL, 15, 'categories/6943d8f2c2632_1766054130.jpeg', 1, 0, 6, NULL, NULL, NULL, '2025-12-18 05:05:30', '2025-12-18 05:05:30', NULL),
-(57, 'Track Suit and Lowers', 'track-suit-and-lowers', NULL, 15, 'categories/6943d8f2c5554_1766054130.jpeg', 1, 0, 7, NULL, NULL, NULL, '2025-12-18 05:05:30', '2025-12-18 05:05:30', NULL),
-(58, 'Slim Fit Jeans', 'slim-fit-jeans', NULL, 8, 'categories/6943d96d68697_1766054253.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-18 05:07:33', '2025-12-18 05:07:33', NULL),
-(59, 'Skinny Fit Jeans', 'skinny-fit-jeans', NULL, 8, 'categories/6943d96d750c2_1766054253.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-18 05:07:33', '2025-12-18 05:07:33', NULL),
-(60, 'Dress', 'dress', NULL, 35, 'categories/6943da7ed8f0d_1766054526.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:12:06', '2025-12-18 05:12:06', NULL),
-(61, 'Tops, Tees & Shirts', 'tops-tees-shirts', NULL, 35, 'categories/6943da7ee43cc_1766054526.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-18 05:12:06', '2025-12-18 05:12:06', NULL),
-(62, 'Skirts', 'skirts', NULL, 35, 'categories/6943da7ee804f_1766054526.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-18 05:12:06', '2025-12-18 05:12:06', NULL),
-(63, 'Trousers', 'trousers', NULL, 35, 'categories/6943da7eec58f_1766054526.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-18 05:12:06', '2025-12-18 05:12:06', NULL),
-(64, 'Shorts', 'shorts', NULL, 35, 'categories/6943da7ef07ed_1766054526.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-18 05:12:06', '2025-12-18 05:12:06', NULL),
-(65, 'Jeans', 'jeans-1', NULL, 35, 'categories/6943da7f0264f_1766054527.jpeg', 1, 0, 6, NULL, NULL, NULL, '2025-12-18 05:12:07', '2025-12-18 05:12:07', NULL),
-(66, 'Mini Dress', 'mini-dress', NULL, 60, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:19:06', '2025-12-18 05:19:06', NULL),
-(67, 'Bodycon Dress', 'bodycon-dress', NULL, 60, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:19:07', '2025-12-18 05:19:07', NULL),
-(68, 'Jumpsuits', 'jumpsuits', NULL, 60, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:19:07', '2025-12-18 05:19:07', NULL),
-(69, 'Clubwear', 'clubwear', NULL, 60, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:19:07', '2025-12-18 05:19:07', NULL),
-(70, 'Winter Dresses', 'winter-dresses', NULL, 60, 'categories/6943dc230a1c6_1766054947.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:19:07', '2025-12-18 05:19:07', NULL),
-(71, 'Maxi Dress', 'maxi-dress', NULL, 60, 'categories/6943dc2313add_1766054947.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:19:07', '2025-12-18 05:19:07', NULL),
-(72, 'Co-Ordinate Sets', 'co-ordinate-sets', NULL, 60, 'categories/6943dc2317035_1766054947.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:19:07', '2025-12-18 05:19:07', NULL),
-(73, 'Midi Dress', 'midi-dress', NULL, 60, 'categories/6943dc231bcf1_1766054947.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:19:07', '2025-12-18 05:19:07', NULL),
-(74, 'Denim Shirts', 'denim-shirts', NULL, 49, 'categories/6943dd55c0ef9_1766055253.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:24:13', '2025-12-18 05:24:13', NULL),
-(75, 'Checks Casual Shirts', 'checks-casual-shirts', NULL, 49, 'categories/4GEKsUaCOkraUdZCeCFebBTiQz8RC7jFPixkOauf.jpg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:24:13', '2025-12-18 05:25:28', NULL),
-(76, 'Party Wear Shirts', 'party-wear-shirts', NULL, 49, 'categories/6943dd55ca88e_1766055253.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-18 05:24:13', '2025-12-18 05:24:13', NULL),
-(77, 'snacks', 'snacks', NULL, NULL, 'categories/8wAMe3iKV6PAC4Sv2CzvRbEyXCLUceCpyV8iHBR9.webp', 1, 0, 4, NULL, NULL, NULL, '2025-12-23 00:54:26', '2025-12-28 23:49:15', '2025-12-28 23:49:15'),
-(78, 'Laundry & Fabric Care', 'laundry-fabric-care', NULL, NULL, NULL, 1, 0, 6, NULL, NULL, NULL, '2025-12-23 02:32:18', '2025-12-28 23:49:39', '2025-12-28 23:49:39'),
-(79, 'Laundry Detergent', 'laundry-detergent', NULL, 78, NULL, 1, 0, 2, NULL, NULL, NULL, '2025-12-23 02:32:36', '2025-12-28 23:49:33', '2025-12-28 23:49:33');
+(1, 'Apparel', 'apparel', 'Clothing and apparel', NULL, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-26 20:33:20', '2025-12-01 19:25:21', '2025-12-01 19:25:21'),
+(2, 'Shirts', 'shirts-1', NULL, 7, 'categories/NFywb1OQPynSUX6RyOCpdN7GiZ9zBNPLPl69NapN.webp', 1, 0, 2, NULL, NULL, NULL, '2025-11-26 20:33:20', '2025-12-17 22:23:16', NULL),
+(3, 'Electronics', 'electronics', 'Electronic devices', NULL, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-26 20:33:20', '2025-12-01 19:25:21', '2025-12-01 19:25:21'),
+(4, 'Jewelry', 'jewelry', 'Jewelry and accessories', NULL, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-26 20:33:20', '2025-12-01 19:25:21', '2025-12-01 19:25:21'),
+(5, 'Accessories', 'accessories', NULL, 7, 'categories/9FhZvIu5IDkUL7Ac5u6137RG7PsqkDSH5tcafRsG.webp', 0, 0, 5, NULL, NULL, NULL, '2025-11-26 20:33:20', '2026-01-19 03:24:15', NULL),
+(6, 'Sports & Outdoors', 'sports-outdoors', 'Sports and outdoor equipment', NULL, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-26 20:33:20', '2025-12-01 19:25:21', '2025-12-01 19:25:21'),
+(7, 'Men', 'men', NULL, NULL, 'categories/HrfmVLTbxXcbnAdzyVMjniMEg5N30cXo75WBf7yq.png', 1, 0, 1, NULL, NULL, NULL, '2025-11-27 01:28:42', '2025-12-17 23:49:39', NULL),
+(8, 'Jeans', 'jeans', NULL, 7, 'categories/xRuAgoZKQgWPzxZYU7YytaFYILpaoFk6Wohpt5df.webp', 1, 0, 3, NULL, NULL, NULL, '2025-11-27 01:29:22', '2025-12-17 22:23:16', NULL),
+(9, 'casual wear', 'casual-wear', NULL, 8, NULL, 1, 0, 0, NULL, NULL, NULL, '2025-11-27 01:29:45', '2025-12-01 19:25:32', '2025-12-01 19:25:32'),
+(10, 'Denim Shirts', 'denim-shirts', NULL, 19, 'categories/whJ7MUrEPAjZJTQsqS8EBYT8dFvZ9t44Kiq4Vxoe.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-11-27 01:30:15', '2025-12-17 23:52:45', '2025-12-17 23:52:45'),
+(15, 'Winter Wear', 'winter-wear', NULL, 7, 'categories/mGBXUSdbYnpFLjj1c4RHOcay2LaXluCIbgocwtyO.jpg', 1, 0, 4, NULL, NULL, NULL, '2025-12-01 19:55:47', '2025-12-17 22:23:16', NULL),
+(16, 'Zipper', 'zipper', NULL, 15, 'categories/6943d8f2c8387_1766054130.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-01 20:00:10', '2025-12-17 23:35:30', NULL),
+(17, 'T-Shirts', 't-shirts', NULL, 7, 'categories/Tk6yUjHTuzKKq0IOKZMbBvH9dzB3DNthkY9ikWBA.webp', 1, 0, 1, NULL, NULL, NULL, '2025-12-01 20:07:46', '2025-12-17 22:23:15', NULL),
+(18, 'Regular Fit Jeans', 'regular-fit-jeans', NULL, 17, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-01 20:12:36', '2025-12-17 23:29:33', '2025-12-17 23:29:33'),
+(19, 'Regular Fit Jeans', 'regular-fit-jeans', NULL, 8, 'categories/6943d96d799b2_1766054253.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-01 20:21:30', '2025-12-17 23:37:33', NULL),
+(20, 'Women', 'women', NULL, NULL, 'categories/JI6TBofoNzDxRJDljj91utlCN35nALlG1ZkEOUjL.png', 1, 0, 2, NULL, NULL, NULL, '2025-12-01 20:23:35', '2025-12-17 23:49:51', NULL),
+(21, 'Winter Wear', 'winter-wear-1', NULL, 20, 'categories/yxGLredQ96Pg0oj84fX00MLA7Io81Yq0ov1lZ0Gi.jpg', 1, 0, 2, NULL, NULL, NULL, '2025-12-01 20:24:04', '2025-12-17 23:06:28', NULL),
+(22, 'Poncho and Shawls', 'poncho-and-shawls', NULL, 21, 'categories/E4hdYbjfovspKmYjCI6Ss13AQMZkX0KGC1G0WCTz.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-12-01 20:24:18', '2025-12-01 20:29:21', NULL),
+(23, 'Ethnic Wear', 'ethnic-wear', NULL, 20, 'categories/4wC6Ho7iPsHvIxbnlxIcvRxBydPgoa0hOpm4qlvG.jpg', 1, 0, 3, NULL, NULL, NULL, '2025-12-01 20:24:55', '2025-12-17 23:06:28', NULL),
+(24, 'Sarees', 'sarees', NULL, 23, 'categories/PtQlBhO0TjIuPKCV1XfkdgwinStsuID5vlLzKwUE.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-12-01 20:25:07', '2025-12-01 20:31:30', NULL),
+(25, 'Designer Sarees', 'designer-sarees', NULL, 24, 'categories/Tsv5hO0RPhHjapDH9OglQusd1R4nIGtod34zKcH9.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-12-01 20:25:20', '2025-12-01 20:26:06', NULL),
+(26, 'Printed Sarees', 'printed-sarees', NULL, 24, 'categories/YuqJJU2YvhOjpSNNt6iOHpcYx6NLzuykKX90wAAI.jpg', 1, 0, 0, NULL, NULL, NULL, '2025-12-01 20:25:38', '2025-12-01 20:26:36', NULL),
+(28, 'assential denim', 'assential-denim', NULL, 10, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-03 01:20:35', '2025-12-09 17:47:13', '2025-12-09 17:47:13'),
+(29, 'Kids', 'kids', NULL, NULL, 'categories/56ZaKkOvlUXylR8tlayQn2968pRWlSB0lQCg6L4Z.png', 1, 0, 3, NULL, NULL, NULL, '2025-12-14 19:39:10', '2026-01-22 00:31:13', NULL),
+(30, 'Boys Clothing', 'boys-clothing', NULL, 29, 'categories/6943d73a1b422_1766053690.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-14 19:40:12', '2025-12-17 23:28:10', NULL),
+(31, 'Kurtas', 'kurtas', NULL, 7, 'categories/k3G8HWdzFMmI6hm8BmbqF1aXxJASfWtPI3mFKalL.webp', 1, 0, 6, NULL, NULL, NULL, '2025-12-17 22:20:51', '2025-12-17 22:23:14', NULL),
+(32, 'Footwear', 'footwear-1', NULL, 7, 'categories/e8FoYOm96eTGYF1lc9ycMgObAWIefp2oKdGwkeVI.jpg', 0, 0, 7, NULL, NULL, NULL, '2025-12-17 22:20:52', '2026-01-19 03:20:05', NULL),
+(33, 'Men-Innerwear', 'men-innerwear', NULL, 7, 'categories/K2gXoX9HD7qrWoMRRPmItFXB9kokyYClxL3tD4MF.webp', 1, 0, 8, NULL, NULL, NULL, '2025-12-17 22:20:52', '2025-12-17 22:23:14', NULL),
+(34, 'Men’s Jewellery', 'mens-jewellery', NULL, 7, 'categories/wEUburl106yn8e90jHdYPPVpj2vsRa8g6J4Wte6b.webp', 1, 0, 9, NULL, NULL, NULL, '2025-12-17 22:20:52', '2025-12-17 22:23:43', NULL),
+(35, 'Western Wear', 'western-wear', NULL, 20, 'categories/6943d4e105117_1766053089.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:16:43', '2025-12-17 23:18:09', NULL),
+(36, 'Jewellery', 'jewellery', NULL, 20, 'categories/6943d4e029d19_1766053088.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-17 23:18:08', '2025-12-17 23:18:08', NULL),
+(37, 'Sports and Gym Wear', 'sports-and-gym-wear', NULL, 20, 'categories/6943d4e03850e_1766053088.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-17 23:18:08', '2025-12-17 23:18:08', NULL),
+(38, 'Bags', 'bags', NULL, 20, 'categories/6943d52c8062f_1766053164.jpeg', 1, 0, 6, NULL, NULL, NULL, '2025-12-17 23:19:24', '2025-12-17 23:19:24', NULL),
+(39, 'Girls Clothing', 'girls-clothing', NULL, 29, 'categories/6943d73a0437b_1766053690.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-17 23:28:10', '2025-12-17 23:28:10', NULL),
+(40, 'Stationary', 'stationary', NULL, 29, 'categories/6943d73a10308_1766053690.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-17 23:28:10', '2025-12-17 23:28:10', NULL),
+(41, 'Jewellery and Hair Accesories', 'jewellery-and-hair-accesories', NULL, 29, 'categories/6943d73a12cb4_1766053690.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-17 23:28:10', '2025-12-17 23:28:10', NULL),
+(42, 'Kid\'s Bag', 'kids-bag', NULL, 29, 'categories/6943d73a15911_1766053690.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-17 23:28:10', '2025-12-17 23:28:10', NULL),
+(43, 'Water Bottle', 'water-bottle', NULL, 29, 'categories/6943d73a189f5_1766053690.jpeg', 1, 0, 6, NULL, NULL, NULL, '2025-12-17 23:28:10', '2025-12-17 23:28:10', NULL),
+(44, 'Polos', 'polos', NULL, 17, 'categories/6943d7db4c21e_1766053851.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:30:51', '2025-12-17 23:30:51', NULL),
+(45, 'Printed T-Shirts', 'printed-t-shirts', NULL, 17, 'categories/6943d7db5401a_1766053851.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-17 23:30:51', '2025-12-17 23:30:51', NULL),
+(46, 'Full Sleeve Tees', 'full-sleeve-tees', NULL, 17, 'categories/6943d7db56de7_1766053851.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-17 23:30:51', '2025-12-17 23:30:51', NULL),
+(47, 'Plain T-Shirts', 'plain-t-shirts', NULL, 17, 'categories/6943d7db5a2cc_1766053851.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-17 23:30:51', '2025-12-17 23:30:51', NULL),
+(48, 'Sports Tees', 'sports-tees', NULL, 17, 'categories/6943d7db5d58c_1766053851.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-17 23:30:51', '2025-12-17 23:30:51', NULL),
+(49, 'Casual Wear Shirts', 'casual-wear-shirts-1', NULL, 2, 'categories/6943d83ab91b9_1766053946.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:32:26', '2025-12-17 23:32:32', NULL),
+(50, 'Formal Shirts', 'formal-shirts', NULL, 2, 'categories/6943d83ac0fa4_1766053946.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-17 23:32:26', '2025-12-17 23:32:32', NULL),
+(51, 'Linen Shirts', 'linen-shirts', NULL, 2, 'categories/6943d83ac42d1_1766053946.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-17 23:32:26', '2025-12-17 23:32:32', NULL),
+(52, 'Hoodie', 'hoodie', NULL, 15, 'categories/6943d8f2b0ced_1766054130.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-17 23:35:30', '2025-12-17 23:35:30', NULL),
+(53, 'Sweatshirt', 'sweatshirt', NULL, 15, 'categories/6943d8f2b94c1_1766054130.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-17 23:35:30', '2025-12-17 23:35:30', NULL),
+(54, 'Sweater', 'sweater', NULL, 15, 'categories/6943d8f2bc698_1766054130.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-17 23:35:30', '2025-12-17 23:35:30', NULL),
+(55, 'Jackets', 'jackets', NULL, 15, 'categories/6943d8f2bedd7_1766054130.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-17 23:35:30', '2025-12-17 23:35:30', NULL),
+(56, 'Sleeveless', 'sleeveless', NULL, 15, 'categories/6943d8f2c2632_1766054130.jpeg', 1, 0, 6, NULL, NULL, NULL, '2025-12-17 23:35:30', '2025-12-17 23:35:30', NULL),
+(57, 'Track Suit and Lowers', 'track-suit-and-lowers', NULL, 15, 'categories/6943d8f2c5554_1766054130.jpeg', 1, 0, 7, NULL, NULL, NULL, '2025-12-17 23:35:30', '2025-12-17 23:35:30', NULL),
+(58, 'Slim Fit Jeans', 'slim-fit-jeans', NULL, 8, 'categories/6943d96d68697_1766054253.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-17 23:37:33', '2025-12-17 23:37:33', NULL),
+(59, 'Skinny Fit Jeans', 'skinny-fit-jeans', NULL, 8, 'categories/6943d96d750c2_1766054253.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-17 23:37:33', '2025-12-17 23:37:33', NULL),
+(60, 'Dress', 'dress', NULL, 35, 'categories/6943da7ed8f0d_1766054526.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:42:06', '2025-12-17 23:42:06', NULL),
+(61, 'Tops, Tees & Shirts', 'tops-tees-shirts', NULL, 35, 'categories/6943da7ee43cc_1766054526.jpeg', 1, 0, 2, NULL, NULL, NULL, '2025-12-17 23:42:06', '2025-12-17 23:42:06', NULL),
+(62, 'Skirts', 'skirts', NULL, 35, 'categories/6943da7ee804f_1766054526.jpeg', 1, 0, 3, NULL, NULL, NULL, '2025-12-17 23:42:06', '2025-12-17 23:42:06', NULL),
+(63, 'Trousers', 'trousers', NULL, 35, 'categories/6943da7eec58f_1766054526.jpeg', 1, 0, 4, NULL, NULL, NULL, '2025-12-17 23:42:06', '2025-12-17 23:42:06', NULL),
+(64, 'Shorts', 'shorts', NULL, 35, 'categories/6943da7ef07ed_1766054526.jpeg', 1, 0, 5, NULL, NULL, NULL, '2025-12-17 23:42:06', '2025-12-17 23:42:06', NULL),
+(65, 'Jeans', 'jeans-1', NULL, 35, 'categories/6943da7f0264f_1766054527.jpeg', 1, 0, 6, NULL, NULL, NULL, '2025-12-17 23:42:07', '2025-12-17 23:42:07', NULL),
+(66, 'Mini Dress', 'mini-dress', NULL, 60, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:49:06', '2025-12-17 23:49:06', NULL),
+(67, 'Bodycon Dress', 'bodycon-dress', NULL, 60, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:49:07', '2025-12-17 23:49:07', NULL),
+(68, 'Jumpsuits', 'jumpsuits', NULL, 60, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:49:07', '2025-12-17 23:49:07', NULL),
+(69, 'Clubwear', 'clubwear', NULL, 60, NULL, 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:49:07', '2025-12-17 23:49:07', NULL),
+(70, 'Winter Dresses', 'winter-dresses', NULL, 60, 'categories/6943dc230a1c6_1766054947.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:49:07', '2025-12-17 23:49:07', NULL),
+(71, 'Maxi Dress', 'maxi-dress', NULL, 60, 'categories/6943dc2313add_1766054947.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:49:07', '2025-12-17 23:49:07', NULL),
+(72, 'Co-Ordinate Sets', 'co-ordinate-sets', NULL, 60, 'categories/6943dc2317035_1766054947.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:49:07', '2025-12-17 23:49:07', NULL),
+(73, 'Midi Dress', 'midi-dress', NULL, 60, 'categories/6943dc231bcf1_1766054947.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:49:07', '2025-12-17 23:49:07', NULL),
+(74, 'Denim Shirts', 'denim-shirts', NULL, 49, 'categories/6943dd55c0ef9_1766055253.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:54:13', '2025-12-17 23:54:13', NULL),
+(75, 'Checks Casual Shirts', 'checks-casual-shirts', NULL, 49, 'categories/4GEKsUaCOkraUdZCeCFebBTiQz8RC7jFPixkOauf.jpg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:54:13', '2025-12-17 23:55:28', NULL),
+(76, 'Party Wear Shirts', 'party-wear-shirts', NULL, 49, 'categories/6943dd55ca88e_1766055253.jpeg', 1, 0, 1, NULL, NULL, NULL, '2025-12-17 23:54:13', '2025-12-17 23:54:13', NULL),
+(77, 'snacks', 'snacks', NULL, NULL, 'categories/8wAMe3iKV6PAC4Sv2CzvRbEyXCLUceCpyV8iHBR9.webp', 1, 0, 4, NULL, NULL, NULL, '2025-12-22 19:24:26', '2025-12-28 18:19:15', '2025-12-28 18:19:15'),
+(78, 'Laundry & Fabric Care', 'laundry-fabric-care', NULL, NULL, NULL, 1, 0, 6, NULL, NULL, NULL, '2025-12-22 21:02:18', '2025-12-28 18:19:39', '2025-12-28 18:19:39'),
+(79, 'Laundry Detergent', 'laundry-detergent', NULL, 78, NULL, 1, 0, 2, NULL, NULL, NULL, '2025-12-22 21:02:36', '2025-12-28 18:19:33', '2025-12-28 18:19:33'),
+(80, 'old', 'old', NULL, 7, NULL, 1, 0, 10, NULL, NULL, NULL, '2026-01-07 00:34:20', '2026-01-07 00:34:28', '2026-01-07 00:34:28'),
+(81, 'Track Suit', 'track-suit', NULL, 21, 'categories/6963762e54dec_1768125998.jpeg', 1, 0, 1, NULL, NULL, NULL, '2026-01-11 04:36:38', '2026-01-11 04:43:44', NULL);
 
 -- --------------------------------------------------------
 
@@ -298,7 +342,10 @@ CREATE TABLE `company_settings` (
   `company_logo_text` varchar(255) NOT NULL DEFAULT 'Lomoofy',
   `company_logo` varchar(255) DEFAULT NULL,
   `phone` varchar(255) DEFAULT NULL,
+  `customer_care_phone` varchar(255) DEFAULT NULL,
+  `careers_phone` varchar(255) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
+  `secondary_email` varchar(255) DEFAULT NULL,
   `address` text DEFAULT NULL,
   `pincode` varchar(10) DEFAULT NULL,
   `city` varchar(255) DEFAULT NULL,
@@ -315,8 +362,8 @@ CREATE TABLE `company_settings` (
 -- Dumping data for table `company_settings`
 --
 
-INSERT INTO `company_settings` (`id`, `company_name`, `company_logo_text`, `company_logo`, `phone`, `email`, `address`, `pincode`, `city`, `state`, `pan_no`, `gst_registration_no`, `authorized_signatory`, `coming_soon`, `created_at`, `updated_at`) VALUES
-(1, 'Lomoof', 'Lomoofy', 'company-logos/0FfYiuQMpqPWv9T7GyynJASdYOQ4Tvfb1kssk4px.png', '098759 80197', 'idsandeepsapra@gmail.com', 'Plot No, 302, Industrial Area Phase 2, Panchkula, Haryana 134113', '134113', 'Panchkula', 'Haryana', 'ABCDE1234F', '06AAECL3857D1ZM', 'company-signatures/T8ncYTw42zYdn6PXmUulClDlWdmDoATrWqTMicMz.png', 0, '2025-12-15 07:11:07', '2026-01-04 09:30:07');
+INSERT INTO `company_settings` (`id`, `company_name`, `company_logo_text`, `company_logo`, `phone`, `customer_care_phone`, `careers_phone`, `email`, `secondary_email`, `address`, `pincode`, `city`, `state`, `pan_no`, `gst_registration_no`, `authorized_signatory`, `coming_soon`, `created_at`, `updated_at`) VALUES
+(1, 'Lomoof', 'Lomoofy', 'company-logos/0FfYiuQMpqPWv9T7GyynJASdYOQ4Tvfb1kssk4px.png', '098759 80197', '098759 80197', '098759 80197', 'idsandeepsapra@gmail.com', 'idsandeepsapra@gmail.com', 'Plot No, 302, Industrial Area Phase 2, Panchkula, Haryana 134113', '134113', 'Panchkula', 'Haryana', 'ABCDE1234F', '06AAECL3857D1ZM', 'company-signatures/T8ncYTw42zYdn6PXmUulClDlWdmDoATrWqTMicMz.png', 0, '2025-12-15 07:11:07', '2026-01-21 07:07:32');
 
 -- --------------------------------------------------------
 
@@ -390,7 +437,9 @@ INSERT INTO `customers` (`id`, `full_name`, `phone`, `alternate_phone`, `email`,
 (6, 'test', NULL, NULL, 'test@gmail.com', NULL, NULL, '$2y$12$zlZzS7e.qbS3wqzjOdM5r.4piX2hnFRtALj4cTwx9.p3RbfzhN9Ea', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, '{\"password_confirmation\":\"12345678\",\"address_type\":null,\"full_address\":\"of of\",\"landmark\":null,\"state\":\"of\",\"city\":\"of\",\"pincode\":\"of\",\"delivery_instructions\":null,\"customer_type\":null,\"special_instructions\":null}', 1, '2025-11-20 01:26:25', '2025-11-20 01:26:25', NULL),
 (7, 'John Doe', '+91-9876543210', NULL, 'john@example.com', NULL, NULL, '$2y$12$WKwfSR4sm/gI.vEsIs2XPupbbmSEF8Q7PyPn/Y3RRx483s6OHW9Ge', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, '{\"password_confirmation\":null,\"address_type\":\"home\",\"full_address\":\"test test\",\"landmark\":\"tttt\",\"state\":\"ddd\",\"city\":\"ddd\",\"pincode\":\"23424\",\"delivery_instructions\":null,\"customer_type\":null,\"special_instructions\":null,\"country\":\"country\"}', 1, '2025-11-24 23:23:46', '2025-12-15 06:19:59', NULL),
 (15, 'gaurav saini', '8872420110', NULL, 'gauravsaini@gmail.com', '2025-12-23', 'male', '$2y$12$ioeaSKmjfhyklcnW6QA5g.kFVFCAezQirt7Fptdh4UhfEYJjpd.PS', 'customers/profile_images/1766403628_69492e2ced684.png', NULL, NULL, NULL, 0, NULL, NULL, NULL, '{\"password_confirmation\":null,\"customer_type\":null,\"special_instructions\":null,\"business_type\":null,\"company_name\":null}', 1, '2025-12-16 06:36:01', '2025-12-23 00:23:05', NULL),
-(16, 'gauravsaini', '8699587181', NULL, 'gauravsaini@clikzopinnovations.com', '2025-12-09', 'male', '$2y$12$KmEgYWDalhNqmpfZqnD.g.N.umJshgU7h0PJi3q/6ky06GfJX4/ge', 'customers/profile_images/1766740466_694e51f234f1d.png', NULL, NULL, NULL, 0, NULL, NULL, NULL, '{\"password_confirmation\":null,\"company_name\":null}', 1, '2025-12-26 02:13:49', '2025-12-28 08:39:12', NULL);
+(16, 'gauravsaini', '8699587181', NULL, 'gauravsaini@clikzopinnovations.com', '2025-12-09', 'male', '$2y$12$KmEgYWDalhNqmpfZqnD.g.N.umJshgU7h0PJi3q/6ky06GfJX4/ge', 'customers/profile_images/1766740466_694e51f234f1d.png', NULL, NULL, NULL, 0, NULL, NULL, NULL, '{\"password_confirmation\":null,\"company_name\":null}', 1, '2025-12-26 02:13:49', '2025-12-28 08:39:12', NULL),
+(18, 'sudhanshu', '8699587182', NULL, 'sudhanshu@gmail.com', NULL, NULL, '$2y$12$y/H58usf4NZqn0ZIdZyF8OecvmZWXQSmFx1zm7CVq86yktD3Y1M7K', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, '{\"password_confirmation\":null,\"company_name\":null,\"gstin\":null}', 1, '2026-01-21 04:49:55', '2026-01-23 02:00:25', NULL),
+(19, 'gauravsaini65565', '8699587183', NULL, 'gauravsaini65565@gmail.com', NULL, NULL, '$2y$12$YAqeKESWsI0twQvCAFwUZuFkAgE74fEnpPd2VywprSkrdnwkVbNFm', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, 1, '2026-01-23 03:20:35', '2026-01-23 03:26:38', NULL);
 
 -- --------------------------------------------------------
 
@@ -422,7 +471,33 @@ CREATE TABLE `customer_addresses` (
 INSERT INTO `customer_addresses` (`id`, `customer_id`, `address_type`, `address_line1`, `address_line2`, `landmark`, `state`, `city`, `pincode`, `delivery_instructions`, `is_default`, `created_at`, `updated_at`, `country`) VALUES
 (14, 15, 'office', 'test', 'test', 'test', 'test', 'test', '132100', 'test', 0, '2025-12-16 07:23:55', '2025-12-23 05:55:22', 'India'),
 (16, 15, 'home', '450 nada sahib', 'nada sahib', 'morni t point', 'Haryana', 'Panchkula', '134109', NULL, 1, '2025-12-22 23:52:09', '2025-12-23 02:19:34', 'India'),
-(17, 16, 'home', 'nada sahib', NULL, NULL, 'Haryana', 'Karnal', '132041', NULL, 1, '2025-12-28 08:39:12', '2025-12-28 08:39:12', 'India');
+(17, 16, 'home', 'nada sahib', NULL, NULL, 'Haryana', 'Karnal', '132041', NULL, 1, '2025-12-28 08:39:12', '2025-12-28 08:39:12', 'India'),
+(23, 18, 'home', '234 nada sahib', NULL, NULL, 'Haryana', 'Panchkula', '134109', NULL, 1, '2026-01-21 05:42:51', '2026-01-23 02:00:25', 'India');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `customer_otps`
+--
+
+CREATE TABLE `customer_otps` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `otp` varchar(6) NOT NULL,
+  `purpose` varchar(255) NOT NULL DEFAULT 'registration',
+  `expires_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `is_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `ip_address` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `customer_otps`
+--
+
+INSERT INTO `customer_otps` (`id`, `email`, `otp`, `purpose`, `expires_at`, `is_verified`, `ip_address`, `created_at`, `updated_at`) VALUES
+(9, 'gauravsaini65565@gmail.com', '567799', 'registration', '2026-01-23 08:49:56', 1, '127.0.0.1', '2026-01-23 03:19:08', '2026-01-23 03:19:56');
 
 -- --------------------------------------------------------
 
@@ -439,6 +514,29 @@ CREATE TABLE `failed_jobs` (
   `exception` longtext NOT NULL,
   `failed_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `faqs`
+--
+
+CREATE TABLE `faqs` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `category` varchar(255) NOT NULL,
+  `questions_answers` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`questions_answers`)),
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `faqs`
+--
+
+INSERT INTO `faqs` (`id`, `category`, `questions_answers`, `sort_order`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'Orders:', '[{\"question\":\"Can I track my order item?\",\"answer\":\"Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven\'t heard of them accusamus labore sustainable VHS.\"}]', 0, 1, '2026-01-22 07:14:18', '2026-01-22 07:14:18');
 
 -- --------------------------------------------------------
 
@@ -462,8 +560,8 @@ CREATE TABLE `featured_category_styles` (
 --
 
 INSERT INTO `featured_category_styles` (`id`, `category_id`, `title`, `featured_image`, `is_active`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, 21, 'Mens Jackets', 'our-collections/7ChH9gofVuyw2Oqm2Npojuj96FQ7GFdge3ZXX6t2.png', 1, 1, '2025-12-18 00:25:09', '2025-12-18 01:37:10'),
-(2, 10, 'Mens Wear', 'our-collections/um2SN6ExS8OAVOI59G5xosAvCVm1QAh3CuwGfWK0.png', 1, 2, '2025-12-18 00:29:47', '2025-12-18 00:50:36'),
+(1, 55, 'Mens Jackets', 'our-collections/7ChH9gofVuyw2Oqm2Npojuj96FQ7GFdge3ZXX6t2.png', 1, 1, '2025-12-18 00:25:09', '2025-12-18 01:37:10'),
+(2, 7, 'Mens Wear', 'our-collections/um2SN6ExS8OAVOI59G5xosAvCVm1QAh3CuwGfWK0.png', 1, 2, '2025-12-18 00:29:47', '2025-12-18 00:50:36'),
 (3, 29, 'Kids Wear', 'our-collections/3H26Nd5MixE2vHAFzEw6iQwioguIUmEKEFtBmGKf.png', 1, 3, '2025-12-18 00:32:13', '2025-12-18 00:50:36');
 
 -- --------------------------------------------------------
@@ -509,10 +607,10 @@ INSERT INTO `field_management_fields` (`id`, `field_key`, `label`, `input_type`,
 (10, 'state', 'State', 'text', 'Enter state', 1, 1, 50, 'address', NULL, NULL, 'max:255', NULL, 1, 1, '2025-11-19 06:14:12', '2025-12-15 06:03:37'),
 (11, 'city', 'City', 'text', 'Enter city', 1, 1, 60, 'address', NULL, NULL, 'max:255', NULL, 1, 1, '2025-11-19 06:14:12', '2025-12-15 06:03:38'),
 (12, 'pincode', 'Pincode', 'text', 'Enter pincode', 1, 1, 70, 'address', NULL, NULL, 'max:10', NULL, 1, 1, '2025-11-19 06:14:12', '2025-12-15 06:03:38'),
-(13, 'delivery_instructions', 'Delivery Instructions', 'textarea', 'Enter delivery instructions (optional)', 0, 1, 80, 'address', NULL, NULL, NULL, NULL, 1, 0, '2025-11-19 06:14:12', '2025-12-15 06:03:39'),
+(13, 'delivery_instructions', 'Delivery Instructions', 'textarea', 'Enter delivery instructions (optional)', 0, 0, 29, 'address', NULL, NULL, NULL, NULL, 1, 1, '2025-11-19 06:14:12', '2026-01-21 05:23:46'),
 (14, 'make_default_address', 'Make Default Address', 'checkbox', NULL, 0, 1, 90, 'address', NULL, NULL, NULL, NULL, 1, 0, '2025-11-19 06:14:12', '2025-12-15 06:03:39'),
-(15, 'company_name', 'Company Name', 'text', 'Enter company name', 0, 1, 31, 'business', NULL, '{\"depends_on\":\"address_type\",\"show_when\":\"office\"}', 'max:255', NULL, 1, 0, '2025-11-19 06:14:12', '2025-12-16 23:38:16'),
-(16, 'gstin', 'GSTIN / Tax ID', 'text', 'Enter GSTIN or Tax ID', 0, 1, 32, 'business', NULL, '{\"depends_on\":\"address_type\",\"show_when\":\"office\"}', 'max:50', NULL, 0, 0, '2025-11-19 06:14:12', '2025-11-19 06:29:28'),
+(15, 'company_name', 'Company Name', 'text', 'Enter company name', 0, 1, 31, 'business', NULL, '{\"depends_on\":\"address_type\",\"show_when\":\"office\"}', 'max:255', NULL, 1, 0, '2025-11-19 06:14:12', '2026-01-23 01:59:57'),
+(16, 'gstin', 'GSTIN / Tax ID', 'text', 'Enter GSTIN or Tax ID', 0, 1, 32, 'business', NULL, '{\"depends_on\":\"address_type\",\"show_when\":\"office\"}', 'max:50', NULL, 1, 0, '2025-11-19 06:14:12', '2026-01-23 02:00:09'),
 (17, 'profile_image', 'Profile Image', 'file', NULL, 0, 1, 10, 'basic_info', NULL, NULL, 'image|mimes:jpeg,png,jpg,gif|max:2048', 'Recommended size: 400x400px (Max: 2MB)', 1, 1, '2025-11-19 06:14:12', '2025-12-22 05:47:55'),
 (18, 'customer_type', 'Customer Type', 'select', NULL, 0, 1, 71, 'other', '[{\"value\":\"retail\",\"label\":\"Retail\"},{\"value\":\"wholesale\",\"label\":\"Wholesale\"},{\"value\":\"corporate\",\"label\":\"Corporate\"},{\"value\":\"reseller\",\"label\":\"Reseller\"}]', NULL, NULL, 'Type of customer relationship', 0, 0, '2025-11-19 06:14:12', '2025-12-16 23:40:01'),
 (19, 'country', 'Country', 'select', 'Select Country', 1, 1, 40, 'address', NULL, NULL, 'required', NULL, 1, 1, '2025-12-15 05:29:03', '2025-12-15 06:03:35'),
@@ -547,6 +645,30 @@ INSERT INTO `home_sliders` (`id`, `image`, `tagline`, `title`, `category_id`, `i
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `integrations`
+--
+
+CREATE TABLE `integrations` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `integration_type` varchar(255) NOT NULL,
+  `provider` varchar(255) DEFAULT NULL,
+  `configuration` text NOT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `integrations`
+--
+
+INSERT INTO `integrations` (`id`, `integration_type`, `provider`, `configuration`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'payment', 'razorpay', '{\"key_id\":\"rzp_test_RytPVtZvClzzRV\",\"key_secret\":\"J1eq1gkUD4049W9CuDsqljXw\",\"webhook_secret\":\"J1eq1gkUD4049W9CuDsqljXw\",\"currency\":\"INR\",\"mode\":\"test\"}', 1, '2026-01-23 05:08:31', '2026-01-23 05:08:31'),
+(2, 'email', NULL, '{\"mail_driver\":\"smtp\",\"smtp_host\":\"smtp.hostinger.com\",\"smtp_port\":\"587\",\"encryption\":\"tls\",\"username\":\"no-reply@lomoofy.com\",\"password\":\"Lomoofy@123\",\"from_email\":\"no-reply@lomoofy.com\",\"from_name\":\"Lomoofy\"}', 1, '2026-01-23 05:25:29', '2026-01-23 05:25:29');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `inventory_history`
 --
 
@@ -572,29 +694,122 @@ CREATE TABLE `inventory_history` (
 --
 
 INSERT INTO `inventory_history` (`id`, `product_variant_id`, `warehouse_id`, `warehouse_location_id`, `previous_quantity`, `new_quantity`, `quantity_change`, `change_type`, `reference_type`, `reference_id`, `notes`, `user_id`, `created_at`, `updated_at`) VALUES
-(14, 206, 1, 3, 0, 10, 10, 'increment', 'bulk_add', NULL, 'Bulk stock update', 1, '2025-12-29 03:42:33', '2025-12-29 03:42:33'),
-(15, 130, 1, NULL, 0, 2, 2, 'increment', 'manual', NULL, NULL, 1, '2025-12-29 04:45:03', '2025-12-29 04:45:03'),
-(16, 208, 1, 3, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2025-12-29 13:13:03', '2025-12-29 13:13:03'),
-(17, 7, 1, 3, 0, 8, 8, 'set', 'manual', NULL, NULL, 1, '2025-12-30 03:46:06', '2025-12-30 03:46:06'),
-(19, 1, 1, NULL, 0, 20, 20, 'set', 'manual', NULL, NULL, 1, '2026-01-02 04:44:34', '2026-01-02 04:44:34'),
-(20, 6, 1, NULL, 0, 10, 10, 'set', 'manual', NULL, NULL, 1, '2026-01-02 05:40:39', '2026-01-02 05:40:39'),
-(21, 2, 1, NULL, 0, 10, 10, 'set', 'manual', NULL, NULL, 1, '2026-01-02 06:12:19', '2026-01-02 06:12:19'),
-(22, 1, 1, NULL, 20, 19, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-03 04:28:37', '2026-01-03 04:28:37'),
-(23, 1, 1, NULL, 19, 18, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-03 04:38:36', '2026-01-03 04:38:36'),
-(24, 1, 1, NULL, 18, 17, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-03 05:04:11', '2026-01-03 05:04:11'),
-(25, 19, 1, NULL, 0, 20, 20, 'set', 'manual', NULL, NULL, 1, '2026-01-05 02:16:44', '2026-01-05 02:16:44'),
-(26, 19, 1, NULL, 20, 19, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-05 02:59:31', '2026-01-05 02:59:31'),
-(27, 19, 1, NULL, 19, 17, -2, 'decrement', 'order', NULL, 'Stock decremented for order', NULL, '2026-01-06 04:11:01', '2026-01-06 04:11:01'),
-(29, 57, 1, NULL, 0, 40, 40, 'increment', 'bulk_add', NULL, 'Bulk stock update', 1, '2026-01-07 05:05:13', '2026-01-07 05:05:13'),
-(30, 58, 1, NULL, 0, 40, 40, 'increment', 'bulk_add', NULL, 'Bulk stock update', 1, '2026-01-07 05:05:13', '2026-01-07 05:05:13'),
-(31, 59, 1, NULL, 0, 40, 40, 'increment', 'bulk_add', NULL, 'Bulk stock update', 1, '2026-01-07 05:05:13', '2026-01-07 05:05:13'),
-(32, 60, 1, NULL, 0, 40, 40, 'increment', 'bulk_add', NULL, 'Bulk stock update', 1, '2026-01-07 05:05:13', '2026-01-07 05:05:13'),
-(33, 57, 1, NULL, 40, 39, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-07 23:23:21', '2026-01-07 23:23:21'),
-(34, 2, 1, NULL, 10, 9, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-07 23:23:21', '2026-01-07 23:23:21'),
-(35, 57, 1, NULL, 39, 38, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-07 23:46:42', '2026-01-07 23:46:42'),
-(36, 55, 1, NULL, 0, 400, 400, 'set', 'manual', NULL, NULL, 1, '2026-01-08 00:44:11', '2026-01-08 00:44:11'),
-(37, 57, 1, NULL, 38, 37, -1, 'decrement', 'order', NULL, 'Stock decremented for order', NULL, '2026-01-10 12:39:11', '2026-01-10 12:39:11'),
-(38, 57, 1, NULL, 37, 36, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-11 12:05:52', '2026-01-11 12:05:52');
+(14, 206, 1, 3, 0, 10, 10, 'increment', 'bulk_add', NULL, 'Bulk stock update', 1, '2025-12-28 22:12:33', '2025-12-28 22:12:33'),
+(15, 130, 1, NULL, 0, 2, 2, 'increment', 'manual', NULL, NULL, 1, '2025-12-28 23:15:03', '2025-12-28 23:15:03'),
+(16, 208, 1, 3, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2025-12-29 07:43:03', '2025-12-29 07:43:03'),
+(17, 7, 1, 3, 0, 8, 8, 'set', 'manual', NULL, NULL, 1, '2025-12-29 22:16:06', '2025-12-29 22:16:06'),
+(18, 53, 1, NULL, 0, 20, 20, 'set', 'manual', NULL, NULL, 1, '2025-12-31 01:54:09', '2025-12-31 01:54:09'),
+(19, 1, 1, NULL, 0, 20, 20, 'set', 'manual', NULL, NULL, 1, '2026-01-01 23:14:34', '2026-01-01 23:14:34'),
+(20, 6, 1, NULL, 0, 10, 10, 'set', 'manual', NULL, NULL, 1, '2026-01-02 00:10:39', '2026-01-02 00:10:39'),
+(21, 2, 1, NULL, 0, 10, 10, 'set', 'manual', NULL, NULL, 1, '2026-01-02 00:42:19', '2026-01-02 00:42:19'),
+(22, 1, 1, NULL, 20, 19, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-02 22:58:37', '2026-01-02 22:58:37'),
+(23, 1, 1, NULL, 19, 18, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-02 23:08:36', '2026-01-02 23:08:36'),
+(24, 1, 1, NULL, 18, 17, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-02 23:34:11', '2026-01-02 23:34:11'),
+(25, 19, 1, NULL, 0, 20, 20, 'set', 'manual', NULL, NULL, 1, '2026-01-04 20:46:44', '2026-01-04 20:46:44'),
+(26, 19, 1, NULL, 20, 19, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-04 21:29:31', '2026-01-04 21:29:31'),
+(27, 19, 1, NULL, 19, 18, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-05 23:54:29', '2026-01-05 23:54:29'),
+(28, 21, 1, NULL, 0, 200, 200, 'set', 'manual', NULL, NULL, 1, '2026-01-06 00:17:04', '2026-01-06 00:17:04'),
+(29, 21, 1, NULL, 200, 199, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-06 00:17:38', '2026-01-06 00:17:38'),
+(30, 28, 1, NULL, 0, 200, 200, 'set', 'manual', NULL, NULL, 1, '2026-01-07 01:00:55', '2026-01-07 01:00:55'),
+(31, 28, 1, NULL, 200, 199, -1, 'decrement', 'order', NULL, 'Stock decremented for order', 1, '2026-01-07 01:03:28', '2026-01-07 01:03:28'),
+(32, 29, 1, NULL, 0, 100, 100, 'set', 'manual', NULL, NULL, 1, '2026-01-07 01:20:21', '2026-01-07 01:20:21'),
+(33, 35, 1, NULL, 0, 1, 1, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 02:43:53', '2026-01-11 02:43:53'),
+(34, 36, 1, NULL, 0, 5, 5, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 02:44:08', '2026-01-11 02:44:08'),
+(35, 37, 1, NULL, 0, 3, 3, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 02:44:22', '2026-01-11 02:44:22'),
+(36, 38, 1, NULL, 0, 2, 2, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 02:44:37', '2026-01-11 02:44:37'),
+(37, 43, 1, NULL, 0, 3, 3, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 03:08:43', '2026-01-11 03:08:43'),
+(38, 44, 1, NULL, 0, 10, 10, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 03:08:56', '2026-01-11 03:08:56'),
+(39, 45, 1, NULL, 0, 10, 10, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 03:09:07', '2026-01-11 03:09:07'),
+(40, 46, 1, NULL, 0, 5, 5, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 03:09:21', '2026-01-11 03:09:21'),
+(41, 47, 1, NULL, 0, 1, 1, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 03:57:25', '2026-01-11 03:57:25'),
+(42, 48, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-11 03:57:37', '2026-01-11 03:57:37'),
+(43, 49, 1, NULL, 0, 1, 1, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 03:57:59', '2026-01-11 03:57:59'),
+(44, 50, 1, NULL, 0, 2, 2, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 03:58:15', '2026-01-11 03:58:15'),
+(45, 51, 1, NULL, 0, 6, 6, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 04:44:47', '2026-01-11 04:44:47'),
+(46, 52, 1, NULL, 0, 5, 5, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 04:45:00', '2026-01-11 04:45:00'),
+(47, 53, 1, NULL, 20, 0, -20, 'decrement', 'manual', NULL, NULL, 1, '2026-01-11 04:49:21', '2026-01-11 04:49:21'),
+(48, 53, 1, NULL, 0, 5, 5, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 04:49:49', '2026-01-11 04:49:49'),
+(49, 54, 1, NULL, 0, 3, 3, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 05:06:48', '2026-01-11 05:06:48'),
+(50, 55, 1, NULL, 0, 3, 3, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 05:07:02', '2026-01-11 05:07:02'),
+(51, 56, 1, NULL, 0, 5, 5, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 05:07:17', '2026-01-11 05:07:17'),
+(52, 57, 1, NULL, 0, 1, 1, 'increment', 'manual', NULL, NULL, 1, '2026-01-11 05:07:32', '2026-01-11 05:07:32'),
+(53, 58, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-14 08:04:59', '2026-01-14 08:04:59'),
+(54, 63, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-15 02:41:40', '2026-01-15 02:41:40'),
+(55, 64, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-15 02:41:52', '2026-01-15 02:41:52'),
+(56, 65, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-15 02:42:00', '2026-01-15 02:42:00'),
+(57, 66, 1, NULL, 0, 4, 4, 'set', 'manual', NULL, NULL, 1, '2026-01-15 03:13:46', '2026-01-15 03:13:46'),
+(58, 67, 1, NULL, 0, 4, 4, 'set', 'manual', NULL, NULL, 1, '2026-01-15 03:13:54', '2026-01-15 03:13:54'),
+(59, 68, 1, NULL, 0, 4, 4, 'set', 'manual', NULL, NULL, 1, '2026-01-15 03:14:07', '2026-01-15 03:14:07'),
+(60, 69, 1, NULL, 0, 4, 4, 'set', 'manual', NULL, NULL, 1, '2026-01-15 03:15:37', '2026-01-15 03:15:37'),
+(61, 70, 1, NULL, 0, 15, 15, 'set', 'manual', NULL, NULL, 1, '2026-01-15 05:44:21', '2026-01-15 05:44:21'),
+(62, 71, 1, NULL, 0, 17, 17, 'set', 'manual', NULL, NULL, 1, '2026-01-15 05:44:33', '2026-01-15 05:44:33'),
+(63, 72, 1, NULL, 0, 23, 23, 'set', 'manual', NULL, NULL, 1, '2026-01-15 05:44:52', '2026-01-15 05:44:52'),
+(64, 73, 1, NULL, 0, 32, 32, 'set', 'manual', NULL, NULL, 1, '2026-01-15 05:45:10', '2026-01-15 05:45:10'),
+(65, 82, 1, NULL, 0, 11, 11, 'set', 'manual', NULL, NULL, 1, '2026-01-15 06:29:08', '2026-01-15 06:29:08'),
+(66, 83, 1, NULL, 0, 12, 12, 'set', 'manual', NULL, NULL, 1, '2026-01-15 06:29:21', '2026-01-15 06:29:21'),
+(67, 85, 1, NULL, 0, 10, 10, 'set', 'manual', NULL, NULL, 1, '2026-01-15 06:29:32', '2026-01-15 06:29:32'),
+(68, 84, 1, NULL, 0, 9, 9, 'set', 'manual', NULL, NULL, 1, '2026-01-15 06:29:42', '2026-01-15 06:29:42'),
+(69, 86, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-16 06:13:30', '2026-01-16 06:13:30'),
+(70, 87, 1, NULL, 0, 6, 6, 'set', 'manual', NULL, NULL, 1, '2026-01-16 06:13:40', '2026-01-16 06:13:40'),
+(71, 88, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-16 06:14:00', '2026-01-16 06:14:00'),
+(72, 89, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-16 06:14:10', '2026-01-16 06:14:10'),
+(73, 90, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:37:52', '2026-01-16 08:37:52'),
+(74, 91, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:38:04', '2026-01-16 08:38:04'),
+(75, 92, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:38:13', '2026-01-16 08:38:13'),
+(76, 93, 1, NULL, 0, 4, 4, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:38:26', '2026-01-16 08:38:26'),
+(77, 94, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:38:35', '2026-01-16 08:38:35'),
+(78, 95, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:38:43', '2026-01-16 08:38:43'),
+(79, 96, 1, NULL, 0, 2, 2, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:54:45', '2026-01-16 08:54:45'),
+(80, 97, 1, NULL, 0, 6, 6, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:54:55', '2026-01-16 08:54:55'),
+(81, 98, 1, NULL, 0, 2, 2, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:55:06', '2026-01-16 08:55:06'),
+(82, 99, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-16 08:55:17', '2026-01-16 08:55:17'),
+(83, 100, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:10:05', '2026-01-17 07:10:05'),
+(84, 101, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:10:15', '2026-01-17 07:10:15'),
+(85, 104, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:19:16', '2026-01-17 07:19:16'),
+(86, 105, 1, NULL, 0, 2, 2, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:19:26', '2026-01-17 07:19:26'),
+(87, 106, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:19:36', '2026-01-17 07:19:36'),
+(88, 107, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:26:08', '2026-01-17 07:26:08'),
+(89, 108, 1, NULL, 0, 11, 11, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:26:20', '2026-01-17 07:26:20'),
+(90, 109, 1, NULL, 0, 10, 10, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:26:29', '2026-01-17 07:26:29'),
+(91, 110, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:26:50', '2026-01-17 07:26:50'),
+(92, 111, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:33:26', '2026-01-17 07:33:26'),
+(93, 112, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:33:34', '2026-01-17 07:33:34'),
+(94, 113, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:33:44', '2026-01-17 07:33:44'),
+(95, 114, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:33:51', '2026-01-17 07:33:51'),
+(96, 115, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:33:58', '2026-01-17 07:33:58'),
+(97, 117, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:40:33', '2026-01-17 07:40:33'),
+(98, 118, 1, NULL, 0, 4, 4, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:40:43', '2026-01-17 07:40:43'),
+(99, 119, 1, NULL, 0, 7, 7, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:40:51', '2026-01-17 07:40:51'),
+(100, 120, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:41:01', '2026-01-17 07:41:01'),
+(101, 121, 1, NULL, 0, 2, 2, 'set', 'manual', NULL, NULL, 1, '2026-01-17 07:41:10', '2026-01-17 07:41:10'),
+(102, 123, 1, NULL, 0, 2, 2, 'set', 'manual', NULL, NULL, 1, '2026-01-17 22:47:51', '2026-01-17 22:47:51'),
+(103, 124, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-17 22:48:01', '2026-01-17 22:48:01'),
+(104, 125, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-17 22:48:10', '2026-01-17 22:48:10'),
+(105, 126, 1, NULL, 0, 2, 2, 'set', 'manual', NULL, NULL, 1, '2026-01-17 23:00:04', '2026-01-17 23:00:04'),
+(106, 129, 1, NULL, 0, 6, 6, 'set', 'manual', NULL, NULL, 1, '2026-01-17 23:00:16', '2026-01-17 23:00:16'),
+(107, 127, 1, NULL, 0, 9, 9, 'set', 'manual', NULL, NULL, 1, '2026-01-17 23:00:27', '2026-01-17 23:00:27'),
+(108, 128, 1, NULL, 0, 9, 9, 'set', 'manual', NULL, NULL, 1, '2026-01-17 23:00:36', '2026-01-17 23:00:36'),
+(109, 131, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-18 04:40:50', '2026-01-18 04:40:50'),
+(110, 132, 1, NULL, 0, 4, 4, 'set', 'manual', NULL, NULL, 1, '2026-01-18 04:40:59', '2026-01-18 04:40:59'),
+(111, 133, 1, NULL, 0, 4, 4, 'set', 'manual', NULL, NULL, 1, '2026-01-18 04:41:11', '2026-01-18 04:41:11'),
+(112, 134, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-18 04:41:28', '2026-01-18 04:41:28'),
+(113, 135, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:15:11', '2026-01-20 08:15:11'),
+(114, 136, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:15:21', '2026-01-20 08:15:21'),
+(115, 137, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:15:31', '2026-01-20 08:15:31'),
+(116, 138, 1, NULL, 0, 2, 2, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:36:56', '2026-01-20 08:36:56'),
+(117, 139, 1, NULL, 0, 6, 6, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:37:05', '2026-01-20 08:37:05'),
+(118, 140, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:37:14', '2026-01-20 08:37:14'),
+(119, 141, 1, NULL, 0, 5, 5, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:37:23', '2026-01-20 08:37:23'),
+(120, 143, 1, NULL, 0, 7, 7, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:43:48', '2026-01-20 08:43:48'),
+(121, 144, 1, NULL, 0, 9, 9, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:44:00', '2026-01-20 08:44:00'),
+(122, 145, 1, NULL, 0, 2, 2, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:44:12', '2026-01-20 08:44:12'),
+(123, 146, 1, NULL, 0, 3, 3, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:44:22', '2026-01-20 08:44:22'),
+(124, 147, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-20 08:44:31', '2026-01-20 08:44:31'),
+(125, 148, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-21 01:29:39', '2026-01-21 01:29:39'),
+(126, 149, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-21 01:29:46', '2026-01-21 01:29:46'),
+(127, 150, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-21 01:29:51', '2026-01-21 01:29:51'),
+(128, 151, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-21 01:30:00', '2026-01-21 01:30:00'),
+(129, 152, 1, NULL, 0, 1, 1, 'set', 'manual', NULL, NULL, 1, '2026-01-21 01:30:07', '2026-01-21 01:30:07');
 
 -- --------------------------------------------------------
 
@@ -619,19 +834,114 @@ CREATE TABLE `inventory_stocks` (
 --
 
 INSERT INTO `inventory_stocks` (`id`, `product_variant_id`, `warehouse_id`, `warehouse_location_id`, `quantity`, `reserved_quantity`, `created_at`, `updated_at`) VALUES
-(8, 206, 1, 3, 10, 0, '2025-12-29 03:42:33', '2025-12-29 03:42:33'),
-(9, 130, 1, NULL, 2, 0, '2025-12-29 04:45:03', '2025-12-29 04:45:03'),
-(11, 208, 1, 3, 5, 0, '2025-12-29 13:13:03', '2025-12-29 13:13:03'),
-(12, 7, 1, 3, 8, 0, '2025-12-30 03:46:06', '2025-12-30 03:46:06'),
-(14, 1, 1, NULL, 17, 0, '2026-01-02 04:44:34', '2026-01-03 05:04:11'),
-(15, 6, 1, NULL, 10, 0, '2026-01-02 05:40:39', '2026-01-02 05:40:39'),
-(16, 2, 1, NULL, 9, 0, '2026-01-02 06:12:19', '2026-01-07 23:23:21'),
-(17, 19, 1, NULL, 17, 0, '2026-01-05 02:16:44', '2026-01-06 04:11:01'),
-(19, 57, 1, NULL, 36, 0, '2026-01-07 05:05:13', '2026-01-11 12:05:52'),
-(20, 58, 1, NULL, 40, 0, '2026-01-07 05:05:13', '2026-01-07 05:05:13'),
-(21, 59, 1, NULL, 40, 0, '2026-01-07 05:05:13', '2026-01-07 05:05:13'),
-(22, 60, 1, NULL, 40, 0, '2026-01-07 05:05:13', '2026-01-07 05:05:13'),
-(23, 55, 1, NULL, 400, 0, '2026-01-08 00:44:11', '2026-01-08 00:44:11');
+(8, 206, 1, 3, 10, 0, '2025-12-28 22:12:33', '2025-12-28 22:12:33'),
+(9, 130, 1, NULL, 2, 0, '2025-12-28 23:15:03', '2025-12-28 23:15:03'),
+(11, 208, 1, 3, 5, 0, '2025-12-29 07:43:03', '2025-12-29 07:43:03'),
+(12, 7, 1, 3, 8, 0, '2025-12-29 22:16:06', '2025-12-29 22:16:06'),
+(13, 53, 1, NULL, 5, 0, '2025-12-31 01:54:09', '2026-01-11 04:49:49'),
+(14, 1, 1, NULL, 17, 0, '2026-01-01 23:14:34', '2026-01-02 23:34:11'),
+(15, 6, 1, NULL, 10, 0, '2026-01-02 00:10:39', '2026-01-02 00:10:39'),
+(16, 2, 1, NULL, 10, 0, '2026-01-02 00:42:19', '2026-01-02 00:42:19'),
+(17, 19, 1, NULL, 18, 0, '2026-01-04 20:46:44', '2026-01-05 23:54:29'),
+(18, 21, 1, NULL, 199, 0, '2026-01-06 00:17:04', '2026-01-06 00:17:38'),
+(19, 28, 1, NULL, 199, 0, '2026-01-07 01:00:55', '2026-01-07 01:03:28'),
+(20, 29, 1, NULL, 100, 0, '2026-01-07 01:20:21', '2026-01-07 01:20:21'),
+(21, 7, 1, NULL, 0, 0, '2026-01-07 01:40:36', '2026-01-07 01:40:36'),
+(22, 35, 1, NULL, 1, 0, '2026-01-11 02:43:53', '2026-01-11 02:43:53'),
+(23, 36, 1, NULL, 5, 0, '2026-01-11 02:44:08', '2026-01-11 02:44:08'),
+(24, 37, 1, NULL, 3, 0, '2026-01-11 02:44:22', '2026-01-11 02:44:22'),
+(25, 38, 1, NULL, 2, 0, '2026-01-11 02:44:37', '2026-01-11 02:44:37'),
+(26, 43, 1, NULL, 3, 0, '2026-01-11 03:08:43', '2026-01-11 03:08:43'),
+(27, 44, 1, NULL, 10, 0, '2026-01-11 03:08:56', '2026-01-11 03:08:56'),
+(28, 45, 1, NULL, 10, 0, '2026-01-11 03:09:07', '2026-01-11 03:09:07'),
+(29, 46, 1, NULL, 5, 0, '2026-01-11 03:09:21', '2026-01-11 03:09:21'),
+(30, 47, 1, NULL, 1, 0, '2026-01-11 03:57:25', '2026-01-11 03:57:25'),
+(31, 48, 1, NULL, 1, 0, '2026-01-11 03:57:37', '2026-01-11 03:57:37'),
+(32, 49, 1, NULL, 1, 0, '2026-01-11 03:57:59', '2026-01-11 03:57:59'),
+(33, 50, 1, NULL, 2, 0, '2026-01-11 03:58:15', '2026-01-11 03:58:15'),
+(34, 51, 1, NULL, 6, 0, '2026-01-11 04:44:47', '2026-01-11 04:44:47'),
+(35, 52, 1, NULL, 5, 0, '2026-01-11 04:45:00', '2026-01-11 04:45:00'),
+(36, 54, 1, NULL, 3, 0, '2026-01-11 05:06:48', '2026-01-11 05:06:48'),
+(37, 55, 1, NULL, 3, 0, '2026-01-11 05:07:02', '2026-01-11 05:07:02'),
+(38, 56, 1, NULL, 5, 0, '2026-01-11 05:07:17', '2026-01-11 05:07:17'),
+(39, 57, 1, NULL, 1, 0, '2026-01-11 05:07:32', '2026-01-11 05:07:32'),
+(40, 58, 1, NULL, 3, 0, '2026-01-14 08:04:59', '2026-01-14 08:04:59'),
+(41, 63, 1, NULL, 1, 0, '2026-01-15 02:41:40', '2026-01-15 02:41:40'),
+(42, 64, 1, NULL, 1, 0, '2026-01-15 02:41:52', '2026-01-15 02:41:52'),
+(43, 65, 1, NULL, 1, 0, '2026-01-15 02:42:00', '2026-01-15 02:42:00'),
+(44, 66, 1, NULL, 4, 0, '2026-01-15 03:13:46', '2026-01-15 03:13:46'),
+(45, 67, 1, NULL, 4, 0, '2026-01-15 03:13:54', '2026-01-15 03:13:54'),
+(46, 68, 1, NULL, 4, 0, '2026-01-15 03:14:07', '2026-01-15 03:14:07'),
+(47, 69, 1, NULL, 4, 0, '2026-01-15 03:15:37', '2026-01-15 03:15:37'),
+(48, 70, 1, NULL, 15, 0, '2026-01-15 05:44:21', '2026-01-15 05:44:21'),
+(49, 71, 1, NULL, 17, 0, '2026-01-15 05:44:33', '2026-01-15 05:44:33'),
+(50, 72, 1, NULL, 23, 0, '2026-01-15 05:44:52', '2026-01-15 05:44:52'),
+(51, 73, 1, NULL, 32, 0, '2026-01-15 05:45:10', '2026-01-15 05:45:10'),
+(52, 82, 1, NULL, 11, 0, '2026-01-15 06:29:08', '2026-01-15 06:29:08'),
+(53, 83, 1, NULL, 12, 0, '2026-01-15 06:29:21', '2026-01-15 06:29:21'),
+(54, 85, 1, NULL, 10, 0, '2026-01-15 06:29:32', '2026-01-15 06:29:32'),
+(55, 84, 1, NULL, 9, 0, '2026-01-15 06:29:42', '2026-01-15 06:29:42'),
+(56, 86, 1, NULL, 3, 0, '2026-01-16 06:13:30', '2026-01-16 06:13:30'),
+(57, 87, 1, NULL, 6, 0, '2026-01-16 06:13:40', '2026-01-16 06:13:40'),
+(58, 88, 1, NULL, 1, 0, '2026-01-16 06:14:00', '2026-01-16 06:14:00'),
+(59, 89, 1, NULL, 1, 0, '2026-01-16 06:14:10', '2026-01-16 06:14:10'),
+(60, 90, 1, NULL, 1, 0, '2026-01-16 08:37:52', '2026-01-16 08:37:52'),
+(61, 91, 1, NULL, 5, 0, '2026-01-16 08:38:04', '2026-01-16 08:38:04'),
+(62, 92, 1, NULL, 5, 0, '2026-01-16 08:38:13', '2026-01-16 08:38:13'),
+(63, 93, 1, NULL, 4, 0, '2026-01-16 08:38:26', '2026-01-16 08:38:26'),
+(64, 94, 1, NULL, 1, 0, '2026-01-16 08:38:35', '2026-01-16 08:38:35'),
+(65, 95, 1, NULL, 1, 0, '2026-01-16 08:38:43', '2026-01-16 08:38:43'),
+(66, 96, 1, NULL, 2, 0, '2026-01-16 08:54:45', '2026-01-16 08:54:45'),
+(67, 97, 1, NULL, 6, 0, '2026-01-16 08:54:55', '2026-01-16 08:54:55'),
+(68, 98, 1, NULL, 2, 0, '2026-01-16 08:55:06', '2026-01-16 08:55:06'),
+(69, 99, 1, NULL, 1, 0, '2026-01-16 08:55:17', '2026-01-16 08:55:17'),
+(70, 100, 1, NULL, 3, 0, '2026-01-17 07:10:05', '2026-01-17 07:10:05'),
+(71, 101, 1, NULL, 3, 0, '2026-01-17 07:10:15', '2026-01-17 07:10:15'),
+(72, 104, 1, NULL, 3, 0, '2026-01-17 07:19:16', '2026-01-17 07:19:16'),
+(73, 105, 1, NULL, 2, 0, '2026-01-17 07:19:26', '2026-01-17 07:19:26'),
+(74, 106, 1, NULL, 1, 0, '2026-01-17 07:19:36', '2026-01-17 07:19:36'),
+(75, 107, 1, NULL, 5, 0, '2026-01-17 07:26:08', '2026-01-17 07:26:08'),
+(76, 108, 1, NULL, 11, 0, '2026-01-17 07:26:20', '2026-01-17 07:26:20'),
+(77, 109, 1, NULL, 10, 0, '2026-01-17 07:26:29', '2026-01-17 07:26:29'),
+(78, 110, 1, NULL, 5, 0, '2026-01-17 07:26:50', '2026-01-17 07:26:50'),
+(79, 111, 1, NULL, 1, 0, '2026-01-17 07:33:26', '2026-01-17 07:33:26'),
+(80, 112, 1, NULL, 5, 0, '2026-01-17 07:33:34', '2026-01-17 07:33:34'),
+(81, 113, 1, NULL, 1, 0, '2026-01-17 07:33:44', '2026-01-17 07:33:44'),
+(82, 114, 1, NULL, 1, 0, '2026-01-17 07:33:51', '2026-01-17 07:33:51'),
+(83, 115, 1, NULL, 1, 0, '2026-01-17 07:33:58', '2026-01-17 07:33:58'),
+(84, 117, 1, NULL, 1, 0, '2026-01-17 07:40:33', '2026-01-17 07:40:33'),
+(85, 118, 1, NULL, 4, 0, '2026-01-17 07:40:43', '2026-01-17 07:40:43'),
+(86, 119, 1, NULL, 7, 0, '2026-01-17 07:40:51', '2026-01-17 07:40:51'),
+(87, 120, 1, NULL, 3, 0, '2026-01-17 07:41:01', '2026-01-17 07:41:01'),
+(88, 121, 1, NULL, 2, 0, '2026-01-17 07:41:10', '2026-01-17 07:41:10'),
+(89, 123, 1, NULL, 2, 0, '2026-01-17 22:47:51', '2026-01-17 22:47:51'),
+(90, 124, 1, NULL, 5, 0, '2026-01-17 22:48:01', '2026-01-17 22:48:01'),
+(91, 125, 1, NULL, 5, 0, '2026-01-17 22:48:10', '2026-01-17 22:48:10'),
+(92, 126, 1, NULL, 2, 0, '2026-01-17 23:00:04', '2026-01-17 23:00:04'),
+(93, 129, 1, NULL, 6, 0, '2026-01-17 23:00:16', '2026-01-17 23:00:16'),
+(94, 127, 1, NULL, 9, 0, '2026-01-17 23:00:27', '2026-01-17 23:00:27'),
+(95, 128, 1, NULL, 9, 0, '2026-01-17 23:00:36', '2026-01-17 23:00:36'),
+(96, 131, 1, NULL, 3, 0, '2026-01-18 04:40:50', '2026-01-18 04:40:50'),
+(97, 132, 1, NULL, 4, 0, '2026-01-18 04:40:59', '2026-01-18 04:40:59'),
+(98, 133, 1, NULL, 4, 0, '2026-01-18 04:41:11', '2026-01-18 04:41:11'),
+(99, 134, 1, NULL, 1, 0, '2026-01-18 04:41:28', '2026-01-18 04:41:28'),
+(100, 135, 1, NULL, 1, 0, '2026-01-20 08:15:11', '2026-01-20 08:15:11'),
+(101, 136, 1, NULL, 3, 0, '2026-01-20 08:15:21', '2026-01-20 08:15:21'),
+(102, 137, 1, NULL, 1, 0, '2026-01-20 08:15:31', '2026-01-20 08:15:31'),
+(103, 138, 1, NULL, 2, 0, '2026-01-20 08:36:56', '2026-01-20 08:36:56'),
+(104, 139, 1, NULL, 6, 0, '2026-01-20 08:37:05', '2026-01-20 08:37:05'),
+(105, 140, 1, NULL, 5, 0, '2026-01-20 08:37:14', '2026-01-20 08:37:14'),
+(106, 141, 1, NULL, 5, 0, '2026-01-20 08:37:23', '2026-01-20 08:37:23'),
+(107, 143, 1, NULL, 7, 0, '2026-01-20 08:43:48', '2026-01-20 08:43:48'),
+(108, 144, 1, NULL, 9, 0, '2026-01-20 08:44:00', '2026-01-20 08:44:00'),
+(109, 145, 1, NULL, 2, 0, '2026-01-20 08:44:12', '2026-01-20 08:44:12'),
+(110, 146, 1, NULL, 3, 0, '2026-01-20 08:44:22', '2026-01-20 08:44:22'),
+(111, 147, 1, NULL, 1, 0, '2026-01-20 08:44:31', '2026-01-20 08:44:31'),
+(112, 148, 1, NULL, 1, 0, '2026-01-21 01:29:39', '2026-01-21 01:29:39'),
+(113, 149, 1, NULL, 1, 0, '2026-01-21 01:29:46', '2026-01-21 01:29:46'),
+(114, 150, 1, NULL, 1, 0, '2026-01-21 01:29:51', '2026-01-21 01:29:51'),
+(115, 151, 1, NULL, 1, 0, '2026-01-21 01:30:00', '2026-01-21 01:30:00'),
+(116, 152, 1, NULL, 1, 0, '2026-01-21 01:30:07', '2026-01-21 01:30:07');
 
 -- --------------------------------------------------------
 
@@ -876,6 +1186,37 @@ INSERT INTO `lead_tags` (`id`, `name`, `slug`, `color`, `is_active`, `created_at
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `legal_pages`
+--
+
+CREATE TABLE `legal_pages` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `terms_conditions` text DEFAULT NULL,
+  `terms_conditions_status` tinyint(1) NOT NULL DEFAULT 1,
+  `shipping` text DEFAULT NULL,
+  `shipping_status` tinyint(1) NOT NULL DEFAULT 1,
+  `cancellation_refund` text DEFAULT NULL,
+  `cancellation_refund_status` tinyint(1) NOT NULL DEFAULT 1,
+  `return_refund_policy` text DEFAULT NULL,
+  `return_refund_policy_status` tinyint(1) NOT NULL DEFAULT 1,
+  `privacy_policy` text DEFAULT NULL,
+  `privacy_policy_status` tinyint(1) NOT NULL DEFAULT 1,
+  `disclaimer` text DEFAULT NULL,
+  `disclaimer_status` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `legal_pages`
+--
+
+INSERT INTO `legal_pages` (`id`, `terms_conditions`, `terms_conditions_status`, `shipping`, `shipping_status`, `cancellation_refund`, `cancellation_refund_status`, `return_refund_policy`, `return_refund_policy_status`, `privacy_policy`, `privacy_policy_status`, `disclaimer`, `disclaimer_status`, `created_at`, `updated_at`) VALUES
+(1, NULL, 1, NULL, 1, NULL, 1, NULL, 1, NULL, 1, NULL, 1, '2026-01-21 06:53:06', '2026-01-21 06:53:06');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `migrations`
 --
 
@@ -994,7 +1335,14 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (104, '2026_01_05_075728_add_razorpay_fields_to_orders_table', 71),
 (105, '2026_01_07_092809_create_reviews_table', 72),
 (106, '2026_01_07_093801_change_reviews_to_product_specific', 73),
-(107, '2026_01_08_045652_add_tax_and_discount_percentage_to_order_items_table', 74);
+(107, '2026_01_08_045652_add_tax_and_discount_percentage_to_order_items_table', 74),
+(108, '2026_01_21_112301_create_about_us_table', 75),
+(109, '2026_01_21_112801_create_legal_pages_table', 76),
+(110, '2026_01_21_121028_create_blogs_table', 77),
+(111, '2026_01_21_123404_add_contact_fields_to_company_settings_table', 78),
+(112, '2026_01_21_123815_create_faqs_table', 79),
+(113, '2026_01_23_080236_create_customer_otps_table', 80),
+(114, '2026_01_23_095311_create_integrations_table', 81);
 
 -- --------------------------------------------------------
 
@@ -1035,7 +1383,10 @@ CREATE TABLE `orders` (
 
 INSERT INTO `orders` (`id`, `order_number`, `source`, `customer_id`, `status`, `subtotal`, `tax_amount`, `shipping_amount`, `discount_amount`, `total_amount`, `payment_method`, `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`, `payment_status`, `notes`, `shipping_address`, `billing_address`, `billing_same_as_shipping`, `shipping_address_id`, `billing_address_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'ORD-696295C731780', 'frontend', 15, 'pending', 509.76, 0.00, 0.00, 0.00, 509.76, 'cash_on_delivery', NULL, NULL, NULL, 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-10T18:09:11.200271Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-10T18:09:11.200271Z\"}', 1, 16, 16, '2026-01-10 12:39:11', '2026-01-10 12:39:11', NULL),
-(2, 'ORD-6963DF78142F2', 'frontend', 15, 'pending', 509.76, 0.00, 0.00, 10.00, 499.76, 'cash_on_delivery', NULL, NULL, NULL, 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-11T17:35:52.079449Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-11T17:35:52.079449Z\"}', 1, 16, 16, '2026-01-11 12:05:52', '2026-01-11 12:05:52', NULL);
+(2, 'ORD-6963DF78142F2', 'frontend', 15, 'pending', 509.76, 0.00, 0.00, 10.00, 499.76, 'cash_on_delivery', NULL, NULL, NULL, 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-11T17:35:52.079449Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-11T17:35:52.079449Z\"}', 1, 16, 16, '2026-01-11 12:05:52', '2026-01-11 12:05:52', NULL),
+(3, 'ORD-6965D6DA8D595', 'frontend', 15, 'pending', 509.76, 0.00, 0.00, 0.00, 509.76, 'cash_on_delivery', NULL, NULL, NULL, 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-13T05:23:38.573719Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-13T05:23:38.573719Z\"}', 1, 16, 16, '2026-01-12 23:53:38', '2026-01-12 23:53:38', NULL),
+(4, 'ORD-6965D893334D7', 'frontend', 15, 'pending', 1529.28, 0.00, 0.00, 0.00, 1529.28, 'cash_on_delivery', NULL, NULL, NULL, 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-13T05:30:59.207372Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"450 nada sahib\",\"address_line2\":\"nada sahib\",\"landmark\":\"morni t point\",\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-13T05:30:59.207372Z\"}', 1, 16, 16, '2026-01-13 00:00:59', '2026-01-13 00:00:59', NULL),
+(5, 'ORD-6970B54385E80', 'frontend', 18, 'pending', 2160.00, 0.00, 0.00, 0.00, 2160.00, 'cash_on_delivery', NULL, NULL, NULL, 'pending', NULL, '{\"address_type\":\"home\",\"address_line1\":\"234 nada sahib\",\"address_line2\":null,\"landmark\":null,\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-21T11:15:15.546243Z\"}', '{\"address_type\":\"home\",\"address_line1\":\"234 nada sahib\",\"address_line2\":null,\"landmark\":null,\"country\":\"India\",\"state\":\"Haryana\",\"city\":\"Panchkula\",\"pincode\":\"134109\",\"delivery_instructions\":null,\"created_at\":\"2026-01-21T11:15:15.546243Z\"}', 1, 23, 23, '2026-01-21 05:45:15', '2026-01-21 05:45:15', NULL);
 
 -- --------------------------------------------------------
 
@@ -1076,7 +1427,11 @@ CREATE TABLE `order_items` (
 
 INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `product_variant_id`, `warehouse_id`, `warehouse_location_id`, `product_name`, `product_sku`, `variant_name`, `variant_sku`, `quantity`, `unit_price`, `total_price`, `original_variant_price`, `variant_sale_price`, `discount_type`, `discount_value`, `discount_percentage`, `discount_active`, `tax_type`, `tax_value`, `tax_percentage`, `created_at`, `updated_at`) VALUES
 (1, 1, 8, 57, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-1-GRE-UK6', 'Grey - Size: uk6', 'CASUALCANV-1-GRE-UK6', 1, 566.40, 566.40, '500.00', '480.00', 'percentage', 10.00, 10.00, 1, 0, 77.76, 18.00, '2026-01-10 12:39:11', '2026-01-10 12:39:11'),
-(2, 2, 8, 57, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-1-GRE-UK6', 'Grey - Size: uk6', 'CASUALCANV-1-GRE-UK6', 1, 566.40, 566.40, '500.00', '480.00', 'percentage', 10.00, 10.00, 1, 0, 77.76, 18.00, '2026-01-11 12:05:52', '2026-01-11 12:05:52');
+(2, 2, 8, 57, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-1-GRE-UK6', 'Grey - Size: uk6', 'CASUALCANV-1-GRE-UK6', 1, 566.40, 566.40, '500.00', '480.00', 'percentage', 10.00, 10.00, 1, 0, 77.76, 18.00, '2026-01-11 12:05:52', '2026-01-11 12:05:52'),
+(3, 3, 8, 58, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-2-GRE-UK7', 'Grey - Size: uk7', 'CASUALCANV-2-GRE-UK7', 1, 566.40, 566.40, '500.00', '480.00', 'percentage', 10.00, 10.00, 1, 0, 77.76, 18.00, '2026-01-12 23:53:38', '2026-01-12 23:53:38'),
+(4, 4, 8, 57, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-1-GRE-UK6', 'Grey - Size: uk6', 'CASUALCANV-1-GRE-UK6', 3, 566.40, 1699.20, '500.00', '480.00', 'percentage', 10.00, 10.00, 1, 0, 77.76, 18.00, '2026-01-13 00:00:59', '2026-01-13 00:00:59'),
+(5, 5, 8, 57, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-1-GRE-UK6', 'Grey - Size: uk6', 'CASUALCANV-1-GRE-UK6', 4, 480.00, 1920.00, '500.00', '480.00', 'percentage', 10.00, 10.00, 1, 1, 65.90, 18.00, '2026-01-21 05:45:15', '2026-01-21 05:45:15'),
+(6, 5, 8, 58, NULL, NULL, 'Casual Canvas Sneakers', 'CASUALCANV-2-GRE-UK7', 'Grey - Size: uk7', 'CASUALCANV-2-GRE-UK7', 1, 480.00, 480.00, '500.00', '480.00', 'percentage', 10.00, 10.00, 1, 1, 65.90, 18.00, '2026-01-21 05:45:15', '2026-01-21 05:45:15');
 
 -- --------------------------------------------------------
 
@@ -1358,8 +1713,8 @@ CREATE TABLE `products` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
-  `gst_type` tinyint(1) DEFAULT 1 COMMENT 'true = Inclusive of GST, false = Exclusive of GST',
-  `gst_percentage` decimal(5,2) DEFAULT NULL COMMENT 'GST percentage value (e.g., 3, 5, 12, 18, 28)'
+  `gst_type` tinyint(1) DEFAULT 1 COMMENT '1 = Inclusive, 0 = Exclusive',
+  `gst_percentage` decimal(5,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1367,20 +1722,44 @@ CREATE TABLE `products` (
 --
 
 INSERT INTO `products` (`id`, `name`, `slug`, `short_description`, `category_id`, `default_warehouse_id`, `brand_id`, `unit_id`, `unit_quantity`, `unit_display`, `origin_country`, `is_perishable`, `requires_prescription`, `is_hazardous`, `requires_shipping`, `free_shipping`, `meta_title`, `meta_description`, `meta_keywords`, `metadata`, `tags`, `status`, `published_at`, `featured`, `created_at`, `updated_at`, `deleted_at`, `gst_type`, `gst_percentage`) VALUES
-(1, 'Cotton Casual T-Shirt', 'cotton-casual-t-shirt', 'Premium quality cotton t-shirt for everyday comfort', NULL, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 0, '2026-01-02 23:56:27', '2026-01-06 04:24:51', NULL, 1, 18.00),
-(2, 'Denim Slim Fit Jeans', 'denim-slim-fit-jeans', 'Stylish slim fit denim jeans for modern look', 58, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'denim casual trendy', 'published', NULL, 1, '2026-01-02 23:56:27', '2026-01-04 09:28:00', NULL, 1, 18.00),
-(3, 'Formal Cotton Shirt', 'formal-cotton-shirt', 'Professional cotton shirt for office wear', 50, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'formal office professional cotton', 'published', NULL, 0, '2026-01-02 23:56:28', '2026-01-04 09:28:00', NULL, 1, 18.00),
-(4, 'Designer Silk Saree', 'designer-silk-saree', 'Elegant silk saree with traditional patterns', 25, NULL, 20, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'silk traditional ethnic elegant', 'published', NULL, 1, '2026-01-02 23:56:28', '2026-01-04 09:28:00', NULL, 1, 5.00),
-(5, 'Sports Running Shoes', 'sports-running-shoes', 'Lightweight running shoes for athletes', 7, NULL, 25, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 'sports running athletic comfortable, best for track and field', 'published', NULL, 1, '2026-01-02 23:56:28', '2026-01-07 02:29:28', NULL, 1, 18.00),
-(6, 'Gold Plated Necklace', 'gold-plated-necklace', 'Beautiful gold plated necklace for special occasions', 36, NULL, 21, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'gold jewelry necklace elegant', 'published', NULL, 1, '2026-01-02 23:56:28', '2026-01-04 09:28:00', NULL, 1, 3.00),
-(7, 'Winter Wool Sweater', 'winter-wool-sweater', 'Warm wool sweater for cold weather', 15, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'wool warm winter cozy', 'published', NULL, 0, '2026-01-02 23:56:28', '2026-01-04 09:28:00', NULL, 1, 18.00),
-(8, 'Casual Canvas Sneakers', 'casual-canvas-sneakers', 'Comfortable canvas sneakers for daily wear', 8, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 'casual canvas comfortable trendy', 'published', NULL, 1, '2026-01-02 23:56:28', '2026-01-08 03:39:01', NULL, 0, 18.00),
-(9, 'Silver Bracelet Set', 'silver-bracelet-set', 'Elegant silver bracelet set with charms', 36, NULL, 21, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'silver jewelry bracelet set', 'published', NULL, 1, '2026-01-02 23:56:28', '2026-01-04 09:28:01', NULL, 1, 3.00),
-(10, 'Party Wear Dress', 'party-wear-dress', 'Stunning party dress for special events', 60, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'party elegant stylish', 'published', NULL, 1, '2026-01-02 23:56:28', '2026-01-04 09:28:01', NULL, 1, 18.00),
-(11, 'Leather Handbag', 'leather-handbag', 'Premium leather handbag for women', NULL, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 0, '2026-01-02 23:56:28', '2026-01-04 09:28:26', NULL, 1, 18.00),
-(12, 'Diamond Stud Earrings', 'diamond-stud-earrings', 'Sparkling diamond stud earrings', NULL, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 0, '2026-01-02 23:56:28', '2026-01-04 09:28:26', NULL, 1, 3.00),
-(13, 'Winter Jacket', 'winter-jacket', 'Warm winter jacket with hood', 15, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'winter warm jacket hood', 'published', NULL, 0, '2026-01-02 23:56:28', '2026-01-04 09:28:01', NULL, 1, 18.00),
-(14, 'Sports Water Bottle', 'sports-water-bottle', 'Insulated sports water bottle', 5, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'sports bottle insulated', 'published', NULL, 0, '2026-01-02 23:56:28', '2026-01-04 09:28:01', NULL, 1, 18.00);
+(1, 'Cotton Casual T-Shirt', 'cotton-casual-t-shirt', 'Premium quality cotton t-shirt for everyday comfort', 47, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'casual cotton comfortable unisex', 'published', NULL, 1, '2026-01-02 18:26:27', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(2, 'Denim Slim Fit Jeans', 'denim-slim-fit-jeans', 'Stylish slim fit denim jeans for modern look', 58, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'denim casual trendy', 'published', NULL, 1, '2026-01-02 18:26:27', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(3, 'Formal Cotton Shirt', 'formal-cotton-shirt', 'Professional cotton shirt for office wear', 50, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'formal office professional cotton', 'published', NULL, 0, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(4, 'Designer Silk Saree', 'designer-silk-saree', 'Elegant silk saree with traditional patterns', 25, NULL, 20, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'silk traditional ethnic elegant', 'published', NULL, 1, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 5.00),
+(5, 'Sports Running Shoes', 'sports-running-shoes', 'Lightweight running shoes for athletes', 32, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'sports running athletic comfortable', 'published', NULL, 1, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(6, 'Gold Plated Necklace', 'gold-plated-necklace', 'Beautiful gold plated necklace for special occasions', 36, NULL, 21, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'gold jewelry necklace elegant', 'published', NULL, 1, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 3.00),
+(7, 'Winter Wool Sweater', 'winter-wool-sweater', 'Warm wool sweater for cold weather', 15, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'wool warm winter cozy', 'published', NULL, 0, '2026-01-02 18:26:28', '2026-01-07 00:57:01', NULL, 1, 18.00),
+(8, 'Casual Canvas Sneakers', 'casual-canvas-sneakers', 'Comfortable canvas sneakers for daily wear', 32, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'casual canvas comfortable trendy', 'published', NULL, 1, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(9, 'Silver Bracelet Set', 'silver-bracelet-set', 'Elegant silver bracelet set with charms', 36, NULL, 21, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'silver jewelry bracelet set', 'published', NULL, 1, '2026-01-02 18:26:28', '2026-01-07 00:57:01', NULL, 1, 3.00),
+(10, 'Party Wear Dress', 'party-wear-dress', 'Stunning party dress for special events', 60, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'party elegant stylish', 'published', NULL, 1, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(11, 'Leather Handbag', 'leather-handbag', 'Premium leather handbag for women', 5, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'leather handbag women premium', 'published', NULL, 1, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(12, 'Diamond Stud Earrings', 'diamond-stud-earrings', 'Sparkling diamond stud earrings', 36, NULL, 21, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'diamond earrings luxury premium', 'published', NULL, 1, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 3.00),
+(13, 'Winter Jacket', 'winter-jacket', 'Warm winter jacket with hood', 15, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'winter warm jacket hood', 'published', NULL, 0, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(14, 'Sports Water Bottle', 'sports-water-bottle', 'Insulated sports water bottle', 5, NULL, 22, NULL, NULL, NULL, NULL, 0, 0, 0, 1, 0, NULL, NULL, NULL, NULL, 'sports bottle insulated', 'published', NULL, 0, '2026-01-02 18:26:28', '2026-01-14 08:28:55', NULL, 1, 18.00),
+(15, 'men\'s wear Hoodie', 'mens-wear-hoodie', '<p>sophisticated piece combines comfort, style, and versatility to elevate any wardrobe.\r\nCrafted with precision and attention to detail, our velvet men\'s wear hoodie is designed to exude elegance and sophistication. The rich olive color adds a touch of uniqueness and charm, making it a standout piece in any ensemble. Whether worn casually with a pair of jeans or dressed up with tailored pants, this hoodie is the perfect blend of fashion and function.\r\n\r\nOur manufacturing process ensures the highest quality standards, with a focus on durability and comfort. The soft velvet material feels luxurious against the skin, providing warmth and coziness during colder months. The hoodie is expertly tailored to provide a comfortable fit while maintaining a sleek and modern silhouette.\r\n\r\nWith Lomoofy Industries\' commitment to excellence and innovation, our velvet men\'s wear olive color hoodie is a symbol of timeless style and superior craftsmanship. Embrace sophistication and elevate your wardrobe with this versatile and stylish piece.<br /></p>', 52, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-10 08:49:56', '2026-01-10 08:52:53', NULL, 1, 5.00),
+(16, 'MEN\'S WINTER WEAR FLEECE JACKET', 'mens-winter-wear-fleece-jacket', '<p>\r\n\r\n<div class=\"ResultTextInputArea-inputClassName-0-2-156 ResultTextInputArea-maxHeight-0-2-157\" contenteditable=\"false\" style=\" color: rgb(8, 8, 8); width: 611.6px; resize: none; outline: none; font-size: 14px; overflow: hidden auto; font-weight: 600; line-height: 20px; border-radius: 8px; max-height: 256px; font-family: Picsart-Fonts, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, Oxygen-Sans, Ubuntu, Cantarell, &quot;Helvetica Neue&quot;, Helvetica, Arabic, sans-serif\"><p>Stay warm and stylish this winter with the FLEECE JACKET from LOMOOFY INDUSTRIES. This MEN\'S WEAR is designed for winter casual wear, providing a comfortable fit for all-day wear. The warm zipper closure ensures that you stay cozy in chilly temperatures while still looking your best. Upgrade your winter wardrobe with this versatile and practical fleece jacket that combines functionality with style. Whether you\'re running errands or enjoying a weekend getaway, this jacket is the perfect choice to keep you comfortable and on-trend.</p></div><div class=\"Result-buttonsAndCount-0-2-150\" style=\"margin: 12px 0px 0px; gap: 12px; display: flex; flex-wrap: wrap; align-items: center; border-radius: 12px; font-family: Picsart-Fonts, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, Oxygen-Sans, Ubuntu, Cantarell, &quot;Helvetica Neue&quot;, Helvetica, Arabic, sans-serif; font-size: 16px; font-weight: 500\"><br class=\"Apple-interchange-newline\" />\r\n</div><br /></p>', 55, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 0, '2026-01-11 02:49:58', '2026-01-22 00:35:04', '2026-01-22 00:35:04', 0, 5.00),
+(17, 'unisex half sleeve jacket', 'unisex-half-sleeve-jacket', '<p>\r\n\r\n<span style=\"color: rgb(8, 8, 8); font-family: Picsart-Fonts, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, Oxygen-Sans, Ubuntu, Cantarell, &quot;Helvetica Neue&quot;, Helvetica, Arabic, sans-serif; font-size: 14px; font-weight: 600; background-color: rgb(255, 255, 255)\">Introducing Lomoofy Industries\' latest addition to its winter wear collection - the Half Sleeve Fleece Unisex Hoodie! Stay warm and stylish with this versatile hoodie, perfect for those chilly days and nights. Made with high-quality fleece material, this hoodie is designed for both comfort and durability. Its half sleeves make it ideal for layering, while the unisex design ensures a perfect fit for all. Whether you\'re out for a casual stroll or lounging at home, this hoodie is a must-have in every wardrobe. Embrace the cold weather in style with Lomoofy Industries\' Half Sleeve Fleece Unisex Hoodie!</span>\r\n<br /></p>', 56, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-11 03:48:56', '2026-01-11 03:48:56', NULL, 0, 5.00),
+(18, 'WOMEN TRACK SUIT', 'women-track-suit', '<p>\r\n\r\n<span style=\"color: rgb(8, 8, 8); font-family: Picsart-Fonts, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, Oxygen-Sans, Ubuntu, Cantarell, &quot;Helvetica Neue&quot;, Helvetica, Arabic, sans-serif; font-size: 14px; font-weight: 600; background-color: rgb(255, 255, 255)\">Introducing the Cotton Fleece Track Suit by Lomoofy Industries, a premium women\'s wear suitable for winter wear. Stay warm and stylish with this cozy track suit, perfect for cold weather activities or casual outings. Made from high-quality cotton fleece material, this track suit offers both comfort and durability. Whether you\'re hitting the gym or running errands, this track suit provides the perfect blend of functionality and fashion. Elevate your winter wardrobe with the Cotton Fleece Track Suit by Lomoofy Industries.</span>\r\n<br /></p>', 81, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-11 04:38:06', '2026-01-11 04:38:06', NULL, 0, 5.00),
+(19, 'Mustrad track suit', 'mustrad-track-suit', '<p>\r\n\r\n<p>Discover the luxurious Cotton Fleece Track Suit from Lomoofy Industries, an upscale women\'s fashion choice for chilly seasons. Embrace both warmth and sophistication in this snug track suit, ideal for outdoor adventures or laid-back outings. Crafted from top-notch cotton fleece fabric, this garment guarantees comfort and longevity. Whether you\'re exercising or simply running errands, this track suit promises the ultimate combination of practicality and style. Enhance your winter closet with the Cotton Fleece Track Suit from Lomoofy Industries.</p><br /></p>', 81, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-11 04:56:01', '2026-01-11 05:08:23', NULL, 0, 5.00),
+(20, 'HOODIE', 'hoodie', '<p>Designed for long-lasting durability, this hoodie comes with strong stitching and color-fade resistant fabric. Easy to wash and maintain, it is an ideal choice for all-season wear, especially during mild winters and cool evenings. Pair it effortlessly with jeans, joggers, or track pants for a relaxed and trendy look.<br /></p>', 61, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-14 07:13:29', '2026-01-15 01:46:14', NULL, 1, NULL),
+(21, 'T-SHIRT', 't-shirt', '<p>Soft, breathable, and made for everyday comfort. This classic T-shirt features a clean design with a modern fit, perfect for casual wear or layering. Durable fabric ensures long-lasting wear while keeping you comfortable all day.<br /></p>', 17, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-14 23:28:50', '2026-01-15 03:21:02', NULL, 1, 5.00),
+(22, 'JACKET', 'jacket', '<p></p>\r\nStylish boys’ bomber jacket made with lightweight, durable fabric. Features a full front zipper, ribbed collar, cuffs, and hem with contrast stripe detailing. Designed for a comfortable fit and everyday wear, perfect for casual outings and seasonal layering.', 61, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-15 04:50:57', '2026-01-15 04:50:57', NULL, 1, NULL),
+(24, 'JACKET', 'jacketm07', '<p>Stylish boys’ jacket made from lightweight, durable fabric with a clean, modern look. Features a front zip closure, comfortable fit, and a sleek design ideal for everyday wear and casual outings.<br /></p>', 55, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-15 06:04:43', '2026-01-15 06:04:43', NULL, 1, NULL),
+(25, 'HOODIE', 'hoodiem1', '<p>A young couple stands outdoors wearing matching navy blue hoodies&nbsp; Both hoodies have white drawstrings and a small “Lonely” text on the chest, giving a clean, casual, and coordinated look with a calm, stylish vibe.<br /></p>', 52, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-16 05:50:15', '2026-01-16 06:36:22', NULL, 1, NULL),
+(26, 'SHORTS MEN\"S', 'shorts-mens', '<p>Men’s black athletic shorts featuring a bright neon green elastic waistband and matching side stripes. Designed with an adjustable drawstring, side pockets, and a small logo print, these shorts offer a sporty, modern look ideal for workouts, running, or casual wear.<br /></p>', 48, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-16 08:16:30', '2026-01-16 08:16:30', NULL, 1, NULL),
+(27, 'SHIRT FOR MEN\'S', 'shirt-for-mens', '<p>Men’s black and white checkered casual shirt with a classic button-down front and chest pocket. Designed in a regular fit, this long-sleeve shirt offers a clean, stylish look ideal for everyday wear, casual outings, or smart-casual styling.<br /></p>', 49, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-16 08:46:15', '2026-01-16 08:46:15', NULL, 1, NULL),
+(28, 'TRACKSUIT', 'tracksuit', '<p>A woman wearing a cozy pink and mauve two-piece lounge set, featuring a hooded sweatshirt with drawstrings and matching jogger pants. The outfit has a soft, casual look, and she’s posing relaxed with one hand in her pocket against a clean white background.<br /></p>', 81, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-17 06:27:41', '2026-01-17 06:27:41', NULL, 1, NULL),
+(29, 'JACKET', 'jackets1', '<p>A lightweight gray zip-up jacket with a sleek, sporty design, featuring a stand collar, black contrast side panels, and secure zip pockets. Ideal for casual wear and light outdoor activities.<br /></p>', 55, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-17 07:13:20', '2026-01-17 07:13:20', NULL, 1, NULL),
+(30, 'HOODIE', 'hoodiem4', '<p>A casual mustard-yellow hoodie with a relaxed fit, featuring an adjustable drawstring hood and a clean, minimalist design. Comfortable and versatile, perfect for everyday wear.<br /></p>', 61, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-17 07:23:12', '2026-01-17 07:23:12', NULL, 1, NULL),
+(31, 'SWEATSHIRT', 'sweatshirt', '<p>A soft pink sweatshirt with a stylish navy V-shaped color-block design, featuring a relaxed fit and a front kangaroo pocket. Comfortable and modern, perfect for casual everyday wear.<br /></p>', 21, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-17 07:30:15', '2026-01-17 07:30:15', NULL, 1, NULL),
+(32, 'HOODIE', 'hoodie1', '<p>A cozy heathered red hoodie with a relaxed fit, featuring an adjustable drawstring hood and a front kangaroo pocket. Soft, comfortable, and perfect for casual everyday wear.<br /></p>', 61, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-17 07:37:37', '2026-01-17 07:37:37', NULL, 1, NULL),
+(33, 'JACKET', 'jacket4', '<p>A stylish blue zip-up jacket with a sporty silhouette, featuring white contrast panels, a stand collar, and elasticated cuffs and hem. Lightweight and comfortable, ideal for casual wear and everyday outings.<br /></p>', 15, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-17 07:44:02', '2026-01-17 07:44:02', NULL, 1, NULL),
+(34, 'MEN\"S SHORTS', 'mens-shorts', '<p>Black sports shorts with neon green side panels, elastic waistband, and white drawstring, designed for comfort and active wear.<br /></p>', 48, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-17 22:52:25', '2026-01-17 22:52:25', NULL, 1, NULL),
+(35, 'MEN\"S SHORTS', 'mens-shorts5', '<p>Navy blue sports shorts with white side panels, elastic waistband, and a back pocket, designed for a comfortable and athletic fit.<br /></p>', 48, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-17 23:14:28', '2026-01-17 23:14:28', NULL, 1, NULL),
+(36, 'Men\'s Jacket', 'mens-jacket', '<p>A young man with tousled dark hair and a relaxed expression stands outdoors, wearing a brown varsity jacket with yellow patches over a black T-shirt and blue jeans, hands in his pockets, giving off a casual, confident vibe.<br /></p>', 55, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-19 23:25:23', '2026-01-22 00:32:24', NULL, 1, NULL),
+(37, 'MEN\'S T-SHIRT\'', 't-shirts2', '<p>Premium graphic T-shirt crafted from soft, breathable cotton for all-day comfort. Features a bold statement print with a distressed, street-inspired finish that adds attitude and edge. Designed with a relaxed modern fit, it’s a standout piece for confident casual and urban wear.<br /></p>', 17, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-20 08:21:59', '2026-01-20 08:21:59', NULL, 1, NULL),
+(38, 'GIRL\'S HOODIE', 'girls-hoodie', '<p>Premium hoodie crafted from soft, cozy fabric for superior comfort and everyday wear. Designed with a classic pullover silhouette, adjustable lace-up neckline, and a relaxed fit for effortless style. Finished with subtle detailing and a front kangaroo pocket, making it perfect for casual, street, and laid-back looks.<br /></p>', 61, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-20 08:28:23', '2026-01-20 08:28:23', NULL, 1, NULL),
+(39, 'HOODIE', 'hoodie2', '<p>Premium pullover hoodie made from soft, warm fabric for everyday comfort. Features a clean, minimal design with an adjustable drawstring hood, relaxed fit, and front kangaroo pocket. Perfect for casual wear with a modern, effortless look.<br /></p>', 61, NULL, 28, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 'published', NULL, 1, '2026-01-20 08:39:47', '2026-01-20 08:39:47', NULL, 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -1407,11 +1786,11 @@ CREATE TABLE `product_attributes` (
 --
 
 INSERT INTO `product_attributes` (`id`, `name`, `slug`, `description`, `type`, `is_required`, `is_variation`, `is_visible`, `sort_order`, `created_at`, `updated_at`) VALUES
-(5, 'size', 'size', NULL, 'text', 1, 1, 1, 1, '2025-12-02 03:44:22', '2025-12-02 03:44:22'),
-(6, 'color', 'color', NULL, 'color', 1, 1, 1, 2, '2025-12-02 03:44:38', '2025-12-02 03:44:38'),
-(12, 'fabric', 'fabric', NULL, 'text', 0, 0, 1, 3, '2025-12-19 03:27:02', '2025-12-19 03:27:02'),
-(14, 'weight', 'weight', NULL, 'text', 0, 0, 1, 4, '2025-12-23 02:21:11', '2025-12-23 06:56:00'),
-(16, 'Format', 'format', NULL, 'text', 0, 0, 1, 5, '2025-12-23 03:21:31', '2025-12-23 06:56:11');
+(5, 'size', 'size', NULL, 'text', 1, 1, 1, 1, '2025-12-01 22:14:22', '2025-12-01 22:14:22'),
+(6, 'color', 'color', NULL, 'color', 1, 1, 1, 2, '2025-12-01 22:14:38', '2025-12-01 22:14:38'),
+(12, 'fabric', 'fabric', NULL, 'text', 0, 0, 1, 3, '2025-12-18 21:57:02', '2025-12-18 21:57:02'),
+(14, 'weight', 'weight', NULL, 'text', 0, 0, 1, 4, '2025-12-22 20:51:11', '2025-12-23 01:26:00'),
+(16, 'format', 'format', NULL, 'text', 0, 0, 1, 5, '2025-12-22 21:51:31', '2025-12-23 01:26:11');
 
 -- --------------------------------------------------------
 
@@ -1435,28 +1814,28 @@ CREATE TABLE `product_attribute_values` (
 --
 
 INSERT INTO `product_attribute_values` (`id`, `attribute_id`, `value`, `color_code`, `image_path`, `sort_order`, `created_at`, `updated_at`) VALUES
-(18, 5, 's', NULL, NULL, 1, '2025-12-02 03:44:50', '2025-12-02 03:44:50'),
-(19, 5, 'M', NULL, NULL, 2, '2025-12-02 03:44:56', '2025-12-02 03:45:07'),
-(20, 5, 'L', NULL, NULL, 3, '2025-12-02 03:45:08', '2025-12-02 03:45:08'),
-(21, 5, 'XL', NULL, NULL, 4, '2025-12-02 03:45:23', '2025-12-02 03:45:23'),
-(22, 5, 'XXL', NULL, NULL, 5, '2025-12-02 03:45:36', '2025-12-02 03:45:36'),
-(23, 6, 'Grey', '#c0c0c0', NULL, 1, '2025-12-02 03:47:20', '2025-12-02 03:47:20'),
-(24, 6, 'Navy', '#004080', NULL, 2, '2025-12-02 03:57:10', '2025-12-02 03:57:10'),
-(25, 6, 'Olive', '#808040', NULL, 3, '2025-12-02 03:57:23', '2025-12-02 03:57:23'),
-(26, 6, 'Aqua', '#03d0fc', NULL, 4, '2025-12-02 03:57:46', '2025-12-02 03:57:46'),
-(27, 6, 'Orange', '#FF9800', NULL, 5, '2025-12-02 04:57:16', '2025-12-02 04:57:16'),
-(45, 6, 'Multicolor', '#C26464', NULL, 6, '2025-12-18 05:37:25', '2025-12-18 05:44:46'),
-(50, 5, 'xxxl', NULL, NULL, 6, '2025-12-18 05:47:10', '2025-12-18 05:47:10'),
-(53, 12, 'test', NULL, NULL, 1, '2025-12-19 03:27:09', '2025-12-19 03:27:09'),
-(70, 14, '500 g', NULL, NULL, 1, '2025-12-23 02:23:27', '2025-12-23 03:34:41'),
-(71, 14, '1 kg', NULL, NULL, 2, '2025-12-23 02:23:31', '2025-12-23 03:34:44'),
-(80, 14, '2 kg', NULL, NULL, 3, '2025-12-23 03:34:48', '2025-12-23 03:34:48'),
-(81, 14, '4 kg', NULL, NULL, 4, '2025-12-23 03:34:52', '2025-12-23 03:34:52'),
-(82, 14, '8 kg', NULL, NULL, 5, '2025-12-23 03:34:57', '2025-12-23 03:34:57'),
-(83, 14, '100 gm', NULL, NULL, 6, '2025-12-23 03:36:16', '2025-12-23 03:36:22'),
-(84, 14, '50 gm', NULL, NULL, 7, '2025-12-23 03:36:29', '2025-12-23 03:36:29'),
-(88, 14, '5 kg', NULL, NULL, 8, '2025-12-23 05:07:56', '2025-12-23 05:07:56'),
-(89, 5, 'uk8', NULL, NULL, 7, '2026-01-04 12:14:16', '2026-01-04 12:14:16');
+(18, 5, 's', NULL, NULL, 1, '2025-12-01 22:14:50', '2025-12-01 22:14:50'),
+(19, 5, 'M', NULL, NULL, 2, '2025-12-01 22:14:56', '2025-12-01 22:15:07'),
+(20, 5, 'L', NULL, NULL, 3, '2025-12-01 22:15:08', '2025-12-01 22:15:08'),
+(21, 5, 'XL', NULL, NULL, 4, '2025-12-01 22:15:23', '2025-12-01 22:15:23'),
+(22, 5, 'XXL', NULL, NULL, 5, '2025-12-01 22:15:36', '2025-12-01 22:15:36'),
+(23, 6, 'Grey', '#c0c0c0', NULL, 1, '2025-12-01 22:17:20', '2025-12-01 22:17:20'),
+(24, 6, 'Navy', '#004080', NULL, 2, '2025-12-01 22:27:10', '2025-12-01 22:27:10'),
+(25, 6, 'Olive', '#808040', NULL, 3, '2025-12-01 22:27:23', '2025-12-01 22:27:23'),
+(26, 6, 'Aqua', '#03d0fc', NULL, 4, '2025-12-01 22:27:46', '2025-12-01 22:27:46'),
+(27, 6, 'Orange', '#FF9800', NULL, 5, '2025-12-01 23:27:16', '2025-12-01 23:27:16'),
+(45, 6, 'Multicolor', '#C26464', NULL, 6, '2025-12-18 00:07:25', '2025-12-18 00:14:46'),
+(50, 5, 'xxxl', NULL, NULL, 6, '2025-12-18 00:17:10', '2025-12-18 00:17:10'),
+(53, 12, 'test', NULL, NULL, 1, '2025-12-18 21:57:09', '2025-12-18 21:57:09'),
+(70, 14, '500 g', NULL, NULL, 1, '2025-12-22 20:53:27', '2025-12-22 22:04:41'),
+(71, 14, '1 kg', NULL, NULL, 2, '2025-12-22 20:53:31', '2025-12-22 22:04:44'),
+(80, 14, '2 kg', NULL, NULL, 3, '2025-12-22 22:04:48', '2025-12-22 22:04:48'),
+(81, 14, '4 kg', NULL, NULL, 4, '2025-12-22 22:04:52', '2025-12-22 22:04:52'),
+(82, 14, '8 kg', NULL, NULL, 5, '2025-12-22 22:04:57', '2025-12-22 22:04:57'),
+(83, 14, '100 gm', NULL, NULL, 6, '2025-12-22 22:06:16', '2025-12-22 22:06:22'),
+(84, 14, '50 gm', NULL, NULL, 7, '2025-12-22 22:06:29', '2025-12-22 22:06:29'),
+(88, 14, '5 kg', NULL, NULL, 8, '2025-12-22 23:37:56', '2025-12-22 23:37:56'),
+(89, 5, 'uk8', NULL, NULL, 7, '2026-01-04 06:44:16', '2026-01-04 06:44:16');
 
 -- --------------------------------------------------------
 
@@ -1492,64 +1871,77 @@ CREATE TABLE `product_categories` (
 --
 
 INSERT INTO `product_categories` (`id`, `product_id`, `category_id`, `is_primary`, `created_at`, `updated_at`) VALUES
-(3, 2, 1, 1, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(4, 2, 3, 1, '2025-11-10 06:59:41', '2025-11-27 02:22:12'),
-(6, 3, 5, 1, '2025-11-10 06:59:41', '2026-01-02 23:58:13'),
-(7, 4, 4, 1, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(8, 4, 6, 0, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(10, 5, 7, 1, '2025-11-10 06:59:41', '2026-01-07 02:29:29'),
-(11, 6, 8, 1, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(12, 6, 9, 0, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(13, 7, 8, 1, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(14, 7, 9, 0, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(15, 8, 8, 1, '2025-11-10 06:59:41', '2026-01-08 03:39:01'),
-(17, 9, 12, 1, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(18, 9, 13, 0, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(19, 10, 12, 1, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(20, 10, 14, 0, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(21, 11, 15, 1, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(22, 11, 16, 0, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(23, 12, 15, 1, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(24, 12, 16, 0, '2025-11-10 06:59:41', '2025-11-10 06:59:41'),
-(25, 28, 1, 1, '2025-11-11 05:12:48', '2025-11-14 23:06:45'),
-(37, 28, 4, 0, '2025-11-11 07:11:20', '2025-11-14 23:06:45'),
-(38, 28, 8, 0, '2025-11-11 07:11:20', '2025-11-14 23:06:45'),
-(39, 28, 6, 0, '2025-11-11 07:11:20', '2025-11-14 23:06:45'),
-(40, 28, 3, 0, '2025-11-11 07:11:20', '2025-11-14 23:06:45'),
-(41, 29, 1, 1, '2025-11-14 05:19:30', '2025-11-14 05:20:30'),
-(42, 29, 8, 0, '2025-11-14 05:19:30', '2025-11-14 05:20:30'),
-(43, 29, 12, 0, '2025-11-14 05:19:30', '2025-11-14 05:20:30'),
-(44, 29, 16, 0, '2025-11-14 05:19:30', '2025-11-14 05:20:30'),
-(45, 29, 3, 0, '2025-11-14 05:19:30', '2025-11-14 05:20:30'),
-(46, 29, 14, 0, '2025-11-14 05:19:30', '2025-11-14 05:20:30'),
-(47, 29, 10, 0, '2025-11-14 05:19:30', '2025-11-14 05:20:30'),
-(48, 3, 2, 0, '2025-11-27 02:18:33', '2026-01-02 23:58:13'),
-(49, 4, 1, 1, '2025-11-27 02:18:34', '2025-11-27 02:22:12'),
-(50, 6, 5, 1, '2025-11-27 02:18:34', '2025-11-27 02:22:12'),
-(51, 7, 1, 1, '2025-11-27 02:22:12', '2025-11-27 02:22:12'),
-(53, 9, 1, 1, '2025-11-27 02:22:12', '2025-11-27 02:22:12'),
-(54, 10, 3, 1, '2025-11-27 02:22:13', '2025-11-27 02:22:13'),
-(55, 11, 5, 1, '2025-11-27 02:22:13', '2025-11-27 02:22:13'),
-(56, 12, 3, 1, '2025-11-27 02:22:13', '2025-11-27 02:22:13'),
-(57, 14, 16, 1, '2025-12-02 06:57:49', '2025-12-20 05:13:28'),
-(61, 16, 75, 1, '2025-12-18 06:31:34', '2025-12-20 05:09:31'),
-(62, 17, 77, 1, '2025-12-23 01:03:13', '2025-12-23 05:52:32'),
-(63, 18, 79, 1, '2025-12-23 03:18:50', '2025-12-23 05:08:57'),
-(64, 613, 47, 1, '2025-12-28 23:31:52', '2026-01-02 06:00:23'),
-(65, 614, 58, 1, '2025-12-28 23:35:30', '2025-12-28 23:35:30'),
-(66, 615, 50, 1, '2025-12-28 23:38:59', '2025-12-28 23:38:59'),
-(67, 616, 25, 1, '2025-12-28 23:42:48', '2025-12-28 23:42:48'),
-(68, 617, 32, 1, '2025-12-28 23:44:40', '2025-12-28 23:44:40'),
-(69, 618, 36, 1, '2025-12-28 23:46:24', '2025-12-28 23:46:24'),
-(70, 619, 15, 1, '2025-12-28 23:55:58', '2025-12-28 23:55:58'),
-(71, 620, 32, 1, '2025-12-29 00:00:20', '2025-12-29 00:00:20'),
-(72, 621, 36, 1, '2025-12-29 00:03:30', '2025-12-29 00:03:30'),
-(73, 622, 60, 1, '2025-12-29 00:06:28', '2025-12-29 00:06:28'),
-(74, 623, 5, 1, '2025-12-29 00:08:20', '2025-12-29 00:08:20'),
-(75, 624, 36, 1, '2025-12-29 00:09:59', '2026-01-02 01:34:29'),
-(76, 625, 15, 1, '2025-12-29 00:11:48', '2025-12-29 00:11:48'),
-(77, 626, 5, 1, '2025-12-29 00:15:33', '2025-12-29 00:15:33'),
-(78, 1, 49, 1, '2026-01-03 01:34:44', '2026-01-04 09:28:50');
+(3, 2, 1, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(4, 2, 3, 1, '2025-11-10 01:29:41', '2025-11-26 20:52:12'),
+(6, 3, 5, 1, '2025-11-10 01:29:41', '2026-01-02 18:28:13'),
+(7, 4, 4, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(8, 4, 6, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(9, 5, 4, 1, '2025-11-10 01:29:41', '2025-11-26 20:52:12'),
+(10, 5, 7, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(11, 6, 8, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(12, 6, 9, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(13, 7, 8, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(14, 7, 9, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(15, 8, 8, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(16, 8, 11, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(17, 9, 12, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(18, 9, 13, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(19, 10, 12, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(20, 10, 14, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(21, 11, 15, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(22, 11, 16, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(23, 12, 15, 1, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(24, 12, 16, 0, '2025-11-10 01:29:41', '2025-11-10 01:29:41'),
+(48, 3, 2, 0, '2025-11-26 20:48:33', '2026-01-02 18:28:13'),
+(49, 4, 1, 1, '2025-11-26 20:48:34', '2025-11-26 20:52:12'),
+(50, 6, 5, 1, '2025-11-26 20:48:34', '2025-11-26 20:52:12'),
+(51, 7, 1, 1, '2025-11-26 20:52:12', '2025-11-26 20:52:12'),
+(52, 8, 3, 1, '2025-11-26 20:52:12', '2025-11-26 20:52:12'),
+(53, 9, 1, 1, '2025-11-26 20:52:12', '2025-11-26 20:52:12'),
+(54, 10, 3, 1, '2025-11-26 20:52:13', '2025-11-26 20:52:13'),
+(55, 11, 5, 1, '2025-11-26 20:52:13', '2025-11-26 20:52:13'),
+(56, 12, 3, 1, '2025-11-26 20:52:13', '2025-11-26 20:52:13'),
+(57, 14, 16, 1, '2025-12-02 01:27:49', '2025-12-19 23:43:28'),
+(64, 613, 47, 1, '2025-12-28 18:01:52', '2026-01-02 00:30:23'),
+(65, 614, 58, 1, '2025-12-28 18:05:30', '2025-12-28 18:05:30'),
+(66, 615, 50, 1, '2025-12-28 18:08:59', '2025-12-28 18:08:59'),
+(67, 616, 25, 1, '2025-12-28 18:12:48', '2025-12-28 18:12:48'),
+(68, 617, 32, 1, '2025-12-28 18:14:40', '2025-12-28 18:14:40'),
+(69, 618, 36, 1, '2025-12-28 18:16:24', '2025-12-28 18:16:24'),
+(70, 619, 15, 1, '2025-12-28 18:25:58', '2025-12-28 18:25:58'),
+(71, 620, 32, 1, '2025-12-28 18:30:20', '2025-12-28 18:30:20'),
+(72, 621, 36, 1, '2025-12-28 18:33:30', '2025-12-28 18:33:30'),
+(73, 622, 60, 1, '2025-12-28 18:36:28', '2025-12-28 18:36:28'),
+(74, 623, 5, 1, '2025-12-28 18:38:20', '2025-12-28 18:38:20'),
+(75, 624, 36, 1, '2025-12-28 18:39:59', '2026-01-01 20:04:29'),
+(76, 625, 15, 1, '2025-12-28 18:41:48', '2025-12-28 18:41:48'),
+(77, 626, 5, 1, '2025-12-28 18:45:33', '2025-12-28 18:45:33'),
+(78, 1, 49, 1, '2026-01-02 20:04:44', '2026-01-04 03:58:50'),
+(79, 15, 52, 1, '2026-01-10 08:49:56', '2026-01-10 08:54:48'),
+(80, 16, 55, 1, '2026-01-11 02:49:58', '2026-01-11 02:49:58'),
+(81, 17, 56, 1, '2026-01-11 03:48:56', '2026-01-12 01:41:28'),
+(82, 17, 21, 0, '2026-01-11 03:48:56', '2026-01-12 01:41:28'),
+(83, 18, 81, 1, '2026-01-11 04:38:06', '2026-01-11 04:38:06'),
+(84, 19, 81, 1, '2026-01-11 04:56:01', '2026-01-11 05:08:23'),
+(85, 20, 61, 1, '2026-01-14 07:13:29', '2026-01-15 02:36:52'),
+(86, 21, 17, 1, '2026-01-14 23:28:50', '2026-01-15 03:21:02'),
+(87, 22, 61, 1, '2026-01-15 04:50:57', '2026-01-15 04:50:57'),
+(88, 24, 55, 1, '2026-01-15 06:04:43', '2026-01-15 06:04:43'),
+(89, 25, 52, 1, '2026-01-16 05:50:15', '2026-01-16 06:36:22'),
+(91, 26, 48, 1, '2026-01-16 08:16:30', '2026-01-16 08:16:30'),
+(92, 27, 49, 1, '2026-01-16 08:46:15', '2026-01-16 08:46:15'),
+(93, 28, 81, 1, '2026-01-17 06:27:41', '2026-01-17 06:27:41'),
+(94, 29, 55, 1, '2026-01-17 07:13:20', '2026-01-17 07:13:20'),
+(95, 30, 61, 1, '2026-01-17 07:23:12', '2026-01-17 07:23:12'),
+(96, 31, 21, 1, '2026-01-17 07:30:15', '2026-01-17 07:30:15'),
+(97, 32, 61, 1, '2026-01-17 07:37:37', '2026-01-17 07:37:37'),
+(98, 33, 15, 1, '2026-01-17 07:44:02', '2026-01-17 07:44:02'),
+(99, 34, 48, 1, '2026-01-17 22:52:25', '2026-01-17 22:52:25'),
+(100, 35, 48, 1, '2026-01-17 23:14:28', '2026-01-17 23:14:28'),
+(101, 36, 55, 1, '2026-01-19 23:25:23', '2026-01-22 00:32:24'),
+(102, 37, 17, 1, '2026-01-20 08:21:59', '2026-01-20 08:21:59'),
+(103, 38, 61, 1, '2026-01-20 08:28:23', '2026-01-20 08:28:23'),
+(104, 39, 61, 1, '2026-01-20 08:39:47', '2026-01-20 08:39:47');
 
 -- --------------------------------------------------------
 
@@ -1589,12 +1981,315 @@ CREATE TABLE `product_images` (
 --
 
 INSERT INTO `product_images` (`id`, `product_id`, `product_variant_id`, `image_path`, `alt_text`, `sort_order`, `is_primary`, `created_at`, `updated_at`) VALUES
-(26, 1, 1, 'products/imports/T3EbOhEuduZg.jpg', NULL, 0, 1, '2026-01-07 02:12:09', '2026-01-07 02:12:09'),
-(27, 1, 2, 'products/imports/T3EbOhEuduZg.jpg', NULL, 0, 1, '2026-01-07 02:12:09', '2026-01-07 02:12:09'),
-(28, 1, 3, 'products/imports/T3EbOhEuduZg.jpg', NULL, 0, 1, '2026-01-07 02:12:09', '2026-01-07 02:12:09'),
-(29, 1, 4, 'products/imports/T3EbOhEuduZg.jpg', NULL, 0, 1, '2026-01-07 02:12:09', '2026-01-07 02:12:09'),
-(30, 1, 5, 'products/imports/T3EbOhEuduZg.jpg', NULL, 0, 1, '2026-01-07 02:12:09', '2026-01-07 02:12:09'),
-(31, 1, 6, 'products/imports/T3EbOhEuduZg.jpg', NULL, 0, 1, '2026-01-07 02:12:09', '2026-01-07 02:12:09');
+(25, 3, 20, 'products/variants/rwCoFvj8WszJ9TknZDpiJSRllea98eiIwgcIoOi5.webp', NULL, 0, 1, '2026-01-06 00:16:22', '2026-01-06 00:16:22'),
+(26, 3, 20, 'products/variants/ytKnZhAuJiAN1u9M60daAv3YW8USy9hHtkT6Hg6F.webp', NULL, 1, 0, '2026-01-06 00:16:22', '2026-01-06 00:16:22'),
+(27, 3, 21, 'products/variants/9GPWzmtZc7rtfH1DYLEbRpCokcWELeRRUAQL3ui7.webp', NULL, 0, 1, '2026-01-06 00:16:22', '2026-01-06 00:16:22'),
+(28, 3, 21, 'products/variants/zgfrefhi6pyc8GbOM2E3EkgjGBneUX3YD8drcXvu.webp', NULL, 1, 0, '2026-01-06 00:16:22', '2026-01-06 00:16:22'),
+(41, 5, 22, 'products/variants/4qRPwCk2Yz7BuU9RCdUQQG9SpxVZXYkt6ebMOLxs.webp', NULL, 0, 1, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(42, 5, 22, 'products/variants/s51GaQNShMQucqXPKrM5xXynUMlTyUp3kNst5FJT.webp', NULL, 1, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(43, 5, 22, 'products/variants/ihA853kL4rmzzlGxJp9PPu4oDyOheJru58LSaRFd.webp', NULL, 2, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(44, 5, 22, 'products/variants/eslrzSAIaVNtBW836pPgYuSfqLhV9UeqihXuVEKD.webp', NULL, 3, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(45, 5, 23, 'products/variants/aUKIWJnhb8rZdspROhyq52JpeOSkYFikzVZwtFuN.webp', NULL, 0, 1, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(46, 5, 23, 'products/variants/PB1ER8SxxmB3xQ9KjPJjeG0SuhY1GM3BSmzXwV54.webp', NULL, 1, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(47, 5, 23, 'products/variants/CacekCdsDAKvK5YD9ZICyHH8fhRVcfaOWmUo9kMT.webp', NULL, 2, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(48, 5, 23, 'products/variants/7WOtWSZ9zAw0xZy8cn6unUdcFY6byDU6FhOsWdYa.webp', NULL, 3, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(49, 5, 24, 'products/variants/WOHqqIi4lkAdJfqXNvsJvDowRHP9OVKNDjmkCfQE.webp', NULL, 0, 1, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(50, 5, 24, 'products/variants/3EEBlcSkgrxBpphqkxPGXiCH3IaoDpgdzZwgH5UR.webp', NULL, 1, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(51, 5, 24, 'products/variants/eocmxk5GOSQPUmjoeDVzB6JJFyU4cHRKF4XX1Hlq.webp', NULL, 2, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(52, 5, 24, 'products/variants/8f4oHYR6P2Yt9zOS89lG38dGOhvPOOVthINbfVOM.webp', NULL, 3, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(53, 5, 25, 'products/variants/W0AjBRz6jIPdtEs0R9bKE93qDTlMj8rg7VNZWKab.webp', NULL, 0, 1, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(54, 5, 25, 'products/variants/GY74HGP8wrJoJ8K87cqAGa5Y11KVMeDX0PPoxRjN.webp', NULL, 1, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(55, 5, 25, 'products/variants/jMjM703Jg7FRry1txjoUFZYlaQJ8KJlzZAAv4ryo.webp', NULL, 2, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(56, 5, 25, 'products/variants/BZ4tJU5NMIlhKYyFfRziHxCRVBPiNnYRGkfxg3yk.webp', NULL, 3, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(57, 5, 26, 'products/variants/ZIHCVMSd56BX8TjbDOXmyI527AwQ41y9uV95rTSu.webp', NULL, 0, 1, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(58, 5, 26, 'products/variants/Oc77LbOLRFE424ppgdMkAD5PfL2wAZtDiBC1jueI.webp', NULL, 1, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(59, 5, 26, 'products/variants/WGSRwPlrD5WyOoldN3HLjEuX2cIv7SRKFbaMIVw7.webp', NULL, 2, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(60, 5, 26, 'products/variants/09zFyLMehRxBKw2s5vuvrTUh9pCJuIMVfnWVmwJF.webp', NULL, 3, 0, '2026-01-06 06:36:57', '2026-01-06 06:36:57'),
+(62, 1, 2, 'products/imports/celF09HgQfoz.jpg', NULL, 0, 1, '2026-01-07 00:57:25', '2026-01-07 00:57:25'),
+(63, 1, 3, 'products/imports/celF09HgQfoz.jpg', NULL, 0, 1, '2026-01-07 00:57:25', '2026-01-07 00:57:25'),
+(64, 1, 4, 'products/imports/celF09HgQfoz.jpg', NULL, 0, 1, '2026-01-07 00:57:25', '2026-01-07 00:57:25'),
+(65, 1, 5, 'products/imports/celF09HgQfoz.jpg', NULL, 0, 1, '2026-01-07 00:57:25', '2026-01-07 00:57:25'),
+(66, 1, 6, 'products/imports/celF09HgQfoz.jpg', NULL, 0, 1, '2026-01-07 00:57:25', '2026-01-07 00:57:25'),
+(95, 16, 43, 'products/variants/CIqTIK30bz1TpVph8BKlmMvXowgQV7kSUhWXqhIT.jpg', NULL, 0, 1, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(96, 16, 43, 'products/variants/lyhBu3zsTputZ47N1Gm6lDkSIIugRQgjGdPzgOWe.jpg', NULL, 1, 0, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(97, 16, 43, 'products/variants/uG9RBF9IXfWGFVT4KgHw3FJTZFrfDpPcECipNjo9.jpg', NULL, 2, 0, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(98, 16, 44, 'products/variants/KbW2azE8y1xZiHHRErsG4i8fKMACNT6F97fCksVU.jpg', NULL, 0, 1, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(99, 16, 44, 'products/variants/3Y6H952FcHmOeR5oJ9OSks7X1ITzdgIfEWU1wOCA.jpg', NULL, 1, 0, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(100, 16, 44, 'products/variants/7PlkMj0QKvHIpLFzXsjTmdGCJVIYIYrSlaWX5T9c.jpg', NULL, 2, 0, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(101, 16, 45, 'products/variants/KQZNELULnMdyJFA3NFMJ0bElJ5ZrQH2HGwxMSd66.jpg', NULL, 0, 1, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(102, 16, 45, 'products/variants/2aHcKdcnng0EzCGgJFw85QteN6cfBIf7cIdGfDTY.jpg', NULL, 1, 0, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(103, 16, 45, 'products/variants/fxZAq8rRRcupSRbXDhwDeEVya5IG3El1W6oXBZR3.jpg', NULL, 2, 0, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(104, 16, 46, 'products/variants/Ykkm3JLoi5AyRcPKFWjtfDoEkgZE1x2V12ppLbkB.jpg', NULL, 0, 1, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(105, 16, 46, 'products/variants/GlisGpu9MzT2pf79wBHpoFimTNmwco77gsr2mGaE.jpg', NULL, 1, 0, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(106, 16, 46, 'products/variants/bSU8cvrF7qO5oGwSA5PneadbJzrC1MstRsqLMuTh.jpg', NULL, 2, 0, '2026-01-11 03:07:42', '2026-01-11 03:07:42'),
+(107, 16, 43, 'products/variants/zMYIASjkFEBBBtc6i05wwACKcWLcjZAHKWfz7Fiv.jpg', NULL, 0, 1, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(108, 16, 43, 'products/variants/0sYMaV7qPZijuUN1Sr6M7ZW0pi59UXlIEMPy29WL.jpg', NULL, 1, 0, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(109, 16, 43, 'products/variants/z25lCJPTe6Je3GzScicy5neKq8a4T5duujGdEbZ9.jpg', NULL, 2, 0, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(110, 16, 44, 'products/variants/mJSuUOaiUhOOBngKxDtsouSGiTVo3ZiFq43YuZeW.jpg', NULL, 0, 1, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(111, 16, 44, 'products/variants/OnNUskcaq019hLjp6MiRSwxw1HrsOiwQNPRZYM9C.jpg', NULL, 1, 0, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(112, 16, 44, 'products/variants/S7Os3AcjISLIMpecGPFXkdehFQqGQjoQJxFaP1GB.jpg', NULL, 2, 0, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(113, 16, 45, 'products/variants/uxMFAu7EKA5fKbarZlkisCD48I00g2KZMRzSWvFL.jpg', NULL, 0, 1, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(114, 16, 45, 'products/variants/Wp3Uej4JhPELTCtlPHeTG5j7EnJE0SBWeB6LZwxh.jpg', NULL, 1, 0, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(115, 16, 45, 'products/variants/ZKPUc1qlMq1CLKaJxgANcjhBo12FXfq4Cis96af9.jpg', NULL, 2, 0, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(116, 16, 46, 'products/variants/Eq7IQz3rD9ZHY1v8c00tLsSl4iYCnYhMSVbvduUu.jpg', NULL, 0, 1, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(117, 16, 46, 'products/variants/179qv3FLKooHVSdLyBuoGIRCCFAFJ0othKlg4zN2.jpg', NULL, 1, 0, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(118, 16, 46, 'products/variants/JrPv8AuXXV2PSfJjG7KrN7g5BBhVTAf6ZGhHtv9R.jpg', NULL, 2, 0, '2026-01-11 03:28:28', '2026-01-11 03:28:28'),
+(123, 15, 36, 'products/variants/g9rJnworhetGP4SvqSkDTawIDScQYZtysgyXGc5f.jpg', NULL, 1, 0, '2026-01-11 03:31:16', '2026-01-11 03:31:16'),
+(126, 15, 37, 'products/variants/6L5oCRewzvVxAtsCxS8ggLcXTsTepaubukvVa5hH.jpg', NULL, 1, 0, '2026-01-11 03:31:16', '2026-01-11 03:31:16'),
+(147, 15, 35, 'products/variants/uKpJ4JWhlA4alFR0KMvedM0TPL94lX4iFdpqEnHs.jpg', NULL, 2, 0, '2026-01-11 03:37:25', '2026-01-11 03:37:25'),
+(148, 15, 36, 'products/variants/0wh6EtUaiuET8vrhe8IFolumvmNoorTbS1jT1clT.jpg', NULL, 0, 1, '2026-01-11 03:37:25', '2026-01-11 03:37:25'),
+(149, 15, 37, 'products/variants/IBlx2AkFYGAic2OBAOJlpPv2cmvE2X3Re0z472DN.jpg', NULL, 0, 1, '2026-01-11 03:37:25', '2026-01-11 03:37:25'),
+(150, 15, 38, 'products/variants/ikPRVo1tsPCQTQzoA77UCMGDzj2JoS9iakLiQjkF.jpg', NULL, 0, 1, '2026-01-11 03:37:25', '2026-01-11 03:37:25'),
+(151, 17, 47, 'products/variants/l6Nfx54wPgeFKP6sRDEMnroAJ1kzHwi0A6zTBHhz.jpg', NULL, 0, 1, '2026-01-11 03:54:28', '2026-01-11 03:54:28'),
+(152, 17, 48, 'products/variants/MkVoMIp2vOsusel5MQT9VS86Ttu8PrZL2rfmUBdO.jpg', NULL, 0, 1, '2026-01-11 03:54:28', '2026-01-11 03:54:28'),
+(153, 17, 49, 'products/variants/OcWgoSCW6dqycsRG7KHD3ZeTJcYNQ76Mt8JlHwTR.jpg', NULL, 0, 1, '2026-01-11 03:54:28', '2026-01-11 03:54:28'),
+(154, 17, 50, 'products/variants/ZQZ7cFMlkWCs3gz9tJ7Gp6gXiEPD7M2PjFV3JzxY.jpg', NULL, 0, 1, '2026-01-11 03:54:28', '2026-01-11 03:54:28'),
+(155, 18, 51, 'products/variants/Dv3q2vEwBedGxFuw6giszf1Tbt9lZ1qwCl7v8Itf.jpg', NULL, 0, 1, '2026-01-11 04:41:43', '2026-01-11 04:41:43'),
+(156, 18, 51, 'products/variants/sXDPQ7cqxN8n7boxhgNJl2A0NJ3EUBYAFc1lvWsc.jpg', NULL, 1, 0, '2026-01-11 04:41:43', '2026-01-11 04:41:43'),
+(157, 18, 51, 'products/variants/QQJGAKrya03mmoUqDKscufejiFVXuI9BXQzRaV5v.jpg', NULL, 2, 0, '2026-01-11 04:41:43', '2026-01-11 04:41:43'),
+(158, 18, 52, 'products/variants/3GMB8Jz4kL1BbN5G8bnZXwTxTTQIbZptcVwtUkH2.jpg', NULL, 0, 1, '2026-01-11 04:48:22', '2026-01-11 04:48:22'),
+(159, 18, 52, 'products/variants/RoE3dLJUCZ9pFjaWtd2jRuGCKa3cGbT50GFaZrfX.jpg', NULL, 1, 0, '2026-01-11 04:48:22', '2026-01-11 04:48:22'),
+(160, 18, 52, 'products/variants/J5InReAL3Eyvnm366HFAP0rgnxA4iGwdqiic92Ok.jpg', NULL, 2, 0, '2026-01-11 04:48:22', '2026-01-11 04:48:22'),
+(161, 18, 53, 'products/variants/DtnPjnuYNu5sdO1conmjmol975dyKp6ZpbJfWgxT.jpg', NULL, 0, 1, '2026-01-11 04:48:22', '2026-01-11 04:48:22'),
+(162, 18, 53, 'products/variants/0EVwicMMz0rKlSY0ZaJslulBWqDP6ZZsadl8iCVt.jpg', NULL, 1, 0, '2026-01-11 04:48:22', '2026-01-11 04:48:22'),
+(163, 18, 53, 'products/variants/tV4aquQFabzqcj3B1ozFaNWLLNNDY7vaejWIw5g1.jpg', NULL, 2, 0, '2026-01-11 04:48:22', '2026-01-11 04:48:22'),
+(167, 19, 55, 'products/variants/bvT2aiohKjpxAE2riEjGyFrC41903WrT0gHigxzY.png', NULL, 0, 1, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(168, 19, 55, 'products/variants/I31gY6RN2Nhu7zzuiel8WkFpO7NYET4ty7fVEN8b.png', NULL, 1, 0, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(169, 19, 55, 'products/variants/IvTKCIln73zgwGRRMJumR7RoAjNbm49joD79TcLz.png', NULL, 2, 0, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(170, 19, 56, 'products/variants/TYtjM13uuuKuRUbpO4LFkZ2rWKuW3zmRrT0SD6BR.png', NULL, 0, 1, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(171, 19, 56, 'products/variants/vuHPOKYvAGj7PZwoptJB5loFo1uC62ZyoNZ6lVnD.png', NULL, 1, 0, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(172, 19, 56, 'products/variants/Nm4NgK0kgq3wWB4pTyjqyUNn7BYUM3Mp5IVD7dW1.png', NULL, 2, 0, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(173, 19, 57, 'products/variants/ITMuBOehLzXEEzRmpLuSxMX3OqePm19XittEVrJ2.png', NULL, 0, 1, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(174, 19, 57, 'products/variants/Z2OPmyW2yz0G9GFEtodqA3h22ReJKykbpax2Hgcq.png', NULL, 1, 0, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(175, 19, 57, 'products/variants/z0HvOCfzLJtmPOaBQSSxVRbIj9DtCdq0EUYCA3Gw.png', NULL, 2, 0, '2026-01-11 05:06:15', '2026-01-11 05:06:15'),
+(176, 19, 55, 'products/variants/Q0bFak3lToolM8C5yAl6jYFcIKmvsTZjK032lQof.jpg', NULL, 0, 1, '2026-01-14 06:44:35', '2026-01-14 06:44:35'),
+(177, 19, 56, 'products/variants/5vvlTRh8KzYATR1r44hF0Y6gWfZQl4Olk67vvnsx.jpg', NULL, 0, 1, '2026-01-14 06:44:35', '2026-01-14 06:44:35'),
+(178, 19, 57, 'products/variants/IUAfGO7EFVGYkmRAvdO2WjQLgYut1AGw39ZoTnPM.jpg', NULL, 0, 1, '2026-01-14 06:44:35', '2026-01-14 06:44:35'),
+(186, 1, 1, 'products/variants/tshirt-black-s-1.jpg', NULL, 0, 1, '2026-01-14 08:28:39', '2026-01-14 08:28:39'),
+(187, 1, 1, 'products/variants/tshirt-black-s-2.jpg', NULL, 1, 0, '2026-01-14 08:28:39', '2026-01-14 08:28:39'),
+(188, 1, 1, 'products/variants/tshirt-black-s-3.jpg', NULL, 2, 0, '2026-01-14 08:28:39', '2026-01-14 08:28:39'),
+(195, 20, 63, 'products/variants/sHS79uCMDPiMUcp2VMeM8XOFWBdUE38oVDemsy1M.jpg', NULL, 0, 1, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(196, 20, 63, 'products/variants/nuVdLrFkaDg1slIvyX9IUoPAxww7phwAsg2pU4Yl.jpg', NULL, 1, 0, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(197, 20, 63, 'products/variants/t7fD1J5qWwcYilo8dPKcZMmkzcvRokBmCRlwlP9f.jpg', NULL, 2, 0, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(198, 20, 64, 'products/variants/va755kCHMS7t8zRFAMMqfY9b92WQudCKmfjsXNyb.jpg', NULL, 0, 1, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(199, 20, 64, 'products/variants/6VzABzYjYQiFWYANbOqnSFwhSL7Eicq9P6gjF9A4.jpg', NULL, 1, 0, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(200, 20, 64, 'products/variants/azCD4BduYzcylMVCrFd3cqFVS6hF8AGGxjnGxoWE.jpg', NULL, 2, 0, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(201, 20, 65, 'products/variants/PiN6ejZy6tGfJjVqtsekPKE9btmrA45CexBsDEER.jpg', NULL, 0, 1, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(202, 20, 65, 'products/variants/fg6P1NbEprObdEjyAP2UDr05IITQryS3rgJH8DKR.jpg', NULL, 1, 0, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(203, 20, 65, 'products/variants/MrYVvsa5PteaPivbHiB6CINo477a2ojqWiQchWOG.jpg', NULL, 2, 0, '2026-01-15 02:27:09', '2026-01-15 02:27:09'),
+(204, 21, 66, 'products/variants/nJnD3BwmBuYv4sWjsOfITe8TfUGh2es2ZQEZQqS1.jpg', NULL, 0, 1, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(205, 21, 66, 'products/variants/0VWEGoHX5sf1125ciqFZv07CqX7OkdOsPJa0MBOL.jpg', NULL, 1, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(206, 21, 66, 'products/variants/G7UuzKjz4YbYNLUnnkociA32euRL0ZOT9PJRTxTZ.jpg', NULL, 2, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(207, 21, 67, 'products/variants/P1APiIr7sv4N1OsCPdbfrE2KMUiOPtfcTRKxZQ8z.jpg', NULL, 0, 1, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(208, 21, 67, 'products/variants/cdfoJbV6DGl7Yhb2kiJVnWJ6W3ysYOlceNTlro90.jpg', NULL, 1, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(209, 21, 67, 'products/variants/yrkUP2FMM7cGmVBYCAD3kVdE40vvAIAa6QJJWwu1.jpg', NULL, 2, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(210, 21, 68, 'products/variants/SO0G8hZeZHEOsgkndfx9ZDO25S5jkZjBAYBMGIMC.jpg', NULL, 0, 1, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(211, 21, 68, 'products/variants/yp6na69p1jOdxsDfNTQM7jnDkf8mEkWQRWI5gTiC.jpg', NULL, 1, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(212, 21, 68, 'products/variants/pvaVjbeecgq5m81ObmIN2gzu3yjduwYYCwQUm6Ar.jpg', NULL, 2, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(213, 21, 69, 'products/variants/ienlY8mcBQFQnAmCSxrwYbNxIVojSEL1MZfRyqz1.jpg', NULL, 0, 1, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(214, 21, 69, 'products/variants/D6v4635Gmwe5hTwH9rb26jouIF1nA0BVZC1TectS.jpg', NULL, 1, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(215, 21, 69, 'products/variants/mFBZjQVBSPSIBU5nUB4nKSdcuvXYedJSEb1Zzhdo.jpg', NULL, 2, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:11'),
+(216, 22, 70, 'products/variants/0hbl7hkwDniL2qyqyIQVzLndFSGsktkH2NTu8e8V.jpg', NULL, 0, 1, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(217, 22, 70, 'products/variants/lFoiuiqa5TOm2KdRr5ii8hrKvuGko0THXdyuRmzL.jpg', NULL, 1, 0, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(218, 22, 70, 'products/variants/7J1t57pi0Vevp2a4ZJbkxgtcia4qmfJxNYxCo2ES.jpg', NULL, 2, 0, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(219, 22, 71, 'products/variants/pSS9WFxnhBn7FYBPSMfBCbHoucpU4MoRKPv4e8jz.jpg', NULL, 0, 1, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(220, 22, 71, 'products/variants/WOt7WMLjn4SmXq7tbT8qqMHy67uEFKHXlTW4Vgbt.jpg', NULL, 1, 0, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(221, 22, 71, 'products/variants/bGxljpUfxQyhfi5RTx714D5oSj0VZa8EPei1eScU.jpg', NULL, 2, 0, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(222, 22, 72, 'products/variants/CAx7sR7d939iGrCxLtCYt4yosjmzqb9NknwvFRKy.jpg', NULL, 0, 1, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(223, 22, 72, 'products/variants/dRRjqdY4UKFnF8y3uluddRMbzzGC6SyyvEX4YAIz.jpg', NULL, 1, 0, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(224, 22, 72, 'products/variants/xRCaaUQg3X3WQe392ODbH9AYLZJhzesHazRCQ8iu.jpg', NULL, 2, 0, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(225, 22, 73, 'products/variants/omsl5yHiyAqSDnBxeoO1Y8V8FLjjGIwqeO2wP6DJ.jpg', NULL, 0, 1, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(226, 22, 73, 'products/variants/F3vPbxZoehhme2qQIVEtZEIK2VsJAQnxyEVjgToJ.jpg', NULL, 1, 0, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(227, 22, 73, 'products/variants/M0v2Ko10wnu6abSW364tVomAzq3tjI9woieAHkMc.jpg', NULL, 2, 0, '2026-01-15 05:42:35', '2026-01-15 05:42:35'),
+(228, 24, 82, 'products/variants/32F98UkRyScdrue2Qc90oatDQIYtw77fl4xj4YY9.jpg', NULL, 0, 1, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(229, 24, 82, 'products/variants/69KNaARk62Zd8UtfmXHRiiVVhr0wwBgClmn4oalC.jpg', NULL, 1, 0, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(230, 24, 82, 'products/variants/9ADvw1x6ehrbIoM83nphDm0SGzON4dPa22vGgCJG.jpg', NULL, 2, 0, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(231, 24, 83, 'products/variants/z7pSQeUeYxh6tEyu2A2sGcaMMGVvzBwYhggh2PgR.jpg', NULL, 0, 1, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(232, 24, 83, 'products/variants/A4EUCWaw2InWC82nMJhqrFPIPhKVyJr2dE0FOvVc.jpg', NULL, 1, 0, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(233, 24, 83, 'products/variants/P60LUzWAK2DKvs6fGEmbxrBfllCq7t0ljqD6gSSs.jpg', NULL, 2, 0, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(234, 24, 84, 'products/variants/2bHuKl9WbUEj9CbmiVTgKoaqOKOAKqkt2aOxFxp5.jpg', NULL, 0, 1, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(235, 24, 84, 'products/variants/WjCuCTZNMAUr1Ud0GYJXTcl69fDOBqRFJi6OlWsn.jpg', NULL, 1, 0, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(236, 24, 84, 'products/variants/6Ht2oBvdkrLXcfphhQT1iJUiJnQsK6ejmpVrhjHD.jpg', NULL, 2, 0, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(237, 24, 85, 'products/variants/i1PV0wJT1077Ue2mpuQjiQy0Xn2G8AoRCSY9F8O7.jpg', NULL, 0, 1, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(238, 24, 85, 'products/variants/SMZUhuYreBNG8WyEiluS7hoIf6u7FATSFEY2JmBD.jpg', NULL, 1, 0, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(239, 24, 85, 'products/variants/TAYpRHePZUhyXBjiZBCZp9m4m4S9EfLCdqAPqUDo.jpg', NULL, 2, 0, '2026-01-15 06:27:29', '2026-01-15 06:27:29'),
+(244, 25, 88, 'products/variants/uFYahWbzXG6m9oGekpkWApeHEur2DqASMiv6cjS3.jpg', NULL, 0, 1, '2026-01-16 06:06:13', '2026-01-16 06:06:13'),
+(248, 26, 90, 'products/variants/H8GtC02q4gtjuoHfpAUxVTKUBGOGwACXDNJaMFg6.jpg', NULL, 0, 1, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(249, 26, 90, 'products/variants/25397Ekrv2ECBQeMIEntpBLjeyZYdHbOYK8sK3oU.jpg', NULL, 1, 0, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(250, 26, 91, 'products/variants/SWGD8iUKVKhIof8yRR3ixNczBqvWJLBmRUkBwScT.jpg', NULL, 0, 1, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(251, 26, 91, 'products/variants/2f9k5o3imbPleLOBfn5ATWkDNQ9f2VnlNJ0es3pI.jpg', NULL, 1, 0, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(252, 26, 92, 'products/variants/S1oLEuB1CCGsIGFek1y66ucDn5NNNxYbYI3D2a0A.jpg', NULL, 0, 1, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(253, 26, 92, 'products/variants/lxMmWPDojdUcQjru2mBhxV1d48uuzotN0Y2ziU2Z.jpg', NULL, 1, 0, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(254, 26, 93, 'products/variants/pbfHNrQX565S59P0bQx2hNXb4DCtVW8QokxyKXZT.jpg', NULL, 0, 1, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(255, 26, 93, 'products/variants/HKiggFVsidMydksf0FXm86TiNenUNWcwXppI5cnl.jpg', NULL, 1, 0, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(256, 26, 94, 'products/variants/8fsJlRPHu9oWMlWrH2mbrwTPNywbczU4LkBcONl2.jpg', NULL, 0, 1, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(257, 26, 94, 'products/variants/Vx4JxGH1xoInKw9pdUG2dExYFx4Qrot8QMfGJcGD.jpg', NULL, 1, 0, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(258, 26, 95, 'products/variants/Krr4rMijNRDZVrcE4qte16BRnyrZ6S2bpMjRjcRv.jpg', NULL, 0, 1, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(259, 26, 95, 'products/variants/2e6xHNbvMr8ioS7YMK0fRYDUmVeH2nCi15wy4xwv.jpg', NULL, 1, 0, '2026-01-16 08:36:56', '2026-01-16 08:36:56'),
+(267, 27, 98, 'products/variants/97aRH6yNgTLh4duZaCzdtx5ePeALAlXmRU9kKCeU.jpg', NULL, 1, 0, '2026-01-16 08:53:45', '2026-01-16 08:53:45'),
+(271, 27, 99, 'products/variants/jRfPRmvPGyq1RluVnwdNL3G9ke3T3d9OaxG4tB59.jpg', NULL, 2, 0, '2026-01-16 08:53:45', '2026-01-16 08:53:45'),
+(276, 27, 97, 'products/variants/w7zXdahlLimzorvbQc0m7gY4wgtr3v0aqSG9fxSq.jpg', NULL, 1, 0, '2026-01-16 09:01:05', '2026-01-16 09:01:05'),
+(278, 27, 98, 'products/variants/oVxlCaXmg8v5coGfbcrYJ6AvtM68F3fMDJJeavLD.jpg', NULL, 0, 1, '2026-01-16 09:01:05', '2026-01-16 09:01:05'),
+(279, 27, 98, 'products/variants/NFNEWmj4MwGMguGbeKdDeoHI3Dbleu1c27epUmRC.jpg', NULL, 1, 0, '2026-01-16 09:01:05', '2026-01-16 09:01:05'),
+(280, 27, 98, 'products/variants/Cd3pu0dp7HCA3ac2uMsGpugUXlDwh4bn1sfdP8iD.jpg', NULL, 2, 0, '2026-01-16 09:01:05', '2026-01-16 09:01:05'),
+(281, 27, 99, 'products/variants/RhFfXZwya6VIKtQNiCmTA0dSPBkTbdYOk4sB24H7.jpg', NULL, 0, 1, '2026-01-16 09:01:05', '2026-01-16 09:01:05'),
+(282, 27, 99, 'products/variants/Xc9XnQNR0qcfErQeHCc8bTc2dByvKV756zrfTjCS.jpg', NULL, 1, 0, '2026-01-16 09:01:05', '2026-01-16 09:01:05'),
+(283, 27, 99, 'products/variants/k8tkIhsvV2M0nQkANKrhUledUEI3bRpZlYOKrimr.jpg', NULL, 2, 0, '2026-01-16 09:01:05', '2026-01-16 09:01:05'),
+(286, 27, 96, 'products/variants/mOphkm4uH7EXSessez9q2jhr8EvJONFvfwM4uCbp.jpg', NULL, 0, 1, '2026-01-16 22:26:28', '2026-01-16 22:26:28'),
+(288, 27, 98, 'products/variants/r2pVcNZV3dKPXemKGv32xfacEjwsFTwexxpUYanB.jpg', NULL, 0, 1, '2026-01-16 22:26:28', '2026-01-16 22:26:28'),
+(290, 27, 96, 'products/variants/7vpgLxKCyuxQMQP2knS8paDIw8vydvKQPLOYQgkt.jpg', NULL, 1, 0, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(291, 27, 96, 'products/variants/rZIHJ0edeM7CMeCLR79I47q8RjpWl6doE2u23gGN.jpg', NULL, 2, 0, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(292, 27, 97, 'products/variants/FLCHiqttuQtigxCbQZFQoJ7eNd45KCmLsFlfuqRJ.jpg', NULL, 0, 1, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(294, 27, 97, 'products/variants/SgWB0k9jnL5YGruOlReVXBkO8vAc6HAKOlhStEf1.jpg', NULL, 2, 0, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(295, 27, 98, 'products/variants/gdzLo4ahpdsHeDgQgA4RUZZpnijRZEBcZwTC1OCf.jpg', NULL, 0, 1, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(296, 27, 98, 'products/variants/LNGY80FyXvHVQXCcwX4M0m57b03bvi32zoRzLq5H.jpg', NULL, 1, 0, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(297, 27, 98, 'products/variants/ygmuUAoympJQ5B7mHhbYoqHoGFvLgDDamsg4hSIY.jpg', NULL, 2, 0, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(298, 27, 99, 'products/variants/r9vteV4pCXU8iYTn5nH0rpKYtqVx7txvEorwcWh6.jpg', NULL, 0, 1, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(299, 27, 99, 'products/variants/N550bSN2GKOEFFggsroiwq5TZWUbx12Cuk3z9wrb.jpg', NULL, 1, 0, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(300, 27, 99, 'products/variants/ziY9a7v4RLbFtFPopX7inOrmj5Tb0Nd5lUOsK77V.jpg', NULL, 2, 0, '2026-01-16 22:27:20', '2026-01-16 22:27:20'),
+(301, 25, 86, 'products/variants/6HXP381AE00WUQgNxzWO9irmY2pMYIXqFNM3CoQD.jpg', NULL, 0, 1, '2026-01-16 22:30:32', '2026-01-16 22:30:32'),
+(302, 25, 86, 'products/variants/eI8krls9XS8TdS8DZfqjAn8Yb8A0f8ctnxYYg68I.jpg', NULL, 1, 0, '2026-01-16 22:30:32', '2026-01-16 22:30:32'),
+(303, 25, 87, 'products/variants/KBhdG6pNE0RHFrL4mjxm4qgtWr1a0rxdodw97JPV.jpg', NULL, 0, 1, '2026-01-16 22:30:32', '2026-01-16 22:30:32'),
+(304, 25, 87, 'products/variants/jXarTbe9utobqbRzAijq5WhD5yKleojvFp1sFkuY.jpg', NULL, 1, 0, '2026-01-16 22:30:32', '2026-01-16 22:30:32'),
+(305, 25, 88, 'products/variants/MEh4KSok0PX4NFAEe3Ejl8L73HkYn2eHOzZIgsWh.jpg', NULL, 0, 1, '2026-01-16 22:30:32', '2026-01-16 22:30:32'),
+(307, 25, 89, 'products/variants/HOnACAFtiNTSSZKLc80hRTCTFS8XA7CakuZxExen.jpg', NULL, 0, 1, '2026-01-16 22:30:32', '2026-01-16 22:30:32'),
+(308, 25, 89, 'products/variants/I02Zb9eX5pz0yRv7CmU19otyLhXVUeC3iNSf0fdu.jpg', NULL, 1, 0, '2026-01-16 22:30:32', '2026-01-16 22:30:32'),
+(309, 28, 100, 'products/variants/T65CohukH6w8aDbLhCFvL9wHP9V4qSw0iaffYYhN.jpg', NULL, 0, 1, '2026-01-17 07:09:37', '2026-01-17 07:09:37'),
+(310, 28, 100, 'products/variants/Zg8NzJBAjNpVPhboZaXx90Y6tqSyqmeXqR7C8cW7.jpg', NULL, 1, 0, '2026-01-17 07:09:37', '2026-01-17 07:09:37'),
+(311, 28, 100, 'products/variants/2vxNnjU6nddPfh5Q5eRifiU1KyOHA1D8xRdHYjeS.jpg', NULL, 2, 0, '2026-01-17 07:09:37', '2026-01-17 07:09:37'),
+(312, 28, 101, 'products/variants/qNrWgNCq7sCpXtfZh2WwaMT1y3t1V7mDe7SM4sli.jpg', NULL, 0, 1, '2026-01-17 07:09:37', '2026-01-17 07:09:37'),
+(313, 28, 101, 'products/variants/pNPIpZQHbXmUZHcpwx0VPQ8IL1D2hFGyW7v8RwuE.jpg', NULL, 1, 0, '2026-01-17 07:09:37', '2026-01-17 07:09:37'),
+(314, 28, 101, 'products/variants/xVBVQP3L36Pax1Uh4U7GxQwC7DoR4qy2fW7njBb4.jpg', NULL, 2, 0, '2026-01-17 07:09:37', '2026-01-17 07:09:37'),
+(315, 29, 104, 'products/variants/GQW8mRdpTsjyP81K2cyvxyKQ6yuSMPqmQNzFkNvj.jpg', NULL, 0, 1, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(316, 29, 104, 'products/variants/UWmgmOcM5DNPMoOySKobwfAO04tHBOR9H3x9bmwG.jpg', NULL, 1, 0, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(317, 29, 104, 'products/variants/xe63AA4pwetKGJ9LtS7KGRXiLHWK6sqtEZSqOLiw.jpg', NULL, 2, 0, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(318, 29, 105, 'products/variants/OcuImeQhjEhsVirSxWcmzX3zswvKOoKONEMtIgEl.jpg', NULL, 0, 1, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(319, 29, 105, 'products/variants/TVxlBVDjLd90OHMsmjkxKWzSkuOAPQ4RgR7R9NVg.jpg', NULL, 1, 0, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(320, 29, 105, 'products/variants/4T0VuX6NKUsopSyHVEfF7hLALOIf3VTWMdB5BlNQ.jpg', NULL, 2, 0, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(321, 29, 106, 'products/variants/aov51HATLXIVt1TcjChUe1UfTiWQwg1ggKV7d7zL.jpg', NULL, 0, 1, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(322, 29, 106, 'products/variants/zv9W6aoUyo9ckstdoWpwJaJDyaz7rE8LWBJm56kn.jpg', NULL, 1, 0, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(323, 29, 106, 'products/variants/HIqAMnzSBveMwBffKYZSGsn5f8TDnZgDMwE5S4Mj.jpg', NULL, 2, 0, '2026-01-17 07:18:16', '2026-01-17 07:18:16'),
+(324, 30, 107, 'products/variants/s00dhVWVBC99eScxdFbeZJCGOfJodwGWdTYGgGBn.jpg', NULL, 0, 1, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(325, 30, 107, 'products/variants/RT6Pt5gLzoFt5wrzP8Kh3hWOBB9lyPfKtPHtj0YI.jpg', NULL, 1, 0, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(326, 30, 107, 'products/variants/QIMD5gUhfTSzTm1e9O7Jjgbi9BNCqOPUleEgLH9p.jpg', NULL, 2, 0, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(327, 30, 108, 'products/variants/JUFdJZk1MCM4XgXqbE1ZEwEdgIXouHigSA3I0esg.jpg', NULL, 0, 1, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(328, 30, 108, 'products/variants/aIMXLXGfWv1xp1t0LE3l9nBaq2lGwVMmNaMOB7ZD.jpg', NULL, 1, 0, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(329, 30, 108, 'products/variants/6uFplo8pyxOxyI3uMS7tyranWfbRZUuZaf3t4221.jpg', NULL, 2, 0, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(330, 30, 109, 'products/variants/O33jTmbiqjtwB58puituKSWwV91eq1hxjS1l8rk8.jpg', NULL, 0, 1, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(331, 30, 109, 'products/variants/aYF92i73HBl7aXL0QpPPyVRJIOnS8x3MaTLmMlHW.jpg', NULL, 1, 0, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(332, 30, 109, 'products/variants/xpcd5u9sTSTjWvDJBA3Fl52TkaPB961qsAUcU29n.jpg', NULL, 2, 0, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(333, 30, 110, 'products/variants/00zV896e87elkIuOsY6OQE5F5Z7KNkSBOntCbxqg.jpg', NULL, 0, 1, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(334, 30, 110, 'products/variants/u8eWnH7oLbsOFAdTav7WyxeaWQlALhLtbCH9pKOd.jpg', NULL, 1, 0, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(335, 30, 110, 'products/variants/z2z2hGoHbLYEZUUmquxC5hqOGrUxQ27GE8glRYIs.jpg', NULL, 2, 0, '2026-01-17 07:25:46', '2026-01-17 07:25:46'),
+(336, 31, 111, 'products/variants/XMbTt7ZKXodQtjJCsF1tkrdu4PPomk4GV4kUuMwM.jpg', NULL, 0, 1, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(337, 31, 111, 'products/variants/KQkxB5AmBQkodbYKsa526gS9gx33HeU95G3soAcp.jpg', NULL, 1, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(338, 31, 111, 'products/variants/XEBjlJ1ZY3bj9WlgoV5o236fi0HB2wbG7ThRM3Kr.jpg', NULL, 2, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(339, 31, 112, 'products/variants/VHsXNgWcSCClzLHeH6pqxEYC8nA5Z7Wo3E1OJ82v.jpg', NULL, 0, 1, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(340, 31, 112, 'products/variants/s8VQYqVbekSnq26TUqoS6dH3wUigMeUxITeLSPts.jpg', NULL, 1, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(341, 31, 112, 'products/variants/KkSNeZbeE4z4oXBUGsmEG0xIH4qztKUka1QJQ16R.jpg', NULL, 2, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(342, 31, 113, 'products/variants/CUASExkocXbP3ZVmmXw3la98iHE8foRUEjWJF8WR.jpg', NULL, 0, 1, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(343, 31, 113, 'products/variants/SJpnG8zc8UBHO7fS3D7qZ9bl4sic7QJXRMXN57Vg.jpg', NULL, 1, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(344, 31, 113, 'products/variants/9a5kXKr0CDg7ZskP2L9TUX2vZCe3bDqakGSDm6zh.jpg', NULL, 2, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(345, 31, 114, 'products/variants/0erExrt1FfV1szwxmVdgb16RAxiRgTmGSSJ2jHBB.jpg', NULL, 0, 1, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(346, 31, 114, 'products/variants/oEL443zoRLQihh0BnvU29KMjrQCZMuOuRH9w1zCD.jpg', NULL, 1, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(347, 31, 114, 'products/variants/dHiP8eyHb4qwsxCH7RLUAkIYHrN2pwJwo1c9hgu3.jpg', NULL, 2, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(348, 31, 115, 'products/variants/jCf5NEqtMMTSsrH3I70lkLsL9DOqwHiF0VAuWMVw.jpg', NULL, 0, 1, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(349, 31, 115, 'products/variants/3ifmyrkAam3r2AWHJlFsEAl3mqaqg4Ta34z6pnb3.jpg', NULL, 1, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(350, 31, 115, 'products/variants/ECVk5KpkGfEI5nfpXR8s8jyTCB8dYX0Dss7O5rXr.jpg', NULL, 2, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:05'),
+(351, 32, 117, 'products/variants/Ab9I4sAmgpkkrasK7mM6xsYcb5kzv3OoSqqveRPH.jpg', NULL, 0, 1, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(352, 32, 117, 'products/variants/pq4YsDEMgpG3bcigUzu1pdnceHzorYQ6n74f7X5Z.jpg', NULL, 1, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(353, 32, 117, 'products/variants/IfzQQCazofGviRmK4yvRyjOklimhMz9aGw6Y17KT.jpg', NULL, 2, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(354, 32, 118, 'products/variants/941URlUnMglKgGbN1TMAjsMGIZDumhbRRwlcO3fI.jpg', NULL, 0, 1, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(355, 32, 118, 'products/variants/pbs51lJjV8hl1WexFwfoYmnNsolyUKIqKWTBDXee.jpg', NULL, 1, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(356, 32, 118, 'products/variants/mfSQIqQJyTrMiXOlvTuKrqIgMyMBJdYpJrc1VLKX.jpg', NULL, 2, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(357, 32, 119, 'products/variants/w1JwNYvpalqJ1Z4sP0HtYJ7MqOsAJ4ZNaKVVE9bT.jpg', NULL, 0, 1, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(358, 32, 119, 'products/variants/210PXkIeLb3VUcAHvKElHg1BCREBxCfeWi7nLu9J.jpg', NULL, 1, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(359, 32, 119, 'products/variants/EaGAAZwKjty5nQoSgVPUy5w7M1DyzxhdubdKOKgR.jpg', NULL, 2, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(360, 32, 120, 'products/variants/Wyqiw5RR6CE6z3Wq4avzxteCSzfK3GDMfHVYT65t.jpg', NULL, 0, 1, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(361, 32, 120, 'products/variants/LBPb15xuIh2K5BBcNQIJis2WPa2xrn98aVwqkE89.jpg', NULL, 1, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(362, 32, 120, 'products/variants/NqbpY6wovSwi1Yu27dncuwZu0Iu6LK84SM6TgUQH.jpg', NULL, 2, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(363, 32, 121, 'products/variants/u7VmVx5YHNVwOnmrADD4vZmGx5mB1FSdm2eCn2dp.jpg', NULL, 0, 1, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(364, 32, 121, 'products/variants/PXVIFAzSWDv6TT6TPEDZTFyN0yhZZRFtGscFygNB.jpg', NULL, 1, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(365, 32, 121, 'products/variants/QIV5Q5tVVqhB5eNahytyvMBSFuMscDvGrTWTyPDz.jpg', NULL, 2, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:06'),
+(366, 33, 123, 'products/variants/7JWVmSlJS1eX4Rrfyc8vA0pebVPNWUowprSgtiUk.jpg', NULL, 0, 1, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(367, 33, 123, 'products/variants/rTMEqJY9B4n0ZKneFWKTeGTc03cBOuQvlxGicNv4.jpg', NULL, 1, 0, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(368, 33, 123, 'products/variants/6V6WBNzVdAEPN2maK6wwY8Bbpg2SmOhdXIjZ0dJ3.jpg', NULL, 2, 0, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(369, 33, 124, 'products/variants/CsefYSkkVV65hI7ApStHSrFc8tBvXK8WGgbvBTIt.jpg', NULL, 0, 1, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(370, 33, 124, 'products/variants/EYJPJ6EKobQr6gEyrml9E3O49KCzvqvX8SZgUt8M.jpg', NULL, 1, 0, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(371, 33, 124, 'products/variants/aMm6Frq3CDBwPaHn4LyEidcJCb9aD2PaEJqCGPHY.jpg', NULL, 2, 0, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(372, 33, 125, 'products/variants/W3dWIh4uTGOrLk1MQ5qrxLa6EMlAnWbhH8EnHzx6.jpg', NULL, 0, 1, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(373, 33, 125, 'products/variants/8QOAIDG3Fe9f2wwNF1VpQONR901Lqzhmsy1Auffu.jpg', NULL, 1, 0, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(374, 33, 125, 'products/variants/1UQMCwTmkR1rAVkX1Ytu6nATxZTe2AF3v2OlavU7.jpg', NULL, 2, 0, '2026-01-17 22:46:28', '2026-01-17 22:46:28'),
+(375, 34, 126, 'products/variants/SaTbeJgS2eZrtGNhwDzkaT9enBGs4sPVqUCTnJIx.jpg', NULL, 0, 1, '2026-01-17 22:58:33', '2026-01-17 22:58:33'),
+(376, 34, 126, 'products/variants/OrhJe8dPr98afSTM15L3kVKIWwqypcIqD587rTh6.jpg', NULL, 1, 0, '2026-01-17 22:58:33', '2026-01-17 22:58:33'),
+(377, 34, 126, 'products/variants/xzQELmdaY2xYwCF9nJCh22Zykk5pfV0L56smWs77.jpg', NULL, 2, 0, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(378, 34, 127, 'products/variants/sye4vnoVnNit8o6EpumGuM6NOp3hUaXWhRUIydET.jpg', NULL, 0, 1, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(379, 34, 127, 'products/variants/92tsYJPqA65Y8W4ALLe0zi2NxT364mvncEbfhSok.jpg', NULL, 1, 0, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(380, 34, 127, 'products/variants/f4wS99MKKXlmAMTC8JIFbiGbhI5XzlSejK3xzMN2.jpg', NULL, 2, 0, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(381, 34, 128, 'products/variants/6stHfOWefJbrQNW3rlcEMtpIXLpEMOx7DUOgRsGe.jpg', NULL, 0, 1, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(382, 34, 128, 'products/variants/nS0jV6Jh16GRQMca8AFdbBdAeItUpS85NFd3Dilw.jpg', NULL, 1, 0, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(383, 34, 128, 'products/variants/i1w4DGjpVLVrIZlVU9rJgqQFQLCEZnl9q8jrNfe1.jpg', NULL, 2, 0, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(384, 34, 129, 'products/variants/l7yfRWEVPehfVEwVhepSOOOtqAEgXzGkLghQF2XM.jpg', NULL, 0, 1, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(385, 34, 129, 'products/variants/u37Jf8tdA0nmVsGFuEQ6orhWP94s8mF08TtrCY9W.jpg', NULL, 1, 0, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(386, 34, 129, 'products/variants/lRitXTrTfavjpwHO2raSIoJ8qhPFZv3HDs0S23vg.jpg', NULL, 2, 0, '2026-01-17 22:58:34', '2026-01-17 22:58:34'),
+(387, 35, 131, 'products/variants/RvBokl24t13hnYvbdYQOlGfHgBEbLcPclCI0NdXk.jpg', NULL, 0, 1, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(388, 35, 131, 'products/variants/xhokt2PtCrcBDFIRruqXyIqO3csEmkpoVsOEg6LK.jpg', NULL, 1, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(389, 35, 131, 'products/variants/R7Z1BLdyk3Zf1NF7vXnrkIwZ6rE5MpqmOSlwFP4x.jpg', NULL, 2, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(390, 35, 132, 'products/variants/yAMEpKhUFiKyG7iQl3Wx7ZifwFRNPqmgRlPZvHej.jpg', NULL, 0, 1, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(391, 35, 132, 'products/variants/3AW0VM0ANdLJEDp0PS22683GOAO6vOVE0AZFSQoM.jpg', NULL, 1, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(392, 35, 132, 'products/variants/bxMkDJE3eJAIA6Asc476Wn5WjZCGIECoeAuBaa9f.jpg', NULL, 2, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(393, 35, 133, 'products/variants/hmpFXSaT8hLj4olqyJbxRGQAjyx1F0SbrmuazQFk.jpg', NULL, 0, 1, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(394, 35, 133, 'products/variants/8gGHgaSufTW4Y38DzoZLHZfEDRDqAjz2eQMPi9rV.jpg', NULL, 1, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(395, 35, 133, 'products/variants/xRe3Lrym8m2j8exffIWQm2nCl4un6jdpjaF0LP0h.jpg', NULL, 2, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(396, 35, 134, 'products/variants/i4UXUKtfjviqyVkzFF4IAJ8Ew8dWZkuteli5vBEE.jpg', NULL, 0, 1, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(397, 35, 134, 'products/variants/vjXisfoPe1Ky1ODdgnYoK2IOTNrbFzRAHfS9fPsR.jpg', NULL, 1, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(398, 35, 134, 'products/variants/AhcbO56gb61QZZnjePvbFBURNSrDDlUju9TRJU7V.jpg', NULL, 2, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:06'),
+(399, 36, 135, 'products/variants/OYL7IsVodvldy9NjTGSTGLG4zIuySN3NcCc7cwxG.jpg', NULL, 0, 1, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(400, 36, 135, 'products/variants/SVhLaGioEtPDI12vcG7mx2c6Kqi54HLmfTU6niCN.jpg', NULL, 1, 0, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(401, 36, 135, 'products/variants/HJru8OqthShKO73QyRiNMZNmCuVfjllgRFBbnC3s.jpg', NULL, 2, 0, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(402, 36, 136, 'products/variants/hQKPcWOZ9jdIM4cvAWQ1HevMkraPkFZ0bIiVTKvp.jpg', NULL, 0, 1, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(403, 36, 136, 'products/variants/qTrkoajUQabHF85245xcgD8GK1uXAyzo6bNArAl5.jpg', NULL, 1, 0, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(404, 36, 136, 'products/variants/yWAqNc9ipmTPwKDiE8mHAbVKi9xHDGBs7G1bfISi.jpg', NULL, 2, 0, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(405, 36, 137, 'products/variants/iTuFQxEXotEzsirahZFfop0wSKHf4gmbuDukrh2N.jpg', NULL, 0, 1, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(406, 36, 137, 'products/variants/Zi4pKKBsqJpbyjuhUQMaGWQoAwDryxhcnZPieBZE.jpg', NULL, 1, 0, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(407, 36, 137, 'products/variants/QxoS7kbyCwidEwPzf7R1cvWvM3sF0uAVicdx0nVg.jpg', NULL, 2, 0, '2026-01-20 08:14:19', '2026-01-20 08:14:19'),
+(420, 38, 138, 'products/variants/QC0NftSdLJCs1HN4OrLNvqt3y4ikSFfNQFXeAZcL.jpg', NULL, 0, 1, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(421, 38, 138, 'products/variants/7UXsQu7p0qs4craUym5hXE7btOZVdqteREh8b7OJ.jpg', NULL, 1, 0, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(422, 38, 138, 'products/variants/bfbKyY0kWdcLtVcBUAAD71eBp6p4IoD8gm2pf7ZV.jpg', NULL, 2, 0, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(423, 38, 139, 'products/variants/RLqUy87ilGw2ZoW8XuEig13cej0IKIuBcwhELbGk.jpg', NULL, 0, 1, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(424, 38, 139, 'products/variants/sYf50bhHP43YEIJWpNPznbZX5f8S2OiQbYe5oKnZ.jpg', NULL, 1, 0, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(425, 38, 139, 'products/variants/g5GwwbHDXiFHW7mKFJcIEHAUUzWl0kJvBen7wgIT.jpg', NULL, 2, 0, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(426, 38, 140, 'products/variants/ZIebNT1lAzAsSZDnzhtAtmQ1CIpq522NxBVutNMb.jpg', NULL, 0, 1, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(427, 38, 140, 'products/variants/OHEZmsbnyqWdhPFXDnZp0DSA8i9CN6QfwDM7Y8cF.jpg', NULL, 1, 0, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(428, 38, 140, 'products/variants/z2eIVPG56TVVRDrCHpF9ZkEbEOZe3pRBF4VqnqJO.jpg', NULL, 2, 0, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(429, 38, 141, 'products/variants/SiKUX0cMuho0QGVAdc7OC4WnzQ4whmONG2rcOO8B.jpg', NULL, 0, 1, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(430, 38, 141, 'products/variants/j3omOeJUDivzvxgxHyYxPFqk5e8JeSv53TU2DB0S.jpg', NULL, 1, 0, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(431, 38, 141, 'products/variants/l2JZVfeoqQvP8x8Un13m6lB4yC4gwEe2zLKvNY4t.jpg', NULL, 2, 0, '2026-01-20 08:35:15', '2026-01-20 08:35:15'),
+(432, 39, 143, 'products/variants/Wuq0rYqb0eh28PeZNtYB7KgAGqEIemj6mzkZXlsA.jpg', NULL, 0, 1, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(433, 39, 143, 'products/variants/WeRqMyzGFaBPzy0NUpZGP0YCth41LIiCyJIvbTdi.jpg', NULL, 1, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(434, 39, 143, 'products/variants/RKk75sJgbY4ybaCeoqJF05PvxHJhVTNokqCV2pDx.jpg', NULL, 2, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(435, 39, 144, 'products/variants/G71jDy94ht61PZaDFUlb1tT9HnztpbbmzbwPoxHM.jpg', NULL, 0, 1, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(436, 39, 144, 'products/variants/ruqCHkj3rAtKCsOfj0AAjr2a0ac6tYQlke0grVIP.jpg', NULL, 1, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(437, 39, 144, 'products/variants/Ki7Hp0TcZ7T8OHqVU4uc9OiuBSoTN78VfNinU5uj.jpg', NULL, 2, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(438, 39, 145, 'products/variants/ZIs7ld8oQLDZUxkaKGxtT6pHGYypQuS1JNl9B1RC.jpg', NULL, 0, 1, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(439, 39, 145, 'products/variants/aQUthSFJMAABV2xuaLqo6FzwS6MK30Eq8VmAiZHQ.jpg', NULL, 1, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(440, 39, 145, 'products/variants/rebyKFagpDjNsZm20MXhsdaUFkm3C0N0gFHJmXEb.jpg', NULL, 2, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(441, 39, 146, 'products/variants/SKKtmDoei7e6OxGJCkcaMOeFH4qrL6yZxtdGHhA8.jpg', NULL, 0, 1, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(442, 39, 146, 'products/variants/cVWP8ZaBDNnMX8RqoJOEw5z9piTZJhYFP86Av9MH.jpg', NULL, 1, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(443, 39, 146, 'products/variants/gcECr4ThZsKGgIKlmiLFzH3RuH57qJu88Y51RMFR.jpg', NULL, 2, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(444, 39, 147, 'products/variants/bzRjKf1y2OxrWEo2iu0AQDD3OdjCoPwQSol6Yr6R.jpg', NULL, 0, 1, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(445, 39, 147, 'products/variants/mjEKKzwuUvosNwa4bR5NVl3y8P0InNaLn58GfgZM.jpg', NULL, 1, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(446, 39, 147, 'products/variants/P1zpjvX2PIjFgJXXmtk4Wbia1d160C0w0qHY7Qw5.jpg', NULL, 2, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:11'),
+(447, 37, 148, 'products/variants/1PDOsFkyEW6LcC4EF5bo9g5DoHISoYLscyUEFCII.jpg', NULL, 0, 1, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(448, 37, 148, 'products/variants/A2JI93LRvXwdI7H2bmYAJkfQa6gwixYgdMmk2TKE.jpg', NULL, 1, 0, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(449, 37, 149, 'products/variants/dirlCnL8FGLN3buGDv4xL4unwmBCVbU062CY0uu2.jpg', NULL, 0, 1, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(450, 37, 149, 'products/variants/2R9LlT94fEDT9xaPRYEvYv8aBYqRwaCEou00GqLx.jpg', NULL, 1, 0, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(451, 37, 150, 'products/variants/eNNkPQQAzjcGGeEcTZRfFvXsHdbT7P24fUepMZzf.jpg', NULL, 0, 1, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(452, 37, 150, 'products/variants/HFRBxcjY9CZazmu0Uzeyy0W3awXuakWiHx3AoPCT.jpg', NULL, 1, 0, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(453, 37, 151, 'products/variants/0RnRZmNzlo8XyfexqXZFlwdU1YD5jyn53jUUhicT.jpg', NULL, 0, 1, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(454, 37, 151, 'products/variants/0bVr86gmlY1hhLSAxI96yUJvUlb48FDGTXXZHrhn.jpg', NULL, 1, 0, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(455, 37, 152, 'products/variants/hR4gYxStbabELQGOKVL4i7KYBLSfe0GfNccjLcWW.jpg', NULL, 0, 1, '2026-01-21 01:29:18', '2026-01-21 01:29:18'),
+(456, 37, 152, 'products/variants/CCjUEq7a7TKZufYVuefYahk799JUa8yA6eZq23R4.jpg', NULL, 1, 0, '2026-01-21 01:29:18', '2026-01-21 01:29:18');
 
 -- --------------------------------------------------------
 
@@ -1658,20 +2353,127 @@ CREATE TABLE `product_variants` (
 --
 
 INSERT INTO `product_variants` (`id`, `product_id`, `sku`, `barcode`, `name`, `attributes`, `measurements`, `highlights_details`, `description`, `additional_information`, `price`, `sale_price`, `cost_price`, `image`, `discount_type`, `discount_value`, `discount_active`, `sale_price_start`, `sale_price_end`, `manage_stock`, `stock_quantity`, `low_stock_threshold`, `stock_status`, `weight`, `length`, `width`, `height`, `diameter`, `is_active`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, 1, 'CTSHIRT-BLK-S', 'CTSHIRT-BLK-S-BC', 'Black - Small', '{\"variable\":{\"size\":\"S\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":26,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":32,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in small size', NULL, 1000.00, 799.00, NULL, 'products/imports/T3EbOhEuduZg.jpg', 'percentage', 10.00, 1, NULL, NULL, 1, 17, 5, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-03 00:01:38', '2026-01-07 02:12:09'),
-(2, 1, 'CTSHIRT-BLK-M', 'CTSHIRT-BLK-M-BC', 'Black - Medium', '{\"variable\":{\"size\":\"M\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":28,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10.5,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":33,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in medium size', NULL, 1000.00, 799.00, NULL, 'products/imports/T3EbOhEuduZg.jpg', 'percentage', 10.00, 0, NULL, NULL, 1, 9, 5, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-03 00:01:38', '2026-01-07 23:23:21'),
-(3, 1, 'CTSHIRT-BLK-L', 'CTSHIRT-BLK-L-BC', 'Black - Large', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":30,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":11,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":34,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in large size', NULL, 1000.00, 1000.00, NULL, 'products/imports/T3EbOhEuduZg.jpg', 'percentage', 10.00, 1, NULL, NULL, 1, 0, 5, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-03 00:01:38', '2026-01-07 02:12:09'),
-(4, 1, 'CTSHIRT-WHT-S', 'CTSHIRT-WHT-S-BC', 'White - Small', '{\"variable\":{\"size\":\"S\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":26,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":32,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in small size', NULL, 1000.00, 1000.00, NULL, 'products/imports/T3EbOhEuduZg.jpg', 'percentage', 10.00, 0, NULL, NULL, 1, 0, 5, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-03 00:01:38', '2026-01-07 02:12:09'),
-(5, 1, 'CTSHIRT-WHT-M', 'CTSHIRT-WHT-M-BC', 'White - Medium', '{\"variable\":{\"size\":\"M\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":28,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10.5,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":33,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in medium size', NULL, 599.00, NULL, NULL, 'products/imports/T3EbOhEuduZg.jpg', 'percentage', 10.00, 1, NULL, NULL, 1, 0, 5, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-03 00:01:38', '2026-01-07 02:12:09'),
-(6, 1, 'CTSHIRT-WHT-L', 'CTSHIRT-WHT-L-BC', 'White - Large', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":30,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":11,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":34,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in large size', NULL, 599.00, NULL, NULL, 'products/imports/T3EbOhEuduZg.jpg', NULL, NULL, 0, NULL, NULL, 1, 10, 5, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 5, '2026-01-03 00:01:38', '2026-01-07 02:12:09'),
-(7, 11, 'HANDBAG-BRN-OS', 'HANDBAG-BRN-OS-BC', 'Brown - One Size', '{\"variable\":{\"size\":\"onesize\"},\"color\":{\"label\":\"brown\",\"code\":\"#A52A2A\"}}', '[]', '[{\"heading_name\":\"Premium Quality\",\"bullet_points\":[\"Genuine leather premium quality\",\"Spacious compartments\",\"Durable construction\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Clean with leather conditioner\",\"Store in dust bag\",\"Avoid water exposure\"]}]', 'Brown leather handbag one size', NULL, 3999.00, 3199.00, NULL, NULL, 'percentage', 20.00, 1, NULL, NULL, 1, 8, 2, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-03 00:01:39', '2026-01-06 04:24:56'),
-(8, 12, 'EARRING-DIA-OS', 'EARRING-DIA-OS-BC', 'Diamond - One Size', '{\"variable\":{\"size\":\"onesize\"}}', '[]', '[{\"heading_name\":\"Luxury Jewelry\",\"bullet_points\":[\"Real diamond premium jewelry\",\"Classic stud design\",\"Elegant sparkle\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Store in jewelry box\",\"Clean with soft brush\",\"Professional cleaning recommended\"]}]', 'Diamond stud earrings one size', NULL, 9999.00, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 1, 0, 1, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-03 00:01:39', '2026-01-07 02:12:09'),
-(55, 5, 'SPORTSRUNN-2-BLU', NULL, 'blue', '{\"color\":{\"label\":\"blue\",\"code\":\"#3F51B5\"}}', '[]', '[]', NULL, NULL, 500.00, 400.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 400, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-06 12:00:32', '2026-01-08 00:44:11'),
-(56, 3, 'FORMALCOTT-2-GRE', NULL, 'grey', '{\"color\":{\"label\":\"grey\",\"code\":\"#9E9E9E\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-06 12:17:55', '2026-01-07 03:38:31'),
-(57, 8, 'CASUALCANV-1-GRE-UK6', NULL, 'Grey - Size: uk6', '{\"variable\":{\"Size\":\"uk6\"},\"color\":{\"label\":\"Grey\",\"code\":\"#9E9E9E\"}}', '[]', '[]', NULL, NULL, 500.00, 480.00, NULL, NULL, 'percentage', 10.00, 1, NULL, NULL, 1, 36, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-07 05:03:25', '2026-01-11 12:05:52'),
-(58, 8, 'CASUALCANV-2-GRE-UK7', NULL, 'Grey - Size: uk7', '{\"variable\":{\"Size\":\"uk7\"},\"color\":{\"label\":\"Grey\",\"code\":\"#9E9E9E\"}}', '[]', '[]', NULL, NULL, 500.00, 480.00, NULL, NULL, 'percentage', 10.00, 1, NULL, NULL, 1, 40, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-07 05:03:25', '2026-01-07 05:05:13'),
-(59, 8, 'CASUALCANV-3-GRE-UK8', NULL, 'Grey - Size: uk8', '{\"variable\":{\"Size\":\"uk8\"},\"color\":{\"label\":\"Grey\",\"code\":\"#9E9E9E\"}}', '[]', '[]', NULL, NULL, 500.00, 480.00, NULL, NULL, 'percentage', 10.00, 1, NULL, NULL, 1, 40, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-07 05:03:25', '2026-01-07 05:05:13'),
-(60, 8, 'CASUALCANV-4-GRE-UK9', NULL, 'Grey - Size: uk9', '{\"variable\":{\"Size\":\"uk9\"},\"color\":{\"label\":\"Grey\",\"code\":\"#9E9E9E\"}}', '[]', '[]', NULL, NULL, 500.00, 480.00, NULL, NULL, 'percentage', 10.00, 1, NULL, NULL, 1, 40, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-07 05:03:25', '2026-01-07 05:05:13');
+(1, 1, 'CTSHIRT-BLK-S', 'CTSHIRT-BLK-S-BC', 'Black - Small', '{\"variable\":{\"size\":\"S\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":26,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":32,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in small size', NULL, 599.00, 499.00, NULL, 'products/variants/tshirt-black-s-1.jpg', 'percentage', 17.00, 1, NULL, NULL, 1, 17, 5, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-02 18:31:38', '2026-01-14 08:27:36'),
+(2, 1, 'CTSHIRT-BLK-M', 'CTSHIRT-BLK-M-BC', 'Black - Medium', '{\"variable\":{\"size\":\"M\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":28,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10.5,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":33,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in medium size', NULL, 599.00, 499.00, NULL, 'products/imports/celF09HgQfoz.jpg', 'percentage', 17.00, 1, NULL, NULL, 1, 10, 5, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-02 18:31:38', '2026-01-14 08:27:36'),
+(3, 1, 'CTSHIRT-BLK-L', 'CTSHIRT-BLK-L-BC', 'Black - Large', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":30,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":11,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":34,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'Black cotton t-shirt in large size', NULL, 599.00, 499.00, NULL, 'products/imports/celF09HgQfoz.jpg', 'percentage', 17.00, 1, NULL, NULL, 1, 0, 5, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-02 18:31:38', '2026-01-14 08:27:36'),
+(4, 1, 'CTSHIRT-WHT-S', 'CTSHIRT-WHT-S-BC', 'White - Small', '{\"variable\":{\"size\":\"S\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":26,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":32,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in small size', NULL, 599.00, NULL, NULL, 'products/imports/celF09HgQfoz.jpg', NULL, NULL, 0, NULL, NULL, 1, 0, 5, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-02 18:31:38', '2026-01-14 08:27:36'),
+(5, 1, 'CTSHIRT-WHT-M', 'CTSHIRT-WHT-M-BC', 'White - Medium', '{\"variable\":{\"size\":\"M\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":28,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":10.5,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":33,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in medium size', NULL, 599.00, NULL, NULL, 'products/imports/celF09HgQfoz.jpg', NULL, NULL, 0, NULL, NULL, 1, 0, 5, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-02 18:31:38', '2026-01-14 08:27:36'),
+(6, 1, 'CTSHIRT-WHT-L', 'CTSHIRT-WHT-L-BC', 'White - Large', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"white\",\"code\":\"#FFFFFF\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest size\",\"attribute_slug\":null,\"value\":30,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"collar\",\"attribute_slug\":null,\"value\":11,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve length\",\"attribute_slug\":null,\"value\":34,\"unit_id\":9,\"unit_name\":\"Inches\",\"unit_symbol\":\"in\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Material & Comfort\",\"bullet_points\":[\"100% premium cotton fabric\",\"Soft and breathable material\",\"Comfortable for all-day wear\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Machine washable\",\"Do not bleach\",\"Tumble dry low\"]}]', 'White cotton t-shirt in large size', NULL, 599.00, NULL, NULL, 'products/imports/celF09HgQfoz.jpg', NULL, NULL, 0, NULL, NULL, 1, 10, 5, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 5, '2026-01-02 18:31:38', '2026-01-07 00:57:25'),
+(7, 11, 'HANDBAG-BRN-OS', 'HANDBAG-BRN-OS-BC', 'Brown - One Size', '{\"variable\":{\"size\":\"onesize\"},\"color\":{\"label\":\"brown\",\"code\":\"#A52A2A\"}}', '[]', '[{\"heading_name\":\"Premium Quality\",\"bullet_points\":[\"Genuine leather premium quality\",\"Spacious compartments\",\"Durable construction\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Clean with leather conditioner\",\"Store in dust bag\",\"Avoid water exposure\"]}]', 'Brown leather handbag one size', NULL, 3999.00, 3199.00, NULL, NULL, 'percentage', 20.00, 1, NULL, NULL, 1, 8, 2, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-02 18:31:39', '2026-01-06 05:47:42'),
+(8, 12, 'EARRING-DIA-OS', 'EARRING-DIA-OS-BC', 'Diamond - One Size', '{\"variable\":{\"size\":\"onesize\"}}', '[]', '[{\"heading_name\":\"Luxury Jewelry\",\"bullet_points\":[\"Real diamond premium jewelry\",\"Classic stud design\",\"Elegant sparkle\"]},{\"heading_name\":\"Care Instructions\",\"bullet_points\":[\"Store in jewelry box\",\"Clean with soft brush\",\"Professional cleaning recommended\"]}]', 'Diamond stud earrings one size', NULL, 9999.00, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 1, 0, 1, 'out_of_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-02 18:31:39', '2026-01-06 05:47:42'),
+(15, 8, 'CASUALCANV-1-BLA-UK6', NULL, 'black - size: uk 6', '{\"variable\":{\"size\":\"uk 6\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-04 04:46:41', '2026-01-04 05:09:27'),
+(16, 8, 'CASUALCANV-2-BLA-UK7', NULL, 'black - size: uk7', '{\"variable\":{\"size\":\"uk7\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 500.00, 400.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-04 04:46:41', '2026-01-04 04:48:32'),
+(19, 8, 'CASUALCANV-3-BLA-UK8', NULL, 'black - size: uk8', '{\"variable\":{\"size\":\"uk8\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 600.00, 400.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 18, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-04 06:50:14', '2026-01-05 23:54:29'),
+(20, 3, 'FORMALCOTT-1-S', NULL, 'Size: S', '{\"variable\":{\"Size\":\"S\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"chest\",\"attribute_slug\":null,\"value\":54,\"unit_id\":3,\"unit_name\":\"Centimeter\",\"unit_symbol\":\"cm\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"length\",\"attribute_slug\":null,\"value\":72,\"unit_id\":3,\"unit_name\":\"Centimeter\",\"unit_symbol\":\"cm\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"sleeve\",\"attribute_slug\":null,\"value\":20,\"unit_id\":3,\"unit_name\":\"Centimeter\",\"unit_symbol\":\"cm\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"Premium cotton\",\"bullet_points\":[\"Everyday comfort\"]},{\"heading_name\":\"Unisex casual fit\",\"bullet_points\":[\"Soft and breathable\"]}]', '<p>Built for daily wear, this premium cotton t-shirt delivers breathable comfort, minimal shrinkage, and a clean silhouette. Optimized for casual, work-from-home, and weekend scenarios. Basically, it behaves better than most wardrobes.\r\n<br /></p>', NULL, 500.00, 500.00, NULL, 'products/variants/rwCoFvj8WszJ9TknZDpiJSRllea98eiIwgcIoOi5.webp', NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-06 00:16:22', '2026-01-07 00:59:44'),
+(21, 3, 'FORMALCOTT-2-M', NULL, 'Size: M', '{\"variable\":{\"Size\":\"M\"}}', '[]', '[]', '<p>Built for daily wear, this premium cotton t-shirt delivers breathable comfort, minimal shrinkage, and a clean silhouette. Optimized for casual, work-from-home, and weekend scenarios. Basically, it behaves better than most wardrobes.\r\n<br /></p>', NULL, 500.00, 450.00, NULL, 'products/variants/9GPWzmtZc7rtfH1DYLEbRpCokcWELeRRUAQL3ui7.webp', NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-06 00:16:22', '2026-01-07 00:59:44'),
+(22, 5, 'SPORTSRUNN-1-BLA-UK6', NULL, 'black - Shoes Size: UK6', '{\"variable\":{\"Shoes Size\":\"UK6\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[{\"heading_name\":\"Best Running Shoes\",\"bullet_points\":[\"Best for tracks\"]}]', '<p>Lorem ipsum is simply dummy</p>', NULL, 500.00, 500.00, NULL, 'products/variants/4qRPwCk2Yz7BuU9RCdUQQG9SpxVZXYkt6ebMOLxs.webp', NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-06 06:36:11', '2026-01-07 01:39:17'),
+(23, 5, 'SPORTSRUNN-2-BLA-UK7', NULL, 'black - Shoes Size: UK7', '{\"variable\":{\"Shoes Size\":\"UK7\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, 'products/variants/aUKIWJnhb8rZdspROhyq52JpeOSkYFikzVZwtFuN.webp', NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-06 06:36:11', '2026-01-07 01:39:17'),
+(24, 5, 'SPORTSRUNN-3-BLA-UK8', NULL, 'black - Shoes Size: UK8', '{\"variable\":{\"Shoes Size\":\"UK8\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 500.00, 400.00, NULL, 'products/variants/WOHqqIi4lkAdJfqXNvsJvDowRHP9OVKNDjmkCfQE.webp', NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-06 06:36:11', '2026-01-07 01:39:17'),
+(25, 5, 'SPORTSRUNN-4-WHI-UK6', NULL, 'White - Shoes Size: UK6', '{\"variable\":{\"Shoes Size\":\"UK6\"},\"color\":{\"label\":\"White\",\"code\":\"#FFFFFF\"}}', '[]', '[]', NULL, NULL, 500.00, 500.00, NULL, 'products/variants/W0AjBRz6jIPdtEs0R9bKE93qDTlMj8rg7VNZWKab.webp', NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-06 06:36:11', '2026-01-06 06:36:57'),
+(26, 5, 'SPORTSRUNN-5-WHI-UK7', NULL, 'White - Shoes Size: UK7', '{\"variable\":{\"Shoes Size\":\"UK7\"},\"color\":{\"label\":\"White\",\"code\":\"#FFFFFF\"}}', '[]', '[]', NULL, NULL, 500.00, 500.00, NULL, 'products/variants/ZIHCVMSd56BX8TjbDOXmyI527AwQ41y9uV95rTSu.webp', NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-06 06:36:11', '2026-01-06 06:36:57'),
+(27, 5, 'SPORTSRUNN-6-WHI-UK8', NULL, 'White - Shoes Size: UK8', '{\"variable\":{\"Shoes Size\":\"UK8\"},\"color\":{\"label\":\"White\",\"code\":\"#FFFFFF\"}}', '[]', '[]', NULL, NULL, 500.00, 500.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 5, '2026-01-06 06:36:11', '2026-01-06 06:36:11'),
+(28, 3, 'FORMALCOTT-3-L', NULL, 'Size: L', '{\"variable\":{\"Size\":\"L\"}}', '[]', '[]', NULL, NULL, 500.00, 490.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 199, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-07 00:59:44', '2026-01-07 01:03:28'),
+(29, 7, 'WINTERWOOL-1-RED-L', NULL, 'red - size: L', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"red\",\"code\":\"#FF0000\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 100, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-07 01:07:51', '2026-01-07 01:20:21'),
+(30, 7, 'WINTERWOOL-2-RED-XL', NULL, 'red - size: XL', '{\"variable\":{\"size\":\"XL\"},\"color\":{\"label\":\"red\",\"code\":\"#FF0000\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-07 01:07:51', '2026-01-07 01:07:51'),
+(31, 7, 'WINTERWOOL-3-BLA-L', NULL, 'black - size: L', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-07 01:07:51', '2026-01-07 01:07:51'),
+(32, 7, 'WINTERWOOL-4-BLA-XL', NULL, 'black - size: XL', '{\"variable\":{\"size\":\"XL\"},\"color\":{\"label\":\"black\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-07 01:07:51', '2026-01-07 01:07:51'),
+(33, 7, 'WINTERWOOL-5-GRE-L', NULL, 'grey - size: L', '{\"variable\":{\"size\":\"L\"},\"color\":{\"label\":\"grey\",\"code\":\"#9E9E9E\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-07 01:07:51', '2026-01-07 01:07:51'),
+(34, 7, 'WINTERWOOL-6-GRE-XL', NULL, 'grey - size: XL', '{\"variable\":{\"size\":\"XL\"},\"color\":{\"label\":\"grey\",\"code\":\"#9E9E9E\"}}', '[]', '[]', NULL, NULL, 500.00, 450.00, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0, 0, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 5, '2026-01-07 01:07:51', '2026-01-07 01:07:51'),
+(35, 15, 'MENSWEARHO-1-S', NULL, 'size: S', '{\"variable\":{\"size\":\"S\"}}', '[]', '[]', NULL, NULL, 1999.00, 1499.00, NULL, 'products/variants/zgtVSMf4LBSl67QTYmhfxmHTKD7a11gZzFCVkxw6.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-11 02:38:45', '2026-01-11 03:37:25'),
+(36, 15, 'MENSWEARHO-2-M', NULL, 'size: M', '{\"variable\":{\"size\":\"M\"}}', '[]', '[]', NULL, NULL, 1999.00, 1499.00, NULL, 'products/variants/0wh6EtUaiuET8vrhe8IFolumvmNoorTbS1jT1clT.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-11 02:38:45', '2026-01-11 03:37:25'),
+(37, 15, 'MENSWEARHO-3-L', NULL, 'size: L', '{\"variable\":{\"size\":\"L\"}}', '[]', '[]', NULL, NULL, 1999.00, 1499.00, NULL, 'products/variants/IBlx2AkFYGAic2OBAOJlpPv2cmvE2X3Re0z472DN.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-11 02:38:45', '2026-01-11 03:37:25'),
+(38, 15, 'MENSWEARHO-4-XL', NULL, 'size: XL', '{\"variable\":{\"size\":\"XL\"}}', '[]', '[]', NULL, NULL, 1999.00, 1499.00, NULL, 'products/variants/ikPRVo1tsPCQTQzoA77UCMGDzj2JoS9iakLiQjkF.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-11 02:38:45', '2026-01-11 03:37:25'),
+(43, 16, 'MENSWINTER-1-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 1999.00, 1499.00, NULL, 'products/variants/zMYIASjkFEBBBtc6i05wwACKcWLcjZAHKWfz7Fiv.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-11 03:07:42', '2026-01-11 03:28:28'),
+(44, 16, 'MENSWINTER-2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1999.00, 1499.00, NULL, 'products/variants/mJSuUOaiUhOOBngKxDtsouSGiTVo3ZiFq43YuZeW.jpg', NULL, NULL, 0, NULL, NULL, 0, 10, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-11 03:07:42', '2026-01-11 03:28:28'),
+(45, 16, 'MENSWINTER-3-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 1999.00, 1499.00, NULL, 'products/variants/uxMFAu7EKA5fKbarZlkisCD48I00g2KZMRzSWvFL.jpg', NULL, NULL, 0, NULL, NULL, 0, 10, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-11 03:07:42', '2026-01-11 03:28:28'),
+(46, 16, 'MENSWINTER-4-XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 1999.00, 1499.00, NULL, 'products/variants/Eq7IQz3rD9ZHY1v8c00tLsSl4iYCnYhMSVbvduUu.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-11 03:07:42', '2026-01-11 03:28:28'),
+(47, 17, 'UNISEXHALF-1-M', NULL, 'size: M', '{\"variable\":{\"size\":\"M\"}}', '[]', '[]', NULL, NULL, 1299.00, 899.00, NULL, 'products/variants/l6Nfx54wPgeFKP6sRDEMnroAJ1kzHwi0A6zTBHhz.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-11 03:54:28', '2026-01-11 03:57:25'),
+(48, 17, 'UNISEXHALF-2-L', NULL, 'size: L', '{\"variable\":{\"size\":\"L\"}}', '[]', '[]', NULL, NULL, 1299.00, 899.00, NULL, 'products/variants/MkVoMIp2vOsusel5MQT9VS86Ttu8PrZL2rfmUBdO.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-11 03:54:28', '2026-01-11 03:57:37'),
+(49, 17, 'UNISEXHALF-3-XL', NULL, 'size: XL', '{\"variable\":{\"size\":\"XL\"}}', '[]', '[]', NULL, NULL, 1299.00, 899.00, NULL, 'products/variants/OcWgoSCW6dqycsRG7KHD3ZeTJcYNQ76Mt8JlHwTR.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-11 03:54:28', '2026-01-11 03:57:59'),
+(50, 17, 'UNISEXHALF-4-3XL', NULL, 'size: 3XL', '{\"variable\":{\"size\":\"3XL\"}}', '[]', '[]', NULL, NULL, 1299.00, 899.00, NULL, 'products/variants/ZQZ7cFMlkWCs3gz9tJ7Gp6gXiEPD7M2PjFV3JzxY.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-11 03:54:28', '2026-01-11 03:58:15'),
+(51, 18, 'WOMENTRACK-1-S', NULL, 'SIZE: S', '{\"variable\":{\"SIZE\":\"S\"}}', '[]', '[]', NULL, NULL, 1899.00, 2099.00, NULL, 'products/variants/Dv3q2vEwBedGxFuw6giszf1Tbt9lZ1qwCl7v8Itf.jpg', NULL, NULL, 0, NULL, NULL, 0, 6, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-11 04:41:43', '2026-01-11 04:44:47'),
+(52, 18, 'WOMENTRACK-2-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 1899.00, 2099.00, NULL, 'products/variants/3GMB8Jz4kL1BbN5G8bnZXwTxTTQIbZptcVwtUkH2.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-11 04:41:43', '2026-01-11 04:48:22'),
+(53, 18, 'WOMENTRACK-3-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1899.00, 2099.00, NULL, 'products/variants/DtnPjnuYNu5sdO1conmjmol975dyKp6ZpbJfWgxT.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-11 04:41:43', '2026-01-11 04:49:49'),
+(55, 19, 'LOMOOFY 2SHADE HOODIE- M', NULL, 'size: M', '{\"variable\":{\"size\":\"M\"}}', '[{\"attribute_id\":null,\"attribute_name\":\"CHEST\",\"attribute_slug\":null,\"value\":39,\"unit_id\":3,\"unit_name\":\"Centimeter\",\"unit_symbol\":\"cm\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"LENGTH\",\"attribute_slug\":null,\"value\":20,\"unit_id\":3,\"unit_name\":\"Centimeter\",\"unit_symbol\":\"cm\",\"unit_type\":\"length\"},{\"attribute_id\":null,\"attribute_name\":\"SLEEVE LENGTH\",\"attribute_slug\":null,\"value\":23,\"unit_id\":3,\"unit_name\":\"Centimeter\",\"unit_symbol\":\"cm\",\"unit_type\":\"length\"}]', '[{\"heading_name\":\"PREMIUM COTTON\",\"bullet_points\":[\"EVERYDAY COMFORT\"]},{\"heading_name\":\"COMFORTABLE\\/ REGULAR FIT\",\"bullet_points\":[\"SOFT\"]}]', '<p>This premium cotton hoodie is designed to provide all-day comfort with a stylish and modern look. Crafted from high-quality, breathable fabric, it feels soft on the skin and is perfect for daily wear. The hoodie features a comfortable regular fit that allows easy movement without feeling too tight or too loose.<br /></p>', NULL, 1899.00, 1299.00, NULL, 'products/variants/Q0bFak3lToolM8C5yAl6jYFcIKmvsTZjK032lQof.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 3, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-11 05:06:15', '2026-01-14 06:44:35'),
+(56, 19, 'LOMOOFY 2SHADE HOODIE -L', NULL, 'size: L', '{\"variable\":{\"size\":\"L\"}}', '[]', '[]', NULL, NULL, 1899.00, 1299.00, NULL, 'products/variants/5vvlTRh8KzYATR1r44hF0Y6gWfZQl4Olk67vvnsx.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-11 05:06:15', '2026-01-14 06:44:35'),
+(57, 19, 'LOMOOFY 2SHADE HOODIE-XL', NULL, 'size: XL', '{\"variable\":{\"size\":\"XL\"}}', '[]', '[]', NULL, NULL, 1899.00, 1299.00, NULL, 'products/variants/IUAfGO7EFVGYkmRAvdO2WjQLgYut1AGw39ZoTnPM.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-11 05:06:15', '2026-01-14 06:44:35'),
+(63, 20, 'HOODIE--2SHADE-M', NULL, '2 SHADE - SIZE: M', '{\"variable\":{\"SIZE\":\"M\"},\"color\":{\"label\":\"2 SHADE\",\"code\":\"#00BCD4\"}}', '[]', '[]', '<p>This premium cotton hoodie is designed to provide all-day comfort with a stylish and modern look. Crafted from high-quality, breathable fabric, it feels soft on the skin and is perfect for daily wear. The hoodie features a comfortable regular fit that allows easy movement without feeling too tight or too loose.<br /></p>', NULL, 1899.00, 1299.00, NULL, 'products/variants/sHS79uCMDPiMUcp2VMeM8XOFWBdUE38oVDemsy1M.jpg', NULL, 32.00, 0, NULL, NULL, 0, 1, 3, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-15 01:39:29', '2026-01-15 02:50:24'),
+(64, 20, 'HOODIE--2SHADE-L', NULL, '2 SHADE - SIZE: L', '{\"variable\":{\"SIZE\":\"L\"},\"color\":{\"label\":\"2 SHADE\",\"code\":\"#00BCD4\"}}', '[]', '[]', NULL, NULL, 1899.00, 1299.00, NULL, 'products/variants/va755kCHMS7t8zRFAMMqfY9b92WQudCKmfjsXNyb.jpg', NULL, 32.00, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-15 01:39:29', '2026-01-15 02:50:24'),
+(65, 20, 'HOODIE-2SHADE-XL', NULL, '2 SHADE - SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"},\"color\":{\"label\":\"2 SHADE\",\"code\":\"#00BCD4\"}}', '[]', '[]', NULL, NULL, 1899.00, 1299.00, NULL, 'products/variants/PiN6ejZy6tGfJjVqtsekPKE9btmrA45CexBsDEER.jpg', NULL, 32.00, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-15 01:39:29', '2026-01-15 02:50:24'),
+(66, 21, 'TSHIRT-1-M', NULL, 'size: M', '{\"variable\":{\"size\":\"M\"}}', '[]', '[]', '<p>Upgrade your daily wardrobe with this versatile, easy-to-wear T-shirt designed for comfort and style. Crafted from soft, breathable fabric, it delivers a smooth feel against the skin while maintaining durability for everyday use. Its modern fit offers a flattering silhouette without feeling restrictive, making it perfect for casual wear or layering.<br /></p>', NULL, 599.00, 399.00, NULL, 'products/variants/nJnD3BwmBuYv4sWjsOfITe8TfUGh2es2ZQEZQqS1.jpg', NULL, NULL, 0, NULL, NULL, 0, 4, 4, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-15 03:13:11', '2026-01-15 03:13:46'),
+(67, 21, 'TSHIRT-2-L', NULL, 'size: L', '{\"variable\":{\"size\":\"L\"}}', '[]', '[]', NULL, NULL, 599.00, 399.00, NULL, 'products/variants/P1APiIr7sv4N1OsCPdbfrE2KMUiOPtfcTRKxZQ8z.jpg', NULL, NULL, 0, NULL, NULL, 0, 4, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-15 03:13:11', '2026-01-15 03:13:54'),
+(68, 21, 'TSHIRT-3-XL', NULL, 'size: XL', '{\"variable\":{\"size\":\"XL\"}}', '[]', '[]', NULL, NULL, 599.00, 399.00, NULL, 'products/variants/SO0G8hZeZHEOsgkndfx9ZDO25S5jkZjBAYBMGIMC.jpg', NULL, NULL, 0, NULL, NULL, 0, 4, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-15 03:13:11', '2026-01-15 03:14:07'),
+(69, 21, 'TSHIRT-4-XXL', NULL, 'size: XXL', '{\"variable\":{\"size\":\"XXL\"}}', '[]', '[]', NULL, NULL, 599.00, 399.00, NULL, 'products/variants/ienlY8mcBQFQnAmCSxrwYbNxIVojSEL1MZfRyqz1.jpg', NULL, NULL, 0, NULL, NULL, 0, 4, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-15 03:13:11', '2026-01-15 03:15:37'),
+(70, 22, 'JACKET-1-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', '<p>This boys’ bomber jacket is designed for a modern, sporty look with everyday comfort. Made from lightweight and durable fabric, it provides protection against mild wind while remaining breathable for all-day wear. The jacket features a smooth full-front zipper for easy wear and a clean finish.\r\nThe ribbed collar, cuffs, and bottom hem with contrast stripe detailing add a classic bomber-style touch while ensuring a snug fit. Functional side pockets offer convenience and warmth, and the neatly stitched construction gives the jacket a polished appearance.<br /></p>', NULL, 1199.00, 899.00, NULL, 'products/variants/0hbl7hkwDniL2qyqyIQVzLndFSGsktkH2NTu8e8V.jpg', NULL, NULL, 0, NULL, NULL, 0, 15, 40, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-15 05:42:35', '2026-01-15 05:44:21'),
+(71, 22, 'JACKET-2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1199.00, 899.00, NULL, 'products/variants/pSS9WFxnhBn7FYBPSMfBCbHoucpU4MoRKPv4e8jz.jpg', NULL, NULL, 0, NULL, NULL, 0, 17, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-15 05:42:35', '2026-01-15 05:44:33'),
+(72, 22, 'JACKET-3-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 1199.00, 899.00, NULL, 'products/variants/CAx7sR7d939iGrCxLtCYt4yosjmzqb9NknwvFRKy.jpg', NULL, NULL, 0, NULL, NULL, 0, 23, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-15 05:42:35', '2026-01-15 05:44:52'),
+(73, 22, 'JACKET-4-XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 1199.00, 899.00, NULL, 'products/variants/omsl5yHiyAqSDnBxeoO1Y8V8FLjjGIwqeO2wP6DJ.jpg', NULL, NULL, 0, NULL, NULL, 0, 32, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-15 05:42:35', '2026-01-15 05:45:10'),
+(82, 24, 'JACKETM07-1-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', '<p>This boys’ jacket is designed for a smart, modern look while ensuring everyday comfort. Crafted from lightweight yet durable fabric, it offers protection from mild wind and cool weather, making it ideal for daily wear. The smooth full-front zipper allows easy on-and-off and adds a clean, structured finish.<br /></p>', NULL, 1899.00, 1799.00, NULL, 'products/variants/32F98UkRyScdrue2Qc90oatDQIYtw77fl4xj4YY9.jpg', NULL, NULL, 0, NULL, NULL, 0, 11, 4, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-15 06:27:29', '2026-01-15 06:29:08'),
+(83, 24, 'JACKETM07-2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1899.00, 1799.00, NULL, 'products/variants/z7pSQeUeYxh6tEyu2A2sGcaMMGVvzBwYhggh2PgR.jpg', NULL, NULL, 0, NULL, NULL, 0, 12, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-15 06:27:29', '2026-01-15 06:29:21'),
+(84, 24, 'JACKETM07-3-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 1899.00, 1799.00, NULL, 'products/variants/2bHuKl9WbUEj9CbmiVTgKoaqOKOAKqkt2aOxFxp5.jpg', NULL, NULL, 0, NULL, NULL, 0, 9, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-15 06:27:29', '2026-01-15 06:29:42'),
+(85, 24, 'JACKETM07-4-XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 1899.00, 1799.00, NULL, 'products/variants/i1PV0wJT1077Ue2mpuQjiQy0Xn2G8AoRCSY9F8O7.jpg', NULL, NULL, 0, NULL, NULL, 0, 10, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-15 06:27:29', '2026-01-15 06:29:32'),
+(86, 25, 'HOODIE-1-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', 'A young couple is standing side by side outdoors on a quiet, tree-lined street, dressed in coordinated casual outfits. Both are wearing matching navy blue hooded sweatshirts made of soft, comfortable fabric. The hoodies feature white drawstrings, a front kangaroo pocket, and a minimal white text logo on the chest, giving a clean and modern look.\r\nThey are paired with simple black shorts, creating a balanced and relaxed streetwear style. The fit of the clothing appears comfortable and slightly loose, suitable for everyday wear. The overall color palette is neutral and understated, emphasizing simplicity and coordination.', NULL, 1799.00, 1499.00, NULL, 'products/variants/6HXP381AE00WUQgNxzWO9irmY2pMYIXqFNM3CoQD.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-16 06:06:13', '2026-01-16 22:30:32'),
+(87, 25, 'HOODIE-2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1799.00, 1499.99, NULL, 'products/variants/KBhdG6pNE0RHFrL4mjxm4qgtWr1a0rxdodw97JPV.jpg', NULL, NULL, 0, NULL, NULL, 0, 6, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-16 06:06:13', '2026-01-16 22:30:32'),
+(88, 25, 'HOODIE-3-XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 1799.00, 1499.99, NULL, 'products/variants/MEh4KSok0PX4NFAEe3Ejl8L73HkYn2eHOzZIgsWh.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-16 06:06:13', '2026-01-16 22:30:32'),
+(89, 25, 'HOODIE-4-3XL', NULL, 'SIZE: 3XL', '{\"variable\":{\"SIZE\":\"3XL\"}}', '[]', '[]', NULL, NULL, 1799.00, 1499.99, NULL, 'products/variants/HOnACAFtiNTSSZKLc80hRTCTFS8XA7CakuZxExen.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-16 06:06:13', '2026-01-16 22:30:32'),
+(90, 26, 'SHORTSMENS-1-BLA-M', NULL, 'BLACK+ NEON GREEN - SIZE: M', '{\"variable\":{\"SIZE\":\"M\"},\"color\":{\"label\":\"BLACK+ NEON GREEN\",\"code\":\"#000000\"}}', '[]', '[]', '<p>These men’s athletic shorts are designed with a modern, sporty look and practical comfort in mind. Made from lightweight and breathable fabric, they are suitable for active wear as well as casual daily use. The shorts feature a solid black base color that gives a clean and versatile appearance, enhanced with bright neon green accents for a bold, energetic contrast.\r\nThe waistband is elasticated for a secure yet comfortable fit and is highlighted with a neon green panel that adds a distinctive style element. An adjustable black drawstring with metal tips allows for a customized fit. Vertical neon green side stripes run along both sides of the shorts, adding a sleek athletic touch and improving visual appeal.\r\nThese shorts are designed with functional side pockets, providing convenient storage for small essentials like keys or a phone. The length falls just above the knee, offering freedom of movement while maintaining a stylish silhouette. A small logo detail near the hem adds subtle branding without overpowering the overall design.\r\nIdeal for gym workouts, running, sports activities, or relaxed casual wear, these men’s shorts combine comfort, durability, and a contemporary sporty aes<br /></p>', NULL, 999.00, 599.00, NULL, 'products/variants/H8GtC02q4gtjuoHfpAUxVTKUBGOGwACXDNJaMFg6.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-16 08:36:56', '2026-01-16 08:37:52'),
+(91, 26, 'SHORTSMENS-2-BLA-L', NULL, 'BLACK+ NEON GREEN - SIZE: L', '{\"variable\":{\"SIZE\":\"L\"},\"color\":{\"label\":\"BLACK+ NEON GREEN\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/SWGD8iUKVKhIof8yRR3ixNczBqvWJLBmRUkBwScT.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-16 08:36:56', '2026-01-16 08:38:04'),
+(92, 26, 'SHORTSMENS-3-BLA-XL', NULL, 'BLACK+ NEON GREEN - SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"},\"color\":{\"label\":\"BLACK+ NEON GREEN\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/S1oLEuB1CCGsIGFek1y66ucDn5NNNxYbYI3D2a0A.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-16 08:36:56', '2026-01-16 08:38:13'),
+(93, 26, 'SHORTSMENS-4-BLA-XXL', NULL, 'BLACK+ NEON GREEN - SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"},\"color\":{\"label\":\"BLACK+ NEON GREEN\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/pbfHNrQX565S59P0bQx2hNXb4DCtVW8QokxyKXZT.jpg', NULL, NULL, 0, NULL, NULL, 0, 4, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-16 08:36:56', '2026-01-16 08:38:26'),
+(94, 26, 'SHORTSMENS-5-BLA-L', NULL, 'BLACK+ ORANGE - SIZE: L', '{\"variable\":{\"SIZE\":\"L\"},\"color\":{\"label\":\"BLACK+ ORANGE\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/8fsJlRPHu9oWMlWrH2mbrwTPNywbczU4LkBcONl2.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-16 08:36:56', '2026-01-16 08:38:35'),
+(95, 26, 'SHORTSMENS-6-BLA-XL', NULL, 'BLACK+ ORANGE - SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"},\"color\":{\"label\":\"BLACK+ ORANGE\",\"code\":\"#000000\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/Krr4rMijNRDZVrcE4qte16BRnyrZ6S2bpMjRjcRv.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 5, '2026-01-16 08:36:56', '2026-01-16 08:38:43'),
+(96, 27, 'SHIRTFORME-1-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', '<p>This men’s casual shirt features a timeless black and white checkered pattern that delivers a clean, stylish, and versatile look. Crafted from soft, breathable fabric, the shirt is comfortable for all-day wear and suitable for multiple seasons. The material feels smooth on the skin while offering enough structure to maintain a neat appearance.\r\nThe shirt is designed with a classic button-down front, allowing easy wear and adjustable styling. A standard collar adds a polished touch, making it suitable for both casual and smart-casual occasions. The long sleeves are finished with buttoned cuffs, giving the option to wear them rolled up for a relaxed look or buttoned down for a more refined style.\r\nA single chest pocket enhances functionality while maintaining the shirt’s balanced design. The regular fit provides a comfortable silhouette that is neither too tight nor too loose, allowing ease of movement without compromising style. The straight hem makes it easy to wear tucked in or untucked, depending on preference.\r\nIdeal for everyday wear, outings, office-casual settings, or weekend styling, this men’s checkered shirt pairs effortlessly with jeans, chinos, or trousers. It offers a perfect blend of comfort, durability, and classic fashion appeal.<br /></p>', NULL, 1299.00, 799.00, NULL, 'products/variants/4wmoGSdpCKxuv4Arn7q0I9RxcmQf4DxFEJPnrLAh.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-16 08:53:45', '2026-01-16 22:27:20'),
+(97, 27, 'SHIRTFORME-2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1299.00, 799.00, NULL, 'products/variants/FLCHiqttuQtigxCbQZFQoJ7eNd45KCmLsFlfuqRJ.jpg', NULL, NULL, 0, NULL, NULL, 0, 6, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-16 08:53:45', '2026-01-16 22:27:20'),
+(98, 27, 'SHIRTFORME-3-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 1299.00, 799.00, NULL, 'products/variants/gdzLo4ahpdsHeDgQgA4RUZZpnijRZEBcZwTC1OCf.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-16 08:53:45', '2026-01-16 22:27:20'),
+(99, 27, 'SHIRTFORME-4-XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 1299.00, 799.00, NULL, 'products/variants/r9vteV4pCXU8iYTn5nH0rpKYtqVx7txvEorwcWh6.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-16 08:53:45', '2026-01-16 22:27:20'),
+(100, 28, 'TRACKSUIT-1-S', NULL, 'SIZE: S', '{\"variable\":{\"SIZE\":\"S\"}}', '[]', '[]', NULL, NULL, 2999.00, 1999.00, NULL, 'products/variants/T65CohukH6w8aDbLhCFvL9wHP9V4qSw0iaffYYhN.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-17 07:09:37', '2026-01-17 07:10:05'),
+(101, 28, 'TRACKSUIT-2-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 2999.00, 1999.00, NULL, 'products/variants/qNrWgNCq7sCpXtfZh2WwaMT1y3t1V7mDe7SM4sli.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-17 07:09:37', '2026-01-17 07:10:15'),
+(104, 29, 'JACKETS1 -M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/GQW8mRdpTsjyP81K2cyvxyKQ6yuSMPqmQNzFkNvj.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-17 07:18:16', '2026-01-17 07:19:16'),
+(105, 29, 'JACKETS1 -XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/OcuImeQhjEhsVirSxWcmzX3zswvKOoKONEMtIgEl.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-17 07:18:16', '2026-01-17 07:19:26'),
+(106, 29, 'JACKETS1 -XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/aov51HATLXIVt1TcjChUe1UfTiWQwg1ggKV7d7zL.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-17 07:18:16', '2026-01-17 07:19:36'),
+(107, 30, 'HOODIE-1-S', NULL, 'SIZE: S', '{\"variable\":{\"SIZE\":\"S\"}}', '[]', '[]', NULL, NULL, 1299.00, 899.00, NULL, 'products/variants/s00dhVWVBC99eScxdFbeZJCGOfJodwGWdTYGgGBn.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-17 07:25:46', '2026-01-17 07:26:08'),
+(108, 30, 'HOODIE-2-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 1299.00, 899.00, NULL, 'products/variants/JUFdJZk1MCM4XgXqbE1ZEwEdgIXouHigSA3I0esg.jpg', NULL, NULL, 0, NULL, NULL, 0, 11, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-17 07:25:46', '2026-01-17 07:26:20'),
+(109, 30, 'HOODIE-3-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1299.00, 899.00, NULL, 'products/variants/O33jTmbiqjtwB58puituKSWwV91eq1hxjS1l8rk8.jpg', NULL, NULL, 0, NULL, NULL, 0, 10, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-17 07:25:46', '2026-01-17 07:26:29'),
+(110, 30, 'HOODIE-4-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 1299.00, 899.00, NULL, 'products/variants/00zV896e87elkIuOsY6OQE5F5Z7KNkSBOntCbxqg.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-17 07:25:46', '2026-01-17 07:26:50'),
+(111, 31, 'SWEATSHIRT-1-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 1799.00, 1299.00, NULL, 'products/variants/XMbTt7ZKXodQtjJCsF1tkrdu4PPomk4GV4kUuMwM.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-17 07:33:05', '2026-01-17 07:33:26'),
+(112, 31, 'SWEATSHIRT-2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1799.00, 1299.00, NULL, 'products/variants/VHsXNgWcSCClzLHeH6pqxEYC8nA5Z7Wo3E1OJ82v.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-17 07:33:05', '2026-01-17 07:33:34'),
+(113, 31, 'SWEATSHIRT-3-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 1799.00, 1299.00, NULL, 'products/variants/CUASExkocXbP3ZVmmXw3la98iHE8foRUEjWJF8WR.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-17 07:33:05', '2026-01-17 07:33:44'),
+(114, 31, 'SWEATSHIRT-4-XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 1799.00, 1299.00, NULL, 'products/variants/0erExrt1FfV1szwxmVdgb16RAxiRgTmGSSJ2jHBB.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-17 07:33:05', '2026-01-17 07:33:51'),
+(115, 31, 'SWEATSHIRT-5-3XX', NULL, 'SIZE: 3XXL', '{\"variable\":{\"SIZE\":\"3XXL\"}}', '[]', '[]', NULL, NULL, 1799.00, 1299.00, NULL, 'products/variants/jCf5NEqtMMTSsrH3I70lkLsL9DOqwHiF0VAuWMVw.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-17 07:33:05', '2026-01-17 07:33:58'),
+(117, 32, 'HOODIE1-S', NULL, 'SIZE: S', '{\"variable\":{\"SIZE\":\"S\"}}', '[]', '[]', NULL, NULL, 1299.00, 799.00, NULL, 'products/variants/Ab9I4sAmgpkkrasK7mM6xsYcb5kzv3OoSqqveRPH.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-17 07:40:06', '2026-01-17 07:40:33'),
+(118, 32, 'HOODIE1-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 1299.00, 799.00, NULL, 'products/variants/941URlUnMglKgGbN1TMAjsMGIZDumhbRRwlcO3fI.jpg', NULL, NULL, 0, NULL, NULL, 0, 4, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-17 07:40:06', '2026-01-17 07:40:43'),
+(119, 32, 'HOODIE1-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1299.00, 799.00, NULL, 'products/variants/w1JwNYvpalqJ1Z4sP0HtYJ7MqOsAJ4ZNaKVVE9bT.jpg', NULL, NULL, 0, NULL, NULL, 0, 7, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-17 07:40:06', '2026-01-17 07:40:51'),
+(120, 32, 'HOODIE1-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 1299.00, 799.00, NULL, 'products/variants/Wyqiw5RR6CE6z3Wq4avzxteCSzfK3GDMfHVYT65t.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-17 07:40:06', '2026-01-17 07:41:01'),
+(121, 32, 'HOODIE1--XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 1299.00, 799.00, NULL, 'products/variants/u7VmVx5YHNVwOnmrADD4vZmGx5mB1FSdm2eCn2dp.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-17 07:40:06', '2026-01-17 07:41:10'),
+(123, 33, 'JACKET4-M', NULL, 'size: M', '{\"variable\":{\"size\":\"M\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/7JWVmSlJS1eX4Rrfyc8vA0pebVPNWUowprSgtiUk.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-17 22:46:28', '2026-01-17 22:47:51'),
+(124, 33, 'JACKET4-L', NULL, 'size: L', '{\"variable\":{\"size\":\"L\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/CsefYSkkVV65hI7ApStHSrFc8tBvXK8WGgbvBTIt.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-17 22:46:28', '2026-01-17 22:48:01'),
+(125, 33, 'JACKET4-XXL', NULL, 'size: XXL', '{\"variable\":{\"size\":\"XXL\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/W3dWIh4uTGOrLk1MQ5qrxLa6EMlAnWbhH8EnHzx6.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-17 22:46:28', '2026-01-17 22:48:10'),
+(126, 34, 'MENSSHORTS-1-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/SaTbeJgS2eZrtGNhwDzkaT9enBGs4sPVqUCTnJIx.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-17 22:58:33', '2026-01-17 23:00:04'),
+(127, 34, 'MENSSHORTS-2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/sye4vnoVnNit8o6EpumGuM6NOp3hUaXWhRUIydET.jpg', NULL, NULL, 0, NULL, NULL, 0, 9, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-17 22:58:34', '2026-01-17 23:00:27'),
+(128, 34, 'MENSSHORTS-3-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/6stHfOWefJbrQNW3rlcEMtpIXLpEMOx7DUOgRsGe.jpg', NULL, NULL, 0, NULL, NULL, 0, 9, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-17 22:58:34', '2026-01-17 23:00:36'),
+(129, 34, 'MENSSHORTS-4-XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/l7yfRWEVPehfVEwVhepSOOOtqAEgXzGkLghQF2XM.jpg', NULL, NULL, 0, NULL, NULL, 0, 6, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-17 22:58:34', '2026-01-17 23:00:16'),
+(131, 35, 'MENSSHORTS4  -M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/RvBokl24t13hnYvbdYQOlGfHgBEbLcPclCI0NdXk.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-18 04:40:06', '2026-01-18 04:40:50'),
+(132, 35, 'MENSSHORTS4 -L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/yAMEpKhUFiKyG7iQl3Wx7ZifwFRNPqmgRlPZvHej.jpg', NULL, NULL, 0, NULL, NULL, 0, 4, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-18 04:40:06', '2026-01-18 04:40:59'),
+(133, 35, 'MENSSHORTS4 -XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/hmpFXSaT8hLj4olqyJbxRGQAjyx1F0SbrmuazQFk.jpg', NULL, NULL, 0, NULL, NULL, 0, 4, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-18 04:40:06', '2026-01-18 04:41:11'),
+(134, 35, 'MENSSHORTS4- XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 999.00, 599.00, NULL, 'products/variants/i4UXUKtfjviqyVkzFF4IAJ8Ew8dWZkuteli5vBEE.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-18 04:40:06', '2026-01-18 04:41:28'),
+(135, 36, 'JACKETMANS-1-S', NULL, 'SIZE: S', '{\"variable\":{\"SIZE\":\"S\"}}', '[]', '[]', NULL, NULL, 1299.00, 599.00, NULL, 'products/variants/OYL7IsVodvldy9NjTGSTGLG4zIuySN3NcCc7cwxG.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-20 08:14:19', '2026-01-20 08:15:11'),
+(136, 36, 'JACKETMANS-2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 1299.00, 599.00, NULL, 'products/variants/hQKPcWOZ9jdIM4cvAWQ1HevMkraPkFZ0bIiVTKvp.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-20 08:14:19', '2026-01-20 08:15:21'),
+(137, 36, 'JACKETMANS-3-XXL', NULL, 'SIZE: XXL', '{\"variable\":{\"SIZE\":\"XXL\"}}', '[]', '[]', NULL, NULL, 1299.00, 599.00, NULL, 'products/variants/iTuFQxEXotEzsirahZFfop0wSKHf4gmbuDukrh2N.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-20 08:14:19', '2026-01-20 08:15:31'),
+(138, 38, 'GIRLSHOODI-1-S', NULL, 'SIZE: S', '{\"variable\":{\"SIZE\":\"S\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/QC0NftSdLJCs1HN4OrLNvqt3y4ikSFfNQFXeAZcL.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-20 08:33:48', '2026-01-20 08:36:56'),
+(139, 38, 'GIRLSHOODI-2-M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/RLqUy87ilGw2ZoW8XuEig13cej0IKIuBcwhELbGk.jpg', NULL, NULL, 0, NULL, NULL, 0, 6, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-20 08:33:48', '2026-01-20 08:37:05'),
+(140, 38, 'GIRLSHOODI-3-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/ZIebNT1lAzAsSZDnzhtAtmQ1CIpq522NxBVutNMb.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-20 08:33:48', '2026-01-20 08:37:14');
+INSERT INTO `product_variants` (`id`, `product_id`, `sku`, `barcode`, `name`, `attributes`, `measurements`, `highlights_details`, `description`, `additional_information`, `price`, `sale_price`, `cost_price`, `image`, `discount_type`, `discount_value`, `discount_active`, `sale_price_start`, `sale_price_end`, `manage_stock`, `stock_quantity`, `low_stock_threshold`, `stock_status`, `weight`, `length`, `width`, `height`, `diameter`, `is_active`, `sort_order`, `created_at`, `updated_at`) VALUES
+(141, 38, 'GIRLSHOODI-4-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 2199.00, 1299.00, NULL, 'products/variants/SiKUX0cMuho0QGVAdc7OC4WnzQ4whmONG2rcOO8B.jpg', NULL, NULL, 0, NULL, NULL, 0, 5, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-20 08:33:48', '2026-01-20 08:37:23'),
+(143, 39, 'HOODIE2 -M', NULL, 'SIZE: M', '{\"variable\":{\"SIZE\":\"M\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/Wuq0rYqb0eh28PeZNtYB7KgAGqEIemj6mzkZXlsA.jpg', NULL, NULL, 0, NULL, NULL, 0, 7, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-20 08:43:11', '2026-01-20 08:43:48'),
+(144, 39, 'HOODIE2-L', NULL, 'SIZE: L', '{\"variable\":{\"SIZE\":\"L\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/G71jDy94ht61PZaDFUlb1tT9HnztpbbmzbwPoxHM.jpg', NULL, NULL, 0, NULL, NULL, 0, 9, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-20 08:43:11', '2026-01-20 08:44:00'),
+(145, 39, 'HOODIE3-XL', NULL, 'SIZE: XL', '{\"variable\":{\"SIZE\":\"XL\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/ZIs7ld8oQLDZUxkaKGxtT6pHGYypQuS1JNl9B1RC.jpg', NULL, NULL, 0, NULL, NULL, 0, 2, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-20 08:43:11', '2026-01-20 08:44:12'),
+(146, 39, 'HOODIE4-2XL', NULL, 'SIZE: 2XL', '{\"variable\":{\"SIZE\":\"2XL\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/SKKtmDoei7e6OxGJCkcaMOeFH4qrL6yZxtdGHhA8.jpg', NULL, NULL, 0, NULL, NULL, 0, 3, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-20 08:43:11', '2026-01-20 08:44:22'),
+(147, 39, 'HOODIE5-3XL', NULL, 'SIZE: 3XL', '{\"variable\":{\"SIZE\":\"3XL\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/bzRjKf1y2OxrWEo2iu0AQDD3OdjCoPwQSol6Yr6R.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-20 08:43:11', '2026-01-20 08:44:31'),
+(148, 37, 'MENSTSHIRT-1-S', NULL, 'size: S', '{\"variable\":{\"size\":\"S\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/1PDOsFkyEW6LcC4EF5bo9g5DoHISoYLscyUEFCII.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-01-21 01:29:18', '2026-01-21 01:29:39'),
+(149, 37, 'MENSTSHIRT-2-M', NULL, 'size: M', '{\"variable\":{\"size\":\"M\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/dirlCnL8FGLN3buGDv4xL4unwmBCVbU062CY0uu2.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 1, '2026-01-21 01:29:18', '2026-01-21 01:29:46'),
+(150, 37, 'MENSTSHIRT-3-L', NULL, 'size: L', '{\"variable\":{\"size\":\"L\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/eNNkPQQAzjcGGeEcTZRfFvXsHdbT7P24fUepMZzf.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 2, '2026-01-21 01:29:18', '2026-01-21 01:29:51'),
+(151, 37, 'MENSTSHIRT-4-XL', NULL, 'size: XL', '{\"variable\":{\"size\":\"XL\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/0RnRZmNzlo8XyfexqXZFlwdU1YD5jyn53jUUhicT.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 3, '2026-01-21 01:29:18', '2026-01-21 01:30:00'),
+(152, 37, 'MENSTSHIRT-5-XXL', NULL, 'size: XXL', '{\"variable\":{\"size\":\"XXL\"}}', '[]', '[]', NULL, NULL, 3199.00, 1899.00, NULL, 'products/variants/hR4gYxStbabELQGOKVL4i7KYBLSfe0GfNccjLcWW.jpg', NULL, NULL, 0, NULL, NULL, 0, 1, 0, 'in_stock', NULL, NULL, NULL, NULL, NULL, 1, 4, '2026-01-21 01:29:18', '2026-01-21 01:30:07');
 
 -- --------------------------------------------------------
 
@@ -1822,7 +2624,7 @@ CREATE TABLE `service_highlights` (
 --
 
 INSERT INTO `service_highlights` (`id`, `highlight1_title`, `highlight1_text`, `highlight1_icon`, `highlight1_active`, `highlight2_title`, `highlight2_text`, `highlight2_icon`, `highlight2_active`, `highlight3_title`, `highlight3_text`, `highlight3_icon`, `highlight3_active`, `highlight4_title`, `highlight4_text`, `highlight4_icon`, `highlight4_active`, `created_at`, `updated_at`) VALUES
-(1, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, '2025-12-20 02:15:34', '2025-12-20 02:15:34');
+(1, 'test', 'testst', 'fas fa-shield-alt', 1, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, '2025-12-20 02:15:34', '2026-01-21 05:50:37');
 
 -- --------------------------------------------------------
 
@@ -1844,13 +2646,7 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('1WHinkllts5jvCVHvOusApdXvXJFm39yAtP4b5oq', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiZFoyN2xVcE9FSVlLaGd4QkhpRENweHA5Um9mUFo1ckNYQnlxV3FLaSI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czozODoiaHR0cDovL2xvY2FsaG9zdDo4MDAwL29yZGVycy8xL2ludm9pY2UiO31zOjk6Il9wcmV2aW91cyI7YToxOntzOjM6InVybCI7czozODoiaHR0cDovL2xvY2FsaG9zdDo4MDAwL29yZGVycy8xL2ludm9pY2UiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19', 1768150965),
-('61eLCXwbZYkL7mGoqWISSP2adQ2KLQAEiSdpMXvv', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiT3d3U2hkOTNBSzJqbTM5OVlhYmY1STBpUVlyeVluMGkzY2g5aEFHVCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjc6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9hZG1pbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1768150666),
-('dzYy1juEyrPOzxRHkJyS5BWEMD1GrEls4hZIMyjf', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiazkxdmpZSHlQQXdDaWNMUEZ4ZjJwM2JUaTNlR0R4ZzNaT05WdFdzVCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjc6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9hZG1pbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1768153154),
-('eAZIGh1CMeG8qs3sL6WcSY4iPbGLrlNQieITMums', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiU0o1VTZlaU1pemZvUjJCS0xhUFByUmJQeTN2RVZackRTajg4cEdjMyI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDE6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9wcm9kdWN0cy84L3ZhcmlhbnRzIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1NToibG9naW5fY3VzdG9tZXJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToxNTtzOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToxO30=', 1768153535),
-('Hdtxp6DWtDbBzELT3c2AHKTFch4u2weyAtmqGZE2', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiZWRmSHJON0ZQTkg0bUlxSmhnZk5tZ2lpcGRyUW9OMXFJRWh4cENaZiI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjc6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9hZG1pbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1768150967),
-('nXPSfSmG3zYyQundJScsxtpiBZhPVGQqjFMYbsbY', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoibTJEQ1BDTlZ1Yk9OeTJZeDNKMElURG0yVUVFeTVkTTRKc1hhcWJxSSI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czoyODoiaHR0cDovL2xvY2FsaG9zdDo4MDAwL29yZGVycyI7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjI4OiJodHRwOi8vbG9jYWxob3N0OjgwMDAvb3JkZXJzIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319fQ==', 1768153153),
-('QdivgMyUDfAkVtPodRJ1A449Eh3YK0SYH1dJ5sLD', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiazNTVFBxeWl4bG5rbkVaWUlQV0pMeHRpcFlwY1RyNE1sM1VaYjY3NCI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czoyODoiaHR0cDovL2xvY2FsaG9zdDo4MDAwL29yZGVycyI7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjI4OiJodHRwOi8vbG9jYWxob3N0OjgwMDAvb3JkZXJzIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319fQ==', 1768150665);
+('QrFqsN2q3SEEL2Fg5tU3UKY3GUEawUtg5hHpvEfa', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiVlpYeVVKMFRZMHFGdXA0QUtqZko3V3lZcTVhWDdtc1NvMEt6UzBGOCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MzQ6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9pbnRlZ3JhdGlvbnMiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToxO3M6NTU6ImxvZ2luX2N1c3RvbWVyXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTk7fQ==', 1769166110);
 
 -- --------------------------------------------------------
 
@@ -41926,6 +42722,19 @@ INSERT INTO `wishlists` (`id`, `session_id`, `customer_id`, `product_id`, `creat
 --
 
 --
+-- Indexes for table `about_us`
+--
+ALTER TABLE `about_us`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `blogs`
+--
+ALTER TABLE `blogs`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `blogs_slug_unique` (`slug`);
+
+--
 -- Indexes for table `brands`
 --
 ALTER TABLE `brands`
@@ -41970,7 +42779,7 @@ ALTER TABLE `cart_items`
 ALTER TABLE `categories`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `categories_slug_deleted_at_unique` (`slug`,`deleted_at`),
-  ADD KEY `categories_parent_id_foreign` (`parent_id`);
+  ADD KEY `categories_parent_id_index` (`parent_id`);
 
 --
 -- Indexes for table `category_attributes`
@@ -42019,11 +42828,26 @@ ALTER TABLE `customer_addresses`
   ADD KEY `customer_addresses_customer_id_foreign` (`customer_id`);
 
 --
+-- Indexes for table `customer_otps`
+--
+ALTER TABLE `customer_otps`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `customer_otps_email_purpose_is_verified_index` (`email`,`purpose`,`is_verified`),
+  ADD KEY `customer_otps_email_index` (`email`);
+
+--
 -- Indexes for table `failed_jobs`
 --
 ALTER TABLE `failed_jobs`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`);
+
+--
+-- Indexes for table `faqs`
+--
+ALTER TABLE `faqs`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `faqs_category_unique` (`category`);
 
 --
 -- Indexes for table `featured_category_styles`
@@ -42049,6 +42873,14 @@ ALTER TABLE `home_sliders`
   ADD KEY `home_sliders_sort_order_index` (`sort_order`),
   ADD KEY `home_sliders_is_active_index` (`is_active`),
   ADD KEY `home_sliders_category_id_foreign` (`category_id`);
+
+--
+-- Indexes for table `integrations`
+--
+ALTER TABLE `integrations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `integrations_integration_type_index` (`integration_type`),
+  ADD KEY `integrations_status_index` (`status`);
 
 --
 -- Indexes for table `inventory_history`
@@ -42156,6 +42988,12 @@ ALTER TABLE `lead_tags`
   ADD UNIQUE KEY `lead_tags_slug_unique` (`slug`);
 
 --
+-- Indexes for table `legal_pages`
+--
+ALTER TABLE `legal_pages`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `migrations`
 --
 ALTER TABLE `migrations`
@@ -42251,10 +43089,10 @@ ALTER TABLE `products`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `products_slug_unique` (`slug`),
   ADD KEY `products_status_published_at_index` (`status`,`published_at`),
-  ADD KEY `products_type_status_index` (`status`),
+  ADD KEY `products_status_index` (`status`),
   ADD KEY `products_featured_index` (`featured`),
-  ADD KEY `products_brand_id_type_index` (`brand_id`),
-  ADD KEY `products_unit_id_foreign` (`unit_id`),
+  ADD KEY `products_brand_id_index` (`brand_id`),
+  ADD KEY `products_unit_id_index` (`unit_id`),
   ADD KEY `products_category_id_index` (`category_id`),
   ADD KEY `products_default_warehouse_id_index` (`default_warehouse_id`);
 
@@ -42475,28 +43313,40 @@ ALTER TABLE `wishlists`
 --
 
 --
+-- AUTO_INCREMENT for table `about_us`
+--
+ALTER TABLE `about_us`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `blogs`
+--
+ALTER TABLE `blogs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `brands`
 --
 ALTER TABLE `brands`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `carts`
 --
 ALTER TABLE `carts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=102;
 
 --
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
 
 --
 -- AUTO_INCREMENT for table `category_attributes`
@@ -42526,19 +43376,31 @@ ALTER TABLE `coupons`
 -- AUTO_INCREMENT for table `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `customer_addresses`
 --
 ALTER TABLE `customer_addresses`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+
+--
+-- AUTO_INCREMENT for table `customer_otps`
+--
+ALTER TABLE `customer_otps`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `failed_jobs`
 --
 ALTER TABLE `failed_jobs`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `faqs`
+--
+ALTER TABLE `faqs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `featured_category_styles`
@@ -42559,16 +43421,22 @@ ALTER TABLE `home_sliders`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `integrations`
+--
+ALTER TABLE `integrations`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `inventory_history`
 --
 ALTER TABLE `inventory_history`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=130;
 
 --
 -- AUTO_INCREMENT for table `inventory_stocks`
 --
 ALTER TABLE `inventory_stocks`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117;
 
 --
 -- AUTO_INCREMENT for table `jobs`
@@ -42625,22 +43493,28 @@ ALTER TABLE `lead_tags`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `legal_pages`
+--
+ALTER TABLE `legal_pages`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=108;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=115;
 
 --
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `our_collection`
@@ -42682,7 +43556,7 @@ ALTER TABLE `personal_access_tokens`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `product_attributes`
@@ -42706,7 +43580,7 @@ ALTER TABLE `product_brands`
 -- AUTO_INCREMENT for table `product_categories`
 --
 ALTER TABLE `product_categories`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- AUTO_INCREMENT for table `product_category_attribute_values`
@@ -42718,7 +43592,7 @@ ALTER TABLE `product_category_attribute_values`
 -- AUTO_INCREMENT for table `product_images`
 --
 ALTER TABLE `product_images`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=457;
 
 --
 -- AUTO_INCREMENT for table `product_static_attributes`
@@ -42730,7 +43604,7 @@ ALTER TABLE `product_static_attributes`
 -- AUTO_INCREMENT for table `product_variants`
 --
 ALTER TABLE `product_variants`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=153;
 
 --
 -- AUTO_INCREMENT for table `reviews`
@@ -42876,6 +43750,12 @@ ALTER TABLE `featured_category_styles`
 --
 ALTER TABLE `home_sliders`
   ADD CONSTRAINT `home_sliders_category_id_foreign` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `product_variants`
+--
+ALTER TABLE `product_variants`
+  ADD CONSTRAINT `product_variants_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

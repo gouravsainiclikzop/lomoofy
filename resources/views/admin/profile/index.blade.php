@@ -124,8 +124,20 @@
                                 <div class="fw-medium" id="displayCompanyPhone">{{ $companySettings->phone ?? '-' }}</div>
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted mb-1">Customer Care Phone</label>
+                                <div class="fw-medium" id="displayCustomerCarePhone">{{ $companySettings->customer_care_phone ?? '-' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted mb-1">Careers Phone</label>
+                                <div class="fw-medium" id="displayCareersPhone">{{ $companySettings->careers_phone ?? '-' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label text-muted mb-1">Email</label>
                                 <div class="fw-medium" id="displayCompanyEmail">{{ $companySettings->email ?? '-' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted mb-1">Secondary Email</label>
+                                <div class="fw-medium" id="displaySecondaryEmail">{{ $companySettings->secondary_email ?? '-' }}</div>
                             </div>
                             <div class="col-12 mb-3">
                                 <label class="form-label text-muted mb-1">Address</label>
@@ -382,15 +394,44 @@
                         @endif
                         <div class="invalid-feedback"></div>
                     </div>
-                    <div class="mb-3">
-                        <label for="company_phone" class="form-label">Phone</label>
-                        <input type="text" class="form-control" id="company_phone" name="phone" value="{{ $companySettings->phone ?? '' }}">
-                        <div class="invalid-feedback"></div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="company_phone" class="form-label">Phone</label>
+                                <input type="text" class="form-control" id="company_phone" name="phone" value="{{ $companySettings->phone ?? '' }}" placeholder="Main phone number">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="customer_care_phone" class="form-label">Customer Care Phone</label>
+                                <input type="text" class="form-control" id="customer_care_phone" name="customer_care_phone" value="{{ $companySettings->customer_care_phone ?? '' }}" placeholder="Customer care number">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="careers_phone" class="form-label">Careers Phone</label>
+                                <input type="text" class="form-control" id="careers_phone" name="careers_phone" value="{{ $companySettings->careers_phone ?? '' }}" placeholder="Careers contact number">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="company_email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="company_email" name="email" value="{{ $companySettings->email ?? '' }}">
-                        <div class="invalid-feedback"></div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="company_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="company_email" name="email" value="{{ $companySettings->email ?? '' }}" placeholder="Primary email">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="secondary_email" class="form-label">Secondary Email</label>
+                                <input type="email" class="form-control" id="secondary_email" name="secondary_email" value="{{ $companySettings->secondary_email ?? '' }}" placeholder="Secondary email">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="company_address" class="form-label">Address</label>
@@ -823,7 +864,10 @@ $(document).ready(function() {
                     $('#displayCompanyName').text(response.settings.company_name);
                     $('#displayCompanyLogoText').text(response.settings.company_logo_text);
                     $('#displayCompanyPhone').text(response.settings.phone || '-');
+                    $('#displayCustomerCarePhone').text(response.settings.customer_care_phone || '-');
+                    $('#displayCareersPhone').text(response.settings.careers_phone || '-');
                     $('#displayCompanyEmail').text(response.settings.email || '-');
+                    $('#displaySecondaryEmail').text(response.settings.secondary_email || '-');
                     $('#displayCompanyAddress').text(response.settings.address || '-');
                     $('#displayCompanyPincode').text(response.settings.pincode || '-');
                     $('#displayCompanyCity').text(response.settings.city || '-');
@@ -900,7 +944,10 @@ $(document).ready(function() {
         $('#company_name').val($('#displayCompanyName').text().trim());
         $('#company_logo_text').val($('#displayCompanyLogoText').text().trim());
         $('#company_phone').val($('#displayCompanyPhone').text().trim() === '-' ? '' : $('#displayCompanyPhone').text().trim());
+        $('#customer_care_phone').val($('#displayCustomerCarePhone').text().trim() === '-' ? '' : $('#displayCustomerCarePhone').text().trim());
+        $('#careers_phone').val($('#displayCareersPhone').text().trim() === '-' ? '' : $('#displayCareersPhone').text().trim());
         $('#company_email').val($('#displayCompanyEmail').text().trim() === '-' ? '' : $('#displayCompanyEmail').text().trim());
+        $('#secondary_email').val($('#displaySecondaryEmail').text().trim() === '-' ? '' : $('#displaySecondaryEmail').text().trim());
         $('#company_address').val($('#displayCompanyAddress').text().trim() === '-' ? '' : $('#displayCompanyAddress').text().trim());
         $('#company_pincode').val($('#displayCompanyPincode').text().trim() === '-' ? '' : $('#displayCompanyPincode').text().trim());
         $('#company_city').val($('#displayCompanyCity').text().trim() === '-' ? '' : $('#displayCompanyCity').text().trim());

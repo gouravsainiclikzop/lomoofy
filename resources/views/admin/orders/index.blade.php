@@ -731,14 +731,17 @@ $(document).ready(function() {
     
     // Open Modal for Add
     $('#addOrderBtn').on('click', function() {
-        $('#orderModalLabel').text('Create New Order');
-        $('#orderForm')[0].reset();
-        $('#orderId').val('');
-        $('#orderItemsContainer').empty();
-        itemCounter = 0;
-        $('#customerInfoCard').hide();
-        $('#orderModal').modal('show');
-        addOrderItem(); // Add one empty item
+        // Ensure products are loaded before opening modal
+        ensureProductsLoaded(function() {
+            $('#orderModalLabel').text('Create New Order');
+            $('#orderForm')[0].reset();
+            $('#orderId').val('');
+            $('#orderItemsContainer').empty();
+            itemCounter = 0;
+            $('#customerInfoCard').hide();
+            $('#orderModal').modal('show');
+            addOrderItem(); // Add one empty item
+        });
     });
     
     // View Invoice
@@ -1520,7 +1523,16 @@ $(document).ready(function() {
                     const select = $('#customerId');
                     select.empty().append('<option value="">Select Customer</option>');
                     customers.forEach(function(customer) {
-                        select.append(`<option value="${customer.id}">${customer.full_name} (${customer.email})</option>`);
+                        select.append(`<option value="${customer.id}">${customer.full_name} (${customer.email}) ${customer.phone ? '- ' + customer.phone : ''}</option>`);
+                    });
+                    
+                    // Initialize Select2 on customer dropdown
+                    select.select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'Search and select customer',
+                        allowClear: true,
+                        dropdownParent: $('#orderModal'),
+                        width: '100%'
                     });
                 }
             }
@@ -1565,7 +1577,7 @@ $(document).ready(function() {
     }
     
     // Load Products
-    function loadProducts() {
+    function loadProducts(callback) {
         if (productsLoading) {
             return;
         }
@@ -1583,13 +1595,47 @@ $(document).ready(function() {
                     products = [];
                     productsLoaded = false;
                 }
+                if (callback && typeof callback === 'function') {
+                    callback();
+                }
             },
             error: function(xhr) {
                 productsLoading = false;
                 productsLoaded = false;
                 products = [];
+                if (callback && typeof callback === 'function') {
+                    callback();
+                }
             }
         });
+    }
+    
+    // Ensure products are loaded before executing callback
+    function ensureProductsLoaded(callback) {
+        if (productsLoaded) {
+            // Already loaded, execute callback immediately
+            callback();
+        } else if (productsLoading) {
+            // Currently loading, wait for it to finish
+            console.log('Waiting for products to load...');
+            const checkInterval = setInterval(function() {
+                if (!productsLoading) {
+                    clearInterval(checkInterval);
+                    callback();
+                }
+            }, 100);
+            
+            // Timeout after 10 seconds
+            setTimeout(function() {
+                clearInterval(checkInterval);
+                console.warn('Products loading timeout, proceeding anyway...');
+                callback();
+            }, 10000);
+        } else {
+            // Not loaded and not loading, load now
+            console.log('Loading products...');
+            loadProducts(callback);
+        }
     }
     
     // Add Order Item (simplified version - you can expand this)
@@ -1600,38 +1646,39 @@ $(document).ready(function() {
         let productSelectHtml = '<option value="">Select Product</option>';
         if (productsLoaded && products && products.length > 0) {
             products.forEach(function(product) {
-                productSelectHtml += `<option value="${product.id}" data-type="${product.type}">${product.name} (${product.sku})</option>`;
+                const sku = product.sku || 'N/A';
+                productSelectHtml += `<option value="${product.id}" data-type="${product.type}">${product.name} </option>`;
             });
         }
         
         let itemHtml = `
             <div class="order-item-row" data-item-id="${itemId}">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="form-label">Product <span class="text-danger">*</span></label>
                         <select class="form-select product-select" data-item-id="${itemId}" required>
                             ${productSelectHtml}
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-6">
                         <label class="form-label">Variant</label>
                         <select class="form-select variant-select" data-item-id="${itemId}">
                             <option value="">Select Variant</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <label class="form-label">Warehouse</label>
                         <select class="form-select warehouse-select" data-item-id="${itemId}">
                             <option value="">Auto (Default)</option>
                         </select>
                         <small class="text-muted">Uses product's default warehouse</small>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <label class="form-label">Quantity <span class="text-danger">*</span></label>
                         <input type="number" class="form-control item-quantity" data-item-id="${itemId}" value="${itemData ? itemData.quantity : 1}" min="1" required>
                         <small class="text-muted stock-info" data-item-id="${itemId}" style="display: none;"></small>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label">Unit Price</label>
                         <input type="number" class="form-control item-unit-price" data-item-id="${itemId}" value="${itemData ? itemData.unit_price : 0}" step="0.01" min="0" readonly>
                     </div>
@@ -1653,6 +1700,24 @@ $(document).ready(function() {
         const warehouseSelect = $(`.warehouse-select[data-item-id="${itemId}"]`);
         const unitPriceInput = $(`.item-unit-price[data-item-id="${itemId}"]`);
         
+        // Initialize Select2 on product dropdown
+        productSelect.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search and select product',
+            allowClear: true,
+            dropdownParent: $('#orderModal'),
+            width: '100%'
+        });
+        
+        // Initialize Select2 on variant dropdown
+        variantSelect.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select variant',
+            allowClear: true,
+            dropdownParent: $('#orderModal'),
+            width: '100%'
+        });
+        
         // Populate warehouse dropdown
         warehouseSelect.empty().append('<option value="">Auto (Default)</option>');
         if (warehousesLoaded && warehouses.length > 0) {
@@ -1671,6 +1736,11 @@ $(document).ready(function() {
         productSelect.on('change', function() {
             const productId = $(this).val();
             
+            // Destroy Select2 before updating options
+            if (variantSelect.hasClass('select2-hidden-accessible')) {
+                variantSelect.select2('destroy');
+            }
+            
             variantSelect.empty().append('<option value="">Select Variant</option>');
             unitPriceInput.val(0);
             
@@ -1679,13 +1749,60 @@ $(document).ready(function() {
                 if (product) {
                     if (product.variants && product.variants.length > 0) {
                         product.variants.forEach(function(variant) {
-                            variantSelect.append(`<option value="${variant.id}" data-price="${variant.price || 0}">${variant.name} (${variant.sku})</option>`);
+                            // Build stock display text with warehouse breakdown
+                            let stockText = '';
+                            let warehouseInfo = '';
+                            
+                            // Show stock info if manage_stock is enabled OR if there are warehouse stocks
+                            const hasWarehouseStocks = variant.warehouse_breakdown && variant.warehouse_breakdown.length > 0;
+                            if (variant.manage_stock || hasWarehouseStocks) {
+                                const availableStock = variant.available_stock || 0;
+                                const totalStock = variant.stock_quantity || 0;
+                                const reservedStock = variant.reserved_stock || 0;
+                                
+                                if (variant.stock_status === 'out_of_stock' || totalStock === 0) {
+                                    stockText = ' [Out of Stock]';
+                                } else if (reservedStock > 0) {
+                                    stockText = ` [Stock: ${availableStock} available, ${reservedStock} reserved, Total: ${totalStock}]`;
+                                } else {
+                                    stockText = ` [Stock: ${availableStock}]`;
+                                }
+                                
+                                // Build warehouse breakdown for tooltip
+                                if (hasWarehouseStocks) {
+                                    const warehouseDetails = variant.warehouse_breakdown.map(wh => {
+                                        return `${wh.warehouse_name} (${wh.warehouse_code}): ${wh.available_quantity} available / ${wh.quantity} total`;
+                                    }).join(', ');
+                                    warehouseInfo = `Warehouses: ${warehouseDetails}`;
+                                }
+                            }
+                            
+                            const variantSku = variant.sku || 'N/A';
+                            variantSelect.append(`<option value="${variant.id}" 
+                                data-price="${variant.price || 0}"
+                                data-stock="${variant.stock_quantity || 0}"
+                                data-available="${variant.available_stock || 0}"
+                                data-reserved="${variant.reserved_stock || 0}"
+                                data-status="${variant.stock_status || 'in_stock'}"
+                                data-manage-stock="${variant.manage_stock ? '1' : '0'}"
+                                data-warehouse-info="${warehouseInfo}"
+                                title="${warehouseInfo}"
+                                >${variant.name} (${variantSku})${stockText}</option>`);
                         });
                     } else {
                         unitPriceInput.val(product.price || 0);
                     }
                 }
             }
+            
+            // Reinitialize Select2 on variant dropdown
+            variantSelect.select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Select variant',
+                allowClear: true,
+                dropdownParent: $('#orderModal'),
+                width: '100%'
+            });
         });
         
         // If editing and itemData exists, set the product and variant
@@ -1698,12 +1815,65 @@ $(document).ready(function() {
             const product = products.find(p => parseInt(p.id) === parseInt(productId));
             
             if (product) {
+                // Destroy Select2 before updating options
+                if (variantSelect.hasClass('select2-hidden-accessible')) {
+                    variantSelect.select2('destroy');
+                }
+                
                 variantSelect.empty().append('<option value="">Select Variant</option>');
                 
                 if (product.variants && product.variants.length > 0) {
                     product.variants.forEach(function(variant) {
                         const selected = itemData.product_variant_id && parseInt(itemData.product_variant_id) === parseInt(variant.id) ? 'selected' : '';
-                        variantSelect.append(`<option value="${variant.id}" data-price="${variant.price || 0}" ${selected}>${variant.name} (${variant.sku})</option>`);
+                        
+                        // Build stock display text with warehouse breakdown
+                        let stockText = '';
+                        let warehouseInfo = '';
+                        
+                        // Show stock info if manage_stock is enabled OR if there are warehouse stocks
+                        const hasWarehouseStocks = variant.warehouse_breakdown && variant.warehouse_breakdown.length > 0;
+                        if (variant.manage_stock || hasWarehouseStocks) {
+                            const availableStock = variant.available_stock || 0;
+                            const totalStock = variant.stock_quantity || 0;
+                            const reservedStock = variant.reserved_stock || 0;
+                            
+                            if (variant.stock_status === 'out_of_stock' || totalStock === 0) {
+                                stockText = ' [Out of Stock]';
+                            } else if (reservedStock > 0) {
+                                stockText = ` [Stock: ${availableStock} available, ${reservedStock} reserved, Total: ${totalStock}]`;
+                            } else {
+                                stockText = ` [Stock: ${availableStock}]`;
+                            }
+                            
+                            // Build warehouse breakdown for tooltip
+                            if (hasWarehouseStocks) {
+                                const warehouseDetails = variant.warehouse_breakdown.map(wh => {
+                                    return `${wh.warehouse_name} (${wh.warehouse_code}): ${wh.available_quantity} available / ${wh.quantity} total`;
+                                }).join(', ');
+                                warehouseInfo = `Warehouses: ${warehouseDetails}`;
+                            }
+                        }
+                        
+                        const variantSku = variant.sku || 'N/A';
+                        variantSelect.append(`<option value="${variant.id}" 
+                            data-price="${variant.price || 0}"
+                            data-stock="${variant.stock_quantity || 0}"
+                            data-available="${variant.available_stock || 0}"
+                            data-reserved="${variant.reserved_stock || 0}"
+                            data-status="${variant.stock_status || 'in_stock'}"
+                            data-manage-stock="${variant.manage_stock ? '1' : '0'}"
+                            data-warehouse-info="${warehouseInfo}"
+                            title="${warehouseInfo}"
+                            ${selected}>${variant.name} (${variantSku})${stockText}</option>`);
+                    });
+                    
+                    // Reinitialize Select2 after adding options
+                    variantSelect.select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'Select variant',
+                        allowClear: true,
+                        dropdownParent: $('#orderModal'),
+                        width: '100%'
                     });
                     
                     // If variant is selected, update price and trigger change for stock check
@@ -1718,6 +1888,14 @@ $(document).ready(function() {
                 } else {
                     // No variants, use product price
                     unitPriceInput.val(product.price || 0);
+                    // Reinitialize Select2 even if no variants
+                    variantSelect.select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'No variants available',
+                        allowClear: true,
+                        dropdownParent: $('#orderModal'),
+                        width: '100%'
+                    });
                     // Check stock availability for product without variant
                     checkItemStockAvailability(itemId);
                 }
@@ -1782,13 +1960,45 @@ $(document).ready(function() {
                 success: function(response) {
                     if (response.success) {
                         const stock = response.data;
+                        const stockQty = stock.quantity || 0;
+                        const totalQty = stock.total || stockQty;
+                        const reservedQty = stock.reserved || 0;
+                        
+                        // Build stock message with warehouse breakdown
+                        let stockMessage = '';
                         if (stock.available) {
+                            stockMessage = `✓ Stock: ${stockQty} available`;
+                            if (reservedQty > 0) {
+                                stockMessage += ` (${totalQty} total, ${reservedQty} reserved)`;
+                            }
+                            
+                            // Add warehouse breakdown if available
+                            if (stock.warehouse_breakdown && stock.warehouse_breakdown.length > 0) {
+                                const warehouseInfo = stock.warehouse_breakdown.map(wh => {
+                                    return `${wh.warehouse_name}: ${wh.available_quantity} avail`;
+                                }).join(', ');
+                                stockMessage += ` | ${warehouseInfo}`;
+                            }
+                            
                             stockInfo.removeClass('text-danger').addClass('text-success')
-                                .text(`Stock: ${stock.quantity} available`)
+                                .text(stockMessage)
                                 .show();
                         } else {
+                            stockMessage = `⚠ Insufficient stock! Available: ${stockQty}`;
+                            if (reservedQty > 0) {
+                                stockMessage += ` (${totalQty} total, ${reservedQty} reserved)`;
+                            }
+                            
+                            // Add warehouse breakdown if available
+                            if (stock.warehouse_breakdown && stock.warehouse_breakdown.length > 0) {
+                                const warehouseInfo = stock.warehouse_breakdown.map(wh => {
+                                    return `${wh.warehouse_name}: ${wh.available_quantity} avail`;
+                                }).join(', ');
+                                stockMessage += ` | ${warehouseInfo}`;
+                            }
+                            
                             stockInfo.removeClass('text-success').addClass('text-danger')
-                                .text(`Insufficient stock! Available: ${stock.quantity}`)
+                                .text(stockMessage)
                                 .show();
                         }
                     }
@@ -2160,49 +2370,52 @@ $(document).ready(function() {
     
     // Edit Order
     function editOrder(id) {
-        $.ajax({
-            url: `/orders/${id}/edit`,
-            type: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    isEditMode = true;
-                    const order = response.data;
-                    
-                    $('#orderId').val(order.id);
-                    $('#orderModalLabel').text('Edit Order');
-                    $('#customerId').val(order.customer_id);
-                    
-                    if (order.customer_id) {
-                        loadCustomerDetails(order.customer_id);
+        // Ensure products are loaded before fetching order details
+        ensureProductsLoaded(function() {
+            $.ajax({
+                url: `/orders/${id}/edit`,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        isEditMode = true;
+                        const order = response.data;
+                        
+                        $('#orderId').val(order.id);
+                        $('#orderModalLabel').text('Edit Order');
+                        $('#customerId').val(order.customer_id);
+                        
+                        if (order.customer_id) {
+                            loadCustomerDetails(order.customer_id);
+                        }
+                        
+                        $('#orderStatus').val(order.status);
+                        $('#paymentMethod').val(order.payment_method);
+                        $('#paymentStatus').val(order.payment_status);
+                        $('#subtotal').val(order.subtotal);
+                        $('#taxAmount').val(order.tax_amount);
+                        $('#shippingAmount').val(order.shipping_amount);
+                        $('#discountAmount').val(order.discount_amount);
+                        $('#totalAmount').val(order.total_amount);
+                        $('#orderNotes').val(order.notes);
+                        
+                        // Clear and add items
+                        $('#orderItemsContainer').empty();
+                        itemCounter = 0;
+                        order.items.forEach(function(item) {
+                            addOrderItem(item);
+                        });
+                        
+                        $('#orderModal').modal('show');
                     }
-                    
-                    $('#orderStatus').val(order.status);
-                    $('#paymentMethod').val(order.payment_method);
-                    $('#paymentStatus').val(order.payment_status);
-                    $('#subtotal').val(order.subtotal);
-                    $('#taxAmount').val(order.tax_amount);
-                    $('#shippingAmount').val(order.shipping_amount);
-                    $('#discountAmount').val(order.discount_amount);
-                    $('#totalAmount').val(order.total_amount);
-                    $('#orderNotes').val(order.notes);
-                    
-                    // Clear and add items
-                    $('#orderItemsContainer').empty();
-                    itemCounter = 0;
-                    order.items.forEach(function(item) {
-                        addOrderItem(item);
-                    });
-                    
-                    $('#orderModal').modal('show');
+                },
+                error: function(xhr) {
+                    if (xhr.status === 403) {
+                        showToast('error', 'Cannot edit online orders');
+                    } else {
+                        showToast('error', 'Error loading order data');
+                    }
                 }
-            },
-            error: function(xhr) {
-                if (xhr.status === 403) {
-                    showToast('error', 'Cannot edit online orders');
-                } else {
-                    showToast('error', 'Error loading order data');
-                }
-            }
+            });
         });
     }
     
@@ -2277,6 +2490,17 @@ $(document).ready(function() {
         $('#orderForm')[0].reset();
         $('#orderId').val('');
         $('#orderModalLabel').text('Create New Order');
+        
+        // Destroy Select2 instances before clearing
+        if ($('#customerId').hasClass('select2-hidden-accessible')) {
+            $('#customerId').select2('destroy');
+        }
+        $('.product-select, .variant-select').each(function() {
+            if ($(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2('destroy');
+            }
+        });
+        
         $('#orderItemsContainer').empty();
         itemCounter = 0;
         $('#subtotal, #taxAmount, #shippingAmount, #discountAmount, #totalAmount').val(0);
@@ -2287,6 +2511,9 @@ $(document).ready(function() {
         $('#shippingMethodsContainer').hide();
         $('#customerInfoCard').slideUp(300);
         $('#customerInfoContent').html('');
+        
+        // Reload customers to reinitialize Select2
+        loadCustomers();
     });
 });
 </script>

@@ -184,7 +184,9 @@ class OrderController extends Controller
     {
         try {
             $products = Product::with(['variants' => function($query) {
-                $query->where('is_active', true)->orderBy('sort_order');
+                $query->where('is_active', true)
+                    ->with(['inventoryStocks.warehouse', 'inventoryStocks.warehouseLocation'])
+                    ->orderBy('sort_order');
             }])
                 ->where('status', 'published')
                 ->orderBy('name')
@@ -197,13 +199,49 @@ class OrderController extends Controller
                         'type' => $product->type,
                         'price' => $product->price ?? 0,
                         'variants' => $product->variants->map(function($variant) use ($product) {
+                            // Calculate stock using same logic as inventory page
+                            // Use the already loaded inventoryStocks relationship (without parentheses)
+                            $warehouseTotalStock = $variant->inventoryStocks->sum('quantity');
+                            $warehouseTotalReserved = $variant->inventoryStocks->sum('reserved_quantity');
+                            
+                            // Get warehouse breakdown
+                            $warehouseBreakdown = $variant->inventoryStocks->groupBy('warehouse_id')->map(function($stocks, $warehouseId) {
+                                $firstStock = $stocks->first();
+                                return [
+                                    'warehouse_id' => $warehouseId,
+                                    'warehouse_name' => $firstStock->warehouse->name ?? 'N/A',
+                                    'warehouse_code' => $firstStock->warehouse->code ?? 'N/A',
+                                    'quantity' => $stocks->sum('quantity'),
+                                    'reserved_quantity' => $stocks->sum('reserved_quantity'),
+                                    'available_quantity' => $stocks->sum('available_quantity'),
+                                ];
+                            })->values()->toArray();
+                            
+                            // Calculate total stock: prioritize warehouse inventory, fallback to variant stock_quantity
+                            if (count($warehouseBreakdown) > 0) {
+                                // Has warehouse records - use warehouse total
+                                $totalStockQty = $warehouseTotalStock;
+                                $availableStock = max(0, $warehouseTotalStock - $warehouseTotalReserved);
+                            } else {
+                                // No warehouse records - use variant stock_quantity
+                                $totalStockQty = $variant->stock_quantity ?? 0;
+                                $availableStock = $totalStockQty;
+                            }
+                            
+                            // Calculate stock status
+                            $stockStatus = $totalStockQty > 0 ? 'in_stock' : 'out_of_stock';
+                            
                             return [
                                 'id' => $variant->id,
                                 'name' => $variant->name,
                                 'sku' => $variant->sku,
                                 'price' => $variant->price ?? $product->price ?? 0,
-                                'stock_quantity' => $variant->total_stock_quantity ?? ($variant->stock_quantity ?? 0),
-                                'available_stock' => $variant->available_stock ?? ($variant->stock_quantity ?? 0),
+                                'stock_quantity' => $totalStockQty,
+                                'available_stock' => $availableStock,
+                                'reserved_stock' => $warehouseTotalReserved,
+                                'stock_status' => $stockStatus,
+                                'manage_stock' => $variant->manage_stock,
+                                'warehouse_breakdown' => $warehouseBreakdown,
                             ];
                         })
                     ];
@@ -432,12 +470,13 @@ class OrderController extends Controller
      */
     private function checkStockAvailability($product, $variant, $quantity, $warehouseId = null)
     {
-        if ($variant) {
-            if (!$variant->manage_stock) {
-                return ['available' => true, 'quantity' => null];
+        if ($variant) { 
+            $hasInventoryStocks = $variant->inventoryStocks()->exists();
+             
+            if (!$variant->manage_stock && !$hasInventoryStocks) {
+                return ['available' => true, 'quantity' => null, 'warehouse_breakdown' => []];
             }
-            
-            // If warehouse is specified, check warehouse stock
+             
             if ($warehouseId) {
                 $totalStock = InventoryStock::where('product_variant_id', $variant->id)
                     ->where('warehouse_id', $warehouseId)
@@ -449,30 +488,76 @@ class OrderController extends Controller
                 
                 $availableStock = max(0, $totalStock - $reservedStock);
                 
+                // Get warehouse info
+                $warehouse = Warehouse::find($warehouseId);
+                $warehouseBreakdown = [[
+                    'warehouse_id' => $warehouseId,
+                    'warehouse_name' => $warehouse->name ?? 'N/A',
+                    'warehouse_code' => $warehouse->code ?? 'N/A',
+                    'quantity' => $totalStock,
+                    'reserved_quantity' => $reservedStock,
+                    'available_quantity' => $availableStock,
+                ]];
+                
                 return [
                     'available' => $availableStock >= $quantity,
                     'quantity' => $availableStock,
                     'total' => $totalStock,
-                    'reserved' => $reservedStock
+                    'reserved' => $reservedStock,
+                    'warehouse_breakdown' => $warehouseBreakdown
                 ];
             } else {
-                // Fallback to variant stock_quantity
-                $availableStock = $variant->available_stock ?? ($variant->stock_quantity ?? 0);
+                // Check all warehouses - use same logic as inventory page
+                $warehouseTotalStock = $variant->inventoryStocks()->sum('quantity');
+                $warehouseTotalReserved = $variant->inventoryStocks()->sum('reserved_quantity');
+                
+                // Get warehouse breakdown - group by warehouse
+                $warehouseBreakdown = $variant->inventoryStocks()
+                    ->with(['warehouse'])
+                    ->get()
+                    ->groupBy('warehouse_id')
+                    ->map(function($stocks, $warehouseId) {
+                        $firstStock = $stocks->first();
+                        return [
+                            'warehouse_id' => $warehouseId,
+                            'warehouse_name' => $firstStock->warehouse->name ?? 'N/A',
+                            'warehouse_code' => $firstStock->warehouse->code ?? 'N/A',
+                            'quantity' => $stocks->sum('quantity'),
+                            'reserved_quantity' => $stocks->sum('reserved_quantity'),
+                            'available_quantity' => $stocks->sum('available_quantity'),
+                        ];
+                    })->values()->toArray();
+                
+                // Calculate total stock: prioritize warehouse inventory, fallback to variant stock_quantity
+                if (count($warehouseBreakdown) > 0) {
+                    // Has warehouse records - use warehouse total
+                    $totalStockQty = $warehouseTotalStock;
+                    $availableStock = max(0, $warehouseTotalStock - $warehouseTotalReserved);
+                } else {
+                    // No warehouse records - use variant stock_quantity
+                    $totalStockQty = $variant->stock_quantity ?? 0;
+                    $availableStock = $totalStockQty;
+                }
+                
                 return [
                     'available' => $availableStock >= $quantity,
-                    'quantity' => $availableStock
+                    'quantity' => $availableStock,
+                    'total' => $totalStockQty,
+                    'reserved' => $warehouseTotalReserved,
+                    'warehouse_breakdown' => $warehouseBreakdown
                 ];
             }
         } else {
             // Product-level stock (legacy)
             if (!$product->manage_stock) {
-                return ['available' => true, 'quantity' => null];
+                return ['available' => true, 'quantity' => null, 'warehouse_breakdown' => []];
             }
             
             $availableStock = $product->stock_quantity ?? 0;
             return [
                 'available' => $availableStock >= $quantity,
-                'quantity' => $availableStock
+                'quantity' => $availableStock,
+                'warehouse_breakdown' => []
             ];
         }
     }

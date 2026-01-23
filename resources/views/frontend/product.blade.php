@@ -137,7 +137,7 @@
                                                         @else
                                                             <span class="final-price theme-cl fw-bold fs-3" style="color: #dc3545;">₹{{ number_format($displayMinPrice, 2) }}</span>
                                                             @if($minPrice != $maxPrice && $displayMaxPrice > 0)
-                                                                <span class="final-price theme-cl fw-bold fs-3"> - ₹{{ number_format($displayMaxPrice, 0) }}</span>
+                                                                <span class="final-price theme-cl fw-bold fs-3"> - ₹{{ number_format($displayMaxPrice, 2) }}</span>
                                                             @endif
                                                         @endif
                                                         <span class="tax-label text-muted fs-sm align-self-end">({{ $taxLabelDynamic }})</span>
@@ -1403,7 +1403,8 @@
     border-radius: 4px;
     overflow: hidden;
     background: #f8f9fa;
-    height: 500px;
+    /* height: 500px; */
+    height: fit-content;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1413,7 +1414,8 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    /* object-fit: cover; */
+    object-fit: contain;
     object-position: center;
     cursor: pointer;
     transition: opacity 0.3s ease;

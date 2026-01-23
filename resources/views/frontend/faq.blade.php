@@ -25,152 +25,45 @@
 					<div class="row align-items-center justify-content-between">
 						<div class="col-xl-12 col-lg-11 col-md-12 col-sm-12">
 							
+							@forelse($faqs as $faqIndex => $faq)
 							<div class="d-block position-relative border rounded py-3 px-3 mb-4">
-								<h4 class="ft-medium">Orders:</h4>
-								<div id="accordion" class="accordion">
+								<h4 class="ft-medium">{{ $faq->category }}</h4>
+								<div id="accordion{{ $faqIndex }}" class="accordion">
+									@foreach($faq->questions_answers as $qaIndex => $qa)
 									<div class="card">
-										<div class="card-header" id="h1">
+										<div class="card-header" id="h{{ $faqIndex }}_{{ $qaIndex }}">
 										  <h5 class="mb-0">
-											<button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#ord1" aria-expanded="true" aria-controls="ord1">
-												Can I track my order item?
+											<button class="btn btn-link {{ $qaIndex > 0 ? 'collapsed' : '' }}" 
+													data-bs-toggle="collapse" 
+													data-bs-target="#ord{{ $faqIndex }}_{{ $qaIndex }}" 
+													aria-expanded="{{ $qaIndex === 0 ? 'true' : 'false' }}" 
+													aria-controls="ord{{ $faqIndex }}_{{ $qaIndex }}">
+												{{ $qa['question'] }}
 											</button>
 										  </h5>
 										</div>
 
-										<div id="ord1" class="collapse show" aria-labelledby="h1" data-parent="#accordion">
+										<div id="ord{{ $faqIndex }}_{{ $qaIndex }}" 
+											 class="collapse {{ $qaIndex === 0 ? 'show' : '' }}" 
+											 aria-labelledby="h{{ $faqIndex }}_{{ $qaIndex }}" 
+											 data-parent="#accordion{{ $faqIndex }}">
 										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+											{{ $qa['answer'] }}
 										  </div>
 										</div>
 									</div>
-									<div class="card">
-										<div class="card-header" id="h2">
-										  <h5 class="mb-0">
-											<button class="btn btn-link collapsed" data-bs-toggle="collapse" data-bs-target="#ord2" aria-expanded="false" aria-controls="ord2">
-												Who pays for return postage?
-											</button>
-										  </h5>
-										</div>
-										<div id="ord2" class="collapse" aria-labelledby="h2" data-parent="#accordion">
-										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-										  </div>
-										</div>
-									</div>
-									<div class="card">
-										<div class="card-header" id="h3">
-										  <h5 class="mb-0">
-											<button class="btn btn-link collapsed" data-bs-toggle="collapse" data-bs-target="#ord3" aria-expanded="false" aria-controls="ord3">
-												How do I apply a promotional code?
-											</button>
-										  </h5>
-										</div>
-										<div id="ord3" class="collapse" aria-labelledby="h3" data-parent="#accordion">
-										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-										  </div>
-										</div>
-									</div>
+									@endforeach
 								</div>
 							</div>
-							
-							<div class="d-block position-relative border rounded py-3 px-3 mb-4">
-								<h4 class="ft-medium">Shipping & Returns:</h4>
-								<div id="accordion1" class="accordion">
-									<div class="card">
-										<div class="card-header" id="h4">
-										  <h5 class="mb-0">
-											<button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#ord4" aria-expanded="true" aria-controls="ord4">
-												How long does it take for home delivery?
-											</button>
-										  </h5>
-										</div>
-
-										<div id="ord4" class="collapse show" aria-labelledby="h4" data-parent="#accordion1">
-										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-										  </div>
-										</div>
-									</div>
-									<div class="card">
-										<div class="card-header" id="h5">
-										  <h5 class="mb-0">
-											<button class="btn btn-link collapsed" data-bs-toggle="collapse" data-bs-target="#ord5" aria-expanded="false" aria-controls="ord5">
-												What courier do you use for deliveries?
-											</button>
-										  </h5>
-										</div>
-										<div id="ord5" class="collapse" aria-labelledby="h5" data-parent="#accordion1">
-										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-										  </div>
-										</div>
-									</div>
-									<div class="card">
-										<div class="card-header" id="h6">
-										  <h5 class="mb-0">
-											<button class="btn btn-link collapsed" data-bs-toggle="collapse" data-bs-target="#ord6" aria-expanded="false" aria-controls="ord6">
-												Can I collect from a local store?
-											</button>
-										  </h5>
-										</div>
-										<div id="ord6" class="collapse" aria-labelledby="h6" data-parent="#accordion1">
-										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-										  </div>
-										</div>
-									</div>
+							@empty
+							<div class="d-block position-relative border rounded py-5 px-3 mb-4 text-center">
+								<div class="mb-3">
+									<i class="fas fa-question-circle fa-4x text-muted"></i>
 								</div>
+								<h5 class="text-muted">No FAQs Available</h5>
+								<p class="text-muted mb-0">Frequently asked questions will appear here once they are added.</p>
 							</div>
-							
-							<div class="d-block position-relative border rounded py-3 px-3">
-								<h4 class="ft-medium">Payment:</h4>
-								<div id="accordion2" class="accordion">
-									<div class="card">
-										<div class="card-header" id="h7">
-										  <h5 class="mb-0">
-											<button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#ord7" aria-expanded="true" aria-controls="ord7">
-												Do you offer a VAT discount to non EU customers?
-											</button>
-										  </h5>
-										</div>
-
-										<div id="ord7" class="collapse show" aria-labelledby="h7" data-parent="#accordion2">
-										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-										  </div>
-										</div>
-									</div>
-									<div class="card">
-										<div class="card-header" id="h8">
-										  <h5 class="mb-0">
-											<button class="btn btn-link collapsed" data-bs-toggle="collapse" data-bs-target="#ord8" aria-expanded="false" aria-controls="ord8">
-												Why have you not refunded the original delivery charge?
-											</button>
-										  </h5>
-										</div>
-										<div id="ord8" class="collapse" aria-labelledby="h8" data-parent="#accordion2">
-										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-										  </div>
-										</div>
-									</div>
-									<div class="card">
-										<div class="card-header" id="h9">
-										  <h5 class="mb-0">
-											<button class="btn btn-link collapsed" data-bs-toggle="collapse" data-bs-target="#ord9" aria-expanded="false" aria-controls="ord9">
-												Do you offer a VAT discount to non EU customers?
-											</button>
-										  </h5>
-										</div>
-										<div id="ord9" class="collapse" aria-labelledby="h9" data-parent="#accordion2">
-										  <div class="card-body">
-											Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
-										  </div>
-										</div>
-									</div>
-								</div>
-							</div>
+							@endforelse
 							
 						</div>
 					</div>

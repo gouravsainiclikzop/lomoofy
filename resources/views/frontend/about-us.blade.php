@@ -12,34 +12,44 @@
 <!-- ======================= About Us Detail ======================== -->
 <section class="middle">
 	<div class="container">
+		@if($aboutUs && $aboutUs->description)
 		<div class="row align-items-center justify-content-between">
 		
 			<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
 				<div class="abt_caption">
-					<h4 class="ft-medium ">Lorem ipsum dolor sit amet,    </h4>
-					<p class="mb-4">Lorem ipsum dolo mmodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-					<h4 class="ft-medium ">Lorem ipsum dolor sit amet, consectetur ?</h4>
-					<p class="mb-4">Lorem ipsu  incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-					<h4 class="ft-medium ">Lorem ipsum  consectetur ?</h4>
-					<p class="mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip   nulla pariatur.</p>
-					<h4 class="ft-medium ">Lorem  it amet, consectetur ?</h4>
-					<p class="mb-4">Lorem ipsum dolor sit amet,  uis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-						<h4 class="ft-medium ">Lorem ipsum dolor sit amet, consectetur ?</h4>
-					<p class="mb-4">Lorem ipsum   nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+					{!! $aboutUs->description !!}
 	 
 					<div class="form-group mt-4">
-						<a href="{{ route('frontend.shop') }}" class="btn btn-dark">See More Info</a>
+						<a href="{{ route('frontend.shop') }}" class="btn btn-dark">Shop Now</a>
 					</div>
 				</div>
 			</div>
 			
 			<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
 				<div class="abt_caption">
-					<img src="{{ asset('frontend/images/about-1.png') }}" class="img-fluid rounded" alt="" />
+					@if($aboutUs->image)
+						<img src="{{ asset('storage/' . $aboutUs->image) }}" class="img-fluid rounded" alt="About Us" />
+					@else
+						<img src="{{ asset('frontend/images/about-1.png') }}" class="img-fluid rounded" alt="About Us" />
+					@endif
 				</div>
 			</div>
 			
 		</div>
+		@else
+		<!-- Default content when no data is available -->
+		<div class="row align-items-center justify-content-center">
+			<div class="col-xl-8 col-lg-10 col-md-12 text-center">
+				<div class="abt_caption">
+					<h4 class="ft-medium mb-3">About Us</h4>
+					<p class="mb-4">Welcome to Lomoofy Industries. Please check back soon for more information about our company.</p>
+					<div class="form-group mt-4">
+						<a href="{{ route('frontend.shop') }}" class="btn btn-dark">Shop Now</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		@endif
 	</div>
 </section>
 <!-- ======================= About Us End ======================== -->

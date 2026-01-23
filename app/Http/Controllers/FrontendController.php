@@ -68,6 +68,9 @@ class FrontendController extends Controller
             }
         ])
         ->where('status', 'published')
+        ->whereHas('variants', function($q) {
+            $q->where('is_active', true);
+        })
         ->orderBy('created_at', 'desc')
         ->limit(8)
         ->get()
@@ -329,7 +332,10 @@ class FrontendController extends Controller
                   }]);
             }
         ])
-        ->where('status', 'published');
+        ->where('status', 'published')
+        ->whereHas('variants', function($q) {
+            $q->where('is_active', true);
+        });
         
         // If we have best sellers from orders, use them; otherwise fall back to featured products
         if (count($bestSellerProductIds) > 0) {
@@ -493,6 +499,9 @@ class FrontendController extends Controller
                 }
             ])
             ->where('status', 'published')
+            ->whereHas('variants', function($q) {
+                $q->where('is_active', true);
+            })
             ->whereIn('id', $recentlyViewedProductIds)
             ->orderByRaw('FIELD(id, ' . implode(',', array_map('intval', $recentlyViewedProductIds)) . ')')
             ->limit(8)
@@ -640,7 +649,13 @@ class FrontendController extends Controller
                 ];
             });
         
-        return view('frontend.index', compact('parentCategories', 'newArrivals', 'bestSellers', 'recentlyViewed', 'collections', 'ourCollection', 'testimonials', 'homeSliders'));
+        // Get latest 3 blogs for homepage
+        $latestBlogs = \App\Models\Blog::orderBy('published_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->limit(3)
+            ->get();
+        
+        return view('frontend.index', compact('parentCategories', 'newArrivals', 'bestSellers', 'recentlyViewed', 'collections', 'ourCollection', 'testimonials', 'homeSliders', 'latestBlogs'));
     }
 
     public function shop(Request $request)
@@ -758,7 +773,10 @@ class FrontendController extends Controller
                   }]);
             }
         ])
-        ->where('status', 'published');
+        ->where('status', 'published')
+        ->whereHas('variants', function($q) {
+            $q->where('is_active', true);
+        });
         
         // Filter by category if selected
         if ($selectedCategory) {
@@ -1628,7 +1646,10 @@ class FrontendController extends Controller
                   }]);
             }
         ])
-        ->where('status', 'published');
+        ->where('status', 'published')
+        ->whereHas('variants', function($q) {
+            $q->where('is_active', true);
+        });
         
         // Filter by category if selected
         if ($selectedCategory) {
@@ -2970,7 +2991,8 @@ class FrontendController extends Controller
 
     public function aboutUs()
     {
-        return view('frontend.about-us');
+        $aboutUs = \App\Models\AboutUs::getInstance();
+        return view('frontend.about-us', compact('aboutUs'));
     }
 
     public function contact()
@@ -2980,12 +3002,48 @@ class FrontendController extends Controller
 
     public function privacy()
     {
-        return view('frontend.privacy');
+        $legalPages = \App\Models\LegalPage::getInstance();
+        return view('frontend.privacy', compact('legalPages'));
+    }
+
+    public function termAndCondition()
+    {
+        $legalPages = \App\Models\LegalPage::getInstance();
+        return view('frontend.term-and-condition', compact('legalPages'));
+    }
+
+    public function shipping()
+    {
+        $legalPages = \App\Models\LegalPage::getInstance();
+        return view('frontend.shipping', compact('legalPages'));
+    }
+
+    public function cancellationRefund()
+    {
+        $legalPages = \App\Models\LegalPage::getInstance();
+        return view('frontend.cancellation-refund', compact('legalPages'));
+    }
+
+    public function returnRefundPolicy()
+    {
+        $legalPages = \App\Models\LegalPage::getInstance();
+        return view('frontend.return-refund-policy', compact('legalPages'));
+    }
+
+    public function disclaimer()
+    {
+        $legalPages = \App\Models\LegalPage::getInstance();
+        return view('frontend.disclaimer', compact('legalPages'));
     }
 
     public function faq()
     {
-        return view('frontend.faq');
+        $faqs = \App\Models\Faq::where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        return view('frontend.faq', compact('faqs'));
     }
 
     public function myOrders(Request $request)
@@ -4427,8 +4485,13 @@ class FrontendController extends Controller
                         ->update(['is_default' => false]);
                 }
             }
-            
-           
+             
+            // Check if there's a redirect URL stored in session (from checkout flow)
+            if (session('redirect_after_address')) {
+                $redirectUrl = session('redirect_after_address');
+                session()->forget('redirect_after_address'); // Clear the session variable
+                return redirect($redirectUrl)->with('success', $message);
+            }
             
             return redirect()->route('frontend.addresses')->with('success', $message);
             
@@ -4704,6 +4767,13 @@ class FrontendController extends Controller
             'billing_same_as_shipping' => $request->old('billing_same_as_shipping', true),
         ]);
         
+        // Get Razorpay configuration for frontend
+        $razorpayService = app(\App\Services\RazorpayService::class);
+        $razorpayConfig = [
+            'enabled' => $razorpayService->isConfigured(),
+            'key_id' => $razorpayService->getKeyId(),
+            'currency' => $razorpayService->getCurrency(),
+        ];
        
         return view('frontend.checkout', [
             'cart' => $cart,
@@ -4715,6 +4785,7 @@ class FrontendController extends Controller
             'singleAddress' => $addressData['single_address'],
             'sessionId' => $sessionId,
             'checkoutData' => session('checkout_data', []),
+            'razorpay' => $razorpayConfig,
         ]);
     }
 
@@ -4723,13 +4794,10 @@ class FrontendController extends Controller
         // Get validated data from middleware attributes
         $cart = $request->attributes->get('validated_cart');
         $customer = $request->attributes->get('authenticated_customer');
-        
-       
-        
+         
         try {
             $checkoutService = app(CheckoutService::class);
-            
-            // Validate request data
+             
             $validatedData = $checkoutService->validateCheckoutRequest($request->all());
             
             // Validate addresses
@@ -4751,13 +4819,10 @@ class FrontendController extends Controller
                     ->withErrors($errorBag)
                     ->with('error', 'Please fix the address errors and try again.');
             }
-            
-            // Validate cart stock before creating order
+             
             $cartValidation = $checkoutService->validateCart($cart);
            
-            if (!$cartValidation['valid']) {
-               
-                // Convert errors array to key-value pairs for proper display
+            if (!$cartValidation['valid']) { 
                 $errorBag = [];
                 foreach ($cartValidation['errors'] as $index => $error) {
                     $errorBag['cart_' . $index] = $error;
@@ -4810,6 +4875,15 @@ class FrontendController extends Controller
             $customer = $request->attributes->get('authenticated_customer');
             
             $checkoutService = app(CheckoutService::class);
+            $razorpayService = app(\App\Services\RazorpayService::class);
+            
+            // Check if Razorpay is configured
+            if (!$razorpayService->isConfigured()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Razorpay payment is not configured. Please contact administrator.'
+                ], 503);
+            }
             
             // Validate request data
             $validatedData = $checkoutService->validateCheckoutRequest($request->all());
@@ -4853,58 +4927,16 @@ class FrontendController extends Controller
                 ]
             );
             
-            // Calculate amount in paise (Razorpay uses smallest currency unit)
-            $amount = round($order->total_amount * 100); // Convert to paise
-            
-            // Create Razorpay order
-            $razorpayKeyId = env('RAZORPAY_KEY_ID', 'rzp_test_RytPVtZvClzzRV');
-            $razorpayKeySecret = env('RAZORPAY_KEY_SECRET', 'J1eq1gkUD4049W9CuDsqljXw');
-            
-            $razorpayOrderData = [
-                'amount' => $amount,
-                'currency' => 'INR',
-                'receipt' => $order->order_number,
-                'notes' => [
+            // Create Razorpay order using service
+            $razorpayOrder = $razorpayService->createOrder(
+                $order->total_amount,
+                $order->order_number,
+                [
                     'order_id' => $order->id,
                     'order_number' => $order->order_number,
                     'customer_id' => $customer->id,
                 ]
-            ];
-            
-            // Create order via Razorpay API
-            $ch = curl_init('https://api.razorpay.com/v1/orders');
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($razorpayOrderData));
-            curl_setopt($ch, CURLOPT_USERPWD, $razorpayKeyId . ':' . $razorpayKeySecret);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type: application/json'
-            ]);
-            
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            
-            if ($httpCode !== 200) {
-                \Log::error('Razorpay order creation failed', [
-                    'response' => $response,
-                    'http_code' => $httpCode,
-                    'order_id' => $order->id
-                ]);
-                
-                // Restore stock before deleting the order (since createOrder already decremented it)
-                $checkoutService->restoreOrderStock($order);
-                
-                // Delete the order if Razorpay order creation failed
-                $order->delete();
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to create payment order. Please try again.'
-                ], 500);
-            }
-            
-            $razorpayOrder = json_decode($response, true);
+            );
             
             // Update order with Razorpay order ID
             $order->update([
@@ -4917,8 +4949,9 @@ class FrontendController extends Controller
                     'order_id' => $order->id,
                     'order_number' => $order->order_number,
                     'razorpay_order_id' => $razorpayOrder['id'],
-                    'amount' => $amount,
-                    'currency' => 'INR',
+                    'amount' => round($order->total_amount * 100), // Convert to paise
+                    'currency' => $razorpayService->getCurrency(),
+                    'key_id' => $razorpayService->getKeyId(),
                 ]
             ]);
             
@@ -4944,7 +4977,7 @@ class FrontendController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create payment order: ' . $e->getMessage()
+                'message' => $e->getMessage()
             ], 500);
         }
     }
@@ -4975,15 +5008,14 @@ class FrontendController extends Controller
                 ], 404);
             }
             
-            // Verify signature
-            $razorpayKeySecret = env('RAZORPAY_KEY_SECRET', 'J1eq1gkUD4049W9CuDsqljXw');
-            $generatedSignature = hash_hmac('sha256', $razorpayOrderId . '|' . $razorpayPaymentId, $razorpayKeySecret);
+            // Verify signature using service
+            $razorpayService = app(\App\Services\RazorpayService::class);
             
-            if ($generatedSignature !== $razorpaySignature) {
+            if (!$razorpayService->verifyPaymentSignature($razorpayOrderId, $razorpayPaymentId, $razorpaySignature)) {
                 \Log::error('Razorpay signature verification failed', [
                     'order_id' => $orderId,
-                    'expected' => $generatedSignature,
-                    'received' => $razorpaySignature
+                    'razorpay_order_id' => $razorpayOrderId,
+                    'razorpay_payment_id' => $razorpayPaymentId
                 ]);
                 
                 return response()->json([
@@ -5010,6 +5042,12 @@ class FrontendController extends Controller
                     $cart->delete();
                 }
             }
+            
+            \Log::info('Razorpay payment successful', [
+                'order_id' => $orderId,
+                'order_number' => $order->order_number,
+                'payment_id' => $razorpayPaymentId
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -5365,5 +5403,26 @@ class FrontendController extends Controller
                 'message' => 'Error calculating pricing: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+
+    public function blog()
+    {
+        $blogs = \App\Models\Blog::orderBy('published_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(12);
+        
+        return view('frontend.blog', compact('blogs'));
+    }
+
+    public function blogDetail($slug)
+    {
+        $blog = \App\Models\Blog::where('slug', $slug)->firstOrFail();
+        $relatedBlogs = \App\Models\Blog::where('id', '!=', $blog->id)
+            ->orderBy('published_date', 'desc')
+            ->limit(3)
+            ->get();
+        
+        return view('frontend.blog-detail', compact('blog', 'relatedBlogs'));
     }
 }

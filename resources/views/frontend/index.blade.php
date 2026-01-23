@@ -514,13 +514,13 @@
 																<div class="pricing-main-compact">
 																	<div class="d-flex align-items-baseline flex-wrap gap-1">
 																		<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
-																			₹{{ number_format($minPrice, 0) }}
-																			@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
+																			₹{{ number_format($minPrice, 2) }}
+																			@if($hasPriceRange) - ₹{{ number_format($maxPrice, 2) }} @endif
 																		</span>
 																		<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
-																			₹{{ number_format($minSalePrice, 0) }}
+																			₹{{ number_format($minSalePrice, 2) }}
 																			@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
-																				- ₹{{ number_format($product['max_sale_price'], 0) }}
+																				- ₹{{ number_format($product['max_sale_price'], 2) }}
 																			@endif
 																		</span>
 																	</div>
@@ -528,8 +528,8 @@
 															</div>
 														@else
 															<span class="ft-medium text-dark fs-sm">
-																₹{{ number_format($minDisplayPrice, 0) }}
-																@if($hasPriceRange) - ₹{{ number_format($maxDisplayPrice, 0) }} @endif
+																₹{{ number_format($minDisplayPrice, 2) }}
+																@if($hasPriceRange) - ₹{{ number_format($maxDisplayPrice, 2) }} @endif
 															</span>
 														@endif
 													@endif
@@ -579,8 +579,7 @@
 			</section>
 			@endif
 
-
-			
+			@if($recentlyViewed->count() > 0) 
 			<!-- ======================= Recently Viewed ======================== -->
 			<section class="space gray">
 				<div class="container">
@@ -597,7 +596,7 @@
 					<div class="row">
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="slide_items">
-								@if($recentlyViewed->count() > 0)
+							
 									@foreach($recentlyViewed as $product)
 									<!-- single Item -->
 									<div class="single_itesm">
@@ -693,17 +692,15 @@
 										</div>
 									</div>
 									@endforeach
-								@else
-									<div class="col-xl-12">
-										<p class="text-center text-muted">No recently viewed products.</p>
-									</div>
-								@endif
+							 
 							</div>
 						</div>
 					</div>
 					
 				</div>
 			</section>
+			
+			@endif
 
  
 			<!-- ======================= Customer Review ======================== -->
@@ -755,6 +752,7 @@
 			<!-- ======================= Customer Review ======================== --> 
  
 			<!-- ======================= Blog Start ============================ -->
+			@if($latestBlogs && $latestBlogs->count() > 0)
 			<section class="space min">
 				<div class="container"> 
 					<div class="row justify-content-center">
@@ -767,53 +765,30 @@
 					</div>
 					
 					<div class="row">
-						
+						@foreach($latestBlogs as $blog)
 						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
 							<div class="_blog_wrap">
 								<div class="_blog_thumb mb-2">
-									<a href="blog-detail.html" class="d-block"><img src="{{ asset('frontend/images/bl-1.png') }}" class="img-fluid rounded" alt=""></a>
+									<a href="{{ route('frontend.blog-detail', $blog->slug) }}" class="d-block">
+										<img src="{{ $blog->thumbnail_url }}" class="img-fluid rounded" alt="{{ $blog->title }}" style="width: 100%; height: 250px; object-fit: cover;">
+									</a>
 								</div>
 								<div class="_blog_caption">
-									<span class="text-muted">26 Jan 2021</span>
-									<h5 class="bl_title lh-1"><a href="blog-detail.html">Let's start bring sale on this saummer vacation.</a></h5>
-									<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis</p>
-									<a href="blog-detail.html" class="text-dark fs-sm">Continue Reading..</a>
+									<span class="text-muted">{{ $blog->published_date ? $blog->published_date->format('d M Y') : '' }}</span>
+									<h5 class="bl_title lh-1">
+										<a href="{{ route('frontend.blog-detail', $blog->slug) }}">{{ $blog->title }}</a>
+									</h5>
+									<p>{{ Str::limit(strip_tags($blog->description), 150) }}</p>
+									<a href="{{ route('frontend.blog-detail', $blog->slug) }}" class="text-dark fs-sm">Continue Reading..</a>
 								</div>
 							</div>
 						</div>
-						
-						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
-							<div class="_blog_wrap">
-								<div class="_blog_thumb mb-2">
-									<a href="blog-detail.html" class="d-block"><img src="{{ asset('frontend/images/bl-2.png') }}" class="img-fluid rounded" alt=""></a>
-								</div>
-								<div class="_blog_caption">
-									<span class="text-muted">17 July 2021</span>
-									<h5 class="bl_title lh-1"><a href="blog-detail.html">Let's start bring sale on this saummer vacation.</a></h5>
-									<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis</p>
-									<a href="blog-detail.html" class="text-dark fs-sm">Continue Reading..</a>
-								</div>
-							</div>
-						</div>
-						
-						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
-							<div class="_blog_wrap">
-								<div class="_blog_thumb mb-2">
-									<a href="blog-detail.html" class="d-block"><img src="{{ asset('frontend/images/bl-3.png') }}" class="img-fluid rounded" alt=""></a>
-								</div>
-								<div class="_blog_caption">
-									<span class="text-muted">10 Aug 2021</span>
-									<h5 class="bl_title lh-1"><a href="blog-detail.html">Let's start bring sale on this saummer vacation.</a></h5>
-									<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis</p>
-									<a href="blog-detail.html" class="text-dark fs-sm">Continue Reading..</a>
-								</div>
-							</div>
-						</div>
-						
+						@endforeach
 					</div>
 					
 				</div>
 			</section>
+			@endif
 			<!-- ======================= Blog Start ============================ -->
 			
 

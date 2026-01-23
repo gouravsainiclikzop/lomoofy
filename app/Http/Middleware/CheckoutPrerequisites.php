@@ -40,7 +40,9 @@ class CheckoutPrerequisites
             if (!$customer) {
                
                 return redirect()->route('frontend.shoping-cart')
-                    ->with('error', 'Please login to proceed to checkout');
+                    ->with('error', 'Please login to proceed to checkout')
+                    ->with('show_login', true)
+                    ->with('redirect_after_login', $request->fullUrl());
             }
 
             // Get customer's cart
@@ -87,6 +89,9 @@ class CheckoutPrerequisites
             
             if (!$addressData['has_addresses']) {
                
+                // Store redirect URL in session (not flash) so it persists through address creation
+                session()->put('redirect_after_address', route('frontend.shoping-cart'));
+                
                 return redirect()->route('frontend.addresses')
                     ->with('info', 'Please add an address before proceeding to checkout');
             }

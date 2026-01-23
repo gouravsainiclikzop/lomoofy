@@ -334,7 +334,7 @@
                                         </div>
                                         <hr class="my-2">
                                         <div class="d-flex justify-content-between fw-bold">
-                                            <span>Total (Incl. of all taxes):</span>
+                                            <span>Total Payable (Incl. of all taxes):</span>
                                             <span>₹{{ number_format($totalRounded, 0) }}</span>
                                         </div>
                                     </div>

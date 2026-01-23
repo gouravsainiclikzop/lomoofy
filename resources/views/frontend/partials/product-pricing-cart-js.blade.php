@@ -56,18 +56,18 @@ function generateCartItemPricing(item) {
  */
 function renderCartItemPricingHTML(pricing, item) {
     // Extract values from centralized pricing data
-    // Use rounded values for display, fallback to unrounded if rounded not available
-    const displayBasePrice = pricing.display_base_price_rounded ?? (pricing.display_base_price ? Math.round(pricing.display_base_price) : 0);
-    const displayFinalPrice = pricing.display_final_price_rounded ?? (pricing.display_final_price ? Math.round(pricing.display_final_price) : 0);
+    // Use 2-decimal precise values for display (base price and final price should show 2 decimals)
+    const displayBasePrice = pricing.display_base_price ?? pricing.base_price ?? 0;
+    const displayFinalPrice = pricing.display_final_price ?? pricing.final_price ?? 0;
     const displaySavings = pricing.display_savings_rounded ?? (pricing.display_savings ? Math.round(pricing.display_savings) : 0);
     const taxLabel = pricing.tax_label || 'Inclusive of all taxes';
     const discountBadgeText = pricing.discount_badge_text || null;
     const hasDiscount = pricing.has_discount_or_sale || false;
     
-    // Helper function to format price (round to nearest whole number for display)
+    // Helper function to format price with 2 decimals
     const formatPriceDisplay = (price) => {
-        const rounded = Math.round(parseFloat(price) || 0);
-        return '₹' + rounded.toLocaleString();
+        const value = parseFloat(price) || 0;
+        return '₹' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     };
     
     // Build HTML
@@ -167,10 +167,9 @@ function generateCartItemPricingLegacy(item) {
         totalSavings = basePrice - salePrice;
     }
     
-    // Simple display (no GST calculation for legacy cart items)
-    // Round values for display (calculations kept in 2 decimals but display as whole numbers)
-    const displayBasePrice = Math.round(basePrice);
-    const displayFinalPrice = Math.round(finalPrice);
+    // Keep 2-decimal precise values for display (base price and final price should show 2 decimals)
+    const displayBasePrice = parseFloat(basePrice.toFixed(2));
+    const displayFinalPrice = parseFloat(finalPrice.toFixed(2));
     const displaySavings = Math.round(totalSavings);
     const taxLabel = gstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
     
@@ -183,7 +182,7 @@ function generateCartItemPricingLegacy(item) {
         }
     }
     
-    // Use renderCartItemPricingHTML with rounded display values
+    // Use renderCartItemPricingHTML with 2-decimal precise display values
     return renderCartItemPricingHTML({
         display_base_price: displayBasePrice,
         display_final_price: displayFinalPrice,

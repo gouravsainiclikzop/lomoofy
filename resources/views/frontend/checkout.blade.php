@@ -484,7 +484,7 @@
                                         <span class="ms-auto text-dark ft-medium">₹{{ number_format($shippingAmount, 2) }}</span>
                                     </li>
                                     <li class="list-group-item d-flex text-dark fs-sm ft-medium border-top">
-                                        <span>Total (Incl. of all taxes)</span> 
+                                        <span>Total Payable (Incl. of all taxes)</span> 
                                         <span class="ms-auto text-dark ft-bold">₹{{ number_format($totalRounded, 0) }}</span>
                                     </li>
                                     <li class="list-group-item fs-sm text-center">

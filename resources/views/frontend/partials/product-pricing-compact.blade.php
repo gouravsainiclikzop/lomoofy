@@ -23,7 +23,7 @@
         $pricing = $variant->getPricingData($gstTypeParam, $gstPercentageParam);
         
         // Extract values from pricing data
-        // Use rounded values for display, unrounded values are kept in pricing array for calculations
+        // Use 2-decimal precise values for display (base price and sale price should show 2 decimals)
         $basePrice = $pricing['base_price'] ?? ($variant->price ?? 0);
         $salePrice = $pricing['sale_price'] ?? null;
         $gstType = $gstTypeParam ?? true;
@@ -31,8 +31,9 @@
         $discount_type = $variant->discount_type ?? null;
         $discount_value = $variant->discount_value ?? 0;
         $discount_active = $variant->discount_active ?? false;
-        $displayBasePrice = $pricing['display_base_price_rounded'] ?? round($pricing['display_base_price']);
-        $displayFinalPrice = $pricing['display_final_price_rounded'] ?? round($pricing['display_final_price']);
+        // Use 2-decimal precise values for base price and final price display
+        $displayBasePrice = $pricing['display_base_price'] ?? $pricing['base_price'] ?? 0;
+        $displayFinalPrice = $pricing['display_final_price'] ?? $pricing['final_price'] ?? 0;
         $displaySavings = $pricing['display_savings_rounded'] ?? round($pricing['display_savings']);
         $showBasePrice = $pricing['show_base_price'];
         $taxLabel = $pricing['tax_label'];
@@ -139,15 +140,15 @@
         $taxLabel = ($gstType === false) ? 'Exclusive of taxes' : 'Inclusive of all taxes';
     }
     
-    // Round display values only for display (keep calculations in 2 decimals)
-    $displayBasePrice = round($displayBasePrice);
-    $displayFinalPrice = round($displayFinalPrice);
+    // Keep display values in 2 decimals (don't round base price and final price)
+    // Only round savings for display
     $displaySavings = round($displaySavings);
         
         // Calculate OFF badge text based on actual savings (base_price vs display_final_price)
         // This shows the total discount percentage, regardless of how it was achieved (sale + discount, etc.)
-        if ($displayFinalPrice < $basePrice && $basePrice > 0 && $hasDiscount) {
-            $offPercentage = round((($basePrice - $displayFinalPrice) / $basePrice) * 100);
+        // Use 2-decimal precise values for calculation
+        if ($displayFinalPrice < $displayBasePrice && $displayBasePrice > 0 && $hasDiscount) {
+            $offPercentage = round((($displayBasePrice - $displayFinalPrice) / $displayBasePrice) * 100);
             if ($offPercentage > 0) {
                 $discountBadgeText = $offPercentage . '% OFF';
             }
@@ -178,16 +179,16 @@
     {{-- Main Price Display --}}
     <div class="pricing-main-compact">
         <div class="d-flex align-items-baseline flex-wrap gap-1">
-            {{-- Base Price (with strikethrough if needed) --}}
+            {{-- Base Price (with strikethrough if needed) - Show 2 decimals --}}
             @if($showBasePrice && $displayBasePrice > $displayFinalPrice)
             <span class="base-price-compact text-muted text-decoration-line-through {{ $compact ? 'fs-sm' : 'fs-md' }} fw-normal">
-                ₹{{ number_format($displayBasePrice, 0) }}
+                ₹{{ number_format($displayBasePrice, 2) }}
             </span>
             @endif
             
-            {{-- Final Price (prominent) --}}
+            {{-- Final Price (prominent) - Show 2 decimals --}}
             <span class="final-price-compact theme-cl fw-bold {{ $compact ? 'fs-md' : 'fs-lg' }}" style="color: #dc3545;">
-                ₹{{ number_format($displayFinalPrice, 0) }}
+                ₹{{ number_format($displayFinalPrice, 2) }}
             </span>
             
             {{-- Tax Label (only if not compact) --}}

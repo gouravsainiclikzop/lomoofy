@@ -37,16 +37,15 @@
 							<div class="card-wrap-body mb-3">
 								<h4 class="ft-medium mb-3 theme-cl">Make a Call</h4>
 								<h6 class="ft-medium mb-1">Customer Care:</h6>
-								<p class="mb-2">{{ $settings->phone }}</p>
+								<p class="mb-2">{{ $settings->customer_care_phone }}</p>
 								<h6 class="ft-medium mb-1">Careers::</h6>
-								<p>{{ $settings->phone }}</p>
+								<p>{{ $settings->careers_phone }}</p>
 							</div>
 							
 							<div class="card-wrap-body mb-3">
 								<h4 class="ft-medium mb-3 theme-cl">Drop A Mail</h4>
-								<p>Fill out our form and we will contact you within 24 hours.</p>
-								<p class="lh-1 text-dark">{{ $settings->email }}</p>
-								<p class="lh-1 text-dark">{{ $settings->email }}</p>
+								<p>Fill out our form and we will contact you within 24 hours.</p> 
+								<p class="lh-1 text-dark">{{ $settings->('secondary_email')- }}</p>
 							</div>
 						</div>
 						

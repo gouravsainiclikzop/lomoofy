@@ -32,7 +32,8 @@ class CartController extends Controller
                   ->orWhere('coupon_code', 'like', "%{$search}%")
                   ->orWhereHas('customer', function($q) use ($search) {
                       $q->where('full_name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
                   });
             });
         }
@@ -67,6 +68,7 @@ class CartController extends Controller
                 'id' => $cart->id,
                 'customer_name' => $cart->customer ? $cart->customer->full_name : 'Guest',
                 'customer_email' => $cart->customer ? $cart->customer->email : ($cart->session_id ? 'Session: ' . substr($cart->session_id, 0, 8) : 'N/A'),
+                'customer_phone' => $cart->customer ? ($cart->customer->phone ?? 'N/A') : 'N/A',
                 'session_id' => $cart->session_id ? substr($cart->session_id, 0, 12) . '...' : 'N/A',
                 'total_items' => $totalItems,
                 'subtotal' => (float)$cart->subtotal,

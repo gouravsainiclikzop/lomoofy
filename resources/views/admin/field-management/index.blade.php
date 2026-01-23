@@ -270,211 +270,34 @@
                             <label class="form-label">Label <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="fieldLabel" name="label" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Input Type <span class="text-danger">*</span></label>
-                            <select class="form-select" id="fieldInputType" name="input_type" required disabled readonly>
-                                <option value="">Select Type</option>
-                                <option value="text">Text</option>
-                                <option value="email">Email</option>
-                                <option value="password">Password</option>
-                                <option value="tel">Telephone</option>
-                                <option value="number">Number</option>
-                                <option value="textarea">Textarea</option>
-                                <option value="select">Select</option>
-                                <option value="radio">Radio</option>
-                                <option value="checkbox">Checkbox</option>
-                                <option value="date">Date</option>
-                                <option value="file">File</option>
-                            </select>
-                            <small class="form-text text-muted">Input type cannot be changed when editing a field</small>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <label class="form-label">Placeholder</label>
                             <input type="text" class="form-control" id="fieldPlaceholder" name="placeholder">
                         </div>
                         <div class="col-md-12">
-                            <label class="form-label">
-                                <i class='bx bx-shield-quarter'></i> Field Validation Rules
-                                <small class="text-muted">(Optional - Set rules to ensure data quality)</small>
-                            </label>
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <!-- Format Validation -->
-                                    <div class="mb-4 validation-section" id="valEmailSection" style="display: none;">
-                                        <hr>
-                                        <h6 class="text-primary mb-3">
-                                            <i class='bx bx-edit'></i> Format Validation
-                                        </h6>
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="valEmail" name="val_email">
-                                                    <label class="form-check-label" for="valEmail">
-                                                        <strong>Must be a valid Email</strong>
-                                                        <small class="d-block text-muted">Example: user@example.com</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- URL Validation -->
-                                    <div class="mb-4 validation-section" id="valUrlSection" style="display: none;">
-                                        <hr>
-                                        <h6 class="text-primary mb-3">
-                                            <i class='bx bx-link'></i> URL Validation
-                                        </h6>
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="valUrl" name="val_url">
-                                                    <label class="form-check-label" for="valUrl">
-                                                        <strong>Must be a valid Website URL</strong>
-                                                        <small class="d-block text-muted">Example: https://www.example.com</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Character Type Validation -->
-                                    <div class="mb-4 validation-section" id="valCharacterTypeSection" style="display: none;">
-                                        <hr>
-                                        <h6 class="text-primary mb-3">
-                                            <i class='bx bx-font'></i> Allowed Character Types
-                                        </h6>
-                                        <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="valNumeric" name="val_numeric">
-                                                    <label class="form-check-label" for="valNumeric">
-                                                        <strong>Numbers Only</strong>
-                                                        <small class="d-block text-muted">Only digits (0-9) allowed</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="valAlpha" name="val_alpha">
-                                                    <label class="form-check-label" for="valAlpha">
-                                                        <strong>Letters Only</strong>
-                                                        <small class="d-block text-muted">Only alphabets (A-Z, a-z) allowed</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="valAlphaNum" name="val_alpha_num">
-                                                    <label class="form-check-label" for="valAlphaNum">
-                                                        <strong>Letters & Numbers</strong>
-                                                        <small class="d-block text-muted">Alphabets and digits allowed</small>
-                                                    </label>
-                                               </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Numeric Validation -->
-                                    <div class="mb-4 validation-section" id="valNumericSection" style="display: none;">
-                                        <hr>
-                                        <h6 class="text-primary mb-3">
-                                            <i class='bx bx-hash'></i> Number Validation
-                                        </h6>
-                                        <div class="row g-3">
-                                            <div class="col-md-12">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="valNumeric" name="val_numeric">
-                                                    <label class="form-check-label" for="valNumeric">
-                                                        <strong>Must be a Number</strong>
-                                                        <small class="d-block text-muted">Only numeric values (0-9, decimals) allowed</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Length Restrictions -->
-                                    <div class="mb-4 validation-section" id="valLengthSection" style="display: none;">
-                                        <hr>
-                                        <h6 class="text-primary mb-3">
-                                            <i class='bx bx-ruler'></i> Text Length Restrictions
-                                        </h6>
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">
-                                                    <strong>Minimum Characters</strong>
-                                                    <small class="text-muted d-block">User must enter at least this many characters</small>
-                                                </label>
-                                                <input type="number" class="form-control" id="valMin" name="val_min" min="0" placeholder="e.g., 3 (minimum 3 characters)">
-                                                <small class="form-text text-muted">Leave empty if no minimum required</small>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">
-                                                    <strong>Maximum Characters</strong>
-                                                    <small class="text-muted d-block">User cannot enter more than this many characters</small>
-                                                </label>
-                                                <input type="number" class="form-control" id="valMax" name="val_max" min="0" placeholder="e.g., 255 (maximum 255 characters)">
-                                                <small class="form-text text-muted">Leave empty if no maximum limit</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Number Range (for numeric fields) -->
-                                    <div class="mb-4 validation-section" id="valNumberRangeSection" style="display: none;">
-                                        <hr>
-                                        <h6 class="text-primary mb-3">
-                                            <i class='bx bx-slider'></i> Number Range
-                                        </h6>
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">
-                                                    <strong>Minimum Value</strong>
-                                                    <small class="text-muted d-block">Smallest number allowed</small>
-                                                </label>
-                                                <input type="number" class="form-control" id="valMinVal" name="val_min_val" placeholder="e.g., 0 (cannot be less than 0)">
-                                                <small class="form-text text-muted">Leave empty if no minimum</small>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">
-                                                    <strong>Maximum Value</strong>
-                                                    <small class="text-muted d-block">Largest number allowed</small>
-                                                </label>
-                                                <input type="number" class="form-control" id="valMaxVal" name="val_max_val" placeholder="e.g., 100 (cannot be more than 100)">
-                                                <small class="form-text text-muted">Leave empty if no maximum</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <label class="form-label">Field Group</label>
+                            <select class="form-select" id="fieldGroup" name="field_group">
+                                <option value="">Select Field Group</option>
+                                <option value="basic_info">Customer Basics</option>
+                                <option value="credentials">Account Credentials</option>
+                                <option value="address">Address Details</option>
+                                <option value="business">Business Information</option>
+                                <option value="preferences">Preferences</option>
+                                <option value="internal">Internal Use</option>
+                                <option value="other">Other Information</option>
+                            </select>
+                            <div class="form-text">Group this field belongs to (affects form organization)</div>
                         </div>
-                        <div class="col-md-12">
-                            <label class="form-label">Help Text</label>
-                            <input type="text" class="form-control" id="fieldHelpText" name="help_text">
-                        </div>
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="fieldRequired" name="is_required" value="1">
-                                <label class="form-check-label" for="fieldRequired">Required</label>
+                                <label class="form-check-label" for="fieldRequired">Required (used in validation)</label>
                             </div>
                         </div>
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="fieldActive" name="is_active" value="1" checked>
                                 <label class="form-check-label" for="fieldActive">Active</label>
-                            </div>
-                        </div>
-                        <div class="col-md-12" id="optionsContainer" style="display: none;">
-                            <label class="form-label">Options (for select/radio)</label>
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <div id="optionsList">
-                                        <!-- Options will be added here dynamically -->
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addOptionBtn">
-                                        <i class='bx bx-plus'></i> Add Option
-                                    </button>
-                                    <div class="form-text mt-2">Add options for select/radio fields. Each option needs a value and label.</div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -720,33 +543,17 @@ $(document).on('click', '.edit-field', function() {
         url: `/field-management/${id}/edit`,
         type: 'GET',
         success: function(response) {
-            if (response.success) {
+             if (response.success) {
                 const field = response.data;
                 isEditMode = true;
                 $('#fieldModalTitle').text('Edit Field');
                 $('#fieldId').val(field.id);
                 $('#fieldKey').val(field.field_key);
                 $('#fieldLabel').val(field.label);
-                $('#fieldInputType').val(field.input_type).trigger('change');
-                $('#fieldInputType').prop('disabled', true); // Make readonly when editing
                 $('#fieldPlaceholder').val(field.placeholder);
-                $('#fieldHelpText').val(field.help_text);
+                $('#fieldGroup').val(field.field_group || '');
                 $('#fieldRequired').prop('checked', field.is_required);
                 $('#fieldActive').prop('checked', field.is_active);
-                
-                // Parse and populate validation rules
-                parseValidationRules(field.validation_rules);
-                
-                // Update validation visibility based on input type
-                updateValidationRulesVisibility(field.input_type);
-                
-                if (field.options) {
-                    populateOptionsFromJSON(field.options);
-                    $('#optionsContainer').show();
-                } else {
-                    $('#optionsList').empty();
-                    addOptionRow();
-                }
                 
                 $('#fieldModal').modal('show');
             }
@@ -991,25 +798,14 @@ function buildValidationRules() {
 }
 
 function saveField() {
-    // Re-enable disabled input type field for form submission
-    $('#fieldInputType').prop('disabled', false);
-    
     const formData = {
         field_key: $('#fieldKey').val(),
         label: $('#fieldLabel').val(),
-        input_type: $('#fieldInputType').val(),
         placeholder: $('#fieldPlaceholder').val(),
-        validation_rules: buildValidationRules(),
-        help_text: $('#fieldHelpText').val(),
+        field_group: $('#fieldGroup').val(),
         is_required: $('#fieldRequired').is(':checked') ? true : false,
         is_active: $('#fieldActive').is(':checked') ? true : false,
     };
-    
-    // Get options from form
-    const options = getOptionsFromForm();
-    if (options) {
-        formData.options = options;
-    }
     
     // Only allow updates, not creation
     const url = `/field-management/${$('#fieldId').val()}`;

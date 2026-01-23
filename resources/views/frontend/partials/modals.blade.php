@@ -190,7 +190,7 @@
 								<label for="customerRememberMe" class="checkbox-custom-label">Remember Me</label>
 							</div>	
 							<div class="eltio_k2">
-								<a href="#">Lost Your Password?</a>
+								<a href="#" data-bs-toggle="modal" data-bs-target="#forgotPassword" data-bs-dismiss="modal">Lost Your Password?</a>
 							</div>	
 						</div>
 					</div>
@@ -225,8 +225,7 @@
 			<div class="modal-body p-5">
 				<div class="text-center mb-4">
 					<h2 class="m-0 ft-regular">Register</h2>
-				</div>
-				
+				</div> 
 				<!-- Error/Success Messages -->
 				<div id="customerRegisterMessage" style="display: none;"></div>
 				
@@ -240,6 +239,24 @@
 						</div>
 					</div>
 					
+					<!-- OTP Verification Section -->
+					<div class="form-group mb-3" id="customerRegisterOtpSection" style="display: none;">
+						<div class="alert alert-info py-2 mb-2" id="customerRegisterOtpInfo">
+							<i class="fas fa-envelope"></i> <small>Please check your email for the verification code</small>
+						</div>
+						<label for="customerRegisterOtp" class="form-label">Enter OTP <span class="text-danger">*</span></label>
+						<div class="input-group">
+							<input type="text" class="form-control" id="customerRegisterOtp" name="otp" placeholder="Enter 6-digit OTP" maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
+							<button type="button" id="customerRegisterVerifyOtpBtn" class="btn btn-primary">
+								<span id="customerRegisterVerifyOtpBtnText">Verify</span>
+								<span id="customerRegisterVerifyOtpBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+							</button>
+						</div>
+						<div class="invalid-feedback d-block" id="customerRegisterOtpError"></div>
+						<div class="valid-feedback d-block" id="customerRegisterOtpSuccess"></div>
+						<small class="text-muted d-block mt-1">Didn't receive? <a href="#" id="customerRegisterResendOtp" class="text-primary fw-bold">Resend OTP</a></small>
+					</div>
+					
 					<div class="form-group mb-3" id="customerRegisterSubmitSection" style="display: none;">
 						<button type="submit" id="customerRegisterBtn" class="btn btn-md full-width bg-dark text-light fs-md ft-medium">
 							<span id="customerRegisterBtnText">Register</span>
@@ -251,6 +268,119 @@
 						<p class="extra">Already a member?<a href="#" class="text-dark" data-bs-toggle="modal" data-bs-target="#login" data-bs-dismiss="modal"> Login</a></p>
 					</div>
 				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- End Modal -->
+
+<!-- Forgot Password Modal -->
+<div class="modal fade" id="forgotPassword" tabindex="-1" role="dialog" aria-labelledby="forgotPasswordModal" aria-hidden="true">
+	<div class="modal-dialog login-pop-form" role="document">
+		<div class="modal-content" id="forgotPasswordModal">
+			<div class="modal-headers">
+				<button type="button" class="border-0 close" data-bs-dismiss="modal" aria-label="Close">
+				  <span class="ti-close"></span>
+				</button>
+			</div>
+		
+			<div class="modal-body p-5">
+				<div class="text-center mb-4">
+					<h2 class="m-0 ft-regular">Reset Password</h2>
+					<p class="text-muted">Enter your email to receive a verification code</p>
+				</div>
+				
+				<!-- Error/Success Messages -->
+				<div id="forgotPasswordMessage" style="display: none;"></div>
+				
+				<!-- Step 1: Email Input -->
+				<div id="forgotPasswordEmailStep">
+					<form id="forgotPasswordEmailForm">
+						<div class="form-group mb-3">
+							<label for="forgotPasswordEmail" class="form-label">Email Address <span class="text-danger">*</span></label>
+							<input type="email" class="form-control" id="forgotPasswordEmail" name="email" placeholder="Enter your email" required>
+							<div class="invalid-feedback"></div>
+						</div>
+						
+						<div class="form-group mb-3">
+							<button type="submit" id="forgotPasswordSendOtpBtn" class="btn btn-md full-width bg-dark text-light fs-md ft-medium">
+								<span id="forgotPasswordSendOtpBtnText">Send Verification Code</span>
+								<span id="forgotPasswordSendOtpBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+							</button>
+						</div>
+						
+						<div class="form-group text-center mb-0">
+							<p class="extra">Remember your password? <a href="#" class="text-dark" data-bs-toggle="modal" data-bs-target="#login" data-bs-dismiss="modal">Login</a></p>
+						</div>
+					</form>
+				</div>
+				
+				<!-- Step 2: OTP Verification -->
+				<div id="forgotPasswordOtpStep" style="display: none;">
+					<form id="forgotPasswordOtpForm">
+						<div class="alert alert-info py-2 mb-3">
+							<i class="fas fa-envelope"></i> <small>We've sent a verification code to <strong id="forgotPasswordEmailDisplay"></strong></small>
+						</div>
+						
+						<div class="form-group mb-3">
+							<label for="forgotPasswordOtp" class="form-label">Verification Code <span class="text-danger">*</span></label>
+							<input type="text" class="form-control" id="forgotPasswordOtp" name="otp" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required>
+							<div class="invalid-feedback" id="forgotPasswordOtpError"></div>
+							<div class="valid-feedback" id="forgotPasswordOtpSuccess"></div>
+							<small class="text-muted d-block mt-1">Didn't receive? <a href="#" id="forgotPasswordResendOtp" class="text-primary fw-bold">Resend Code</a></small>
+						</div>
+						
+						<div class="form-group mb-3">
+							<button type="submit" id="forgotPasswordVerifyOtpBtn" class="btn btn-md full-width bg-dark text-light fs-md ft-medium">
+								<span id="forgotPasswordVerifyOtpBtnText">Verify Code</span>
+								<span id="forgotPasswordVerifyOtpBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+							</button>
+						</div>
+						
+						<div class="form-group text-center mb-0">
+							<p class="extra"><a href="#" id="forgotPasswordBackToEmail" class="text-dark">Change Email</a></p>
+						</div>
+					</form>
+				</div>
+				
+				<!-- Step 3: Reset Password -->
+				<div id="forgotPasswordResetStep" style="display: none;">
+					<form id="forgotPasswordResetForm">
+						<div class="alert alert-success py-2 mb-3">
+							<i class="fas fa-check-circle"></i> <small>Email verified! Set your new password</small>
+						</div>
+						
+						<div class="form-group mb-3">
+							<label for="forgotPasswordNewPassword" class="form-label">New Password <span class="text-danger">*</span></label>
+							<div class="position-relative">
+								<input type="password" class="form-control pe-5" id="forgotPasswordNewPassword" name="password" placeholder="Enter new password" required minlength="8">
+								<button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted password-toggle" data-target="#forgotPasswordNewPassword">
+									<i class="fas fa-eye"></i>
+								</button>
+							</div>
+							<div class="invalid-feedback"></div>
+							<small class="text-muted">Minimum 8 characters</small>
+						</div>
+						
+						<div class="form-group mb-3">
+							<label for="forgotPasswordConfirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+							<div class="position-relative">
+								<input type="password" class="form-control pe-5" id="forgotPasswordConfirmPassword" name="password_confirmation" placeholder="Confirm new password" required minlength="8">
+								<button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted password-toggle" data-target="#forgotPasswordConfirmPassword">
+									<i class="fas fa-eye"></i>
+								</button>
+							</div>
+							<div class="invalid-feedback"></div>
+						</div>
+						
+						<div class="form-group mb-3">
+							<button type="submit" id="forgotPasswordResetBtn" class="btn btn-md full-width bg-dark text-light fs-md ft-medium">
+								<span id="forgotPasswordResetBtnText">Reset Password</span>
+								<span id="forgotPasswordResetBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+							</button>
+						</div>
+					</form>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -1398,8 +1528,8 @@ $(document).ready(function() {
         
         // Helper function to format price (round to nearest whole number)
         const formatPriceDisplay = (price) => {
-            const rounded = Math.round(price);
-            return '₹' + rounded.toLocaleString();
+            const value = parseFloat(price) || 0;
+            return '₹' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         };
         
         // Update price using same logic as product page
@@ -1420,9 +1550,9 @@ $(document).ready(function() {
                 const discountValue = parseFloat(matchingVariant.discount_value || 0);
                 const discountActive = matchingVariant.discount_active === true || matchingVariant.discount_active === '1' || matchingVariant.discount_active === 1;
                 
-                // Round prices
-                basePrice = Math.round(basePrice);
-                const roundedSalePrice = salePrice !== null ? Math.round(salePrice) : null;
+                // Keep prices in 2 decimals (don't round)
+                basePrice = parseFloat(basePrice.toFixed(2));
+                const roundedSalePrice = salePrice !== null ? parseFloat(salePrice.toFixed(2)) : null;
                 
                 // Determine price to use
                 let priceToUse = basePrice;
@@ -1430,7 +1560,7 @@ $(document).ready(function() {
                     priceToUse = roundedSalePrice;
                 }
                 
-                // Calculate final price
+                // Calculate final price (keep 2 decimals)
                 let finalPrice = priceToUse;
                 let hasDiscount = false;
                 let totalSavings = 0;
@@ -1438,27 +1568,27 @@ $(document).ready(function() {
                 // Apply discount if active
                 if (discountActive && discountType && discountValue > 0) {
                     if (discountType === 'percentage') {
-                        const discountAmount = (priceToUse * discountValue) / 100;
-                        finalPrice = Math.max(0, priceToUse - discountAmount);
+                        const discountAmount = parseFloat(((priceToUse * discountValue) / 100).toFixed(2));
+                        finalPrice = parseFloat(Math.max(0, priceToUse - discountAmount).toFixed(2));
                     } else if (discountType === 'amount' || discountType === 'flat') {
-                        finalPrice = Math.max(0, priceToUse - discountValue);
+                        finalPrice = parseFloat(Math.max(0, priceToUse - discountValue).toFixed(2));
                     }
-                    finalPrice = Math.round(finalPrice);
                     
                     if (finalPrice < priceToUse) {
                         hasDiscount = true;
-                        totalSavings = basePrice - finalPrice;
+                        totalSavings = parseFloat((basePrice - finalPrice).toFixed(2));
                     }
                 } else if (roundedSalePrice !== null && roundedSalePrice < basePrice) {
                     finalPrice = roundedSalePrice;
                     hasDiscount = true;
-                    totalSavings = basePrice - roundedSalePrice;
+                    totalSavings = parseFloat((basePrice - roundedSalePrice).toFixed(2));
                 }
                 
                 // Simple display (no GST calculation for Quick View - should use API)
+                // Keep 2-decimal precise values for display
                 let displayBasePrice = basePrice;
                 let displayFinalPrice = finalPrice;
-                let displaySavings = totalSavings;
+                let displaySavings = Math.round(totalSavings);
                 let showBasePrice = displayBasePrice > displayFinalPrice;
                 let taxLabel = normalizedGstType ? 'Inclusive of all taxes' : 'Exclusive of taxes';
                 
@@ -1485,8 +1615,9 @@ $(document).ready(function() {
             }
             
             // Extract values from pricing (either from API or calculated)
-            const displayBasePrice = Math.round(pricing.display_base_price || 0);
-            const displayFinalPrice = Math.round(pricing.display_final_price || 0);
+            // Use 2-decimal precise values for display (base price and final price should show 2 decimals)
+            const displayBasePrice = parseFloat((pricing.display_base_price || pricing.base_price || 0).toFixed(2));
+            const displayFinalPrice = parseFloat((pricing.display_final_price || pricing.final_price || 0).toFixed(2));
             const displaySavings = Math.round(pricing.display_savings || 0);
             const showBasePrice = pricing.show_base_price || false;
             const taxLabel = pricing.tax_label || 'Inclusive of all taxes';
@@ -1563,15 +1694,16 @@ $(document).ready(function() {
             }
         } else {
             // Fallback to product price range (same logic as product page)
+            // Keep 2-decimal precise values for display
             const minPrice = parseFloat(currentProductData.min_price || 0);
             const maxPrice = currentProductData.max_price ? parseFloat(currentProductData.max_price) : null;
             const minSalePrice = currentProductData.min_sale_price ? parseFloat(currentProductData.min_sale_price) : null;
             const maxSalePrice = currentProductData.max_sale_price ? parseFloat(currentProductData.max_sale_price) : null;
             
-            const displayMinPrice = Math.round(minPrice);
-            const displayMaxPrice = maxPrice ? Math.round(maxPrice) : null;
-            const displayMinSalePrice = minSalePrice ? Math.round(minSalePrice) : null;
-            const displayMaxSalePrice = maxSalePrice ? Math.round(maxSalePrice) : null;
+            const displayMinPrice = parseFloat(minPrice.toFixed(2));
+            const displayMaxPrice = maxPrice ? parseFloat(maxPrice.toFixed(2)) : null;
+            const displayMinSalePrice = minSalePrice ? parseFloat(minSalePrice.toFixed(2)) : null;
+            const displayMaxSalePrice = maxSalePrice ? parseFloat(maxSalePrice.toFixed(2)) : null;
             
             if (currentProductData.has_sale && displayMinSalePrice) {
                 priceHtml = '<span class="ft-medium text-muted text-decoration-line-through fs-5 fw-normal me-2">' + 
@@ -2130,17 +2262,19 @@ $(document).ready(function() {
             success: function(response) {
                 console.log('Login Response:', response);
                 
-                if (response.success) {
-                    // Show success message
-                    showCustomerLoginSuccess('Login successful! Redirecting...');
-                    
+                if (response.success) { 
+                    showCustomerLoginSuccess('Login successful! Redirecting...'); 
                     // Close modal
-                    $('#login').modal('hide');
-                    
-                    // Reload page to update UI with session
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 500);
+                    $('#login').modal('hide');  
+                    @if(session('redirect_after_login')) 
+                        setTimeout(function() {
+                            window.location.href = '{{ session('redirect_after_login') }}';
+                        }, 500);
+                    @else 
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 500);
+                    @endif
                 } else {
                     console.error('Login failed:', response);
                     showCustomerLoginError(response.error?.message || 'Login failed. Please try again.');
@@ -2203,6 +2337,366 @@ $(document).ready(function() {
     // Load registration fields when register modal is shown
     $('#register').on('show.bs.modal', function() {
         loadRegistrationFields();
+    });
+
+    // Reset OTP verification when modal is hidden
+    $('#register').on('hidden.bs.modal', function() {
+        isOtpVerified = false;
+        verifiedEmail = '';
+        $('#customerRegisterOtpSection').hide();
+        $('#customerRegisterOtpInfo').show(); // Reset info message visibility
+        $('#customerRegisterOtp').val('').removeClass('is-valid is-invalid').prop('readonly', false);
+        $('#customerRegisterOtpError').text('');
+        $('#customerRegisterOtpSuccess').text('');
+        $('#customerRegisterVerifyOtpBtn').prop('disabled', false);
+        $('#customerRegisterMessage').hide().html('');
+        
+        // Clear resend timer
+        if (otpResendTimer) {
+            clearInterval(otpResendTimer);
+            otpResendTimer = null;
+        }
+        otpResendSeconds = 0;
+        $('#customerRegisterResendOtp').text('Resend OTP').removeClass('disabled pe-none text-muted').addClass('text-primary');
+    });
+
+    // ============================================================
+    // FORGOT PASSWORD FUNCTIONALITY
+    // ============================================================
+    
+    let forgotPasswordEmail = '';
+    let forgotPasswordOtpVerified = false;
+    let forgotPasswordResendTimer = null;
+    let forgotPasswordResendSeconds = 0;
+
+    // Helper functions for forgot password
+    function showForgotPasswordError(message) {
+        $('#forgotPasswordMessage').html(
+            '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+            '<strong>Error!</strong> ' + message +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+            '</div>'
+        ).show();
+    }
+    
+    function showForgotPasswordSuccess(message) {
+        $('#forgotPasswordMessage').html(
+            '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+            '<strong>Success!</strong> ' + message +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+            '</div>'
+        ).show();
+    }
+
+    // Step 1: Send OTP to email
+    $('#forgotPasswordEmailForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const email = $('#forgotPasswordEmail').val().trim();
+        
+        if (!email) {
+            $('#forgotPasswordEmail').addClass('is-invalid');
+            return false;
+        }
+        
+        // Show loading
+        $('#forgotPasswordSendOtpBtnText').text('Sending...');
+        $('#forgotPasswordSendOtpBtnSpinner').removeClass('d-none');
+        $('#forgotPasswordSendOtpBtn').prop('disabled', true);
+        $('#forgotPasswordMessage').hide().html('');
+        
+        const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+        
+        $.ajax({
+            url: '/api/auth/forgot-password/send-otp',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            data: { email: email },
+            success: function(response) {
+                if (response.success) {
+                    forgotPasswordEmail = email;
+                    $('#forgotPasswordEmailDisplay').text(email);
+                    
+                    // Show OTP step
+                    $('#forgotPasswordEmailStep').hide();
+                    $('#forgotPasswordOtpStep').show();
+                    
+                    showForgotPasswordSuccess('Verification code sent to your email!');
+                    
+                    // Start resend timer
+                    startForgotPasswordResendTimer(60);
+                }
+            },
+            error: function(xhr) {
+                console.error('Send OTP Error:', xhr);
+                let errorMessage = 'Failed to send verification code. Please try again.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error.message || errorMessage;
+                    
+                    if (xhr.status === 422 && xhr.responseJSON.error.errors) {
+                        const errors = xhr.responseJSON.error.errors;
+                        if (errors.email) {
+                            $('#forgotPasswordEmail').addClass('is-invalid');
+                            $('#forgotPasswordEmail').next('.invalid-feedback').text(errors.email[0]);
+                            errorMessage = errors.email[0];
+                        }
+                    }
+                }
+                
+                showForgotPasswordError(errorMessage);
+            },
+            complete: function() {
+                $('#forgotPasswordSendOtpBtnText').text('Send Verification Code');
+                $('#forgotPasswordSendOtpBtnSpinner').addClass('d-none');
+                $('#forgotPasswordSendOtpBtn').prop('disabled', false);
+            }
+        });
+    });
+
+    // Start forgot password resend countdown timer
+    function startForgotPasswordResendTimer(seconds) {
+        forgotPasswordResendSeconds = seconds;
+        $('#forgotPasswordResendOtp').addClass('disabled pe-none text-muted').removeClass('text-primary');
+        
+        if (forgotPasswordResendTimer) {
+            clearInterval(forgotPasswordResendTimer);
+        }
+        
+        forgotPasswordResendTimer = setInterval(function() {
+            forgotPasswordResendSeconds--;
+            $('#forgotPasswordResendOtp').text('Resend Code (' + forgotPasswordResendSeconds + 's)');
+            
+            if (forgotPasswordResendSeconds <= 0) {
+                clearInterval(forgotPasswordResendTimer);
+                $('#forgotPasswordResendOtp').text('Resend Code').removeClass('disabled pe-none text-muted').addClass('text-primary');
+            }
+        }, 1000);
+    }
+
+    // Resend OTP for forgot password
+    $(document).on('click', '#forgotPasswordResendOtp', function(e) {
+        e.preventDefault();
+        
+        if ($(this).hasClass('disabled')) {
+            return false;
+        }
+        
+        const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+        
+        $.ajax({
+            url: '/api/auth/forgot-password/send-otp',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            data: { email: forgotPasswordEmail },
+            success: function(response) {
+                if (response.success) {
+                    showForgotPasswordSuccess('New verification code sent!');
+                    startForgotPasswordResendTimer(60);
+                }
+            },
+            error: function(xhr) {
+                showForgotPasswordError('Failed to resend code. Please try again.');
+            }
+        });
+    });
+
+    // Back to email step
+    $(document).on('click', '#forgotPasswordBackToEmail', function(e) {
+        e.preventDefault();
+        $('#forgotPasswordOtpStep').hide();
+        $('#forgotPasswordEmailStep').show();
+        $('#forgotPasswordMessage').hide().html('');
+        
+        // Clear timer
+        if (forgotPasswordResendTimer) {
+            clearInterval(forgotPasswordResendTimer);
+        }
+    });
+
+    // Step 2: Verify OTP
+    $('#forgotPasswordOtpForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const otp = $('#forgotPasswordOtp').val().trim();
+        
+        if (!otp || otp.length !== 6) {
+            $('#forgotPasswordOtp').addClass('is-invalid');
+            $('#forgotPasswordOtpError').text('Please enter a valid 6-digit code');
+            return false;
+        }
+        
+        // Show loading
+        $('#forgotPasswordVerifyOtpBtnText').text('Verifying...');
+        $('#forgotPasswordVerifyOtpBtnSpinner').removeClass('d-none');
+        $('#forgotPasswordVerifyOtpBtn').prop('disabled', true);
+        $('#forgotPasswordMessage').hide().html('');
+        
+        const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+        
+        $.ajax({
+            url: '/api/auth/forgot-password/verify-otp',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            data: {
+                email: forgotPasswordEmail,
+                otp: otp
+            },
+            success: function(response) {
+                if (response.success) {
+                    forgotPasswordOtpVerified = true;
+                    
+                    // Show reset password step
+                    $('#forgotPasswordOtpStep').hide();
+                    $('#forgotPasswordResetStep').show();
+                    $('#forgotPasswordMessage').hide().html('');
+                }
+            },
+            error: function(xhr) {
+                console.error('Verify OTP Error:', xhr);
+                let errorMessage = 'Invalid or expired verification code';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error.message || errorMessage;
+                }
+                
+                $('#forgotPasswordOtp').addClass('is-invalid');
+                $('#forgotPasswordOtpError').text(errorMessage);
+                showForgotPasswordError(errorMessage);
+            },
+            complete: function() {
+                $('#forgotPasswordVerifyOtpBtnText').text('Verify Code');
+                $('#forgotPasswordVerifyOtpBtnSpinner').addClass('d-none');
+                $('#forgotPasswordVerifyOtpBtn').prop('disabled', false);
+            }
+        });
+    });
+
+    // Step 3: Reset Password
+    $('#forgotPasswordResetForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const password = $('#forgotPasswordNewPassword').val().trim();
+        const confirmPassword = $('#forgotPasswordConfirmPassword').val().trim();
+        
+        // Clear previous errors
+        $('.form-control', this).removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+        
+        // Validate
+        let hasError = false;
+        
+        if (!password || password.length < 8) {
+            $('#forgotPasswordNewPassword').addClass('is-invalid');
+            $('#forgotPasswordNewPassword').next().next('.invalid-feedback').text('Password must be at least 8 characters');
+            hasError = true;
+        }
+        
+        if (password !== confirmPassword) {
+            $('#forgotPasswordConfirmPassword').addClass('is-invalid');
+            $('#forgotPasswordConfirmPassword').next().next('.invalid-feedback').text('Passwords do not match');
+            hasError = true;
+        }
+        
+        if (hasError) {
+            return false;
+        }
+        
+        // Show loading
+        $('#forgotPasswordResetBtnText').text('Resetting...');
+        $('#forgotPasswordResetBtnSpinner').removeClass('d-none');
+        $('#forgotPasswordResetBtn').prop('disabled', true);
+        $('#forgotPasswordMessage').hide().html('');
+        
+        const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+        
+        $.ajax({
+            url: '/api/auth/forgot-password/reset',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            data: {
+                email: forgotPasswordEmail,
+                password: password,
+                password_confirmation: confirmPassword
+            },
+            success: function(response) {
+                if (response.success) {
+                    showForgotPasswordSuccess('Password reset successfully! Redirecting to login...');
+                    
+                    // Close modal and open login after 2 seconds
+                    setTimeout(function() {
+                        $('#forgotPassword').modal('hide');
+                        $('#login').modal('show');
+                    }, 2000);
+                }
+            },
+            error: function(xhr) {
+                console.error('Reset Password Error:', xhr);
+                let errorMessage = 'Failed to reset password. Please try again.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error.message || errorMessage;
+                    
+                    if (xhr.status === 422 && xhr.responseJSON.error.errors) {
+                        const errors = xhr.responseJSON.error.errors;
+                        
+                        if (errors.password) {
+                            $('#forgotPasswordNewPassword').addClass('is-invalid');
+                            $('#forgotPasswordNewPassword').next().next('.invalid-feedback').text(errors.password[0]);
+                        }
+                    }
+                }
+                
+                showForgotPasswordError(errorMessage);
+            },
+            complete: function() {
+                $('#forgotPasswordResetBtnText').text('Reset Password');
+                $('#forgotPasswordResetBtnSpinner').addClass('d-none');
+                $('#forgotPasswordResetBtn').prop('disabled', false);
+            }
+        });
+    });
+
+    // Reset forgot password modal when closed
+    $('#forgotPassword').on('hidden.bs.modal', function() {
+        // Reset all steps
+        $('#forgotPasswordEmailStep').show();
+        $('#forgotPasswordOtpStep').hide();
+        $('#forgotPasswordResetStep').hide();
+        
+        // Clear all inputs
+        $('#forgotPasswordEmailForm')[0].reset();
+        $('#forgotPasswordOtpForm')[0].reset();
+        $('#forgotPasswordResetForm')[0].reset();
+        
+        // Clear validation states
+        $('.form-control').removeClass('is-invalid is-valid');
+        $('.invalid-feedback').text('');
+        $('#forgotPasswordMessage').hide().html('');
+        
+        // Reset variables
+        forgotPasswordEmail = '';
+        forgotPasswordOtpVerified = false;
+        
+        // Clear timer
+        if (forgotPasswordResendTimer) {
+            clearInterval(forgotPasswordResendTimer);
+            forgotPasswordResendTimer = null;
+        }
+        forgotPasswordResendSeconds = 0;
+        $('#forgotPasswordResendOtp').text('Resend Code').removeClass('disabled pe-none text-muted').addClass('text-primary');
     });
 
     function loadRegistrationFields() {
@@ -2279,26 +2773,25 @@ $(document).ready(function() {
             fieldsHtml += '</div>';
         }
         
-      // Row 3: Password + Confirm Password in one row
-if (passwordField || confirmPasswordField) {
-    fieldsHtml += '<div class="row mb-3">';
+        // Row 3: Password + Confirm Password in one row
+        if (passwordField || confirmPasswordField) {
+            fieldsHtml += '<div class="row mb-3">';
 
-    if (passwordField) {
-        fieldsHtml += '<div class="col-md-6">';
-        fieldsHtml += renderSingleField(passwordField);
-        fieldsHtml += '</div>';
-    }
+            if (passwordField) {
+                fieldsHtml += '<div class="col-md-6">';
+                fieldsHtml += renderSingleField(passwordField);
+                fieldsHtml += '</div>';
+            }
 
-    if (confirmPasswordField) {
-        fieldsHtml += '<div class="col-md-6">';
-        fieldsHtml += renderSingleField(confirmPasswordField);
-        fieldsHtml += '</div>';
-    }
+            if (confirmPasswordField) {
+                fieldsHtml += '<div class="col-md-6">';
+                fieldsHtml += renderSingleField(confirmPasswordField);
+                fieldsHtml += '</div>';
+            }
 
-    fieldsHtml += '</div>';
-}
+            fieldsHtml += '</div>';
+        }  
 
-        
         // Add note about email OR phone requirement
         fieldsHtml += '<div class="alert alert-info mb-3">' +
             '<small><i class="fas fa-info-circle me-1"></i> Either email or phone number is required for registration.</small>' +
@@ -2322,7 +2815,7 @@ if (passwordField || confirmPasswordField) {
         let inputType = field.input_type;
         let placeholder = field.placeholder || field.label;
         let required = field.is_required ? 'required' : '';
-        let fieldId = 'customerRegister' + capitalizeFirst(field.field_key.replace('_', ''));
+        let fieldId = 'customerRegister' + capitalizeFirst(field.field_key.replace(/_/g, ''));
         
         // Special handling for different input types
         if (inputType === 'email') {
@@ -2370,6 +2863,212 @@ if (passwordField || confirmPasswordField) {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
+    // Track OTP verification status
+    let isOtpVerified = false;
+    let verifiedEmail = '';
+    let otpResendTimer = null;
+    let otpResendSeconds = 0;
+
+    // Email field blur handler - Send OTP when email is entered
+    $(document).on('blur', '#customerRegisterEmail', function() {
+        const email = $(this).val().trim();
+        
+        // Only send OTP if email is valid and not already verified
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            if (verifiedEmail !== email) {
+                // Email changed, reset verification
+                isOtpVerified = false;
+                verifiedEmail = '';
+                
+                // Clear any existing messages
+                $('#customerRegisterMessage').hide().html('');
+                
+                sendOtp(email, false);
+            }
+        }
+    });
+
+    // Send OTP function
+    function sendOtp(email, isResend = false) {
+        const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+        
+        $.ajax({
+            url: '/api/auth/send-otp',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            data: {
+                email: email,
+                purpose: 'registration'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Show OTP section
+                    $('#customerRegisterOtpSection').slideDown();
+                    $('#customerRegisterOtp').val('').removeClass('is-invalid is-valid');
+                    $('#customerRegisterOtpError').text('');
+                    $('#customerRegisterOtpSuccess').text('');
+                    
+                    // Show/hide info message based on resend
+                    if (isResend) {
+                        $('#customerRegisterOtpInfo').hide();
+                        $('#customerRegisterMessage').html(
+                            '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                            '<i class="fas fa-check-circle"></i> <strong>Success!</strong> New OTP sent to your email.' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                            '</div>'
+                        ).show();
+                        
+                        // Auto-hide success message after 3 seconds
+                        setTimeout(function() {
+                            $('#customerRegisterMessage').fadeOut();
+                        }, 3000);
+                    } else {
+                        $('#customerRegisterOtpInfo').show();
+                        $('#customerRegisterMessage').hide().html('');
+                    }
+                    
+                    // Start resend timer (60 seconds)
+                    startOtpResendTimer(60);
+                }
+            },
+            error: function(xhr) {
+                console.error('OTP Send Error:', xhr);
+                let errorMessage = 'Failed to send OTP. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error.message || errorMessage;
+                }
+                showRegistrationError(errorMessage);
+            }
+        });
+    }
+
+    // Start OTP resend countdown timer
+    function startOtpResendTimer(seconds) {
+        otpResendSeconds = seconds;
+        $('#customerRegisterResendOtp').addClass('disabled pe-none text-muted').removeClass('text-primary');
+        
+        if (otpResendTimer) {
+            clearInterval(otpResendTimer);
+        }
+        
+        otpResendTimer = setInterval(function() {
+            otpResendSeconds--;
+            $('#customerRegisterResendOtp').text('Resend OTP (' + otpResendSeconds + 's)');
+            
+            if (otpResendSeconds <= 0) {
+                clearInterval(otpResendTimer);
+                $('#customerRegisterResendOtp').text('Resend OTP').removeClass('disabled pe-none text-muted').addClass('text-primary');
+            }
+        }, 1000);
+    }
+
+    // Verify OTP button click handler
+    $(document).on('click', '#customerRegisterVerifyOtpBtn', function() {
+        const email = $('#customerRegisterEmail').val().trim();
+        const otp = $('#customerRegisterOtp').val().trim();
+        
+        if (!otp || otp.length !== 6) {
+            $('#customerRegisterOtp').addClass('is-invalid');
+            $('#customerRegisterOtpError').text('Please enter a valid 6-digit OTP');
+            return;
+        }
+        
+        // Show loading state
+        $('#customerRegisterVerifyOtpBtnText').text('Verifying...');
+        $('#customerRegisterVerifyOtpBtnSpinner').removeClass('d-none');
+        $('#customerRegisterVerifyOtpBtn').prop('disabled', true);
+        
+        const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+        
+        $.ajax({
+            url: '/api/auth/verify-otp',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            data: {
+                email: email,
+                otp: otp,
+                purpose: 'registration'
+            },
+            success: function(response) {
+                if (response.success) {
+                    isOtpVerified = true;
+                    verifiedEmail = email;
+                    
+                    // Hide info message
+                    $('#customerRegisterOtpInfo').hide();
+                    
+                    // Update OTP input state
+                    $('#customerRegisterOtp').removeClass('is-invalid').addClass('is-valid');
+                    $('#customerRegisterOtpSuccess').text('Email verified successfully!');
+                    $('#customerRegisterOtpError').text('');
+                    $('#customerRegisterVerifyOtpBtn').prop('disabled', true);
+                    $('#customerRegisterOtp').prop('readonly', true);
+                    
+                    // Show success message
+                    $('#customerRegisterMessage').html(
+                        '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                        '<i class="fas fa-check-circle"></i> <strong>Success!</strong> Email verified! You can now complete registration.' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                        '</div>'
+                    ).show();
+                    
+                    // Auto-hide success message after 3 seconds
+                    setTimeout(function() {
+                        $('#customerRegisterMessage').fadeOut();
+                    }, 3000);
+                } else {
+                    $('#customerRegisterOtp').addClass('is-invalid');
+                    $('#customerRegisterOtpError').text('Invalid or expired OTP');
+                    $('#customerRegisterOtpSuccess').text('');
+                }
+                
+                // Reset button state
+                $('#customerRegisterVerifyOtpBtnText').text('Verify OTP');
+                $('#customerRegisterVerifyOtpBtnSpinner').addClass('d-none');
+                $('#customerRegisterVerifyOtpBtn').prop('disabled', false);
+            },
+            error: function(xhr) {
+                console.error('OTP Verify Error:', xhr);
+                $('#customerRegisterOtp').addClass('is-invalid');
+                let errorMessage = 'Invalid or expired OTP';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error.message || errorMessage;
+                }
+                $('#customerRegisterOtpError').text(errorMessage);
+                $('#customerRegisterOtpSuccess').text('');
+                
+                // Show error message
+                showRegistrationError(errorMessage);
+                
+                // Reset button state
+                $('#customerRegisterVerifyOtpBtnText').text('Verify OTP');
+                $('#customerRegisterVerifyOtpBtnSpinner').addClass('d-none');
+                $('#customerRegisterVerifyOtpBtn').prop('disabled', false);
+            }
+        });
+    });
+
+    // Resend OTP link click handler
+    $(document).on('click', '#customerRegisterResendOtp', function(e) {
+        e.preventDefault();
+        
+        // Prevent click if timer is active
+        if ($(this).hasClass('disabled')) {
+            return false;
+        }
+        
+        const email = $('#customerRegisterEmail').val().trim();
+        if (email) {
+            sendOtp(email, true); // Pass true to indicate this is a resend
+        }
+    });
+
     // Customer Registration Form Handler
     $('#customerRegisterForm').on('submit', function(e) {
         e.preventDefault();
@@ -2378,6 +3077,14 @@ if (passwordField || confirmPasswordField) {
         $('#customerRegisterForm .is-invalid').removeClass('is-invalid');
         $('#customerRegisterForm .invalid-feedback').text('');
         $('#customerRegisterMessage').hide().html('');
+        
+        // Check if OTP is verified
+        if (!isOtpVerified) {
+            showRegistrationError('Please verify your email with OTP before registering.');
+            $('#customerRegisterOtp').addClass('is-invalid');
+            $('#customerRegisterOtpError').text('Email verification required');
+            return false;
+        }
         
         // Validate form before submission
         if (!validateRegistrationForm()) {
@@ -2430,10 +3137,18 @@ if (passwordField || confirmPasswordField) {
                     // Close modal
                     $('#register').modal('hide');
                     
-                    // Reload page to update UI with session
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 500);
+                    // Check if there's a redirect URL stored in session
+                    @if(session('redirect_after_login'))
+                        // Redirect to the intended page
+                        setTimeout(function() {
+                            window.location.href = '{{ session('redirect_after_login') }}';
+                        }, 500);
+                    @else
+                        // Reload page to update UI with session
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 500);
+                    @endif
                 } else {
                     console.error('Registration failed:', response);
                     showRegistrationError(response.error?.message || 'Registration failed. Please try again.');
@@ -2448,24 +3163,39 @@ if (passwordField || confirmPasswordField) {
                 if (xhr.responseJSON && xhr.responseJSON.error) {
                     errorMessage = xhr.responseJSON.error.message || errorMessage;
                     
+                    // Handle OTP not verified error
+                    if (xhr.responseJSON.error.code === 'OTP_NOT_VERIFIED') {
+                        isOtpVerified = false;
+                        $('#customerRegisterOtpSection').slideDown();
+                        $('#customerRegisterOtp').addClass('is-invalid');
+                        $('#customerRegisterOtpError').text('Please verify your email first');
+                    }
+                    
                     // Handle validation errors
                     if (xhr.status === 422 && xhr.responseJSON.error.errors) {
                         const errors = xhr.responseJSON.error.errors;
-                        let hasFieldErrors = false;
+                        let errorMessages = [];
                         
                         Object.keys(errors).forEach(function(fieldName) {
-                            // Handle field name conversion for ID matching
-                            let fieldId = 'customerRegister' + capitalizeFirst(fieldName.replace('_', ''));
+                            // Handle field name conversion for ID matching - replace ALL underscores
+                            let fieldId = 'customerRegister' + capitalizeFirst(fieldName.replace(/_/g, ''));
                             const fieldInput = $('#' + fieldId);
+                            
+                            // Try to highlight the field if it exists
                             if (fieldInput.length) {
                                 fieldInput.addClass('is-invalid');
                                 fieldInput.next('.invalid-feedback').text(errors[fieldName][0]);
-                                hasFieldErrors = true;
                             }
+                            
+                            // Collect all error messages to display
+                            errors[fieldName].forEach(function(error) {
+                                errorMessages.push(error);
+                            });
                         });
                         
-                        if (hasFieldErrors) {
-                            errorMessage = 'Please correct the errors above.';
+                        // Show all validation errors
+                        if (errorMessages.length > 0) {
+                            errorMessage = errorMessages.join('<br>');
                         }
                     }
                 }

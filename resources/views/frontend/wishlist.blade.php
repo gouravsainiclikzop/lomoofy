@@ -134,13 +134,13 @@
 																<div class="pricing-main-compact">
 																	<div class="d-flex align-items-baseline flex-wrap gap-1">
 																		<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
-																			₹{{ number_format($minPrice, 0) }}
-																			@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
+																			₹{{ number_format($minPrice, 2) }}
+																			@if($hasPriceRange) - ₹{{ number_format($maxPrice, 2) }} @endif
 																		</span>
 																		<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
-																			₹{{ number_format($minSalePrice, 0) }}
+																			₹{{ number_format($minSalePrice, 2) }}
 																			@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
-																				- ₹{{ number_format($product['max_sale_price'], 0) }}
+																				- ₹{{ number_format($product['max_sale_price'], 2) }}
 																			@endif
 																		</span>
 																	</div>
@@ -148,8 +148,8 @@
 															</div>
 														@else
 															<span class="ft-medium fs-md text-dark">
-																₹{{ number_format($minDisplayPrice, 0) }}
-																@if($hasPriceRange) - ₹{{ number_format($maxDisplayPrice, 0) }} @endif
+																₹{{ number_format($minDisplayPrice, 2) }}
+																@if($hasPriceRange) - ₹{{ number_format($maxDisplayPrice, 2) }} @endif
 															</span>
 														@endif
 													@endif

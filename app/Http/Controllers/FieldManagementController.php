@@ -301,20 +301,13 @@ class FieldManagementController extends Controller
             $data['is_active'] = true;
         }
         
-        // For system fields, only allow updating non-critical fields
+        // Simplified validation - only allow updating specific fields
         $validationRules = [
             'field_key' => 'required|string|max:255|unique:field_management_fields,field_key,' . $id,
             'label' => 'required|string|max:255',
-            'input_type' => 'required|string|in:text,email,password,select,textarea,date,file,checkbox,radio,number,tel',
             'placeholder' => 'nullable|string|max:255',
+            'field_group' => 'nullable|string|in:basic_info,credentials,address,business,preferences,internal,other',
             'is_required' => 'nullable|boolean',
-            'is_visible' => 'nullable|boolean',
-            'sort_order' => 'nullable|integer',
-            'field_group' => 'nullable|string|max:255',
-            'options' => 'nullable|array',
-            'conditional_rules' => 'nullable|array',
-            'validation_rules' => 'nullable|string',
-            'help_text' => 'nullable|string',
             'is_active' => 'nullable|boolean',
         ];
 
@@ -327,7 +320,11 @@ class FieldManagementController extends Controller
             ], 422);
         }
 
-        $field->update($data);
+        // Only update allowed fields
+        $allowedFields = ['field_key', 'label', 'placeholder', 'field_group', 'is_required', 'is_active'];
+        $updateData = array_intersect_key($data, array_flip($allowedFields));
+        
+        $field->update($updateData);
 
         return response()->json([
             'success' => true,
