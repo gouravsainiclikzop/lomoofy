@@ -138,7 +138,7 @@
 							<li><a href="{{ route('frontend.faq') }}">FAQs</a></li>
 							<li><a href="{{ route('frontend.blog') }}">Blog</a></li>
 							<li><a href="{{ route('frontend.about-us') }}">About</a></li>
-							<li><a href="#">Careers</a></li> 
+							<!-- <li><a href="#">Careers</a></li>  -->
 						</ul>
 						
 					</div>

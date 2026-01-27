@@ -9,8 +9,68 @@ use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\FrontendController;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
- 
+use Illuminate\Support\Facades\Mail; 
+
+
+Route::match(['get', 'post'], '/drop-and-import-db', function () {
+
+    if (request()->isMethod('post')) {
+
+        // 1. Disable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+        // 2. Drop all tables
+        $tables = DB::select('SHOW TABLES');
+        $dbName = DB::getDatabaseName();
+        $key = "Tables_in_{$dbName}";
+
+        foreach ($tables as $table) {
+            DB::statement("DROP TABLE IF EXISTS {$table->$key}");
+        }
+
+        // 3. Re-enable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+        // 4. Import SQL file
+        $sqlPath = base_path('database/import.sql'); // put your dump here
+
+        DB::unprepared(file_get_contents($sqlPath));
+
+        return <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Reset</title>
+</head>
+<body>
+    <h2>Operation completed</h2>
+    <p>All tables dropped and database imported successfully.</p>
+</body>
+</html>
+HTML;
+    }
+
+    // GET request – confirmation screen
+    return <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Danger Zone</title>
+</head>
+<body>
+    <h1>Drop & Re-Import Database</h1>
+    <p>This will permanently delete ALL tables in the live database.</p>
+
+    <form method="POST">
+        <button type="submit" style="padding:10px;background:red;color:white;">
+            Drop Everything & Import New Database
+        </button>
+    </form>
+</body>
+</html>
+HTML;
+});
+
 
 Route::get('/test-db', function () {
     return DB::table('inventory_stocks')->whereIn('product_variant_id', ['15','16','19'])->get();  
@@ -60,7 +120,6 @@ Route::middleware(['customer.auth'])->group(function () {
 });
 
 // Customer Dashboard Routes (Protected - require customer authentication)
-
 Route::middleware(['customer.auth'])->group(function () {
     // Review submission (requires authentication)
     Route::post('/api/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');

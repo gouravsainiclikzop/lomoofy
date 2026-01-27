@@ -29,33 +29,33 @@
 					
 						<div class="col-xl-4 col-lg-4 col-md-12 col-sm-12">
 							@if($settings->address || $settings->email)
-							<div class="card-wrap-body mb-4">
-								<h4 class="ft-medium mb-3 theme-cl">Make a Call</h4>
-								<p>{{ $settings->address }}</p>
-								<p class="lh-1"><span class="text-dark ft-medium">Email:</span> {{ $settings->email }}</p>
-							</div>
+								<div class="card-wrap-body mb-4">
+									<h4 class="ft-medium mb-3 theme-cl">Make a Call</h4>
+									<p>{{ $settings->address }}</p>
+									<p class="lh-1"><span class="text-dark ft-medium">Email:</span> {{ $settings->email }}</p>
+								</div>
 							@endif
-							
+
 							@if($settings->customer_care_phone || $settings->careers_phone)
-							<div class="card-wrap-body mb-3">
-								<h4 class="ft-medium mb-3 theme-cl">Make a Call</h4>
-								@if($settings->customer_care_phone)	
-								<h6 class="ft-medium mb-1">Customer Care:</h6>
-								<p class="mb-2">{{ $settings->customer_care_phone }}</p>
-								@endif
-								@if($settings->careers_phone)
-								<h6 class="ft-medium mb-1">Careers::</h6>
-								<p>{{ $settings->careers_phone }}</p>
-								@endif
-							</div>
+								<div class="card-wrap-body mb-3">
+									<h4 class="ft-medium mb-3 theme-cl">Make a Call</h4>
+									@if($settings->customer_care_phone)	
+									<h6 class="ft-medium mb-1">Customer Care:</h6>
+									<p class="mb-2">{{ $settings->customer_care_phone }}</p>
+									@endif
+									@if($settings->careers_phone)
+									<h6 class="ft-medium mb-1">Careers::</h6>
+									<p>{{ $settings->careers_phone }}</p>
+									@endif
+								</div>
 							@endif
 							
 							@if($settings->secondary_email)
-							<div class="card-wrap-body mb-3">
-								<h4 class="ft-medium mb-3 theme-cl">Drop A Mail</h4>
-								<p>Fill out our form and we will contact you within 24 hours.</p> 
-								<p class="lh-1 text-dark">{{ $settings->secondary_email ?? $settings->email }}</p>
-							</div>
+								<div class="card-wrap-body mb-3">
+									<h4 class="ft-medium mb-3 theme-cl">Drop A Mail</h4>
+									<p>Fill out our form and we will contact you within 24 hours.</p> 
+									<p class="lh-1 text-dark">{{ $settings->secondary_email ?? $settings->email }}</p>
+								</div>
 							@endif
 						</div>
 						
