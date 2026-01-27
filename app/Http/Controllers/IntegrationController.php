@@ -18,7 +18,8 @@ class IntegrationController extends Controller
             'razorpay' => Integration::byType('payment')->where('provider', 'razorpay')->first(),
             'otp' => Integration::byType('otp')->first(),
             'whatsapp' => Integration::byType('whatsapp')->first(),
-            'shopify' => Integration::byType('shopify')->first(),
+            'shipping' => Integration::byType('shipping')->first(),
+            'google_review' => Integration::byType('google_review')->first(),
             'analytics' => Integration::byType('analytics')->first(),
         ];
 

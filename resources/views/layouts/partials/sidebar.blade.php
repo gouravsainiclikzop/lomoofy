@@ -311,6 +311,16 @@
                                 <span class="sa-nav__title">Integrations</span>
                             </a>
                         </li>
+                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('contacts.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('contacts.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M14,0H2C0.9,0,0,0.9,0,2v10c0,1.1,0.9,2,2,2h5l-2,2h6l-2-2h5c1.1,0,2-0.9,2-2V2C16,0.9,15.1,0,14,0z M14,12H2V2h12V12z M8,3 L8,3c-1.7,0-3,1.3-3,3v1c0,1.7,1.3,3,3,3h0c1.7,0,3-1.3,3-3V6C11,4.3,9.7,3,8,3z M9,7c0,0.6-0.4,1-1,1s-1-0.4-1-1V6 c0-0.6,0.4-1,1-1s1,0.4,1,1V7z"></path>
+                                    </svg>
+                                </span>
+                                <span class="sa-nav__title">Contact Messages</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 

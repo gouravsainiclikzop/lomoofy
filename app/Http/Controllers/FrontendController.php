@@ -3000,6 +3000,81 @@ class FrontendController extends Controller
         return view('frontend.contact');
     }
 
+    public function submitContact(Request $request)
+    {
+        $validator = \Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'subject' => 'nullable|string|max:255',
+            'message' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please fill in all required fields correctly.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            \App\Models\Contact::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'subject' => $request->subject,
+                'message' => $request->message,
+                'is_read' => false,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Thank you for contacting us! We will get back to you soon.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Contact form submission error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong. Please try again later.'
+            ], 500);
+        }
+    }
+
+    public function subscribe(Request $request)
+    {
+        $validator = \Validator::make($request->all(), [
+            'email' => 'required|email|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please enter a valid email address.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            \App\Models\Newsletter::firstOrCreate(
+                ['email' => $request->email],
+                [
+                    'is_active' => true,
+                    'subscribed_at' => now(),
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Thank you for subscribing! You will receive our latest updates.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Newsletter subscription error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong. Please try again later.'
+            ], 500);
+        }
+    }
+
     public function privacy()
     {
         $legalPages = \App\Models\LegalPage::getInstance();

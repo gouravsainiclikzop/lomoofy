@@ -60,39 +60,47 @@
 						</div>
 						
 						<div class="col-xl-7 col-lg-8 col-md-12 col-sm-12">
-							<form class="row g-3">
+							<form id="contactForm" class="row g-3">
+								@csrf
 									
 								<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 									<div class="form-group">
 										<label class="small text-dark ft-medium mb-2">Your Name *</label>
-										<input type="text" class="form-control" value="Your Name">
+										<input type="text" name="name" class="form-control" placeholder="Your Name" required>
 									</div>
 								</div>
 								
 								<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 									<div class="form-group">
 										<label class="small text-dark ft-medium mb-2">Your Email *</label>
-										<input type="text" class="form-control" value="Your Email">
+										<input type="email" name="email" class="form-control" placeholder="Your Email" required>
 									</div>
 								</div>
 								
 								<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 									<div class="form-group">
 										<label class="small text-dark ft-medium mb-2">Subject</label>
-										<input type="text" class="form-control" value="Type Your Subject">
+										<input type="text" name="subject" class="form-control" placeholder="Type Your Subject">
 									</div>
 								</div>
 								
 								<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 									<div class="form-group">
-										<label class="small text-dark ft-medium mb-2">Message</label>
-										<textarea class="form-control ht-80"></textarea>
+										<label class="small text-dark ft-medium mb-2">Message *</label>
+										<textarea name="message" class="form-control ht-80" placeholder="Your Message" required></textarea>
 									</div>
 								</div>
 								
 								<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 									<div class="form-group">
-										<button type="button" class="btn btn-dark">Send Message</button>
+										<div id="contactMessage" class="alert" style="display: none;"></div>
+										<button type="submit" class="btn btn-dark" id="contactSubmitBtn">
+											<span class="btn-text">Send Message</span>
+											<span class="btn-spinner" style="display: none;">
+												<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+												Sending...
+											</span>
+										</button>
 									</div>
 								</div>
 								
@@ -104,3 +112,58 @@
 			</section>
 			<!-- ======================= Contact Page End ======================== -->
 @endsection
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    $('#contactForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const submitBtn = $('#contactSubmitBtn');
+        const btnText = submitBtn.find('.btn-text');
+        const btnSpinner = submitBtn.find('.btn-spinner');
+        const messageDiv = $('#contactMessage');
+        
+        // Disable submit button and show spinner
+        submitBtn.prop('disabled', true);
+        btnText.hide();
+        btnSpinner.show();
+        messageDiv.hide();
+        
+        $.ajax({
+            url: '{{ route("frontend.contact.submit") }}',
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    messageDiv.removeClass('alert-danger').addClass('alert-success');
+                    messageDiv.text(response.message).fadeIn();
+                    form[0].reset();
+                } else {
+                    messageDiv.removeClass('alert-success').addClass('alert-danger');
+                    messageDiv.text(response.message || 'Something went wrong. Please try again.').fadeIn();
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Something went wrong. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = errors.join('<br>');
+                }
+                messageDiv.removeClass('alert-success').addClass('alert-danger');
+                messageDiv.html(errorMessage).fadeIn();
+            },
+            complete: function() {
+                // Re-enable submit button and hide spinner
+                submitBtn.prop('disabled', false);
+                btnText.show();
+                btnSpinner.hide();
+            }
+        });
+    });
+});
+</script>
+@endpush

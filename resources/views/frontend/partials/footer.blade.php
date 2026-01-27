@@ -149,12 +149,21 @@
 						<h4 class="widget_title">Subscribe</h4>
 						<p>Receive updates, hot deals, discounts sent straignt in your inbox daily</p>
 						<div class="foot-news-last">
-							<div class="input-group">
-							  <input type="text" class="form-control" placeholder="Email Address">
-								<div class="input-group-append">
-									<button type="button" class="input-group-text rounded-0 text-light"><i class="lni lni-arrow-right"></i></button>
+							<form id="subscribeForm">
+								@csrf
+								<div class="input-group">
+								  <input type="email" name="email" id="subscribeEmail" class="form-control" placeholder="Email Address" required>
+									<div class="input-group-append">
+										<button type="submit" class="input-group-text rounded-0 text-light" id="subscribeBtn">
+											<span class="subscribe-icon"><i class="lni lni-arrow-right"></i></span>
+											<span class="subscribe-spinner" style="display: none;">
+												<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+											</span>
+										</button>
+									</div>
 								</div>
-							</div>
+								<div id="subscribeMessage" class="mt-2" style="display: none;"></div>
+							</form>
 						</div>
 						<div class="address mt-3">
 							<h5 class="fs-sm text-light">Secure Payments</h5>
@@ -179,3 +188,58 @@
 </footer>
 <!-- ============================ Footer End ================================== -->
 
+<script src="{{ asset('assets/vendor/jquery/jquery.min.js') }}"></script>
+<script>
+
+$(document).ready(function() { 
+    $('#subscribeForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const emailInput = $('#subscribeEmail');
+        const submitBtn = $('#subscribeBtn');
+        const icon = submitBtn.find('.subscribe-icon');
+        const spinner = submitBtn.find('.subscribe-spinner');
+        const messageDiv = $('#subscribeMessage');
+        
+        // Disable submit button and show spinner
+        submitBtn.prop('disabled', true);
+        icon.hide();
+        spinner.show();
+        messageDiv.hide();
+        
+        $.ajax({
+            url: '{{ route("frontend.subscribe") }}',
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    messageDiv.removeClass('text-danger').addClass('text-success');
+                    messageDiv.text(response.message).fadeIn();
+                    emailInput.val('');
+                } else {
+                    messageDiv.removeClass('text-success').addClass('text-danger');
+                    messageDiv.text(response.message || 'Something went wrong. Please try again.').fadeIn();
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Something went wrong. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = errors.join('<br>');
+                }
+                messageDiv.removeClass('text-success').addClass('text-danger');
+                messageDiv.html(errorMessage).fadeIn();
+            },
+            complete: function() {
+                // Re-enable submit button and hide spinner
+                submitBtn.prop('disabled', false);
+                icon.show();
+                spinner.hide();
+            }
+        });
+    });
+});
+</script>

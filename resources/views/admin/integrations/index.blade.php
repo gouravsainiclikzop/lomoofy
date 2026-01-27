@@ -563,77 +563,90 @@
         </div>
     </div>
 
-    <!-- Shopify -->
+    <!-- Shipping Integration -->
     <div class="col-md-6 col-lg-4">
         <div class="integration-card">
             <div class="integration-header">
                 <div class="d-flex align-items-center">
                     <div class="integration-icon">
-                        <i class="fas fa-shopping-bag fa-lg"></i>
+                        <i class="fas fa-truck fa-lg"></i>
                     </div>
                     <div>
-                        <h5>Shopify</h5>
-                        <p>Shopify store synchronization</p>
+                        <h5>Shipping Integration</h5>
+                        <p>Shipping provider API configuration</p>
                     </div>
                 </div>
-                @if(isset($integrations['shopify']))
-                <span class="integration-status-badge {{ $integrations['shopify']->status ? 'status-enabled' : 'status-disabled' }}">
-                    {{ $integrations['shopify']->status ? 'Enabled' : 'Disabled' }}
+                @if(isset($integrations['shipping']))
+                <span class="integration-status-badge {{ $integrations['shipping']->status ? 'status-enabled' : 'status-disabled' }}">
+                    {{ $integrations['shipping']->status ? 'Enabled' : 'Disabled' }}
                 </span>
                 @endif
             </div>
             <div class="integration-body">
-                <form class="integration-form" data-integration-type="shopify" data-integration-id="{{ $integrations['shopify']->id ?? '' }}">
-                    <input type="hidden" name="integration_type" value="shopify">
-                    <input type="hidden" name="integration_id" value="{{ $integrations['shopify']->id ?? '' }}">
+                <form class="integration-form" data-integration-type="shipping" data-integration-id="{{ $integrations['shipping']->id ?? '' }}">
+                    <input type="hidden" name="integration_type" value="shipping">
+                    <input type="hidden" name="integration_id" value="{{ $integrations['shipping']->id ?? '' }}">
                     
                     <div class="form-group">
-                        <label class="form-label">Store URL <span class="text-danger">*</span></label>
-                        <input type="url" class="form-control" name="store_url" 
-                               value="{{ $integrations['shopify']->configuration['store_url'] ?? '' }}" 
-                               placeholder="https://yourstore.myshopify.com" required>
+                        <label class="form-label">Provider Name <span class="text-danger">*</span></label>
+                        <select class="form-select" name="provider_name" required>
+                            <option value="">Select Provider</option>
+                            <option value="fedex" {{ (isset($integrations['shipping']) && ($integrations['shipping']->configuration['provider_name'] ?? '') == 'fedex') ? 'selected' : '' }}>FedEx</option>
+                            <option value="ups" {{ (isset($integrations['shipping']) && ($integrations['shipping']->configuration['provider_name'] ?? '') == 'ups') ? 'selected' : '' }}>UPS</option>
+                            <option value="dhl" {{ (isset($integrations['shipping']) && ($integrations['shipping']->configuration['provider_name'] ?? '') == 'dhl') ? 'selected' : '' }}>DHL</option>
+                            <option value="usps" {{ (isset($integrations['shipping']) && ($integrations['shipping']->configuration['provider_name'] ?? '') == 'usps') ? 'selected' : '' }}>USPS</option>
+                            <option value="shiprocket" {{ (isset($integrations['shipping']) && ($integrations['shipping']->configuration['provider_name'] ?? '') == 'shiprocket') ? 'selected' : '' }}>Shiprocket</option>
+                            <option value="other" {{ (isset($integrations['shipping']) && ($integrations['shipping']->configuration['provider_name'] ?? '') == 'other') ? 'selected' : '' }}>Other</option>
+                        </select>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Admin API Access Token <span class="text-danger">*</span></label>
+                        <label class="form-label">API Key <span class="text-danger">*</span></label>
                         <div class="password-field-wrapper">
-                            <input type="password" class="form-control password-field" name="admin_api_access_token" 
-                                   value="{{ isset($integrations['shopify']) ? ($integrations['shopify']->getMaskedConfiguration()['admin_api_access_token'] ?? '') : '' }}" 
-                                   placeholder="Enter admin API token" required>
+                            <input type="password" class="form-control password-field" name="api_key" 
+                                   value="{{ isset($integrations['shipping']) ? ($integrations['shipping']->getMaskedConfiguration()['api_key'] ?? '') : '' }}" 
+                                   placeholder="Enter API key" required>
                             <i class="fas fa-eye password-toggle" data-toggle="password"></i>
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">API Version <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="api_version" 
-                               value="{{ isset($integrations['shopify']) ? ($integrations['shopify']->configuration['api_version'] ?? '2024-01') : '2024-01' }}" 
-                               placeholder="2024-01" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Webhook Secret</label>
+                        <label class="form-label">API Secret <span class="text-danger">*</span></label>
                         <div class="password-field-wrapper">
-                            <input type="password" class="form-control password-field" name="webhook_secret" 
-                                   value="{{ isset($integrations['shopify']) ? ($integrations['shopify']->getMaskedConfiguration()['webhook_secret'] ?? '') : '' }}" 
-                                   placeholder="Enter webhook secret">
+                            <input type="password" class="form-control password-field" name="api_secret" 
+                                   value="{{ isset($integrations['shipping']) ? ($integrations['shipping']->getMaskedConfiguration()['api_secret'] ?? '') : '' }}" 
+                                   placeholder="Enter API secret" required>
                             <i class="fas fa-eye password-toggle" data-toggle="password"></i>
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="sync_products" value="1"
-                                   {{ (isset($integrations['shopify']) && ($integrations['shopify']->configuration['sync_products'] ?? false)) ? 'checked' : '' }}>
-                            <label class="form-check-label">Sync Products</label>
-                        </div>
+                        <label class="form-label">Account Number</label>
+                        <input type="text" class="form-control" name="account_number" 
+                               value="{{ $integrations['shipping']->configuration['account_number'] ?? '' }}" 
+                               placeholder="Enter account number">
                     </div>
                     
                     <div class="form-group">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="sync_orders" value="1"
-                                   {{ (isset($integrations['shopify']) && ($integrations['shopify']->configuration['sync_orders'] ?? false)) ? 'checked' : '' }}>
-                            <label class="form-check-label">Sync Orders</label>
+                        <label class="form-label">API Endpoint</label>
+                        <input type="url" class="form-control" name="api_endpoint" 
+                               value="{{ $integrations['shipping']->configuration['api_endpoint'] ?? '' }}" 
+                               placeholder="https://api.provider.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Mode</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="mode" value="test" 
+                                       {{ (!isset($integrations['shipping']) || ($integrations['shipping']->configuration['mode'] ?? 'test') == 'test') ? 'checked' : '' }}>
+                                <label class="form-check-label">Test</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="mode" value="live" 
+                                       {{ (isset($integrations['shipping']) && ($integrations['shipping']->configuration['mode'] ?? '') == 'live') ? 'checked' : '' }}>
+                                <label class="form-check-label">Live</label>
+                            </div>
                         </div>
                     </div>
                     
@@ -641,9 +654,114 @@
                         <label>Status</label>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="status" 
-                                   {{ (isset($integrations['shopify']) && $integrations['shopify']->status) ? 'checked' : '' }}>
+                                   {{ (isset($integrations['shipping']) && $integrations['shipping']->status) ? 'checked' : '' }}>
                             <label class="form-check-label ms-2">
-                                <span class="status-text">{{ (isset($integrations['shopify']) && $integrations['shopify']->status) ? 'Enabled' : 'Disabled' }}</span>
+                                <span class="status-text">{{ (isset($integrations['shipping']) && $integrations['shipping']->status) ? 'Enabled' : 'Disabled' }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-save-integration">
+                        <i class="fas fa-save me-2"></i>Save Configuration
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Review Integration -->
+    <div class="col-md-6 col-lg-4">
+        <div class="integration-card">
+            <div class="integration-header">
+                <div class="d-flex align-items-center">
+                    <div class="integration-icon">
+                        <i class="fab fa-google fa-lg"></i>
+                    </div>
+                    <div>
+                        <h5>Google Review</h5>
+                        <p>Google My Business reviews integration</p>
+                    </div>
+                </div>
+                @if(isset($integrations['google_review']))
+                <span class="integration-status-badge {{ $integrations['google_review']->status ? 'status-enabled' : 'status-disabled' }}">
+                    {{ $integrations['google_review']->status ? 'Enabled' : 'Disabled' }}
+                </span>
+                @endif
+            </div>
+            <div class="integration-body">
+                <form class="integration-form" data-integration-type="google_review" data-integration-id="{{ $integrations['google_review']->id ?? '' }}">
+                    <input type="hidden" name="integration_type" value="google_review">
+                    <input type="hidden" name="integration_id" value="{{ $integrations['google_review']->id ?? '' }}">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Google Business Profile ID <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="business_profile_id" 
+                               value="{{ $integrations['google_review']->configuration['business_profile_id'] ?? '' }}" 
+                               placeholder="Enter business profile ID" required>
+                        <small class="text-muted d-block mt-1">
+                            <i class="fas fa-info-circle"></i> Found in Google Business Profile settings
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">API Key <span class="text-danger">*</span></label>
+                        <div class="password-field-wrapper">
+                            <input type="password" class="form-control password-field" name="api_key" 
+                                   value="{{ isset($integrations['google_review']) ? ($integrations['google_review']->getMaskedConfiguration()['api_key'] ?? '') : '' }}" 
+                                   placeholder="Enter Google API key" required>
+                            <i class="fas fa-eye password-toggle" data-toggle="password"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Client ID</label>
+                        <input type="text" class="form-control" name="client_id" 
+                               value="{{ $integrations['google_review']->configuration['client_id'] ?? '' }}" 
+                               placeholder="Enter OAuth client ID">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Client Secret</label>
+                        <div class="password-field-wrapper">
+                            <input type="password" class="form-control password-field" name="client_secret" 
+                                   value="{{ isset($integrations['google_review']) ? ($integrations['google_review']->getMaskedConfiguration()['client_secret'] ?? '') : '' }}" 
+                                   placeholder="Enter OAuth client secret">
+                            <i class="fas fa-eye password-toggle" data-toggle="password"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Refresh Token</label>
+                        <div class="password-field-wrapper">
+                            <input type="password" class="form-control password-field" name="refresh_token" 
+                                   value="{{ isset($integrations['google_review']) ? ($integrations['google_review']->getMaskedConfiguration()['refresh_token'] ?? '') : '' }}" 
+                                   placeholder="Enter OAuth refresh token">
+                            <i class="fas fa-eye password-toggle" data-toggle="password"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="auto_sync" value="1"
+                                   {{ (isset($integrations['google_review']) && ($integrations['google_review']->configuration['auto_sync'] ?? false)) ? 'checked' : '' }}>
+                            <label class="form-check-label">Auto Sync Reviews</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Sync Interval (hours)</label>
+                        <input type="number" class="form-control" name="sync_interval" 
+                               value="{{ $integrations['google_review']->configuration['sync_interval'] ?? '24' }}" 
+                               min="1" placeholder="24">
+                    </div>
+                    
+                    <div class="status-toggle">
+                        <label>Status</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="status" 
+                                   {{ (isset($integrations['google_review']) && $integrations['google_review']->status) ? 'checked' : '' }}>
+                            <label class="form-check-label ms-2">
+                                <span class="status-text">{{ (isset($integrations['google_review']) && $integrations['google_review']->status) ? 'Enabled' : 'Disabled' }}</span>
                             </label>
                         </div>
                     </div>

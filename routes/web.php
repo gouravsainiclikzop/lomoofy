@@ -94,6 +94,8 @@ Route::get('/product', [FrontendController::class, 'product'])->name('frontend.p
 Route::get('/api/product-quick-view', [FrontendController::class, 'getProductQuickView'])->name('frontend.product.quickview');
 Route::get('/about-us', [FrontendController::class, 'aboutUs'])->name('frontend.about-us');
 Route::get('/contact', [FrontendController::class, 'contact'])->name('frontend.contact');
+Route::post('/contact', [FrontendController::class, 'submitContact'])->name('frontend.contact.submit');
+Route::post('/subscribe', [FrontendController::class, 'subscribe'])->name('frontend.subscribe');
 Route::get('/privacy', [FrontendController::class, 'privacy'])->name('frontend.privacy'); 
 Route::get('/terms-and-conditions', [FrontendController::class, 'termAndCondition'])->name('frontend.terms');
 Route::get('/shipping-policy', [FrontendController::class, 'shipping'])->name('frontend.shipping');
@@ -316,6 +318,13 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::put('/admin/faqs/{id}', [\App\Http\Controllers\FaqController::class, 'update'])->name('faqs.update');
     Route::delete('/admin/faqs/{id}', [\App\Http\Controllers\FaqController::class, 'destroy'])->name('faqs.destroy');
     Route::post('/admin/faqs/{id}/toggle-status', [\App\Http\Controllers\FaqController::class, 'toggleStatus'])->name('faqs.toggle-status');
+    
+    // Contact Management
+    Route::get('/admin/contacts', [\App\Http\Controllers\ContactController::class, 'index'])->name('contacts.index');
+    Route::get('/admin/contacts/data', [\App\Http\Controllers\ContactController::class, 'getData'])->name('contacts.data');
+    Route::get('/admin/contacts/{id}', [\App\Http\Controllers\ContactController::class, 'show'])->name('contacts.show');
+    Route::post('/admin/contacts/{id}/toggle-read', [\App\Http\Controllers\ContactController::class, 'toggleRead'])->name('contacts.toggle-read');
+    Route::delete('/admin/contacts/{id}', [\App\Http\Controllers\ContactController::class, 'destroy'])->name('contacts.destroy');
     
     // Blogs Management
     Route::get('/admin/blogs', [\App\Http\Controllers\BlogController::class, 'index'])->name('blogs.index');
