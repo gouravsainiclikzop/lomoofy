@@ -14,563 +14,281 @@ class SectionController extends Controller
      * Display sections management page.
      */
     public function index()
-    {
-        return view('admin.sections.index');
-    }
+{
+    // Canonical definition of home sections (order + status controlled here)
+    $sections = [
+        ['section_id' => 'istopbar-v1', 'title' => 'Top Bar', 'sort_order' => 1, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isnavbar-v1', 'title' => 'Navbar V1', 'sort_order' => 2, 'is_active' => 1,'showSortingBtn'=> true],
+        ['section_id' => 'isnavbar-v2', 'title' => 'Navbar V2', 'sort_order' => 3, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'issliderbanner-v1', 'title' => 'Slider Banner V1', 'sort_order' => 4, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'issliderbanner-v2', 'title' => 'Slider Banner V2', 'sort_order' => 5, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isfeaturedcategory-v1', 'title' => 'Featured Category V1', 'sort_order' => 6, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isfeaturedcategory-v2', 'title' => 'Featured Category V2', 'sort_order' => 7, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isfeaturedcategory-v3', 'title' => 'Featured Category V3', 'sort_order' => 8, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isfeaturedcategory-v4', 'title' => 'Featured Category V4', 'sort_order' => 9, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isfeaturedcategory-v5', 'title' => 'Featured Category V5', 'sort_order' => 10, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isfeaturedcategory-v6', 'title' => 'Featured Category V6', 'sort_order' => 11, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isdealsoftheday-v1', 'title' => 'Deals of the Day', 'sort_order' => 12, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isproductwithcategorytabs-v1', 'title' => 'Products with Category Tabs', 'sort_order' => 13, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isbestseller-v1', 'title' => 'Best Seller', 'sort_order' => 14, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'istrendingcategories-v1', 'title' => 'Trending Categories', 'sort_order' => 15, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isourcollection-v1', 'title' => 'Our Collection V1', 'sort_order' => 16, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isourcollection-v2', 'title' => 'Our Collection V2', 'sort_order' => 17, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isnewarrivals-v1', 'title' => 'New Arrivals', 'sort_order' => 18, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isparentcategoriescards-v1', 'title' => 'Parent Category Cards', 'sort_order' => 19, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isrecentlyviewed-v1', 'title' => 'Recently Viewed', 'sort_order' => 20, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'istestimonials-v1', 'title' => 'Testimonials', 'sort_order' => 21, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isblog-v1', 'title' => 'Blog', 'sort_order' => 22, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'isinstagram-v1', 'title' => 'Instagram Feed', 'sort_order' => 23, 'is_active' => 0,'showSortingBtn'=> true],
+        ['section_id' => 'ishighlights-v1', 'title' => 'Service Highlights', 'sort_order' => 24, 'is_active' => 0,'showSortingBtn'=> true],
+    ];
+      
+    // foreach ($sections as $section) {
+    //     Section::updateOrCreate(
+    //         ['section_id' => $section['section_id']],
+    //         [
+    //             'title'      => $section['title'],
+    //             'sort_order' => $section['sort_order'],
+    //             'is_active'  => $section['is_active'],
+    //         ]
+    //     );
+    // }
 
-    /**
-     * Get all pages.
-     */
-    public function getPages()
+    // Section IDs that must not show the sort/drag handle (showSortingBtn = false)
+    $noSortSectionIds = array_column(array_filter($sections, function ($s) {
+        return isset($s['showSortingBtn']) && $s['showSortingBtn'] === false;
+    }), 'section_id');
+
+    $allSections = Section::orderBy('sort_order')->get();
+    $groupedSections = $this->groupSectionsByBaseName($allSections, $noSortSectionIds);
+    
+    $companySettings = \App\Models\CompanySetting::getSettings();
+    
+    // Always sync color themes with latest definitions
+    $latestThemes = $this->getColorThemes();
+    
+    // Preserve active theme if it still exists in new themes, otherwise reset it
+    $activeTheme = $companySettings->active_color_theme;
+    if ($activeTheme && !isset($latestThemes[$activeTheme])) {
+        $activeTheme = null;
+    }
+    
+    // Update themes and active theme
+    $companySettings->color_themes = $latestThemes;
+    if ($activeTheme !== $companySettings->active_color_theme) {
+        $companySettings->active_color_theme = $activeTheme;
+    }
+    $companySettings->save();
+
+    return view('admin.sections.index', compact('groupedSections', 'companySettings'));
+}
+
+
+ 
+    private function groupSectionsByBaseName($sections, array $noSortSectionIds = [])
     {
-        $pages = Page::ordered()->get();
+        $grouped = [];
         
-        return response()->json([
-            'success' => true,
-            'pages' => $pages
-        ]);
-    }
-
-    /**
-     * Store a new page.
-     */
-    public function storePage(Request $request)
-    {
-        // Convert is_active to proper boolean format
-        $isActive = filter_var($request->input('is_active', true), FILTER_VALIDATE_BOOLEAN);
-        
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'url' => 'required|string|max:255|unique:pages,url',
-            'description' => 'nullable|string',
-            'sort_order' => 'nullable|integer|min:0',
-            'is_active' => 'nullable|in:0,1,true,false,on,off,yes,no',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Get next sort order if not provided
-        $sortOrder = $request->input('sort_order');
-        if ($sortOrder === null) {
-            $maxOrder = Page::max('sort_order');
-            $sortOrder = ($maxOrder ?? -1) + 1;
-        }
-
-        $page = Page::create([
-            'name' => $request->name,
-            'url' => $request->url,
-            'description' => $request->description,
-            'sort_order' => $sortOrder,
-            'is_active' => $isActive,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Page created successfully',
-            'page' => $page
-        ]);
-    }
-
-    /**
-     * Update a page.
-     */
-    public function updatePage(Request $request)
-    {
-        $page = Page::findOrFail($request->id);
-
-        // Convert is_active to proper boolean format
-        $isActive = $request->has('is_active') 
-            ? filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)
-            : $page->is_active;
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'url' => 'required|string|max:255|unique:pages,url,' . $page->id,
-            'description' => 'nullable|string',
-            'sort_order' => 'nullable|integer|min:0',
-            'is_active' => 'nullable|in:0,1,true,false,on,off,yes,no',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $page->update([
-            'name' => $request->name,
-            'url' => $request->url,
-            'description' => $request->description,
-            'sort_order' => $request->input('sort_order', $page->sort_order),
-            'is_active' => $isActive,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Page updated successfully',
-            'page' => $page
-        ]);
-    }
-
-    /**
-     * Delete a page.
-     */
-    public function deletePage(Request $request)
-    {
-        $page = Page::findOrFail($request->id);
-
-        // Delete all sections and their images
-        foreach ($page->sections as $section) {
-            if ($section->image && Storage::disk('public')->exists($section->image)) {
-                Storage::disk('public')->delete($section->image);
-            }
-        }
-
-        $page->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Page and all its sections deleted successfully'
-        ]);
-    }
-
-    /**
-     * Get single page for editing.
-     */
-    public function editPage(Request $request)
-    {
-        $page = Page::findOrFail($request->id);
-        
-        return response()->json([
-            'success' => true,
-            'page' => $page
-        ]);
-    }
-
-    /**
-     * Get sections for a specific page.
-     */
-    public function getSections(Request $request)
-    {
-        $pageId = $request->input('page_id');
-        
-        $sections = Section::forPage($pageId)
-            ->ordered()
-            ->get()
-            ->map(function($section) {
-                return [
-                    'id' => $section->id,
-                    'page_id' => $section->page_id,
-                    'section_id' => $section->section_id,
-                    'content' => $section->content,
-                    'image' => $section->image,
-                    'image_url' => $section->image_url,
-                    'sort_order' => $section->sort_order,
-                    'is_active' => $section->is_active,
-                    'base_section_name' => $section->base_section_name,
-                    'variation_number' => $section->variation_number,
-                    'created_at' => $section->created_at->format('Y-m-d H:i:s'),
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'sections' => $sections
-        ]);
-    }
-
-    /**
-     * Get sections grouped by base name for a specific page.
-     */
-    public function getPageSections(Request $request)
-    {
-        $pageId = $request->input('page_id');
-        
-        // If no page_id provided, try to find home page
-        if (!$pageId) {
-            $page = Page::where('url', '/')
-                ->orWhere('name', 'like', '%home%')
-                ->orWhere('name', 'like', '%Home%')
-                ->first();
-        } else {
-            $page = Page::find($pageId);
-        }
-
-        if (!$page) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Page not found'
-            ], 404);
-        }
-
-        $sections = Section::forPage($page->id)
-            ->ordered()
-            ->get();
-
-        // Group sections by base name
-        $groupedSections = [];
         foreach ($sections as $section) {
-            // Get base name - if it's a variation, extract base name, otherwise use section_id as base
-            $baseName = $section->base_section_name;
-            // If base_name is same as section_id, it means no variation pattern, so use section_id
-            if ($baseName === $section->section_id && !$section->isVariation()) {
-                $baseName = $section->section_id;
-            }
+            // Extract base name (remove -v1, -v2, etc.)
+            $baseName = preg_replace('/-v\d+$/', '', $section->section_id);
             
-            if (!isset($groupedSections[$baseName])) {
-                $groupedSections[$baseName] = [
+            if (!isset($grouped[$baseName])) {
+                $grouped[$baseName] = [
                     'base_name' => $baseName,
-                    'display_name' => ucwords(str_replace(['_', '-'], ' ', $baseName)),
-                    'sort_order' => $section->sort_order,
+                    'display_name' => $this->getDisplayName($baseName),
                     'variants' => []
                 ];
             }
             
-            $groupedSections[$baseName]['variants'][] = [
-                'id' => $section->id,
-                'section_id' => $section->section_id,
-                'variation_number' => $section->variation_number,
-                'is_active' => $section->is_active,
-                'sort_order' => $section->sort_order,
-                'image_url' => $section->image_url,
-                'content' => $section->content,
-            ];
+            $grouped[$baseName]['variants'][] = $section;
         }
-
-        // Sort variants within each group by variation number
-        foreach ($groupedSections as &$group) {
+        
+        // Sort variants within each group by sort_order; set show_sorting_btn per group
+        foreach ($grouped as &$group) {
             usort($group['variants'], function($a, $b) {
-                $aNum = $a['variation_number'] ?? 999;
-                $bNum = $b['variation_number'] ?? 999;
-                return $aNum <=> $bNum;
+                return $a->sort_order <=> $b->sort_order;
             });
+            // Show sort handle only if at least one variant has showSortingBtn = true
+            $variantSectionIds = array_column($group['variants'], 'section_id');
+            $group['show_sorting_btn'] = !empty(array_diff($variantSectionIds, $noSortSectionIds));
         }
-
-        // Sort groups by sort_order
-        uasort($groupedSections, function($a, $b) {
-            return $a['sort_order'] <=> $b['sort_order'];
-        });
-
-        return response()->json([
-            'success' => true,
-            'page' => [
-                'id' => $page->id,
-                'name' => $page->name,
-                'url' => $page->url
-            ],
-            'sections' => array_values($groupedSections)
-        ]);
+        
+        return $grouped;
     }
 
     /**
-     * Get sections grouped by base name for home page (backward compatibility).
+     * Get display name from base section name.
      */
-    public function getHomePageSections()
-    {
-        return $this->getPageSections(new Request());
+    private function getDisplayName($baseName)
+    { 
+        $name = preg_replace('/^is/', '', $baseName);
+        $name = str_replace(['-', '_'], ' ', $name);
+        return ucwords($name);
     }
+ 
+   
+    private function getColorThemes()
+{
+    return [
 
-    /**
-     * Toggle variant active status.
-     */
+        "jewellery_luxury" => [
+            "backgrounds" => ["#FFFBF5", "#FDF6E3", "#F5E6C8"],
+            "text" => ["#2A1E14"],
+            "muted_text" => ["#8A7968"],
+            "anchors" => ["#2A1E14"],
+            "hover" => ["#B45309"],
+            "span" => ["#D97706"],
+            "borders" => ["#E7D3A3"]
+        ],
+
+        "furniture_earth" => [
+            "backgrounds" => ["#FFFFFF", "#F7F3EF", "#EFE7DE"],
+            "text" => ["#3F2E1B"],
+            "muted_text" => ["#7C6F63"],
+            "anchors" => ["#3F2E1B"],
+            "hover" => ["#8B4513"],
+            "span" => ["#A16207"],
+            "borders" => ["#DDD3C6"]
+        ],
+
+        "clean_dynamic" => [
+            "backgrounds" => ["#FFFFFF", "#F9FAFB", "#EEF2FF"],
+            "text" => ["#111827"],
+            "muted_text" => ["#6B7280"],
+            "anchors" => ["#111827"],
+            "hover" => ["#DC2626"],
+            "span" => ["#DC2626"],
+            "borders" => ["#E5E7EB"]
+        ],
+
+        "lifestyle_soft" => [
+            "backgrounds" => ["#FFFFFF", "#F0FDF4", "#ECFEFF"],
+            "text" => ["#064E3B"],
+            "muted_text" => ["#6B7280"],
+            "anchors" => ["#064E3B"],
+            "hover" => ["#0F766E"],
+            "span" => ["#DC2626"],
+            "borders" => ["#D1FAE5"]
+        ],
+
+        "warm_neutral" => [
+            "backgrounds" => ["#FFFFFF", "#FAF7F2", "#F1ECE4"],
+            "text" => ["#2F2A25"],
+            "muted_text" => ["#7A7268"],
+            "anchors" => ["#2F2A25"],
+            "hover" => ["#9A3412"],
+            "span" => ["#DC2626"],
+            "borders" => ["#E4DDD4"]
+        ],
+
+        "soft_grey_modern" => [
+            "backgrounds" => ["#FFFFFF", "#F4F4F5", "#E5E7EB"],
+            "text" => ["#18181B"],
+            "muted_text" => ["#71717A"],
+            "anchors" => ["#18181B"],
+            "hover" => ["#DC2626"],
+            "span" => ["#DC2626"],
+            "borders" => ["#D4D4D8"]
+        ],
+
+        "calm_blue" => [
+            "backgrounds" => ["#FFFFFF", "#F0F9FF", "#E0F2FE"],
+            "text" => ["#0F172A"],
+            "muted_text" => ["#64748B"],
+            "anchors" => ["#0F172A"],
+            "hover" => ["#2563EB"],
+            "span" => ["#DC2626"],
+            "borders" => ["#CBD5E1"]
+        ],
+
+        "soft_beige" => [
+            "backgrounds" => ["#FFFFFF", "#FBF5EE", "#F3EDE5"],
+            "text" => ["#3A2F27"],
+            "muted_text" => ["#8B8177"],
+            "anchors" => ["#3A2F27"],
+            "hover" => ["#B45309"],
+            "span" => ["#DC2626"],
+            "borders" => ["#E6DDD3"]
+        ],
+
+        // "stone_luxury" => [
+        //     "backgrounds" => ["#F7F6F3", "#D6D3D1", "#A8A29E"],
+        //     "text" => ["#1C1917"],
+        //     "muted_text" => ["#78716C"],
+        //     "anchors" => ["#1C1917"],
+        //     "hover" => ["#92400E"],
+        //     "span" => ["#DC2626"],
+        //     "borders" => ["#A8A29E"]
+        // ],
+
+        "espresso_gold_soft_dark" => [
+            "backgrounds" => ["#F6EFE7", "#EADFCC", "#D8C9B6"],
+            "text" => ["#2B211B"],
+            "muted_text" => ["#7A6F66"],
+            "anchors" => ["#2B211B"],
+            "hover" => ["#B45309"],
+            "span" => ["#D97706"],
+            "borders" => ["#CDBEAF"]
+        ],  
+    ];
+}
+
+
+    
     public function toggleVariant(Request $request)
     {
-        $section = Section::findOrFail($request->id);
-        $isActive = $request->input('is_active', !$section->is_active);
-
-        // If activating, deactivate other variations of the same base section
-        if ($isActive) {
-            $baseName = $section->base_section_name;
-            // Check if there are other sections with the same base name
-            $otherSections = Section::where('page_id', $section->page_id)
-                ->where(function($query) use ($baseName, $section) {
-                    // Match variations of the same base
-                    $query->where('section_id', 'like', $baseName . '_variation_%')
-                          // Or match the base section itself (if this is a variation)
-                          ->orWhere('section_id', $baseName);
-                })
-                ->where('id', '!=', $section->id)
-                ->get();
-            
-            // Only deactivate if there are other variants
-            if ($otherSections->count() > 0) {
-                Section::where('page_id', $section->page_id)
-                    ->where(function($query) use ($baseName) {
-                        $query->where('section_id', 'like', $baseName . '_variation_%')
-                              ->orWhere('section_id', $baseName);
-                    })
-                    ->where('id', '!=', $section->id)
-                    ->update(['is_active' => false]);
-            }
-        }
-
-        $section->update(['is_active' => $isActive]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Variant status updated successfully',
-            'section' => [
-                'id' => $section->id,
-                'is_active' => $section->is_active
-            ]
-        ]);
-    }
-
-    /**
-     * Update variant image.
-     */
-    public function updateVariantImage(Request $request)
-    {
-        $section = Section::findOrFail($request->id);
-
-        // Handle image removal
-        if ($request->input('remove_image', false)) {
-            if ($section->image && Storage::disk('public')->exists($section->image)) {
-                Storage::disk('public')->delete($section->image);
-            }
-            $section->image = null;
-            $section->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Image removed successfully',
-                'section' => [
-                    'id' => $section->id,
-                    'image_url' => null
-                ]
-            ]);
-        }
-
-        // Handle image upload
         $validator = Validator::make($request->all(), [
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'section_id' => 'required|exists:sections,id',
+            'is_active' => 'required|boolean',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
+                'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        if ($request->hasFile('image')) {
-            // Delete old image
-            if ($section->image && Storage::disk('public')->exists($section->image)) {
-                Storage::disk('public')->delete($section->image);
-            }
-            $section->image = $request->file('image')->store('sections', 'public');
-            $section->save();
-        }
+        $section = Section::findOrFail($request->section_id);
+        $section->is_active = $request->is_active;
+        $section->save();
+
+        // If activating a variant, deactivate other variants of the same base
+        // if ($request->is_active) {
+        //     $baseName = preg_replace('/-v\d+$/', '', $section->section_id);
+        //     Section::where('id', '!=', $section->id)
+        //         ->where('section_id', 'like', $baseName . '-v%')
+        //         ->update(['is_active' => false]);
+        // }
 
         return response()->json([
             'success' => true,
-            'message' => 'Image updated successfully',
-            'section' => [
-                'id' => $section->id,
-                'image_url' => $section->image_url
-            ]
+            'message' => 'Section status updated successfully'
         ]);
     }
 
-    /**
-     * Get single section for editing.
-     */
-    public function edit(Request $request)
-    {
-        $section = Section::findOrFail($request->id);
-        
-        return response()->json([
-            'success' => true,
-            'section' => [
-                'id' => $section->id,
-                'page_id' => $section->page_id,
-                'section_id' => $section->section_id,
-                'content' => $section->content,
-                'image' => $section->image,
-                'image_url' => $section->image_url,
-                'sort_order' => $section->sort_order,
-                'is_active' => $section->is_active,
-            ]
-        ]);
-    }
-
-    /**
-     * Store a new section.
-     */
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'page_id' => 'required|exists:pages,id',
-            'section_id' => 'required|string|max:255',
-            'content' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
-            'sort_order' => 'nullable|integer|min:0',
-            'is_active' => 'boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Handle image upload
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('sections', 'public');
-        }
-
-        // Get next sort order if not provided
-        $sortOrder = $request->input('sort_order');
-        if ($sortOrder === null) {
-            $maxOrder = Section::forPage($request->page_id)->max('sort_order');
-            $sortOrder = ($maxOrder ?? -1) + 1;
-        }
-
-        $section = Section::create([
-            'page_id' => $request->page_id,
-            'section_id' => $request->section_id,
-            'content' => $request->content,
-            'image' => $imagePath,
-            'sort_order' => $sortOrder,
-            'is_active' => $request->input('is_active', true),
-        ]);
-
-        // Deactivate other variations if this section is active and is a variation
-        $section->deactivateOtherVariations();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Section created successfully',
-            'section' => [
-                'id' => $section->id,
-                'page_id' => $section->page_id,
-                'section_id' => $section->section_id,
-                'content' => $section->content,
-                'image' => $section->image,
-                'image_url' => $section->image_url,
-                'sort_order' => $section->sort_order,
-                'is_active' => $section->is_active,
-            ]
-        ]);
-    }
-
-    /**
-     * Update an existing section.
-     */
-    public function update(Request $request)
-    {
-        $section = Section::findOrFail($request->id);
-
-        $validator = Validator::make($request->all(), [
-            'page_id' => 'required|exists:pages,id',
-            'section_id' => 'required|string|max:255',
-            'content' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
-            'sort_order' => 'nullable|integer|min:0',
-            'is_active' => 'boolean',
-            'remove_image' => 'boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Handle image removal
-        if ($request->input('remove_image', false)) {
-            if ($section->image && Storage::disk('public')->exists($section->image)) {
-                Storage::disk('public')->delete($section->image);
-            }
-            $section->image = null;
-        }
-
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            // Delete old image
-            if ($section->image && Storage::disk('public')->exists($section->image)) {
-                Storage::disk('public')->delete($section->image);
-            }
-            $section->image = $request->file('image')->store('sections', 'public');
-        }
-
-        $section->update([
-            'page_id' => $request->page_id,
-            'section_id' => $request->section_id,
-            'content' => $request->content,
-            'sort_order' => $request->input('sort_order', $section->sort_order),
-            'is_active' => $request->input('is_active', $section->is_active),
-        ]);
-
-        // Deactivate other variations if this section is active and is a variation
-        $section->deactivateOtherVariations();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Section updated successfully',
-            'section' => [
-                'id' => $section->id,
-                'page_id' => $section->page_id,
-                'section_id' => $section->section_id,
-                'content' => $section->content,
-                'image' => $section->image,
-                'image_url' => $section->image_url,
-                'sort_order' => $section->sort_order,
-                'is_active' => $section->is_active,
-            ]
-        ]);
-    }
-
-    /**
-     * Delete a section.
-     */
-    public function delete(Request $request)
-    {
-        $section = Section::findOrFail($request->id);
-
-        // Delete image if exists
-        if ($section->image && Storage::disk('public')->exists($section->image)) {
-            Storage::disk('public')->delete($section->image);
-        }
-
-        $section->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Section deleted successfully'
-        ]);
-    }
-
-    /**
-     * Bulk update sort order (for drag-and-drop).
-     */
+// update the sort order of the sections
     public function updateSortOrder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'sections' => 'required|array',
-            'sections.*.id' => 'required|exists:sections,id',
-            'sections.*.sort_order' => 'required|integer|min:0',
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:sections,id',
+            'items.*.sort_order' => 'required|integer|min:1',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
+                'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        foreach ($request->sections as $sectionData) {
-            Section::where('id', $sectionData['id'])
-                ->update(['sort_order' => $sectionData['sort_order']]);
+        foreach ($request->items as $item) {
+            Section::where('id', $item['id'])
+                ->update(['sort_order' => $item['sort_order']]);
         }
 
         return response()->json([
@@ -580,191 +298,74 @@ class SectionController extends Controller
     }
 
     /**
-     * Bulk update pages sort order.
+     * Update font family setting.
      */
-    public function updatePagesSortOrder(Request $request)
+    public function updateFontFamily(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'pages' => 'required|array',
-            'pages.*.id' => 'required|exists:pages,id',
-            'pages.*.sort_order' => 'required|integer|min:0',
+            'font_family' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
+                'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        foreach ($request->pages as $pageData) {
-            Page::where('id', $pageData['id'])
-                ->update(['sort_order' => $pageData['sort_order']]);
-        }
+        $settings = \App\Models\CompanySetting::getSettings();
+        $settings->font_family = $request->font_family;
+        $settings->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Pages sort order updated successfully'
+            'message' => 'Font family updated successfully',
+            'font_family' => $settings->font_family
         ]);
     }
 
     /**
-     * Initialize default sections for home page.
-     * Uses hardcoded data - can be run multiple times safely.
-     * If sections exist, they will be skipped unless force=true.
+     * Update active color theme.
      */
-    public function initializeHomePageSections(Request $request)
+    public function updateColorTheme(Request $request)
     {
-        // Find home page
-        $homePage = Page::where('url', '/')
-            ->orWhere('name', 'like', '%home%')
-            ->orWhere('name', 'like', '%Home%')
-            ->first();
+        $validator = Validator::make($request->all(), [
+            'theme_name' => 'nullable|string|max:100',
+        ]);
 
-        if (!$homePage) {
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Home page not found. Please create a home page first.'
-            ], 404);
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        $force = $request->input('force', false);
+        $settings = \App\Models\CompanySetting::getSettings();
         
-        // If force is true, delete existing sections for this page first
-        if ($force) {
-            $existingSections = Section::where('page_id', $homePage->id)->get();
-            foreach ($existingSections as $section) {
-                // Delete associated images
-                if ($section->image && Storage::disk('public')->exists($section->image)) {
-                    Storage::disk('public')->delete($section->image);
-                }
-            }
-            Section::where('page_id', $homePage->id)->delete();
+        // Initialize themes if not set
+        if (empty($settings->color_themes)) {
+            $settings->color_themes = $this->getColorThemes();
         }
-
-        // Get the maximum sort_order for this page to continue from there
-        $maxSortOrder = Section::where('page_id', $homePage->id)->max('sort_order') ?? -1;
-        $startSortOrder = $maxSortOrder + 1;
-
-        // Define sections with their variants (hardcoded data)
-        $sectionsToCreate = [
-            // Section 1: Banner and Slider (3 variants)
-            [
-                'base_name' => 'banner_slider',
-                'display_name' => 'Banner & Slider',
-                'sort_order' => $startSortOrder,
-                'variants' => [
-                    ['section_id' => 'banner_slider_variation_1', 'variation_number' => 1],
-                    ['section_id' => 'banner_slider_variation_2', 'variation_number' => 2],
-                    ['section_id' => 'banner_slider_variation_3', 'variation_number' => 3],
-                ]
-            ],
-            // Section 2: Popular Products (2 variants)
-            [
-                'base_name' => 'popular_products',
-                'display_name' => 'Popular Products',
-                'sort_order' => $startSortOrder + 1,
-                'variants' => [
-                    ['section_id' => 'popular_products_variation_1', 'variation_number' => 1],
-                    ['section_id' => 'popular_products_variation_2', 'variation_number' => 2],
-                ]
-            ],
-            // Section 3: New Arrivals (2 variants)
-            [
-                'base_name' => 'new_arrivals',
-                'display_name' => 'New Arrivals',
-                'sort_order' => $startSortOrder + 2,
-                'variants' => [
-                    ['section_id' => 'new_arrivals_variation_1', 'variation_number' => 1],
-                    ['section_id' => 'new_arrivals_variation_2', 'variation_number' => 2],
-                ]
-            ],
-            // Section 4: Discount (2 variants)
-            [
-                'base_name' => 'discount',
-                'display_name' => 'Discount',
-                'sort_order' => $startSortOrder + 3,
-                'variants' => [
-                    ['section_id' => 'discount_variation_1', 'variation_number' => 1],
-                    ['section_id' => 'discount_variation_2', 'variation_number' => 2],
-                ]
-            ],
-            // Section 5: Brand Logos (1 variant)
-            [
-                'base_name' => 'brand_logos',
-                'display_name' => 'Brand Logos',
-                'sort_order' => $startSortOrder + 4,
-                'variants' => [
-                    ['section_id' => 'brand_logos', 'variation_number' => null],
-                ]
-            ],
-            // Section 6: Blogs (1 variant)
-            [
-                'base_name' => 'blogs',
-                'display_name' => 'Blogs',
-                'sort_order' => $startSortOrder + 5,
-                'variants' => [
-                    ['section_id' => 'blogs', 'variation_number' => null],
-                ]
-            ],
-            // Section 7: Service Highlight (1 variant)
-            [
-                'base_name' => 'service_highlight',
-                'display_name' => 'Service Highlight',
-                'sort_order' => $startSortOrder + 6,
-                'variants' => [
-                    ['section_id' => 'service_highlight', 'variation_number' => null],
-                ]
-            ],
-        ];
-
-        $created = 0;
-        $skipped = 0;
-        $errors = [];
-
-        foreach ($sectionsToCreate as $sectionData) {
-            foreach ($sectionData['variants'] as $variant) {
-                // Check if section already exists
-                $existing = Section::where('page_id', $homePage->id)
-                    ->where('section_id', $variant['section_id'])
-                    ->first();
-
-                if ($existing) {
-                    $skipped++;
-                    continue;
-                }
-
-                try {
-                    Section::create([
-                        'page_id' => $homePage->id,
-                        'section_id' => $variant['section_id'],
-                        'content' => null,
-                        'image' => null,
-                        'sort_order' => $sectionData['sort_order'],
-                        'is_active' => false, // All variants inactive by default
-                    ]);
-                    $created++;
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to create {$variant['section_id']}: " . $e->getMessage();
-                }
-            }
+        
+        // Validate theme name exists in themes
+        $themeName = $request->theme_name;
+        if ($themeName && !isset($settings->color_themes[$themeName])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid theme name',
+            ], 422);
         }
-
-        $message = "Initialization complete. Created: {$created}, Skipped: {$skipped}";
-        if ($force) {
-            $message = "All sections recreated successfully. Created: {$created}";
-        }
-        if (!empty($errors)) {
-            $message .= ". Errors: " . implode(', ', $errors);
-        }
+        
+        $settings->active_color_theme = $themeName ?: null;
+        $settings->save();
 
         return response()->json([
             'success' => true,
-            'message' => $message,
-            'created' => $created,
-            'skipped' => $skipped,
-            'errors' => $errors,
-            'force' => $force
+            'message' => $themeName ? 'Color theme activated successfully' : 'Color theme deactivated successfully',
+            'active_theme' => $settings->active_color_theme
         ]);
     }
+ 
 }

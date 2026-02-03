@@ -640,7 +640,7 @@ $(document).ready(function() {
         success: '#00a629',
         info: '#0dcaf0',
         warning: '#ffc107',
-        danger: '#dc3545',
+        danger: '#e52d2d',
         secondary: '#6c757d',
         light: '#f8f9fa',
     };

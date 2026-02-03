@@ -37,6 +37,10 @@
 /*------------------------------------------------------------
 	Global Settings
 -------------------------------------------------------------*/
+:root {
+    --secondary-color: #f4f5f7;
+} 
+
 * {
   outline: none; }
 .modal-open {
@@ -69,8 +73,8 @@ a {
 
 a:hover,
 a:focus {
-  text-decoration: none; }
-
+text-decoration: none;
+} 
 a.link {
   color:#324875; }
 a.link:hover, a.link:focus, a:hover, a:focus {
@@ -94,6 +98,11 @@ a.white-link {
 a.white-link:hover, a.white-link:focus {
 	color: #263238;
 }
+
+ 
+
+
+  
 .float-right {
     float: right !important;
 }
@@ -236,7 +245,7 @@ html body .db {
 	background:#202838;
 }
 .gray{
-	background:#f4f5f7;
+	background:var(--secondary-color);
 }
 .border{
 	border:1px solid #eef2f5;
@@ -837,7 +846,7 @@ html body .bg-white {
   background-color: #ffffff; }
  
 html body .bg-whites {
-  background-color: #f4f5f7; }
+  background-color: var(--secondary-color); }
   
 html body .bg-red {
   background-color: #e21137; }
@@ -1019,7 +1028,7 @@ button.close {
     font-size: 10px;
     color: #121212;
     opacity: 1;
-    background: #f4f5f7;
+    background: var(--secondary-color);
     width: 26px;
     height: 26px;
     display: flex;
@@ -3750,7 +3759,7 @@ ul.dahs_navbar li a.active {
 }
 .widget-boxed-header h4 a.collapsed:before {
     content: "\e61a";
-    background: #f4f5f7;
+    background: var(--secondary-color);
     color: #445977;
 }
 .widget-boxed-header h4 a:before {
@@ -3765,7 +3774,7 @@ ul.dahs_navbar li a.active {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f4f5f7;
+    background: var(--secondary-color);
     font-family: themify;
     font-size: 10px;
     color: #445977;
@@ -4168,7 +4177,7 @@ textarea.form-control{
     }
 }
 .slide-head {
-    background: #f4f5f7;
+    background: var(--secondary-color);
 }
 .close_slide {
     background: #ffffff;
@@ -4415,7 +4424,7 @@ textarea.form-control{
 .nav-tabs .nav-link {
     border: 1px solid transparent;
     border-radius: .25rem;
-    background: #f4f5f7;
+    background: var(--secondary-color);
 }
 .nav-tabs .nav-link:hover, .nav-tabs .nav-link:focus {
     border:1px solid transparent;
@@ -5101,7 +5110,7 @@ footer{
 	position:relative;
 }
 footer.light-footer {
-    background: #f4f5f7;
+    background: var(--secondary-color);
 }
 footer.dark-footer{
 	background:#252525;

@@ -90,7 +90,7 @@ function renderPricingHTML(pricing, pricingComponent) {
     }
     
     // Final Price (prominent)
-    html += '<span class="final-price theme-cl fw-bold ' + (hasDiscount ? 'fs-2' : 'fs-3') + '" style="color: #dc3545;">';
+    html += '<span class="final-price theme-cl fw-bold ' + (hasDiscount ? 'fs-2' : 'fs-3') + '" style="color: #e52d2d;">';
     html += formatPriceDisplay(displayFinalPrice);
     html += '</span>';
     

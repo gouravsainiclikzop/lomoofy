@@ -7,69 +7,10 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\FrontendController;
+use App\Http\Controllers\SectionManagementController; 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail; 
-
-
-Route::match(['get', 'post'], '/drop-and-import-db', function () {
-
-    if (request()->isMethod('post')) {
-
-        // 1. Disable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-
-        // 2. Drop all tables
-        $tables = DB::select('SHOW TABLES');
-        $dbName = DB::getDatabaseName();
-        $key = "Tables_in_{$dbName}";
-
-        foreach ($tables as $table) {
-            DB::statement("DROP TABLE IF EXISTS {$table->$key}");
-        }
-
-        // 3. Re-enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
-
-        // 4. Import SQL file
-        $sqlPath = base_path('database/import.sql'); // put your dump here
-
-        DB::unprepared(file_get_contents($sqlPath));
-
-        return <<<HTML
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Database Reset</title>
-</head>
-<body>
-    <h2>Operation completed</h2>
-    <p>All tables dropped and database imported successfully.</p>
-</body>
-</html>
-HTML;
-    }
-
-    // GET request – confirmation screen
-    return <<<HTML
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Danger Zone</title>
-</head>
-<body>
-    <h1>Drop & Re-Import Database</h1>
-    <p>This will permanently delete ALL tables in the live database.</p>
-
-    <form method="POST">
-        <button type="submit" style="padding:10px;background:red;color:white;">
-            Drop Everything & Import New Database
-        </button>
-    </form>
-</body>
-</html>
-HTML;
-});
 
 
 Route::get('/test-db', function () {
@@ -253,7 +194,7 @@ Route::get('/login', function() {
 Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.post'); 
 
 // Protected Dashboard Routes (require authentication)
-Route::middleware(['auth', 'refreshStorage'])->group(function () {  
+Route::middleware(['auth', 'refreshStorage'])->group(function () {   
     // Public Admin Auth Routes
     Route::any('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
     // Dashboard 
@@ -289,6 +230,7 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/categories/restore', [\App\Http\Controllers\CategoryController::class, 'restore'])->name('categories.restore');
     Route::post('/categories/bulk-delete', [\App\Http\Controllers\CategoryController::class, 'bulkDelete'])->name('categories.bulk-delete');
     Route::post('/categories/update-status', [\App\Http\Controllers\CategoryController::class, 'updateStatus'])->name('categories.updateStatus');
+    Route::post('/categories/update-featured', [\App\Http\Controllers\CategoryController::class, 'updateFeatured'])->name('categories.updateFeatured');
     Route::post('/categories/update-parent', [\App\Http\Controllers\CategoryController::class, 'updateParent'])->name('categories.updateParent');
     
     // Featured Category Style Management
@@ -344,7 +286,18 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/testimonials', [\App\Http\Controllers\TestimonialController::class, 'store'])->name('testimonials.store');
     Route::match(['post', 'put'], '/testimonials/{id}', [\App\Http\Controllers\TestimonialController::class, 'update'])->name('testimonials.update');
     Route::delete('/testimonials/{id}', [\App\Http\Controllers\TestimonialController::class, 'destroy'])->name('testimonials.destroy');
-    
+
+    // Instagram Gallery Management
+    Route::get('/instagram-gallery', [\App\Http\Controllers\InstagramGalleryController::class, 'index'])->name('instagram-gallery.index');
+    Route::get('/instagram-gallery/data', [\App\Http\Controllers\InstagramGalleryController::class, 'getData'])->name('instagram-gallery.data');
+    Route::post('/instagram-gallery/bulk', [\App\Http\Controllers\InstagramGalleryController::class, 'storeBulk'])->name('instagram-gallery.store-bulk');
+    Route::post('/instagram-gallery/update-sort-order', [\App\Http\Controllers\InstagramGalleryController::class, 'updateSortOrder'])->name('instagram-gallery.update-sort-order');
+    Route::get('/instagram-gallery/{id}', [\App\Http\Controllers\InstagramGalleryController::class, 'show'])->name('instagram-gallery.show');
+    Route::post('/instagram-gallery', [\App\Http\Controllers\InstagramGalleryController::class, 'store'])->name('instagram-gallery.store');
+    Route::match(['post', 'put'], '/instagram-gallery/{id}', [\App\Http\Controllers\InstagramGalleryController::class, 'update'])->name('instagram-gallery.update');
+    Route::post('/instagram-gallery/{id}/status', [\App\Http\Controllers\InstagramGalleryController::class, 'updateStatus'])->name('instagram-gallery.update-status');
+    Route::delete('/instagram-gallery/{id}', [\App\Http\Controllers\InstagramGalleryController::class, 'destroy'])->name('instagram-gallery.destroy');
+
     // Home Sliders Management
     Route::get('/home-sliders', [\App\Http\Controllers\HomeSliderController::class, 'index'])->name('home-sliders.index');
     Route::get('/home-sliders/data', [\App\Http\Controllers\HomeSliderController::class, 'getData'])->name('home-sliders.data');
@@ -410,6 +363,8 @@ Route::middleware(['auth', 'refreshStorage'])->group(function () {
     Route::post('/sections/toggle-variant', [\App\Http\Controllers\SectionController::class, 'toggleVariant'])->name('sections.toggleVariant');
     Route::post('/sections/update-variant-image', [\App\Http\Controllers\SectionController::class, 'updateVariantImage'])->name('sections.updateVariantImage');
     Route::post('/sections/update-sort-order', [\App\Http\Controllers\SectionController::class, 'updateSortOrder'])->name('sections.updateSortOrder');
+    Route::post('/sections/update-font-family', [\App\Http\Controllers\SectionController::class, 'updateFontFamily'])->name('sections.updateFontFamily');
+    Route::post('/sections/update-color-theme', [\App\Http\Controllers\SectionController::class, 'updateColorTheme'])->name('sections.updateColorTheme');
     Route::post('/sections/initialize-home', [\App\Http\Controllers\SectionController::class, 'initializeHomePageSections'])->name('sections.initializeHome');
     
     // Products

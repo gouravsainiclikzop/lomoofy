@@ -171,6 +171,7 @@ class CategoryController extends Controller
                     'parent_name' => $child->parent ? $child->parent->name : null,
                     'parent_id' => $child->parent_id,
                     'is_active' => $child->is_active,
+                    'featured' => $child->featured ?? false,
                     'sort_order' => $child->sort_order,
                     'description' => $child->description,
                     'image' => $child->image,
@@ -195,6 +196,7 @@ class CategoryController extends Controller
                 'parent_name' => $category->parent ? $category->parent->name : null,
                 'parent_id' => $category->parent_id,
                 'is_active' => $category->is_active,
+                'featured' => $category->featured ?? false,
                 'sort_order' => $category->sort_order,
                 'description' => $category->description,
                 'image' => $category->image,
@@ -302,6 +304,7 @@ class CategoryController extends Controller
                     'parent_name' => $category->parent ? $category->parent->name : null,
                     'parent_id' => $category->parent_id,
                     'is_active' => $category->is_active,
+                    'featured' => $category->featured ?? false,
                     'sort_order' => $category->sort_order,
                     'description' => $category->description,
                     'image' => $category->image,
@@ -853,6 +856,37 @@ public function edit(Request $request)
             'message' => 'Status updated successfully',
             'data' => [
                 'is_active' => $category->is_active
+            ]
+        ]);
+    }
+
+    /**
+     * Update featured status for a category (POST AJAX JSON).
+     */
+    public function updateFeatured(Request $request)
+    {
+        $category = Category::find($request->id);
+
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category not found'
+            ], 404);
+        }
+
+        $request->validate([
+            'featured' => 'required|in:0,1,true,false',
+        ]);
+
+        $category->update([
+            'featured' => $request->featured == 1 || $request->featured === 'true' || $request->featured === true
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Featured status updated successfully',
+            'data' => [
+                'featured' => $category->featured
             ]
         ]);
     }

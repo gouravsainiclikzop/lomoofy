@@ -1089,7 +1089,7 @@ $(document).ready(function() {
                         'processing': '#0dcaf0',
                         'shipped': '#198754',
                         'delivered': '#198754',
-                        'cancelled': '#dc3545',
+                        'cancelled': '#e52d2d',
                         'refunded': '#6c757d'
                     };
                     const statusColor = statusColors[order.status.toLowerCase()] || '#6c757d';

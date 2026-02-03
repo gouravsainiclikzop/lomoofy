@@ -1602,7 +1602,7 @@ function displayValidationErrors(errors) {
 
 /* Enhanced error styling */
 .is-invalid {
-    border-color: #dc3545 !important;
+    border-color: #e52d2d !important;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
     animation: shake 0.5s ease-in-out;
 }
@@ -1612,7 +1612,7 @@ function displayValidationErrors(errors) {
     width: 100%;
     margin-top: 0.25rem;
     font-size: 0.875em;
-    color: #dc3545;
+    color: #e52d2d;
     font-weight: 500;
 }
 
@@ -1623,19 +1623,19 @@ function displayValidationErrors(errors) {
 }
 
 .form-control.is-invalid:focus {
-    border-color: #dc3545;
+    border-color: #e52d2d;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 
 /* Select styling for errors */
 .form-select.is-invalid {
-    border-color: #dc3545 !important;
+    border-color: #e52d2d !important;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
 }
 
 /* Textarea styling for errors */
 textarea.is-invalid {
-    border-color: #dc3545 !important;
+    border-color: #e52d2d !important;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
 }
 
@@ -1749,7 +1749,7 @@ html {
 }
 
 .chip-remove:hover {
-    background-color: #dc3545;
+    background-color: #e52d2d;
     color: white;
 }
 

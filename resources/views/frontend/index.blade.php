@@ -3,876 +3,108 @@
 @section('title', 'Home - Lomoofy Industries')
 
 @section('content')
-<!-- ============================ Hero Banner  Start================================== -->
-			@if($homeSliders->count() > 0)
-			<div class="home-slider margin-bottom-0">
-				@foreach($homeSliders as $slider)
-				<!-- Slide -->
-				<div data-background-image="{{ $slider['image'] }}" class="item">
-					<div class="container">
-						<div class="row">
-							<div class="col-md-12">
-								<div class="home-slider-container">
 
-									<!-- Slide Title -->
-									<div class="home-slider-desc">
-										<div class="home-slider-title mb-4">
-											@if($slider['category']) 
-												<h5 class="theme-cl fs-sm ft-ragular mb-0">{{ $slider['category']['name'] }} Collection</h5>
-											@endif
-											@if($slider['title'])
-												<h1 class="mb-1 ft-bold lg-heading">{!! $slider['title'] !!}</h1>
-											@endif
-											@if($slider['tagline'])
-											<span class="trending">{{ $slider['tagline'] }}</span> 
-											@endif
-										</div>
-										@if($slider['category'])
-											<a href="{{ route('frontend.shop') }}?category={{ $slider['category']['slug'] }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
-										@else
-											<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
-										@endif
-									</div>
-									<!-- Slide Title / End -->
 
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-				@endforeach
-			</div>
-			@else
-			<!-- Fallback slider if no sliders are configured -->
-			<div class="home-slider margin-bottom-0">
-				<div data-background-image="{{ asset('frontend/images/banner-2.png') }}" class="item">
-					<div class="container">
-						<div class="row">
-							<div class="col-md-12">
-								<div class="home-slider-container">
-									<div class="home-slider-desc">
-										<div class="home-slider-title mb-4">
-											<h5 class="theme-cl fs-sm ft-ragular mb-0">Welcome</h5>
-											<h1 class="mb-1 ft-bold lg-heading">Shop Now</h1>
-										</div>
-										<a href="{{ route('frontend.shop') }}" class="btn stretched-links borders">Shop Now<i class="lni lni-arrow-right ms-2"></i></a>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			@endif
-			<!-- ============================ Hero Banner End ================================== -->
-			 
+@php 
+		$sections = \App\Models\Section::where('is_active', true)
+				->orderBy('sort_order')
+				->get();
+@endphp 
+
+@foreach($sections as $section)
+
+    @switch($section->section_id)
+
+        @case('issliderbanner-v1')
+            @include('frontend.sections.issliderbanner-v1')
+            @break
+
+        @case('issliderbanner-v2')
+            @include('frontend.sections.issliderbanner-v2')
+            @break	 
+
+        @case('isfeaturedcategory-v1')
+			@include('frontend.sections.isfeaturedcategory-v1')
+			@break
+
+        @case('isfeaturedcategory-v2')
+			@include('frontend.sections.isfeaturedcategory-v2')
+			@break
+
+				@case('isfeaturedcategory-v3')
+			@include('frontend.sections.isfeaturedcategory-v3')
+			@break
+
+        @case('isfeaturedcategory-v4')
+			@include('frontend.sections.isfeaturedcategory-v4')
+			@break
 			
-			<!-- ========================= Discover Our Collections section ========================== -->
-			@if(isset($collections) && $collections->count() > 0)
-			<section class="middle">
-				<div class="container">
-					<div class="row g-0">
-						@php
-							$collectionsList = $collections->take(4)->values();
-							$categoryIds = $collectionsList->pluck('category_id')->filter()->unique()->toArray();
-							$productCounts = [];
-							
-							if (!empty($categoryIds)) {
-								// For each category, get unique published product count
-								foreach($categoryIds as $catId) {
-									// Get product IDs from primary category_id
-									$primaryProductIds = \App\Models\Product::where('category_id', $catId)
-										->where('status', 'published')
-										->pluck('id')
-										->toArray();
-									
-									// Get product IDs from product_categories pivot table (only published products)
-									$pivotProductIds = \DB::table('product_categories')
-										->join('products', 'product_categories.product_id', '=', 'products.id')
-										->where('product_categories.category_id', $catId)
-										->where('products.status', 'published')
-										->distinct()
-										->pluck('product_categories.product_id')
-										->toArray();
-									
-									// Merge and get unique count (avoid double counting)
-									$uniqueProductIds = array_unique(array_merge($primaryProductIds, $pivotProductIds));
-									$productCounts[$catId] = count($uniqueProductIds);
-								}
-							}
-						@endphp
-						
-						<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
-							@if($collectionsList->count() > 0)
-								@php $collection = $collectionsList[0]; @endphp
-								<div class="single_cats">
-									<a href="{{ $collection->category_id && $collection->category ? route('frontend.shop') . '?category=' . $collection->category->slug : '#' }}" class="cards card-overflow card-scale lg_height">
-										<div class="bg-image" style="background:url({{ $collection->featured_image ? asset('storage/' . $collection->featured_image) : asset('frontend/images/b-8.png') }})no-repeat;"></div>
-										<div class="ct_body">
-											<div class="ct_body_caption left">	
-												<h2 class="m-0 ft-bold lh-1 fs-md text-upper">{{ $collection->title }}</h2>
-												@if($collection->category_id && isset($productCounts[$collection->category_id]))
-													<span>{{ $productCounts[$collection->category_id] }} Items</span>
-												@endif
-											</div>
-											<div class="ct_footer left">
-												<span class="stretched-link fs-md">Browse Items <i class="ti-arrow-circle-right"></i></span>
-											</div>
-										</div>
-									</a>
-								</div>
-							@endif
-							
-							@if($collectionsList->count() > 1)
-								@php $collection = $collectionsList[1]; @endphp
-								<div class="single_cats">
-									<a href="{{ $collection->category_id && $collection->category ? route('frontend.shop') . '?category=' . $collection->category->slug : '#' }}" class="cards card-overflow card-scale md_height">
-										<div class="bg-image" style="background:url({{ $collection->featured_image ? asset('storage/' . $collection->featured_image) : asset('frontend/images/b-5.png') }})no-repeat;"></div>
-										<div class="ct_body">
-											<div class="ct_body_caption left">	
-												<h2 class="m-0 ft-bold lh-1 fs-md text-upper">{{ $collection->title }}</h2>
-												@if($collection->category_id && isset($productCounts[$collection->category_id]))
-													<span>{{ $productCounts[$collection->category_id] }} Items</span>
-												@endif
-											</div>
-											<div class="ct_footer left">
-												<span class="stretched-link fs-md">Browse Items <i class="ti-arrow-circle-right"></i></span>
-											</div>
-										</div>
-									</a>
-								</div>
-							@endif
-						</div>
-						
-						<div class="col-xl-6 col-lg-6 col-md-6 col-sm-12"> 
-							<div class="row no-gutters"> 
-								<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-									@if($collectionsList->count() > 2)
-										@php $collection = $collectionsList[2]; @endphp
-										<div class="single_cats">
-											<a href="{{ $collection->category_id && $collection->category ? route('frontend.shop') . '?category=' . $collection->category->slug : '#' }}" class="cards card-overflow card-scale md_height">
-												<div class="bg-image" style="background:url({{ $collection->featured_image ? asset('storage/' . $collection->featured_image) : asset('frontend/images/b-3.png') }})no-repeat;"></div>
-												<div class="ct_body">
-													<div class="ct_body_caption left">	
-														<h2 class="m-0 ft-bold lh-1 fs-md text-upper">{{ $collection->title }}</h2>
-														@if($collection->category_id && isset($productCounts[$collection->category_id]))
-															<span>{{ $productCounts[$collection->category_id] }} Items</span>
-														@endif
-													</div>
-													<div class="ct_footer left">
-														<span class="stretched-link fs-md">Browse Items <i class="ti-arrow-circle-right"></i></span>
-													</div>
-												</div>
-											</a>
-										</div>
-									@endif
-									
-									@if($collectionsList->count() > 3)
-										@php $collection = $collectionsList[3]; @endphp
-										<div class="single_cats">
-											<a href="{{ $collection->category_id && $collection->category ? route('frontend.shop') . '?category=' . $collection->category->slug : '#' }}" class="cards card-overflow card-scale lg_height">
-												<div class="bg-image" style="background:url({{ $collection->featured_image ? asset('storage/' . $collection->featured_image) : asset('frontend/images/b-7.png') }})no-repeat;"></div>
-												<div class="ct_body">
-													<div class="ct_body_caption left">	
-														<h2 class="m-0 ft-bold lh-1 fs-md text-upper">{{ $collection->title }}</h2>
-														@if($collection->category_id && isset($productCounts[$collection->category_id]))
-															<span>{{ $productCounts[$collection->category_id] }} Items</span>
-														@endif
-													</div>
-													<div class="ct_footer left">
-														<span class="stretched-link fs-md">Browse Items <i class="ti-arrow-circle-right"></i></span>
-													</div>
-												</div>
-											</a>
-										</div>
-									@endif
-								</div>
-							</div>
-							<!-- /row -->
-						</div>
-					</div>
-				</div>
-			</section>
-			@endif
-			<!-- ========================= Discover Our Collections section end ========================== -->
+			@case('isfeaturedcategory-v5')
+			@include('frontend.sections.isfeaturedcategory-v5')
+			@break
+
+      @case('isfeaturedcategory-v6')
+			@include('frontend.sections.isfeaturedcategory-v6')
+			@break
  
-			<section class="space gray">
-				<div class="container"> 
-					<div class="row justify-content-center">
-						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-							<div class="sec_title position-relative text-center">
-								<h2 class="off_title">Best Seller</h2>
-								<h3 class="ft-bold pt-3">Best Seller</h3>
-							</div>
-						</div>
-					</div>
-					
-					<div class="row"> 
-						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-						
-							<div class="slide_items">
-								@if($bestSellers->count() > 0)
-									@foreach($bestSellers as $product)
-									<!-- single Item -->
-									<div class="single_itesm">
-										<div class="product_grid card b-0 mb-0">
-											@if($product['badge'] === 'sale')
-												<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-											@elseif($product['badge'] === 'new')
-												<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
-											@elseif($product['badge'] === 'hot')
-												<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-											@endif
-											<button class="snackbar-wishlist btn btn_love position-absolute ab-right {{ $product['in_wishlist'] ? 'wishlist-active' : '' }}" 
-												data-product-id="{{ $product['id'] }}" 
-												data-in-wishlist="{{ $product['in_wishlist'] ? '1' : '0' }}">
-												<i class="far fa-heart {{ $product['in_wishlist'] ? 'text-danger' : '' }}"></i>
-											</button> 
-											<div class="card-body p-0">
-												<div class="shop_thumb position-relative">
-													<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
-														<img class="card-img-top" src="{{ $product['image_url'] }}" alt="{{ $product['name'] }}">
-													</a>
-													<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-														<div class="edlio">
-															<a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" data-product-slug="{{ $product['slug'] }}">
-																<i class="fas fa-eye me-1"></i>Quick View
-															</a>
-														</div>
-													</div>
-												</div>
-											</div>
-											<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-												<div class="text-left">
-													<div class="text-center">
-														<h5 class="fw-normal fs-md mb-0 lh-1 mb-1">
-															<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
-														</h5>
-														<div class="elis_rty">
-															@php
-																$hasPriceRange = $product['has_price_range'] ?? false;
-																$firstVariantPrice = $product['first_variant_price'] ?? $product['min_price'] ?? 0;
-																$firstVariantSalePrice = $product['first_variant_sale_price'] ?? null;
-															@endphp
-															
-															@if(!$hasPriceRange && isset($product['first_variant_discount_type']))
-																{{-- Use variant-level pricing when single variant with discount --}}
-																@include('frontend.partials.product-pricing-compact', [
-																	'price' => $firstVariantPrice,
-																	'sale_price' => $firstVariantSalePrice,
-																	'original_price' => $firstVariantPrice,
-																	'discount_type' => $product['first_variant_discount_type'] ?? null,
-																	'discount_value' => $product['first_variant_discount_value'] ?? null,
-																	'discount_active' => $product['first_variant_discount_active'] ?? false,
-																	'gstType' => $product['gst_type'] ?? true,
-																	'gstPercentage' => $product['gst_percentage'] ?? 0,
-																	'compact' => true
-																])
-															@else
-																{{-- Use price range or simple display for multiple variants --}}
-																@php
-																	$minPrice = $product['min_price'] ?? 0;
-																	$maxPrice = $product['max_price'] ?? 0;
-																	$minSalePrice = $product['min_sale_price'] ?? null;
-																	$hasSale = $product['has_sale'] ?? false;
-																@endphp
-																@if($hasSale && $minSalePrice)
-																	<div class="product-pricing-compact compact">
-																		<div class="pricing-main-compact">
-																			<div class="d-flex align-items-baseline flex-wrap gap-1">
-																				<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
-																					₹{{ number_format($minPrice, 0) }}
-																					@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
-																				</span>
-																				<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
-																					₹{{ number_format($minSalePrice, 0) }}
-																					@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
-																						- ₹{{ number_format($product['max_sale_price'], 0) }}
-																					@endif
-																				</span>
-																			</div>
-																		</div>
-																	</div>
-																@else
-																	<span class="ft-medium fs-md text-dark">
-																		₹{{ number_format($product['min_display_price'] ?? $product['min_price'] ?? 0, 0) }}
-																		@if($hasPriceRange) - ₹{{ number_format($product['max_display_price'] ?? $product['max_price'] ?? 0, 0) }} @endif
-																	</span>
-																@endif
-															@endif
-														</div>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-									@endforeach
-								@else
-									<div class="col-xl-12">
-										<p class="text-center text-muted">No best seller products found.</p>
-									</div>
-								@endif
-							</div>
-						</div>
-					</div> 
-				</div>
-			</section>
+			@case('isdealsoftheday-v1')
+			@include('frontend.sections.isdealsoftheday-v1')
+			@break
 
+        @case('isproductwithcategorytabs-v1')
+			@include('frontend.sections.isproductwithcategorytabs-v1')
+			@break
 
-			@if($ourCollection && ($ourCollection->heading || $ourCollection->description))
-			<section class="bg-cover" style="background:url({{ $ourCollection->background_image ? asset('storage/' . $ourCollection->background_image) : asset('frontend/images/bg-2.jpg') }}) no-repeat;" data-overlay="1">
-				<div class="container">
-					<div class="row justify-content-center">
-						<div class="col-xl-8 col-lg-9 col-md-12 col-sm-12">
-							
-							<div class="deals_wrap text-center"> 
-								@if($ourCollection->heading)
-									<h2 class="ft-bold text-light">{{ $ourCollection->heading }}</h2>
-								@endif
-								@if($ourCollection->description)
-									<p class="text-light">{{ $ourCollection->description }}</p>
-								@endif
-								<div class="mt-5">
-									@if($ourCollection->category)
-										<a href="{{ route('frontend.shop') }}?category={{ $ourCollection->category->slug }}" class="btn btn-white stretched-links">Start Shopping <i class="lni lni-arrow-right"></i></a>
-									@else
-										<a href="{{ route('frontend.shop') }}" class="btn btn-white stretched-links">Start Shopping <i class="lni lni-arrow-right"></i></a>
-									@endif
-								</div>
-							</div>
-							
-						</div>
-					</div>
-				</div>
-			</section>
-			@endif
+			@case('isbestseller-v1')
+			@include('frontend.sections.isbestseller-v1')
+			@break
 
+			@case('istrendingcategories-v1')
+			@include('frontend.sections.istrendingcategories-v1')
+			@break
 
-			<section class="middle gray">
-				<div class="container"> 
-					<div class="row justify-content-center">
-						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-							<div class="sec_title position-relative text-center">
-								<h2 class="off_title">New Arrivals</h2>
-								<h3 class="ft-bold pt-3">New Arrivals</h3>
-							</div>
-						</div>
-					</div> 
-			<!-- row -->
-					<div class="row align-items-center rows-products">
-						@if($newArrivals->count() > 0)
-							@foreach($newArrivals as $index => $product)
-								<div class="col-xl-3 col-lg-4 col-md-6 col-6">
-									<div class="product_grid card b-0">
-										@if($product['has_sale'])
-											<div class="badge bg-success text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-										@elseif($product['is_new'])
-											<div class="badge bg-info text-white position-absolute ft-regular ab-left text-upper">New</div>
-										@elseif($product['is_featured'])
-											<div class="badge bg-warning text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-										@endif
-										
-										<div class="card-body p-0">
-											<div class="shop_thumb position-relative">
-												<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
-													@php
-														// Use product's featured/primary image by default (from product_images table)
-														$productImage = $product['image_url'];
-													@endphp
-													<img class="card-img-top product-image-{{ $index }}" src="{{ $productImage }}" alt="{{ $product['name'] }}" data-default-image="{{ $productImage }}">
-												</a>
-												<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-													<div class="edlio">
-														<a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" 
-															data-product-slug="{{ $product['slug'] }}"
-															data-product-index="{{ $index }}"
-															data-selected-color="">
-															<i class="fas fa-eye me-1"></i>Quick View
-														</a>
-													</div>
-												</div>
-											</div>
-										</div>
-										
-										<div class="card-footer b-0 p-0 pt-2">
-											<div class="d-flex align-items-start justify-content-between">
-												<div class="text-left">
-													@php
-														// Priority: Show color if available, otherwise show one variable attribute (preferably size)
-														$hasColor = $product['color_variants']->count() > 0;
-														$firstColorVariant = $hasColor ? $product['color_variants']->first() : null;
-														$availableVariableValues = $firstColorVariant['available_variable_values'] ?? [];
-														
-														// If no color, get variable attributes from product data
-														if (!$hasColor && isset($product['variable_attributes'])) {
-															$availableVariableValues = $product['variable_attributes'];
-														}
-														
-														// Determine which attribute to show (prefer size, otherwise first available)
-														$attributeToShow = null;
-														if (!$hasColor && !empty($availableVariableValues)) {
-															// Prefer size, otherwise get first attribute
-															if (isset($availableVariableValues['size'])) {
-																$attributeToShow = ['key' => 'size', 'values' => $availableVariableValues['size']];
-															} else {
-																$firstKey = array_key_first($availableVariableValues);
-																if ($firstKey) {
-																	$attributeToShow = ['key' => $firstKey, 'values' => $availableVariableValues[$firstKey]];
-																}
-															}
-														}
-													@endphp
-													
-													@if($hasColor)
-														{{-- Show Color Options Only --}}
-														<div class="mb-2">
-															@foreach($product['color_variants'] as $colorIndex => $colorVariant)
-																@php
-																	$colorId = strtolower(str_replace(' ', '', $colorVariant['color'] ?? 'color' . $colorIndex));
-																@endphp
-																<div class="form-check form-option form-check-inline mb-1">
-																	<input 
-																		class="form-check-input color-option" 
-																		type="radio" 
-																		name="color{{ $index + 1 }}" 
-																		id="{{ $colorId }}{{ $index + 1 }}"
-																		data-price="{{ $colorVariant['display_price'] ?? $colorVariant['price'] ?? 0 }}"
-																		data-sale-price="{{ $colorVariant['sale_price'] ?? '' }}"
-																		data-regular-price="{{ $colorVariant['price'] ?? 0 }}"
-																		data-has-sale="{{ $colorVariant['has_sale'] ? '1' : '0' }}"
-																		data-discount-type="{{ $colorVariant['discount_type'] ?? '' }}"
-																		data-discount-value="{{ $colorVariant['discount_value'] ?? 0 }}"
-																		data-discount-active="{{ ($colorVariant['discount_active'] ?? false) ? '1' : '0' }}"
-																		data-product-index="{{ $index }}"
-																		data-variant-image="{{ $colorVariant['image'] ?? '' }}"
-																		data-color-value="{{ $colorVariant['color'] ?? '' }}">
-																	<label class="form-option-label small rounded-circle" for="{{ $colorId }}{{ $index + 1 }}">
-																		<span class="form-option-color rounded-circle" style="background-color: {{ $colorVariant['color_code'] ?? '#ccc' }}"></span>
-																	</label>
-																</div>
-															@endforeach 
-														</div>
-													@elseif($attributeToShow)
-														{{-- Show One Variable Attribute (preferably size) --}}
-														<div class="mb-2">
-															<div class="d-flex flex-wrap gap-1">
-																@foreach($attributeToShow['values'] as $attrValue)
-																	<span class="badge bg-light text-dark border" style="font-size: 0.7rem; font-weight: normal;">
-																		{{ $attrValue }}
-																	</span>
-																@endforeach
-															</div>
-														</div>
-													@endif
-												</div>
-												<div class="text-right">
-													@php
-														$inWishlist = isset($product['in_wishlist']) && $product['in_wishlist'];
-													@endphp
-													<button class="btn auto btn_love snackbar-wishlist {{ $inWishlist ? 'wishlist-active' : '' }}" data-product-id="{{ $product['id'] }}" data-in-wishlist="{{ $inWishlist ? '1' : '0' }}">
-														<i class="{{ $inWishlist ? 'fas' : 'far' }} fa-heart{{ $inWishlist ? ' text-danger wishlist-heart-red' : '' }}" style="{{ $inWishlist ? 'color: #dc3545 !important;' : '' }}"></i>
-													</button> 
-												</div>
-											</div>
-											<div class="text-left">
-												<h5 class="fw-nornal fs-md mb-0 lh-1 mb-1">
-													<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
-												</h5>
-												<div class="elis_rty product-price-{{ $index }}">
-													@php
-														// Use first color variant if available for better discount display
-														// Otherwise use product-level min/max prices
-														$firstColorVariant = $product['color_variants']->first();
-														$minDisplayPrice = $product['min_display_price'] ?? $product['min_price'] ?? 0;
-														$maxDisplayPrice = $product['max_display_price'] ?? $product['max_price'] ?? 0;
-														$hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
-													@endphp
-													
-													@if($firstColorVariant && !$hasPriceRange)
-														{{-- Use variant-level pricing when single variant --}}
-														@include('frontend.partials.product-pricing-compact', [
-															'price' => $firstColorVariant['price'] ?? $minDisplayPrice,
-															'sale_price' => $firstColorVariant['sale_price'] ?? null,
-															'original_price' => $firstColorVariant['price'] ?? $minDisplayPrice,
-															'discount_type' => $firstColorVariant['discount_type'] ?? null,
-															'discount_value' => $firstColorVariant['discount_value'] ?? null,
-															'discount_active' => $firstColorVariant['discount_active'] ?? false,
-															'gstType' => $product['gst_type'] ?? true,
-															'gstPercentage' => $product['gst_percentage'] ?? 0,
-															'compact' => true
-														])
-													@else
-														{{-- Use price range display for multiple variants --}}
-														@php
-															$minPrice = $product['min_price'] ?? 0;
-															$maxPrice = $product['max_price'] ?? 0;
-															$minSalePrice = $product['min_sale_price'] ?? null;
-															$hasSale = $product['has_sale'] ?? false;
-														@endphp
-														@if($hasSale && $minSalePrice)
-															<div class="product-pricing-compact compact">
-																<div class="pricing-main-compact">
-																	<div class="d-flex align-items-baseline flex-wrap gap-1">
-																		<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
-																			₹{{ number_format($minPrice, 2) }}
-																			@if($hasPriceRange) - ₹{{ number_format($maxPrice, 2) }} @endif
-																		</span>
-																		<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
-																			₹{{ number_format($minSalePrice, 2) }}
-																			@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
-																				- ₹{{ number_format($product['max_sale_price'], 2) }}
-																			@endif
-																		</span>
-																	</div>
-																</div>
-															</div>
-														@else
-															<span class="ft-medium text-dark fs-sm">
-																₹{{ number_format($minDisplayPrice, 2) }}
-																@if($hasPriceRange) - ₹{{ number_format($maxDisplayPrice, 2) }} @endif
-															</span>
-														@endif
-													@endif
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-							@endforeach 
-						@endif
-					</div>
-					<!-- row --> 
-				</div>
-			</section>
+        @case('isourcollection-v1')
+			@include('frontend.sections.isourcollection-v1')
+			@break
 
+        @case('isourcollection-v2')
+			@include('frontend.sections.isourcollection-v2')
+			@break
 
-			@if($parentCategories->count() > 0)
-			<section class="p-0">
-				<div class="container-fluid p-0">
-					<div class="row g-0">
-						@php
-							// Calculate column class based on number of categories
-							$categoryCount = $parentCategories->count();
-							$colClass = 'col-xl-' . (12 / min($categoryCount, 3)) . ' col-lg-' . (12 / min($categoryCount, 3)) . ' col-md-' . (12 / min($categoryCount, 2)) . ' col-sm-12';
-							$defaultImages = ['a-1.png', 'a-2.png', 'a-3.png'];
-						@endphp
-					
-						@foreach($parentCategories as $index => $category)
-						<div class="{{ $colClass }}">
-							<a href="{{ route('frontend.shop') }}?category={{ $category->slug }}" class="card card-overflow card-scale no-radius mb-0">
-								<div class="bg-image" style="background:url({{ $category->image ? asset('storage/' . $category->image) : asset('frontend/images/' . ($defaultImages[$index] ?? 'a-1.png')) }})no-repeat;" data-overlay="2"></div>
-								<div class="ct_body">
-									<div class="ct_body_caption">	
-										<h1 class="mb-0 ft-bold text-light">{{ $category->name }}</h1>
-									</div>
-									<div class="ct_footer">
-										<span class="btn btn-white stretched-links">Shop {{ $category->name }} <i class="lni lni-arrow-right"></i>
-										</span>
-									</div>
-								</div>
-							</a>
-						</div>
-						@endforeach
-						
-					</div>
-				</div>
-			</section>
-			@endif
+        @case('isnewarrivals-v1')
+			@include('frontend.sections.isnewarrivals-v1')
+			@break
 
-			@if($recentlyViewed->count() > 0) 
-			<!-- ======================= Recently Viewed ======================== -->
-			<section class="space gray">
-				<div class="container">
-					
-					<div class="row justify-content-center">
-						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-							<div class="sec_title position-relative text-center">
-								<h2 class="off_title">Recently Viewed</h2>
-								<h3 class="ft-bold pt-3">Recently Viewed </h3>
-							</div>
-						</div>
-					</div>
-					
-					<div class="row">
-						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-							<div class="slide_items">
-							
-									@foreach($recentlyViewed as $product)
-									<!-- single Item -->
-									<div class="single_itesm">
-										<div class="product_grid card b-0 mb-0">
-											@if($product['badge'] === 'sale')
-												<div class="badge bg-sale text-white position-absolute ft-regular ab-left text-upper">Sale</div>
-											@elseif($product['badge'] === 'new')
-												<div class="badge bg-new text-white position-absolute ft-regular ab-left text-upper">New</div>
-											@elseif($product['badge'] === 'hot')
-												<div class="badge bg-hot text-white position-absolute ft-regular ab-left text-upper">Hot</div>
-											@endif
-											<button class="snackbar-wishlist btn btn_love position-absolute ab-right {{ $product['in_wishlist'] ? 'wishlist-active' : '' }}" 
-												data-product-id="{{ $product['id'] }}" 
-												data-in-wishlist="{{ $product['in_wishlist'] ? '1' : '0' }}">
-												<i class="far fa-heart {{ $product['in_wishlist'] ? 'text-danger' : '' }}"></i>
-											</button> 
-											<div class="card-body p-0">
-												<div class="shop_thumb position-relative">
-													<a class="card-img-top d-block overflow-hidden" href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">
-														<img class="card-img-top" src="{{ $product['image_url'] }}" alt="{{ $product['name'] }}">
-													</a>
-													<div class="product-hover-overlay bg-dark d-flex align-items-center justify-content-center">
-														<div class="edlio">
-															<a href="#" data-bs-toggle="modal" data-bs-target="#quickview" class="text-white fs-sm ft-medium quick-view-btn" data-product-slug="{{ $product['slug'] }}">
-																<i class="fas fa-eye me-1"></i>Quick View
-															</a>
-														</div>
-													</div>
-												</div>
-											</div>
-											<div class="card-footer b-0 p-3 pb-0 d-flex align-items-start justify-content-center">
-												<div class="text-left">
-													<div class="text-center">
-														<h5 class="fw-normal fs-md mb-0 lh-1 mb-1">
-															<a href="{{ route('frontend.product') }}?product={{ $product['slug'] }}">{{ $product['name'] }}</a>
-														</h5>
-														<div class="elis_rty">
-															@php
-																$hasPriceRange = $product['has_price_range'] ?? false;
-																$firstVariantPrice = $product['first_variant_price'] ?? $product['min_price'] ?? 0;
-																$firstVariantSalePrice = $product['first_variant_sale_price'] ?? null;
-															@endphp
-															
-															@if(!$hasPriceRange && isset($product['first_variant_discount_type']))
-																{{-- Use variant-level pricing when single variant with discount --}}
-																@include('frontend.partials.product-pricing-compact', [
-																	'price' => $firstVariantPrice,
-																	'sale_price' => $firstVariantSalePrice,
-																	'original_price' => $firstVariantPrice,
-																	'discount_type' => $product['first_variant_discount_type'] ?? null,
-																	'discount_value' => $product['first_variant_discount_value'] ?? null,
-																	'discount_active' => $product['first_variant_discount_active'] ?? false,
-																	'gstType' => $product['gst_type'] ?? true,
-																	'gstPercentage' => $product['gst_percentage'] ?? 0,
-																	'compact' => true
-																])
-															@else
-																{{-- Use price range or simple display for multiple variants --}}
-																@php
-																	$minPrice = $product['min_price'] ?? 0;
-																	$maxPrice = $product['max_price'] ?? 0;
-																	$minSalePrice = $product['min_sale_price'] ?? null;
-																	$hasSale = $product['has_sale'] ?? false;
-																@endphp
-																@if($hasSale && $minSalePrice)
-																	<div class="product-pricing-compact compact">
-																		<div class="pricing-main-compact">
-																			<div class="d-flex align-items-baseline flex-wrap gap-1">
-																				<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">
-																					₹{{ number_format($minPrice, 0) }}
-																					@if($hasPriceRange) - ₹{{ number_format($maxPrice, 0) }} @endif
-																				</span>
-																				<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
-																					₹{{ number_format($minSalePrice, 0) }}
-																					@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
-																						- ₹{{ number_format($product['max_sale_price'], 0) }}
-																					@endif
-																				</span>
-																			</div>
-																		</div>
-																	</div>
-																@else
-																	<span class="ft-medium fs-md text-dark">
-																		₹{{ number_format($product['min_display_price'] ?? $product['min_price'] ?? 0, 0) }}
-																		@if($hasPriceRange) - ₹{{ number_format($product['max_display_price'] ?? $product['max_price'] ?? 0, 0) }} @endif
-																	</span>
-																@endif
-															@endif
-														</div>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-									@endforeach
-							 
-							</div>
-						</div>
-					</div>
-					
-				</div>
-			</section>
-			
-			@endif
+        @case('isparentcategoriescards-v1')
+				@include('frontend.sections.isparentcategoriescards-v1')
+				@break
 
+        @case('isrecentlyviewed-v1')
+			@include('frontend.sections.isrecentlyviewed-v1')
+			@break
+
+			@case('istestimonials-v1')
+			@include('frontend.sections.istestimonials-v1')
+			@break
+
+        @case('isblog-v1')
+			@include('frontend.sections.isblog-v1')
+			@break
+
+        @case('isinstagram-v1')
+			@include('frontend.sections.isinstagram-v1')
+			@break
  
-			<!-- ======================= Customer Review ======================== -->
-			<section class="gray">
-				<div class="container"> 
-					<div class="row justify-content-center">
-						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-							<div class="sec_title position-relative text-center">
-								<h2 class="off_title">Testimonials</h2>
-								<h3 class="ft-bold pt-3">Testimonials</h3>
-							</div>
-						</div>
-					</div>
-					
-					<div class="row justify-content-center">
-						<div class="col-xl-9 col-lg-10 col-md-12 col-sm-12">
-							<div class="reviews-slide px-3">
-								@if($testimonials->count() > 0)
-									@foreach($testimonials as $testimonial)
-									<div class="single_review">
-										<div class="sng_rev_thumb">
-											<figure>
-												<img src="{{ $testimonial['image'] }}" class="img-fluid circle" alt="{{ $testimonial['name'] }}">
-											</figure>
-										</div>
-										<div class="sng_rev_caption text-center">
-											<div class="rev_desc mb-4">
-												<p class="fs-md">{{ $testimonial['description'] }}</p>
-											</div>
-											<div class="rev_author">
-												<h4 class="mb-0">{{ $testimonial['name'] }}</h4>
-												@if($testimonial['title'])
-													<span class="fs-sm">{{ $testimonial['title'] }}</span>
-												@endif
-											</div>
-										</div>
-									</div>
-									@endforeach
-								@else
-									<div class="col-xl-12">
-										<p class="text-center text-muted">No testimonials available.</p>
-									</div>
-								@endif
-							</div>
-						</div>
-					</div>
-				</div>
-			</section>
-			<!-- ======================= Customer Review ======================== --> 
- 
-			<!-- ======================= Blog Start ============================ -->
-			@if($latestBlogs && $latestBlogs->count() > 0)
-			<section class="space min">
-				<div class="container"> 
-					<div class="row justify-content-center">
-						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-							<div class="sec_title position-relative text-center">
-								<h2 class="off_title">Latest News</h2>
-								<h3 class="ft-bold pt-3">Latest Updates</h3>
-							</div>
-						</div>
-					</div>
-					
-					<div class="row">
-						@foreach($latestBlogs as $blog)
-						<div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
-							<div class="_blog_wrap">
-								<div class="_blog_thumb mb-2">
-									<a href="{{ route('frontend.blog-detail', $blog->slug) }}" class="d-block">
-										<img src="{{ $blog->thumbnail_url }}" class="img-fluid rounded" alt="{{ $blog->title }}" style="width: 100%; height: 250px; object-fit: cover;">
-									</a>
-								</div>
-								<div class="_blog_caption">
-									<span class="text-muted">{{ $blog->published_date ? $blog->published_date->format('d M Y') : '' }}</span>
-									<h5 class="bl_title lh-1">
-										<a href="{{ route('frontend.blog-detail', $blog->slug) }}">{{ $blog->title }}</a>
-									</h5>
-									<p>{{ Str::limit(strip_tags($blog->description), 150) }}</p>
-									<a href="{{ route('frontend.blog-detail', $blog->slug) }}" class="text-dark fs-sm">Continue Reading..</a>
-								</div>
-							</div>
-						</div>
-						@endforeach
-					</div>
-					
-				</div>
-			</section>
-			@endif
-			<!-- ======================= Blog Start ============================ -->
-			
+            @case('ishighlights-v1')
+                @include('frontend.sections.ishighlights-v1')
+                @break
+                
+    @endswitch
+@endforeach 
 
-
-
-			<!-- ======================= Instagram Start ============================ -->
-			<!-- <section class="p-0">
-				<div class="container-fluid p-0">
-					
-					<div class="row no-gutters">
-						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-							<div class="sec_title position-relative text-center">
-								<h2 class="off_title">Instagram Gallery</h2>
-								<span class="fs-lg ft-bold theme-cl pt-3">@mahak_71</span>
-								<h3 class="ft-bold lh-1">From Instagram</h3>
-							</div>
-						</div>
-					</div>
-					
-					<div class="row no-gutters">
-						
-						<div class="col">
-							<div class="_insta_wrap">
-								<div class="_insta_thumb">
-									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-1.png') }}" class="img-fluid" alt=""></a>
-								</div>
-							</div>
-						</div>
-						<div class="col">
-							<div class="_insta_wrap">
-								<div class="_insta_thumb">
-									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-2.png') }}" class="img-fluid" alt=""></a>
-								</div>
-							</div>
-						</div>
-						<div class="col">
-							<div class="_insta_wrap">
-								<div class="_insta_thumb">
-									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-3.png') }}" class="img-fluid" alt=""></a>
-								</div>
-							</div>
-						</div>
-						<div class="col">
-							<div class="_insta_wrap">
-								<div class="_insta_thumb">
-									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-7.png') }}" class="img-fluid" alt=""></a>
-								</div>
-							</div>
-						</div>
-						<div class="col">
-							<div class="_insta_wrap">
-								<div class="_insta_thumb">
-									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-8.png') }}" class="img-fluid" alt=""></a>
-								</div>
-							</div>
-						</div>
-						<div class="col">
-							<div class="_insta_wrap">
-								<div class="_insta_thumb">
-									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-4.png') }}" class="img-fluid" alt=""></a>
-								</div>
-							</div>
-						</div>
-						<div class="col">
-							<div class="_insta_wrap">
-								<div class="_insta_thumb">
-									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-5.png') }}" class="img-fluid" alt=""></a>
-								</div>
-							</div>
-						</div>
-						<div class="col">
-							<div class="_insta_wrap">
-								<div class="_insta_thumb">
-									<a href="javascript:void(0);" class="d-block"><img src="{{ asset('frontend/images/i-6.png') }}" class="img-fluid" alt=""></a>
-								</div>
-							</div>
-						</div>
-						
-					</div>
-					
-				</div>
-			</section> -->
-			<!-- ======================= Instagram Start ============================ -->
 @endsection
+<!-- instagram section ends here -->
+  
 
 @push('scripts')
 {{-- Include cart pricing JavaScript helper --}}
@@ -1003,7 +235,7 @@ $(document).ready(function() {
                     response.data.forEach(function(item) {
                         const $btn = $('.snackbar-wishlist[data-product-id="' + item.product_id + '"]');
                         if ($btn.length) {
-                            $btn.find('i').removeClass('far').addClass('fas').css('color', '#dc3545');
+                            $btn.find('i').removeClass('far').addClass('fas').css('color', '#e52d2d');
                             $btn.addClass('wishlist-active').attr('data-in-wishlist', '1');
                         }
                     });
@@ -1012,6 +244,33 @@ $(document).ready(function() {
         });
     }
 });
+
+
+// countdown end date for collection section
+(function () {
+    if (!window.collectionCountdownEnd) return;
+
+    const endDate = new Date(window.collectionCountdownEnd).getTime();
+
+    const timer = setInterval(function () {
+        const now = new Date().getTime();
+        const distance = endDate - now;
+
+        if (distance <= 0) {
+            clearInterval(timer);
+            document.getElementById('countdown').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('days').innerText = Math.floor(distance / (1000 * 60 * 60 * 24));
+        document.getElementById('hours').innerText = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        document.getElementById('minutes').innerText = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        document.getElementById('seconds').innerText = Math.floor((distance % (1000 * 60)) / 1000);
+    }, 1000);
+})();
+
+
+
 </script>
 @endpush
 
@@ -1069,10 +328,13 @@ $(document).ready(function() {
     button.wishlist-active .fa-heart,
     .wishlist-heart-red,
     .btn_love .wishlist-heart-red {
-        color: #dc3545 !important;
+        color: #e52d2d !important;
     }
     .btn_love i.fas.fa-heart {
-        color: #dc3545 !important;
+        color: #e52d2d !important;
     }
+
+
+		
 </style>
 @endpush

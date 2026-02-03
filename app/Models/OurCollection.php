@@ -13,6 +13,11 @@ class OurCollection extends Model
         'heading',
         'description',
         'category_id',
+        'countdown_end_at',
+    ];
+
+    protected $casts = [
+        'countdown_end_at' => 'datetime',
     ];
 
     /**
@@ -35,6 +40,7 @@ class OurCollection extends Model
                 'heading' => null,
                 'description' => null,
                 'category_id' => null,
+                'countdown_end_at' => null,
             ]);
         }
         return $instance;

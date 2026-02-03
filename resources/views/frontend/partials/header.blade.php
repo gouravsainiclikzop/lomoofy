@@ -45,352 +45,62 @@
 		color: #495057;
 	}
 </style>
-<div class="py-2 bg-dark">
-	<div class="container">
-		<div class="row">
-		
-		<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12 hide-ipad">
-				<div class="top_first">
-						<a href="tel:{{ $settings->phone }}" class="medium text-light">
-								{{ $settings->phone }}
-						</a>
-				</div>
-		</div>
 
-			
-			<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12 hide-ipad">
-				<div class="top_second text-center"><p class="medium text-light m-0 p-0">Get Free delivery from ₹2000 <a href="{{ route('frontend.shop') }}" class="medium text-light text-underline">Shop Now</a></p></div>
-			</div>
-			
-			<!-- Right Menu -->
-			<div class="col-xl-4 col-lg-4 col-md-5 col-sm-12"> 
-			
-			<div class="language-selector-wrapper dropdown js-dropdown float-right me-3">
-				<a class="popup-title" href="javascript:void(0)" data-bs-toggle="dropdown" title="Language" aria-label="Language dropdown">
-					<span class="hidden-xl-down medium text-light">Language:</span>
-					<span class="iso_code medium text-light" id="current-language">English</span>
-					<i class="fa fa-angle-down medium text-light"></i>
-				</a>
-				<ul class="dropdown-menu popup-content link">
-					<li class="current" data-lang="en"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="en"><img src="{{ asset('frontend/images/1.jpg') }}" alt="en" width="16" height="11" /><span>English</span></a></li>
-					<li data-lang="fr"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="fr"><img src="{{ asset('frontend/images/2.jpg') }}" alt="fr" width="16" height="11" /><span>Français</span></a></li>
-					<li data-lang="de"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="de"><img src="{{ asset('frontend/images/3.jpg') }}" alt="de" width="16" height="11" /><span>Deutsch</span></a></li>
-					<li data-lang="it"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="it"><img src="{{ asset('frontend/images/4.jpg') }}" alt="it" width="16" height="11" /><span>Italiano</span></a></li>
-					<li data-lang="es"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="es"><img src="{{ asset('frontend/images/5.jpg') }}" alt="es" width="16" height="11" /><span>Español</span></a></li>
-					<li data-lang="ar"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="ar"><img src="{{ asset('frontend/images/6.jpg') }}" alt="ar" width="16" height="11" /><span>اللغة العربية</span></a></li>
-					<li data-lang="hi"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="hi"><img src="{{ asset('frontend/images/7.jpg') }}" alt="hi" width="16" height="11" /><span>हिन्दी</span></a></li>
-					<li data-lang="pa"><a href="javascript:void(0);" class="dropdown-item medium text-medium language-option" data-lang-code="pa"><img src="{{ asset('frontend/images/8.jpg') }}" alt="pa" width="16" height="11" /><span>ਪੰਜਾਬੀ</span></a></li>
-				</ul>
-			</div> 
-				<div class="currency-selector dropdown js-dropdown float-right me-3">
-					<a href="{{ route('frontend.profile-info') }}" class="text-light medium">My Account</a>
-				</div> 
-			</div>
-			
-		</div>
-	</div>
-</div>
 
-<!-- Start Navigation -->
-<div class="header header-light dark-text">
-	<div class="container">
-		<nav id="navigation" class="navigation navigation-landscape">
-			<div class="nav-header">
-				<a class="nav-brand" href="{{ route('frontend.index') }}">
-					<img src="{{ asset('frontend/images/logo.png') }}" class="logo" alt="" />
-				</a>
-				<div class="nav-toggle"></div>
-				<div class="mobile_nav">
-					<ul>
-						<li class="search-input-wrapper">
-							<div class="header-search-box">
-								<form action="{{ route('frontend.shop') }}" method="GET" class="search-form">
-									<input type="text" name="search" class="form-control search-input" placeholder="Search products..." value="{{ request('search') }}">
-									<button type="submit" class="search-btn">
-										<i class="lni lni-search-alt"></i>
-									</button>
-								</form>
-							</div>
-						</li> 
-				 
-				  	@if(!Auth::guard('customer')->check())
-							<li>
-								<a href="#" data-bs-toggle="modal" data-bs-target="#login"> 
-									<i class="lni lni-user"></i>
-								</a>
-							</li> 
-						@else
-							<li>
-								<a href="{{ route('frontend.profile-info') }}"> 
-									<i class="lni lni-user" style="color: #1db000;"></i>
-								</a>
-							</li>
-						@endif 
+@php 
+		// Get parent categories (level 0) with their children (level 1) and grandchildren (level 2)
+		// Limit to maximum 4 parent categories
+		$parentCategories = App\Models\Category::whereNull('parent_id')
+			->where(function($q) {
+				$q->where('is_active', true)->orWhereNull('is_active');
+			})
+			->with(['children' => function($query) {
+				$query->where(function($q) {
+					$q->where('is_active', true)->orWhereNull('is_active');
+				})
+				->orderBy('sort_order')
+				->with(['children' => function($q) {
+					$q->where(function($query) {
+						$query->where('is_active', true)->orWhereNull('is_active');
+					})
+					->orderBy('sort_order');
+				}]);
+			}])
+			->orderBy('sort_order')
+			->limit(4)
+			->get();
+@endphp
 
-						<li>
-							<a href="{{ route('frontend.wishlist') }}" class="wishlist-link">
-								<i class="lni lni-heart"></i><span class="dn-counter">0</span>
-							</a>
-						</li>
-						<li>
-							<a href="{{ route('frontend.shoping-cart') }}">
-								<i class="lni lni-shopping-basket"></i><span class="dn-counter">0</span>
-							</a>
-						</li> 
-					</ul>
-				</div>
-			</div>
+@php 
+		$sections = \App\Models\Section::where('is_active', true)
+				->orderBy('sort_order')
+				->get();
+@endphp 
 
-					@php 
-						// Get parent categories (level 0) with their children (level 1) and grandchildren (level 2)
-						// Limit to maximum 4 parent categories
-						$parentCategories = App\Models\Category::whereNull('parent_id')
-							->where(function($q) {
-								$q->where('is_active', true)->orWhereNull('is_active');
-							})
-							->with(['children' => function($query) {
-								$query->where(function($q) {
-									$q->where('is_active', true)->orWhereNull('is_active');
-								})
-								->orderBy('sort_order')
-								->with(['children' => function($q) {
-									$q->where(function($query) {
-										$query->where('is_active', true)->orWhereNull('is_active');
-									})
-									->orderBy('sort_order');
-								}]);
-							}])
-							->orderBy('sort_order')
-							->limit(4)
-							->get();
-					@endphp
+@foreach($sections as $section)
 
-			<div class="nav-menus-wrapper" style="transition-property: none;">
-				<ul class="nav-menu">   
-			
-				<!-- mobile menu starts here -->
-				<!-- mobile menu starts here -->
-				<!-- mobile menu starts here -->
-				<!-- mobile menu starts here -->
-				<li class="main-menu-item">
-				  <a href="javascript:void(0);">Lomoofy <span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-					<ul class="nav-dropdown nav-submenu" style="right: auto; display: none;">
-						<li class=""><a href="{{ route('frontend.about-us') }}">About Us</a></li>
-						<li class=""><a href="{{ route('frontend.contact') }}">Contact Us</a></li> 
-					</ul>
-				</li>  
-				
-@foreach($parentCategories as $parent)
-    @php
-        $hasChildren = $parent->children && $parent->children->count();
-    @endphp
+    @switch($section->section_id)
 
-    <li class="main-menu-item">
-        <a href="{{ route('frontend.shop') }}?category={{ $parent->slug }}">
-            {{ $parent->name }}
-            @if($hasChildren)
-                <span class="submenu-indicator">
-                    <span class="submenu-indicator-chevron"></span>
-                </span>
-            @endif
-        </a>
+        @case('istopbar-v1')
+            @include('frontend.sections.istopbar-v1')
+            @break
 
-        @if($hasChildren)
-            <ul class="nav-dropdown nav-submenu" style="display:none; right:auto;">
+        @case('isnavbar-v1')
+            @include('frontend.sections.isnavbar-v1')
+            @break	
 
-                @foreach($parent->children as $child)
-                    @php
-                        $hasGrand = $child->children && $child->children->count();
-                    @endphp
+        @case('isnavbar-v2')
+            @include('frontend.sections.isnavbar-v2')
+            @break
 
-                    <li>
-                        <a href="javascript:void(0);">
-                            {{ $child->name }}
-                            @if($hasGrand)
-                                <span class="submenu-indicator">
-                                    <span class="submenu-indicator-chevron"></span>
-                                </span>
-                            @endif
-                        </a>
-
-                        <ul class="nav-dropdown nav-submenu" style="display:none;">
-                            @if($hasGrand)
-                                @foreach($child->children as $grand)
-                                    <li>
-                                        <a href="{{ route('frontend.shop') }}?category={{ $grand->slug }}">
-                                            {{ $grand->name }}
-                                        </a>
-                                    </li>
-                                @endforeach
-                            @else
-                                <li>
-                                    <a href="{{ route('frontend.shop') }}?category={{ $child->slug }}">
-                                        View All
-                                    </a>
-                                </li>
-                            @endif
-                        </ul>
-                    </li>
-
-                @endforeach
-
-            </ul>
-        @endif
-    </li> 
+    @endswitch
 @endforeach
-  
-								
-					<li class="main-menu-item"><a href="{{ route('frontend.profile-info') }}"> <i class="lni lni-user"></i> {{ ucfirst(Auth::guard('customer')->user()->full_name ?? "Guest User") }}</a></li>
-							 
-					@if(Auth::guard('customer')->check())
-					<li class="main-menu-item"><a href="{{ route('frontend.my-orders') }}"> <i class="lni lni-dashboard"></i> My Orders </a></li>
-					<li class="main-menu-item"><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"> <i class="lni lni-heart"></i> Wishlist</a></li>
-					<li class="main-menu-item"><a href="{{ route('frontend.addresses') }}"> <i class="lni lni-map-marker"></i> Addresses</a></li>
-				
-					<li class="main-menu-item">
-						<a href="#" id="customerLogoutBtn3"> 
-							<i class="lni lni-power-switch"></i> Log Out
-						</a>
-					</li>   
-					@endif
+
+ 
+ 
 
 
-				<!-- mobile menu ends here -->
-				
-				<!-- desktop menu starts here -->
-				<!-- desktop menu starts here -->
-				<!-- desktop menu starts here -->
-				<!-- desktop menu starts here -->
-				<li class="mega-menu-item">
-				  <a href="javascript:void(0);">Lomoofy <span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span></a>
-					<ul class="nav-dropdown nav-submenu" style="right: auto; display: none;">
-						<li class=""><a href="{{ route('frontend.about-us') }}">About Us</a></li>
-						<li class=""><a href="{{ route('frontend.contact') }}">Contact Us</a></li> 
-					</ul>
-				</li>  
-					@foreach($parentCategories as $parentCategory)
-						@php
-							$hasChildren = $parentCategory->children && $parentCategory->children->count() > 0;
-						@endphp
-						<li class="mega-menu-item">
-							<a href="{{ route('frontend.shop') }}?category={{ $parentCategory->slug }}">
-								{{ $parentCategory->name }}
-								@if($hasChildren)
-									<span class="submenu-indicator">
-										<span class="submenu-indicator-chevron"></span>
-									</span>
-								@endif
-							</a>
-							@if($hasChildren)
-								<!-- Mega Menu Panel -->
-								<div class="mega-menu-panel">
-									<div class="mega-menu-container">
-										<div class="mega-menu-row">
-											@php
-												// Group level 1 children into columns (max 5 columns)
-												$children = $parentCategory->children;
-												$columnCount = min(5, max(1, $children->count()));
-												$itemsPerColumn = ceil($children->count() / $columnCount);
-												$columns = $children->chunk($itemsPerColumn);
-											@endphp
-											
-											@foreach($columns as $columnIndex => $columnCategories)
-												<div class="mega-menu-column">
-													@foreach($columnCategories as $childCategory)
-														@php
-															$hasGrandchildren = $childCategory->children && $childCategory->children->count() > 0;
-														@endphp
-														<div class="mega-menu-title">
-															<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}">
-																{{ $childCategory->name }}
-															</a>
-														</div>
-														<ul class="mega-menu-list">
-															@if($hasGrandchildren)
-																@foreach($childCategory->children as $grandchildCategory)
-																	<li>
-																		<a href="{{ route('frontend.shop') }}?category={{ $grandchildCategory->slug }}">
-																			{{ $grandchildCategory->name }}
-																		</a>
-																	</li>
-																@endforeach
-															@else
-																<li>
-																	<a href="{{ route('frontend.shop') }}?category={{ $childCategory->slug }}">
-																		View All
-																	</a>
-																</li>
-															@endif
-														</ul>
-														@if(!$loop->last && $columnCategories->count() > 1)
-															<div style="margin-top: 25px;"></div>
-														@endif
-													@endforeach
-												</div>
-											@endforeach
-										</div>
-									</div>
-								</div>
-							@endif
-						</li>
-					@endforeach  
-				</ul>
-				
-				<ul class="nav-menu nav-menu-social align-to-right">
-					<li class="search-input-wrapper">
-						<div class="header-search-box">
-							<form action="{{ route('frontend.shop') }}" method="GET" class="search-form">
-								<input type="text" name="search" class="form-control search-input" placeholder="Search products..." value="{{ request('search') }}">
-								<button type="submit" class="search-btn">
-									<i class="lni lni-search-alt"></i>
-								</button>
-							</form>
-						</div>
-					</li> 
-					<!-- Customer Auth: Checked via JavaScript (session-based) -->
-					<!-- Guest User Icon (shown by default, hidden when customer logged in) --> 
-					<li id="guestUserIcon" class="customer-auth-element">
-						<a href="#" id="guestUserIconLink">
-							<i class="lni lni-user"></i>
-						</a>
-					</li>
-				 
-					<!-- Logged In Customer Menu (hidden by default, shown when customer logged in) -->
-					<li id="customerUserMenu" class="has-submenu customer-auth-element" style="display: none;">
-						<a href="javascript:void(0);">
-							<i class="lni lni-user lnis-user-4" style="color: #1db000"></i>
-							<span class="submenu-indicator"><span class="submenu-indicator-chevron"></span></span>
-						</a>
-						<ul class="nav-dropdown nav-submenu">
-						<li><a href="{{ route('frontend.profile-info') }}"><i class="lni lni-user me-2"></i> {{ ucfirst(Auth::guard('customer')->user()->full_name ?? "Guest User") }}</a></li>
-						 
-							<li><a href="{{ route('frontend.my-orders') }}"><i class="lni lni-shopping-basket me-2"></i>My Order</a></li>
-								<li><a href="{{ route('frontend.wishlist') }}" class="wishlist-link"><i class="lni lni-heart me-2"></i>Wishlist</a></li>
-								<li><a href="{{ route('frontend.addresses') }}"><i class="lni lni-map-marker me-2"></i>Saved Addresses</a></li>
-								<!-- <li><a href="{{ route('frontend.payment-methode') }}"><i class="lni lni-mastercard me-2"></i>Payment Methode</a></li> -->
-								<li><a href="#" id="customerLogoutBtn"><i class="lni lni-power-switch me-2"></i>Log Out</a></li>
-							</ul> 
-					</li>
-					<!-- wishlist icon desktop -->
-					<li>
-						<a href="{{ route('frontend.wishlist') }}" class="wishlist-link">
-							<i class="lni lni-heart"></i><span class="dn-counter"></span>
-						</a>
-					</li>
-					<li>
-						<a href="{{ route('frontend.shoping-cart') }}">
-							<i class="lni lni-shopping-basket"></i><span class="dn-counter"></span>
-						</a>
-					</li> 
-				</ul>
-			</div>
-		</nav>
-	</div>
-</div>
-<!-- End Navigation -->
-<div class="clearfix"></div>
-
-
+<div class="clearfix"></div> 
 @push('scripts')
 <!-- Google Translate Script -->
 <script type="text/javascript">
@@ -961,6 +671,44 @@ jQuery(document).ready(function($) {
 	// Start initialization
 	initCustomerAuth();
 })(); // End IIFE
+
+// Search Sidebar Functions
+function openSearch() {
+	var searchSidebar = document.getElementById('Search');
+	if (searchSidebar) {
+		searchSidebar.style.display = 'block';
+		searchSidebar.style.right = '0px';
+		// Add overlay if needed
+		var overlay = document.createElement('div');
+		overlay.id = 'searchOverlay';
+		overlay.className = 'search-overlay';
+		overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1040;';
+		overlay.onclick = closeSearch;
+		document.body.appendChild(overlay);
+		document.body.style.overflow = 'hidden';
+	}
+}
+
+function closeSearch() {
+	var searchSidebar = document.getElementById('Search');
+	if (searchSidebar) {
+		searchSidebar.style.display = 'none';
+		searchSidebar.style.right = '-320px';
+		// Remove overlay
+		var overlay = document.getElementById('searchOverlay');
+		if (overlay) {
+			overlay.remove();
+		}
+		document.body.style.overflow = '';
+	}
+}
+
+// Close search on ESC key
+document.addEventListener('keydown', function(e) {
+	if (e.key === 'Escape') {
+		closeSearch();
+	}
+});
 </script>
 @endpush
 

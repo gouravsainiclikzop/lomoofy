@@ -117,15 +117,15 @@
         border: 2px solidrgb(211, 165, 0);
         box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     }
-    .status-toggle {
+    .status-toggle, .featured-toggle {
         cursor: pointer;
     }
-    .status-cell .form-check {
+    .status-cell .form-check, .featured-cell .form-check {
         margin: 0;
         padding: 0;
         display: inline-block;
     }
-    .status-cell .form-check-input {
+    .status-cell .form-check-input, .featured-cell .form-check-input {
         position: absolute;
         opacity: 0;
         width: 0;
@@ -134,7 +134,7 @@
         padding: 0;
         pointer-events: none;
     }
-    .status-cell .form-check-label {
+    .status-cell .form-check-label, .featured-cell .form-check-label {
         margin: 0;
         padding: 0;
         cursor: pointer;
@@ -569,6 +569,7 @@
                                 <th style="width: 150px;">Attributes</th>
                                 <th style="width: 100px;">Products</th>
                                 <th style="width: 120px;">Status</th>
+                                <th style="width: 120px;">Featured</th>
                                 <th class="w-min" style="width: 60px;">Actions</th>
                             </tr>
                         </thead>
@@ -1211,6 +1212,20 @@ $(document).ready(function() {
             </div>
         `;
         
+        let featuredToggle = `
+            <div class="form-check form-switch">
+                <input class="form-check-input featured-toggle" type="checkbox" 
+                       id="featured-${category.id}" 
+                       data-id="${category.id}" 
+                       ${category.featured ? 'checked' : ''}>
+                <label class="form-check-label featured-badge-label" for="featured-${category.id}" data-id="${category.id}">
+                    <span class="badge ${category.featured ? 'badge-sa-warning' : 'badge-sa-secondary'}">
+                        ${category.featured ? 'Featured' : 'Not Featured'}
+                    </span>
+                </label>
+            </div>
+        `;
+        
         let imageUrl = category.image ? '{{ asset("storage") }}/' + category.image : '';
         let imageCell = category.image 
             ? `<img src="${imageUrl}" alt="${category.name}" class="img-thumbnail category-table-image" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" loading="lazy" decoding="async">`
@@ -1263,6 +1278,7 @@ $(document).ready(function() {
                 <td>${attributesCell}</td>
                 <td>${productsCount}</td>
                 <td class="status-cell">${statusToggle}</td>
+                <td class="featured-cell">${featuredToggle}</td>
                 <td>
                     <button class="btn btn-sa-muted btn-sm category-actions-btn" type="button" 
                             data-bs-toggle="popover" 
@@ -3075,6 +3091,53 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 let message = xhr.responseJSON?.message || 'Failed to update status';
+                alert('Error: ' + message);
+                // Revert toggle state
+                toggle.prop('checked', !toggle.is(':checked'));
+            },
+            complete: function() {
+                // Re-enable badge
+                label.css('pointer-events', 'auto');
+            }
+        });
+    });
+
+    // Featured Toggle - Badge click handler
+    $(document).on('click', '.featured-badge-label', function(e) {
+        e.preventDefault();
+        let label = $(this);
+        let categoryId = label.data('id');
+        let toggle = label.siblings('.featured-toggle');
+        let isFeatured = toggle.is(':checked') ? 0 : 1; // Toggle the value
+        
+        // Update checkbox state
+        toggle.prop('checked', isFeatured === 1);
+        
+        // Disable badge while updating
+        label.css('pointer-events', 'none');
+        
+        $.ajax({
+            url: '{{ route("categories.updateFeatured") }}',
+            type: 'POST',
+            data: {
+                id: categoryId,
+                featured: isFeatured
+            },
+            success: function(response) {
+                if(response.success) {
+                    // Update badge in current view
+                    if (currentView === 'table') {
+                        let badge = label.find('.badge');
+                        if(response.data.featured) {
+                            badge.removeClass('badge-sa-secondary').addClass('badge-sa-warning').text('Featured');
+                        } else {
+                            badge.removeClass('badge-sa-warning').addClass('badge-sa-secondary').text('Not Featured');
+                        }
+                    }
+                }
+            },
+            error: function(xhr) {
+                let message = xhr.responseJSON?.message || 'Failed to update featured status';
                 alert('Error: ' + message);
                 // Revert toggle state
                 toggle.prop('checked', !toggle.is(':checked'));

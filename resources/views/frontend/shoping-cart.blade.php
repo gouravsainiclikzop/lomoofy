@@ -53,7 +53,7 @@
 					<div class="col-12 col-md-7">
 						<!-- Coupon -->
 						<form id="couponForm" class="mb-7 mb-md-0">
-							<label class="fs-sm ft-medium text-dark">Coupon code:</label>
+							<!-- <label class="fs-sm ft-medium text-dark">Coupon code:</label> -->
 							<div class="row form-row">
 								<div class="col">
 									<input class="form-control" type="text" id="couponCode" placeholder="Enter coupon code*" value="">
@@ -615,7 +615,7 @@ $(document).ready(function() {
                         showAction: false,
                         duration: 3000,
                         textColor: '#fff',
-                        backgroundColor: '#dc3545'
+                        backgroundColor: '#e52d2d'
                     });
                 }
             }
@@ -668,7 +668,7 @@ $(document).ready(function() {
                         showAction: false,
                         duration: 3000,
                         textColor: '#fff',
-                        backgroundColor: '#dc3545'
+                        backgroundColor: '#e52d2d'
                     });
                 }
             }
@@ -690,7 +690,7 @@ $(document).ready(function() {
                     showAction: false,
                     duration: 3000,
                     textColor: '#fff',
-                    backgroundColor: '#dc3545'
+                    backgroundColor: '#e52d2d'
                 });
             }
             return false;
@@ -781,7 +781,7 @@ $(document).ready(function() {
                         showAction: false,
                         duration: 4000,
                         textColor: '#fff',
-                        backgroundColor: '#dc3545'
+                        backgroundColor: '#e52d2d'
                     });
                 }
             }
@@ -837,7 +837,7 @@ $(document).ready(function() {
                         showAction: false,
                         duration: 3000,
                         textColor: '#fff',
-                        backgroundColor: '#dc3545'
+                        backgroundColor: '#e52d2d'
                     });
                 }
             }

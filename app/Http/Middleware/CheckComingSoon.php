@@ -54,6 +54,7 @@ class CheckComingSoon
                     'featured-category-style',
                     'our-collection',
                     'testimonials',
+                    'instagram-gallery',
                     'home-sliders',
                     'service-highlights',
                     'lead-masters',

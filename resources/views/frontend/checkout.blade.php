@@ -600,6 +600,71 @@
 }
 </style>
 @endpush
+	
+@php 
+	 $settings = \App\Models\CompanySetting::getSettings();
+ 	 $color_theme = $settings->active_color_theme ?? null;
+	 $color_themes = $settings->color_themes ?? [];
+	 $active_theme_data = null;
+	 
+	 if ($color_theme && isset($color_themes[$color_theme])) {
+		 $active_theme_data = $color_themes[$color_theme];
+	 }
+	@endphp
+
+
+@push('styles')
+
+<style>
+:root {
+    --secondary-color: {{ $settings->primary_color ?? '#f4f5f7' }};
+    @if($active_theme_data)
+        /* Color Theme: {{ $color_theme }} */
+        --theme-bg-primary: {{ $active_theme_data['backgrounds'][0] ?? '#FFFFFF' }};
+        --theme-bg-secondary: {{ $active_theme_data['backgrounds'][1] ?? '#F9FAFB' }};
+        --theme-bg-tertiary: {{ $active_theme_data['backgrounds'][2] ?? '#F3F4F6' }};
+        --theme-text-primary: {{ $active_theme_data['text'][0] ?? '#111827' }};
+        --theme-text-secondary: {{ $active_theme_data['text'][0] ?? '#1F2937' }};
+        --theme-text-muted: {{ $active_theme_data['muted_text'][0] ?? '#6B7280' }};
+        --theme-text-muted-secondary: {{ $active_theme_data['muted_text'][0] ?? '#9CA3AF' }};
+        --theme-anchor: {{ $active_theme_data['anchors'][0] ?? '#111827' }};
+        --theme-anchor-hover: {{ $active_theme_data['hover'][0] ?? '#DC2626' }};
+        --theme-span: {{ $active_theme_data['span'][0] ?? '#DC2626' }};
+        @if(isset($active_theme_data['borders']) && !empty($active_theme_data['borders']))
+        --theme-border: {{ $active_theme_data['borders'][0] ?? '#E5E7EB' }};
+        @else
+        --theme-border: #E5E7EB;
+        @endif
+    @endif
+}
+</style>
+
+@if($active_theme_data)
+<style> 
+.single-address-display .address-details h6 {
+	color: var(--theme-text-secondary) !important;
+}
+.alert-info {
+	color: var(--theme-text-secondary) !important;
+	background-color: var(--theme-bg-secondary) !important;
+	border-color: var(--theme-bg-secondary) !important;
+}
+.single-address-display .address-card {
+	background-color: var(--theme-bg-secondary) !important;
+	border-color: var(--theme-anchor) !important;
+}
+
+.payment-methods .form-check {
+	border: 1px solid var(--theme-border) !important;
+    background-color: var(--theme-bg-secondary) !important;
+}
+
+.form-control, select.form-control { 
+	border-color: var(--theme-border) !important;
+}
+</style>
+@endif
+@endpush
 
 @push('scripts')
 <!-- Razorpay Checkout Script -->

@@ -1,63 +1,19 @@
 <!-- ============================= Customer Features =============================== -->
+
 @php
-    $highlights = [];
-    
-    if ($serviceHighlight->highlight1_active && $serviceHighlight->highlight1_title) {
-        $highlights[] = [
-            'title' => $serviceHighlight->highlight1_title,
-            'text' => $serviceHighlight->highlight1_text,
-            'icon' => $serviceHighlight->highlight1_icon ?: 'fas fa-shopping-basket'
-        ];
-    }
-    if ($serviceHighlight->highlight2_active && $serviceHighlight->highlight2_title) {
-        $highlights[] = [
-            'title' => $serviceHighlight->highlight2_title,
-            'text' => $serviceHighlight->highlight2_text,
-            'icon' => $serviceHighlight->highlight2_icon ?: 'far fa-credit-card'
-        ];
-    }
-    if ($serviceHighlight->highlight3_active && $serviceHighlight->highlight3_title) {
-        $highlights[] = [
-            'title' => $serviceHighlight->highlight3_title,
-            'text' => $serviceHighlight->highlight3_text,
-            'icon' => $serviceHighlight->highlight3_icon ?: 'fas fa-shield-alt'
-        ];
-    }
-    if ($serviceHighlight->highlight4_active && $serviceHighlight->highlight4_title) {
-        $highlights[] = [
-            'title' => $serviceHighlight->highlight4_title,
-            'text' => $serviceHighlight->highlight4_text,
-            'icon' => $serviceHighlight->highlight4_icon ?: 'fas fa-headphones-alt'
-        ];
-    }
-    
-    $highlightCount = count($highlights);
-    $colClass = $highlightCount > 0 ? 'col-xl-' . (12 / min($highlightCount, 4)) . ' col-lg-' . (12 / min($highlightCount, 4)) . ' col-md-6 col-sm-6' : 'col-xl-3 col-lg-3 col-md-6 col-sm-6';
+    $sections = \App\Models\Section::where('is_active', true)
+        ->orderBy('sort_order')
+        ->get();
 @endphp
 
-@if($highlightCount > 0)
-<section class="px-0 py-3 br-top">
-	<div class="container">
-		<div class="row">
-			@foreach($highlights as $highlight)
-			<div class="{{ $colClass }}">
-				<div class="d-flex align-items-center justify-content-start py-2">
-					<div class="d_ico">
-						<i class="{{ $highlight['icon'] }} theme-cl"></i>
-					</div>
-					<div class="d_capt">
-						<h5 class="mb-0">{{ $highlight['title'] }}</h5>
-						@if($highlight['text'])
-							<span class="text-muted">{{ $highlight['text'] }}</span>
-						@endif
-					</div>
-				</div>
-			</div>
-			@endforeach
-		</div>
-	</div>
-</section>
-<!-- ======================= Customer Features ======================== -->
+@if(!request()->routeIs('frontend.index'))
+    @foreach($sections as $section)
+        @switch($section->section_id)
+            @case('ishighlights-v1')
+                @include('frontend.sections.ishighlights-v1')
+                @break
+        @endswitch
+    @endforeach
 @endif
 
 <!-- ============================ Footer Start ================================== -->
@@ -68,7 +24,7 @@
 				
 				<div class="col-xl-3 col-lg-3 col-md-3 col-sm-12">
 					<div class="footer_widget">
-						<img src="{{ $settings->company_logo ? asset('storage/' . $settings->company_logo) : asset('assets/images/favicon.png') }}" class="img-footer small mb-2" alt="" />
+						<img src="{{ $settings->secondary_logo ? asset('storage/' . $settings->secondary_logo) : asset('storage/' . $settings->company_logo) }}" class="img-footer small mb-2" alt="" />
 						
 						<div class="address mt-3">
 							{{ $settings->address }}	
@@ -78,11 +34,24 @@
 						</div>
 						<div class="address mt-3">
 							<ul class="list-inline">
-								<li class="list-inline-item"><a href="#"><i class="lni lni-facebook-filled"></i></a></li>
-								<li class="list-inline-item"><a href="#"><i class="lni lni-twitter-filled"></i></a></li>
-								<li class="list-inline-item"><a href="#"><i class="lni lni-youtube"></i></a></li>
-								<li class="list-inline-item"><a href="#"><i class="lni lni-instagram-filled"></i></a></li>
-								<li class="list-inline-item"><a href="#"><i class="lni lni-linkedin-original"></i></a></li>
+								@if($settings->facebook_url)
+									<li class="list-inline-item"><a href="{{ $settings->facebook_url }}" target="_blank" rel="noopener noreferrer"><i class="lni lni-facebook-filled"></i></a></li>
+								@endif
+								@if($settings->twitter_url)
+									<li class="list-inline-item"><a href="{{ $settings->twitter_url }}" target="_blank" rel="noopener noreferrer"><i class="lni lni-twitter-filled"></i></a></li>
+								@endif
+								@if($settings->youtube_url)
+									<li class="list-inline-item"><a href="{{ $settings->youtube_url }}" target="_blank" rel="noopener noreferrer"><i class="lni lni-youtube"></i></a></li>
+								@endif
+								@if($settings->instagram_url)
+									<li class="list-inline-item"><a href="{{ $settings->instagram_url }}" target="_blank" rel="noopener noreferrer"><i class="lni lni-instagram-filled"></i></a></li>
+								@endif
+								@if($settings->linkedin_url)
+									<li class="list-inline-item"><a href="{{ $settings->linkedin_url }}" target="_blank" rel="noopener noreferrer"><i class="lni lni-linkedin-original"></i></a></li>
+								@endif
+								@if($settings->whatsapp_url)
+									<li class="list-inline-item"><a href="{{ $settings->whatsapp_url }}" target="_blank" rel="noopener noreferrer"><i class="lni lni-whatsapp"></i></a></li>
+								@endif
 							</ul>
 						</div>
 					</div>

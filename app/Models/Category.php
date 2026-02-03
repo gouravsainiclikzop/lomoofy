@@ -48,25 +48,13 @@ class Category extends Model
             }
         });
     }
-
-    /**
-     * Generate a unique slug from the given name.
-     * With the composite unique index (slug, deleted_at), we only need to check
-     * if an active record (deleted_at = NULL) exists with this slug.
-     * Soft-deleted records don't conflict due to the composite index.
-     * 
-     * @param string $name
-     * @param int|null $excludeId Category ID to exclude from uniqueness check (for updates)
-     * @return string
-     */
+ 
     protected static function generateUniqueSlug($name, $excludeId = null)
     {
         $baseSlug = Str::slug($name);
         $slug = $baseSlug;
         $counter = 1;
-
-        // Only check active records (deleted_at = NULL) since soft-deleted records
-        // don't conflict due to the composite unique index (slug, deleted_at)
+ 
         while (static::where('slug', $slug)
             ->when($excludeId, function ($query) use ($excludeId) {
                 return $query->where('id', '!=', $excludeId);
@@ -142,13 +130,7 @@ class Category extends Model
             ->withTimestamps()
             ->orderBy('sort_order');
     }
-
-    /**
-     * Get all attributes for this category including inherited from ancestors.
-     * Supports unlimited nesting depth.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getAllAttributes()
     {
         $categoryIds = $this->getAncestorIds();
@@ -160,13 +142,7 @@ class Category extends Model
             ->unique('slug') // Remove duplicates if same attribute exists in multiple levels
             ->values();
     }
-
-    /**
-     * Get all ProductAttributes assigned to this category including inherited from ancestors.
-     * Supports unlimited nesting depth.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getAllProductAttributes()
     {
         $categoryIds = $this->getAncestorIds();
@@ -181,37 +157,21 @@ class Category extends Model
             ->unique('id') // Remove duplicates if same attribute exists in multiple levels
             ->values();
     }
-
-    /**
-     * Get variant attributes (can_be_used_for_variants = true) for this category.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getVariantAttributes()
     {
         return $this->getAllProductAttributes()->filter(function($attr) {
             return $attr->is_variation === true;
         })->values();
     }
-
-    /**
-     * Get static attributes (can_be_used_for_variants = false) for this category.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getStaticAttributes()
     {
         return $this->getAllProductAttributes()->filter(function($attr) {
             return $attr->is_variation === false;
         })->values();
     }
-
-    /**
-     * Get all ancestor category IDs (parent, grandparent, etc.)
-     * Supports unlimited nesting depth.
-     * 
-     * @return array
-     */
+ 
     public function getAncestorIds()
     {
         $ancestorIds = [];
@@ -227,13 +187,7 @@ class Category extends Model
         
         return $ancestorIds;
     }
-
-    /**
-     * Get all ancestor categories (parent, grandparent, etc.)
-     * Supports unlimited nesting depth.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getAncestors()
     {
         $ancestors = collect();
@@ -249,28 +203,14 @@ class Category extends Model
         
         return $ancestors;
     }
-
-    /**
-     * Get all descendant category IDs (children, grandchildren, etc.)
-     * Supports unlimited nesting depth.
-     * 
-     * @return array
-     */
+ 
     public function getDescendantIds()
     {
         $descendantIds = [];
         $this->collectDescendantIds($this->id, $descendantIds);
         return $descendantIds;
     }
-
-    /**
-     * Recursively collect descendant category IDs.
-     * 
-     * @param int $categoryId
-     * @param array &$ids
-     * @param int $maxDepth
-     * @param int $currentDepth
-     */
+ 
     protected function collectDescendantIds($categoryId, array &$ids, $maxDepth = 50, $currentDepth = 0)
     {
         if ($currentDepth >= $maxDepth) {
@@ -284,13 +224,7 @@ class Category extends Model
             $this->collectDescendantIds($childId, $ids, $maxDepth, $currentDepth + 1);
         }
     }
-
-    /**
-     * Get all descendant categories (children, grandchildren, etc.)
-     * Supports unlimited nesting depth.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getDescendants()
     {
         $descendantIds = $this->getDescendantIds();
@@ -301,13 +235,7 @@ class Category extends Model
         
         return static::whereIn('id', $descendantIds)->get();
     }
-
-    /**
-     * Get products in this category and all its descendants.
-     * Supports unlimited nesting depth.
-     * 
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
+ 
     public function productsWithDescendants()
     {
         $categoryIds = $this->getDescendantIds();
@@ -315,13 +243,7 @@ class Category extends Model
         
         return Product::whereIn('category_id', $categoryIds);
     }
-
-    /**
-     * Get the depth/level of this category in the hierarchy.
-     * Root categories (no parent) are at level 0.
-     * 
-     * @return int
-     */
+ 
     public function getDepth()
     {
         $depth = 0;
@@ -335,24 +257,12 @@ class Category extends Model
         
         return $depth;
     }
-
-    /**
-     * Check if this category can have children (not at maximum depth).
-     * Maximum depth is 4 levels (0, 1, 2, 3, 4).
-     * 
-     * @return bool
-     */
+ 
     public function canHaveChildren()
     {
         return $this->getDepth() < 3; 
     }
-
-    /**
-     * Get the full path name with parent categories separated by " > ".
-     * Example: "Parent Category > Child Category > Subcategory"
-     * 
-     * @return string
-     */
+ 
     public function getFullPathName()
     {
         $path = [];
@@ -369,13 +279,7 @@ class Category extends Model
         
         return implode(' > ', $path);
     }
-
-    /**
-     * Get the root (top-level) parent category.
-     * Returns the category itself if it's already a root category.
-     * 
-     * @return Category|null
-     */
+ 
     public function getRootCategory()
     {
         $current = $this;

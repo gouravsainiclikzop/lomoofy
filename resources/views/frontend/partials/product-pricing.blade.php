@@ -85,7 +85,7 @@
             @endif
             
             {{-- Final/Sale Price (prominent) - Show 2 decimals --}}
-            <span class="final-price theme-cl fw-bold {{ $hasDiscount ? 'fs-2' : 'fs-3' }}" style="color: #dc3545;">
+            <span class="final-price theme-cl fw-bold {{ $hasDiscount ? 'fs-2' : 'fs-3' }}" style="color: #e52d2d;">
                 ₹{{ number_format($displayFinalPrice, 2) }}
             </span>
             

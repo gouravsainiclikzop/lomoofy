@@ -133,9 +133,9 @@
                                                     <div class="d-flex align-items-baseline flex-wrap gap-2">
                                                         @if($hasSale && $displayMinSalePrice)
                                                             <span class="base-price text-muted text-decoration-line-through fs-5 fw-normal">₹{{ number_format($displayMinPrice, 2) }}</span>
-                                                            <span class="final-price theme-cl fw-bold fs-2" style="color: #dc3545;">₹{{ number_format($displayMinSalePrice, 2) }}</span>
+                                                            <span class="final-price theme-cl fw-bold fs-2" style="color: #e52d2d;">₹{{ number_format($displayMinSalePrice, 2) }}</span>
                                                         @else
-                                                            <span class="final-price theme-cl fw-bold fs-3" style="color: #dc3545;">₹{{ number_format($displayMinPrice, 2) }}</span>
+                                                            <span class="final-price theme-cl fw-bold fs-3" style="color: #e52d2d;">₹{{ number_format($displayMinPrice, 2) }}</span>
                                                             @if($minPrice != $maxPrice && $displayMaxPrice > 0)
                                                                 <span class="final-price theme-cl fw-bold fs-3"> - ₹{{ number_format($displayMaxPrice, 2) }}</span>
                                                             @endif
@@ -342,7 +342,7 @@
 											<button class="btn custom-height btn-default btn-block mb-2 text-dark w-100 snackbar-wishlist {{ $inWishlist ? 'wishlist-active' : '' }}" 
 												data-product-id="{{ $product->id }}" 
 												data-in-wishlist="{{ $inWishlist ? '1' : '0' }}">
-												<i class="{{ $inWishlist ? 'fas' : 'lni' }} {{ $inWishlist ? 'fa-heart' : 'lni-heart' }} me-2{{ $inWishlist ? ' text-danger' : '' }}" {{ $inWishlist ? 'style="color: #dc3545 !important;"' : '' }}></i>Wishlist
+												<i class="{{ $inWishlist ? 'fas' : 'lni' }} {{ $inWishlist ? 'fa-heart' : 'lni-heart' }} me-2{{ $inWishlist ? ' text-danger' : '' }}" {{ $inWishlist ? 'style="color: #e52d2d !important;"' : '' }}></i>Wishlist
 											</button>
 										</div>
 								  </div>
@@ -1308,7 +1308,7 @@
                                 showAction: false,
                                 duration: 3000,
                                 textColor: '#fff',
-                                backgroundColor: '#dc3545'
+                                backgroundColor: '#e52d2d'
                             });
                         }
                         if (callback && typeof callback === 'function') {
@@ -1343,7 +1343,7 @@
                         showAction: false,
                         duration: 3000,
                         textColor: '#fff',
-                        backgroundColor: '#dc3545'
+                        backgroundColor: '#e52d2d'
                     });
                     $btn.prop('disabled', false);
                     return;
@@ -1358,7 +1358,7 @@
                         showAction: false,
                         duration: 3000,
                         textColor: '#fff',
-                        backgroundColor: '#dc3545'
+                        backgroundColor: '#e52d2d'
                     });
                     $btn.prop('disabled', false);
                     return;
@@ -1473,16 +1473,16 @@
 .snackbar-wishlist.wishlist-active i,
 .snackbar-wishlist.wishlist-active .fa-heart,
 .snackbar-wishlist.wishlist-active .fas {
-    color: #dc3545 !important;
+    color: #e52d2d !important;
 }
 
 .snackbar-wishlist.wishlist-active {
-    border-color: #dc3545 !important;
+    border-color: #e52d2d !important;
 }
 
 .snackbar-wishlist .fas.fa-heart.text-danger,
 .snackbar-wishlist.wishlist-active .fas.fa-heart {
-    color: #dc3545 !important;
+    color: #e52d2d !important;
 }
 </style>
 @endpush
@@ -1543,8 +1543,8 @@ $(document).ready(function() {
             // Add to wishlist state
             $btn.addClass('wishlist-active text-danger');
             $btn.attr('data-in-wishlist', '1');
-            $btn.css('color', '#dc3545');
-            $icon.removeClass('lni lni-heart').addClass('fas fa-heart text-danger').css('color', '#dc3545');
+            $btn.css('color', '#e52d2d');
+            $icon.removeClass('lni lni-heart').addClass('fas fa-heart text-danger').css('color', '#e52d2d');
         } else {
             // Remove from wishlist state
             $btn.removeClass('wishlist-active text-danger');
@@ -1742,7 +1742,7 @@ $(document).ready(function() {
                 showAction: false,
                 duration: 3000,
                 textColor: '#fff',
-                backgroundColor: '#dc3545'
+                backgroundColor: '#e52d2d'
             });
             return;
         }
@@ -1754,7 +1754,7 @@ $(document).ready(function() {
                 showAction: false,
                 duration: 3000,
                 textColor: '#fff',
-                backgroundColor: '#dc3545'
+                backgroundColor: '#e52d2d'
             });
             return;
         }
@@ -1797,7 +1797,7 @@ $(document).ready(function() {
                         showAction: false,
                         duration: 3000,
                         textColor: '#fff',
-                        backgroundColor: '#dc3545'
+                        backgroundColor: '#e52d2d'
                     });
                 }
             },
@@ -1812,7 +1812,7 @@ $(document).ready(function() {
                     showAction: false,
                     duration: 3000,
                     textColor: '#fff',
-                    backgroundColor: '#dc3545'
+                    backgroundColor: '#e52d2d'
                 });
             },
             complete: function() {

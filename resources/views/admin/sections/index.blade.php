@@ -13,852 +13,418 @@
                     <span id="headerTitle">Page Sections Management</span>
                 </h4>
                 <small class="text-muted">Manage sections and variants for pages</small>
-                    </div>
-            <div class="d-flex gap-2 align-items-center flex-wrap">
-                <!-- Page Selector -->
-                <div class="d-flex align-items-center gap-2">
-                    <label class="form-label mb-0 small">Page:</label>
-                    <select class="form-select form-select-sm" id="pageSelector" style="min-width: 200px;">
-                        <option value="">Loading pages...</option>
-                    </select>
-                </div>
-                <button type="button" class="btn btn-outline-success btn-sm" id="initializeHomeBtn" title="Initialize default sections for home page">
-                    <i class='bx bx-check-square me-1'></i> Initialize Home Sections
-                            </button>
-                <button type="button" class="btn btn-primary btn-sm" id="saveSortOrderBtn" style="display:none;">
-                    <i class='bx bx-save me-1'></i> Save Order
-                            </button>
-                        </div>
-                    </div>
+             </div>
+            <div class="d-flex gap-2 align-items-center flex-wrap"> 
+                <button type="button" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#colorThemeModal" title="Manage Color Theme">
+                    <i class='bx bx-palette me-1'></i>
+                    <span>Color Theme</span>
+                    @if($companySettings->active_color_theme ?? null)
+                        @php
+                            $themeName = str_replace('_', ' ', $companySettings->active_color_theme);
+                            $themeName = ucwords($themeName);
+                        @endphp
+                        <span class="badge bg-warning text-dark ms-1">{{ $themeName }}</span>
+                    @else
+                        <span class="badge bg-secondary ms-1">None</span>
+                    @endif
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#fontFamilyModal" title="Manage Font Family">
+                    <i class='bx bx-font me-1'></i>
+                    <span>Font Family</span>
+                    @if($companySettings->font_family ?? null)
+                        @php
+                            $fontName = explode(',', $companySettings->font_family)[0];
+                            $fontName = str_replace(["'", '"'], '', $fontName);
+                            $fontName = strlen($fontName) > 15 ? substr($fontName, 0, 15) . '...' : $fontName;
+                        @endphp
+                        <span class="badge bg-info text-dark ms-1">{{ $fontName }}</span>
+                    @endif
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm"  onclick="window.location.href='{{ route("dashboard") }}'">
+                    <i class='bx bx-arrow-back me-1'></i> Back to Dashboard
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm"  title="Refresh sections" onclick="refreshIframe()">
+                    <i class='bx bx-check-square me-1'></i> Refresh
+                </button>  
+             </div>
+         </div>
 
         <!-- Sections List -->
-                    <div class="card">
+        <div class="card">
             <div class="card-body p-3">
-                            <div id="sectionsContainer">
-                    <!-- Module Information Toggle -->
-                    <div class="d-flex justify-content-end mb-2">
-                        <button type="button" class="btn btn-sm btn-link text-info p-0 module-info-toggle" 
-                                data-bs-toggle="collapse" 
-                                data-bs-target="#moduleInfo"
-                                aria-expanded="false"
-                                aria-controls="moduleInfo"
-                                title="Module information">
-                            <i class='bx bx-info-circle' style="font-size: 1.5rem;"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Module Information Panel -->
-                    <div class="collapse mb-3" id="moduleInfo">
-                        <div class="alert alert-info mb-0">
-                            <div class="d-flex align-items-start">
-                                <i class='bx bx-info-circle me-2 mt-1' style="font-size: 1.5rem;"></i>
-                                <div class="flex-grow-1">
-                                    <h6 class="alert-heading mb-2 fw-semibold">Page Sections Management Module</h6>
-                                    <p class="mb-2 small">This module allows you to manage and customize page sections for your website. You can organize different sections like banners, product displays, discounts, and more across various pages.</p>
-                                    <div class="mb-0">
-                                        <strong class="small">How to use this module:</strong>
-                                        <ul class="small mb-0 mt-1">
-                                            <li><strong>Select a page:</strong> Choose a page from the dropdown menu above to manage its sections</li>
-                                            <li><strong>Initialize sections:</strong> Click "Initialize Home Sections" to create default sections for the home page (if not already created)</li>
-                                            <li><strong>Activate variants:</strong> Each section has multiple variants - toggle ON the variant you want to display (only one variant can be active per section)</li>
-                                            <li><strong>Upload images:</strong> Hover over variant images to upload preview images that help identify the variant</li>
-                                            <li><strong>Reorder sections:</strong> Drag sections using the menu icon to change their display order on the page</li>
-                                            <li><strong>Save order:</strong> After rearranging sections, click "Save Order" to apply the changes</li>
-                                            <li><strong>Section types:</strong> Manage different section types like Popular Products, New Arrivals, Banners, Discounts, Brand Logos, Blogs, and Service Highlights</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="text-center py-5 text-muted" id="emptyState">
-                        <i class='bx bx-file' style='font-size: 3rem;'></i>
-                        <p class="mt-2">Please select a page to manage its sections</p>
-                                </div>
-                                <div id="sectionsList"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                </div>
-@endsection
+                <iframe
+                    id="frontendPreview"
+                    src="{{ url('/') }}"
+                    title="Frontend preview"
+                    class="w-100 border rounded"
+                    style="min-height: 80vh; height: 70vh;"
+                ></iframe>
+                <div id="sectionsContainer" class="mt-3">
 
-@push('styles')
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div>
+
+   
+    <!-- Color Theme Management Modal -->
+<div class="modal fade" id="colorThemeModal" tabindex="-1" aria-labelledby="colorThemeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title d-flex align-items-center gap-2" id="colorThemeModalLabel">
+                    <i class='bx bx-palette' style="font-size: 1.5rem;"></i>
+                    <span>Select Color Theme</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-4">
+                @php
+                    $themes = $companySettings->color_themes ?? [];
+                    $activeTheme = $companySettings->active_color_theme ?? null;
+
+                    $themeNames = [
+                        'jewellery_luxury' => 'Jewellery Luxury',
+                        'furniture_earth' => 'Furniture Earth',
+                        'shoes_active' => 'Shoes Active',
+                        'fashion_editorial' => 'Fashion Editorial',
+                        'lifestyle_soft' => 'Lifestyle Soft',
+                        'dark_inverse' => 'Dark Inverse'
+                    ];
+                @endphp
+
+                <div class="d-flex flex-wrap gap-3 justify-content-center" id="colorThemesGrid">
+
+                    <!-- No Theme -->
+                    <div style="width:180px;">
+                        <div class="card theme-card h-100 text-center {{ $activeTheme === null ? 'border-primary border-3' : '' }}"
+                             data-theme="">
+                            <div class="card-body">
+                                <i class='bx bx-x-circle mb-2' style="font-size:2rem;color:#6c757d;"></i>
+                                <h6 class="small mb-2">No Theme</h6>
+
+                                @if($activeTheme === null)
+                                    <span class="badge bg-primary">Active</span>
+                                @else
+                                    <button class="btn btn-sm btn-outline-primary activate-theme-btn" data-theme="">
+                                        Activate
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Themes -->
+                    @foreach($themes as $themeKey => $theme)
+                        <div style="width:180px;">
+                            <div class="card theme-card h-100 text-center {{ $activeTheme === $themeKey ? 'border-primary border-3' : '' }}"
+                                 data-theme="{{ $themeKey }}">
+                                <div class="card-body">
+                                    <h6 class="small fw-semibold mb-2">
+                                        {{ $themeNames[$themeKey] ?? ucwords(str_replace('_', ' ', $themeKey)) }}
+                                    </h6>
+
+                                    <!-- Compact Square Palette -->
+                                    <div class="theme-palette d-flex flex-wrap gap-2 justify-content-center mb-3">
+                                        @foreach(array_merge(
+                                            $theme['backgrounds'] ?? [],
+                                            $theme['text'] ?? [],
+                                            $theme['anchors'] ?? [],
+                                            $theme['borders'] ?? [],
+                                            $theme['hover'] ?? [],
+                                            $theme['span'] ?? []
+                                        ) as $color)
+                                            <span
+                                                class="palette-square"
+                                                style="background-color: {{ $color }};"
+                                                title="{{ $color }}">
+                                            </span>
+                                        @endforeach
+                                    </div>
+
+                                    @if($activeTheme === $themeKey)
+                                        <span class="badge bg-primary">Active</span>
+                                    @else
+                                        <button class="btn btn-sm btn-outline-primary activate-theme-btn"
+                                                data-theme="{{ $themeKey }}">
+                                            Activate
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class='bx bx-x me-1'></i> Close
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Styles -->
 <style>
-    .section-group {
-        background: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        padding: 0.75rem;
-        margin-bottom: 0.75rem;
-        transition: all 0.2s;
-        cursor: move;
-    }
-    
-    .section-group:hover {
-        border-color: #4f46e5;
-        box-shadow: 0 1px 4px rgba(79, 70, 229, 0.1);
-    }
-    
-    .section-group.sortable-ghost {
-        opacity: 0.4;
-        background: #f3f4f6;
-    }
-    
-    .section-group.sortable-drag {
-        opacity: 0.8;
-    }
-    
-    .section-group-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    
-    .section-group-title {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        font-size: 0.95rem;
-        color: #1f2937;
-    }
-    
-    .drag-handle {
-        cursor: grab;
-        color: #9ca3af;
-        font-size: 1rem;
-    }
-    
-    .drag-handle:active {
-        cursor: grabbing;
-    }
-    
-    .variants-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-    
-    .variant-item {
-        flex: 1;
-        min-width: 180px;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        padding: 0.5rem;
-        transition: all 0.2s;
-        position: relative;
-    }
-    
-    .variant-item.active {
-        border-color: #10b981;
-        background: #ecfdf5;
-    }
-    
-    .variant-item.inactive {
-        opacity: 0.6;
-    }
-    
-    .variant-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.25rem;
-    }
-    
-    .variant-name {
-        font-weight: 600;
-        color: #374151;
-        font-size: 0.85rem;
-    }
-    
-    .variant-toggle {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-    
-    .form-check-input:checked {
-        background-color: #10b981;
-        border-color: #10b981;
-    }
-    
-    .variant-badge {
-        position: absolute;
-        top: 0.25rem;
-        right: 0.25rem;
-        font-size: 0.65rem;
-        padding: 0.15rem 0.35rem;
-    }
-    
-    .variant-image {
-        width: 100%;
-        height: 60px;
-        object-fit: cover;
-        border-radius: 4px;
-        margin-bottom: 0.25rem;
-        border: 1px solid #e5e7eb;
-    }
-    
-    .variant-content {
-        font-size: 0.75rem;
-        color: #6b7280;
-        margin-top: 0.25rem;
-        max-height: 30px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    .no-image-placeholder {
-        width: 100%;
-        height: 60px;
-        background: #f3f4f6;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #9ca3af;
-        margin-bottom: 0.25rem;
-        font-size: 1rem;
-    }
-    
-    .variant-content code {
-        font-size: 0.7rem;
-    }
-    
-    .variant-image-container {
-        position: relative;
-        margin-bottom: 0.25rem;
-    }
-    
-    .variant-image-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 4px;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        gap: 0.25rem;
-    }
-    
-    .variant-image-container:hover .variant-image-overlay {
-        display: flex;
-    }
-    
-    .variant-image-btn {
-        background: rgba(255, 255, 255, 0.9);
-        border: none;
-        border-radius: 4px;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.7rem;
+    .theme-card {
         cursor: pointer;
-        transition: all 0.2s;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    
-    .variant-image-btn:hover {
-        background: #fff;
-        transform: scale(1.05);
+
+    .theme-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
-    
-    .variant-image-upload-input {
-        display: none;
+
+    .theme-palette {
+        max-width: 150px;
+        margin: 0 auto;
     }
-    
-    .module-info-toggle {
-        text-decoration: none !important;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+
+    .palette-square {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
     }
-    
-    .module-info-toggle:hover {
+
+    .palette-square:hover {
         transform: scale(1.1);
-        opacity: 0.8;
-    }
-    
-    .module-info-toggle i {
-        vertical-align: middle;
-    }
-    
-    #moduleInfo {
-        animation: slideDown 0.3s ease-out;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        border-color: #000;
     }
 </style>
-@endpush
+
+
+
+    <!-- Font Family Management Modal -->
+    <div class="modal fade" id="fontFamilyModal" tabindex="-1" aria-labelledby="fontFamilyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title d-flex align-items-center gap-2" id="fontFamilyModalLabel">
+                        <i class='bx bx-font' style="font-size: 1.5rem;"></i>
+                        <span>Manage Font Family</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label for="fontFamilySelect" class="form-label fw-semibold mb-3">
+                            <i class='bx bx-text me-2'></i>Select Font Family
+                        </label>
+                        <select id="fontFamilySelect" class="form-select form-select-lg">
+                            <option value="">Default (System Font)</option>
+                            <option value="Arial, Helvetica, sans-serif" {{ ($companySettings->font_family ?? '') === 'Arial, Helvetica, sans-serif' ? 'selected' : '' }}>Arial, Helvetica, sans-serif</option>
+                            <option value="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" {{ ($companySettings->font_family ?? '') === "'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" ? 'selected' : '' }}>Inter, Segoe UI, Roboto</option>
+                            <option value="'Playfair Display', Georgia, 'Times New Roman', serif" {{ ($companySettings->font_family ?? '') === "'Playfair Display', Georgia, 'Times New Roman', serif" ? 'selected' : '' }}>Playfair Display (Serif)</option>
+                            <option value="'Poppins', 'Montserrat', 'Segoe UI', sans-serif" {{ ($companySettings->font_family ?? '') === "'Poppins', 'Montserrat', 'Segoe UI', sans-serif" ? 'selected' : '' }}>Poppins, Montserrat</option>
+                            <option value="Georgia, 'Times New Roman', serif" {{ ($companySettings->font_family ?? '') === "Georgia, 'Times New Roman', serif" ? 'selected' : '' }}>Georgia (Serif)</option>
+                            <option value="'Courier New', Courier, monospace" {{ ($companySettings->font_family ?? '') === "'Courier New', Courier, monospace" ? 'selected' : '' }}>Courier New (Monospace)</option>
+                            <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif" {{ ($companySettings->font_family ?? '') === "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif" ? 'selected' : '' }}>System Font Stack</option>
+                        </select>
+                        <div class="form-text mt-2">
+                            <i class='bx bx-info-circle me-1'></i>
+                            The selected font will be applied to the entire frontend website.
+                        </div>
+                    </div>
+
+                    <!-- Font Preview Section -->
+                    <div class="border rounded p-3 bg-light">
+                        <label class="form-label fw-semibold mb-2">
+                            <i class='bx bx-show me-2'></i>Preview
+                        </label>
+                        <div id="fontPreview" class="p-3 bg-white rounded border" style="min-height: 120px;">
+                            <h5 class="mb-2" id="previewHeading">The quick brown fox jumps over the lazy dog</h5>
+                            <p class="mb-2" id="previewParagraph">This is a preview of how your selected font will look on your website. The font family will be applied to all text elements including headings, paragraphs, and buttons.</p>
+                            <small id="previewSmall">Small text preview - 1234567890</small>
+                        </div>
+                    </div>
+
+                    
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class='bx bx-x me-1'></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="saveFontFamilyBtn">
+                        <span class="btn-text">
+                            <i class='bx bx-save me-1'></i> Save Changes
+                        </span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
-$(document).ready(function() {
-    let sections = [];
-    let pages = [];
-    let sortable = null;
-    let currentPageId = null;
-
-    // Load pages on start
-    loadPages();
-
-    function loadPages() {
-        $.ajax({
-            url: '{{ route("sections.pages") }}',
-            type: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    pages = response.pages;
-                    renderPageSelector();
-                    // Auto-select home page if available
-                    const homePage = pages.find(p => p.url === '/' || p.name.toLowerCase().includes('home'));
-                    if (homePage) {
-                        $('#pageSelector').val(homePage.id).trigger('change');
-                    } else if (pages.length > 0) {
-                        $('#pageSelector').val(pages[0].id).trigger('change');
-                    }
-                }
-            }
-        });
-    }
-
-    function renderPageSelector() {
-        const selector = $('#pageSelector');
-        selector.empty();
-
-        if (pages.length === 0) {
-            selector.append('<option value="">No pages available</option>');
-            return;
-        }
-
-        pages.forEach(function(page) {
-            const selected = currentPageId === page.id ? 'selected' : '';
-            selector.append(`<option value="${page.id}" ${selected}>${page.name} (${page.url})</option>`);
-        });
-    }
-
-    // Page selector change
-    $('#pageSelector').on('change', function() {
-        const pageId = $(this).val();
-        if (pageId) {
-            loadPageSections(pageId);
-        } else {
-            $('#pageNamePrefix').hide();
-            $('#headerTitle').text('Page Sections Management');
-            $('#sectionsList').empty();
-            $('#emptyState').html(`
-                <i class='bx bx-file' style='font-size: 3rem;'></i>
-                <p class="mt-2">Please select a page to manage its sections</p>
-            `).show();
-            $('#saveSortOrderBtn').hide();
-        }
-    });
-
-    function loadPageSections(pageId) {
-        currentPageId = pageId;
-        
-        // Update page name prefix in header
-        const selectedPage = pages.find(p => p.id == pageId); 
-        if (selectedPage) {
-            $('#pageNamePrefix').text(selectedPage.name + ' - ').show();
-            $('#headerTitle').text('Sections');
-        } else {
-            $('#pageNamePrefix').hide();
-            $('#headerTitle').text('Page Sections Management');
-        }
-        
-        $('#emptyState').html(`
-            <i class='bx bx-loader-circle bx-spin' style='font-size: 3rem;'></i>
-            <p class="mt-2">Loading sections...</p>
-        `).show();
-        $('#sectionsList').empty();
-        $('#saveSortOrderBtn').hide();
-
-        $.ajax({
-            url: '{{ route("sections.page") }}',
-            type: 'GET',
-            data: { page_id: pageId },
-            success: function(response) {
-                if (response.success) {
-                    sections = response.sections;
-                    renderSections();
-                } else {
-                    $('#emptyState').html(`
-                        <i class='bx bx-error-circle' style='font-size: 3rem; color: #ef4444;'></i>
-                        <p class="mt-2 text-danger">${response.message || 'Error loading sections'}</p>
-                    `);
-                }
-            },
-            error: function() {
-                $('#emptyState').html(`
-                    <i class='bx bx-error-circle' style='font-size: 3rem; color: #ef4444;'></i>
-                    <p class="mt-2 text-danger">Failed to load sections. Please refresh the page.</p>
-                `);
-            }
-        });
-    }
-
-    function renderSections() {
-        const container = $('#sectionsList');
-        container.empty();
-
-        if (sections.length === 0) {
-            $('#emptyState').html(`
-                <i class='bx bx-inbox' style='font-size: 3rem;'></i>
-                <p class="mt-2">No sections found for this page.</p>
-            `).show();
-            $('#saveSortOrderBtn').hide();
-            return;
-        }
-
-        $('#emptyState').hide();
-        $('#saveSortOrderBtn').show();
-
-        // Get selected page name for prefix
-        const selectedPage = pages.find(p => p.id == currentPageId);
-        const pageNamePrefix = selectedPage ? selectedPage.name + ' - ' : '';
-
-        sections.forEach(function(sectionGroup, index) {
-            const variantsHtml = sectionGroup.variants.map(function(variant) {
-                const activeClass = variant.is_active ? 'active' : 'inactive';
-                const badgeClass = variant.is_active ? 'bg-success' : 'bg-secondary';
-                const imageHtml = variant.image_url ? 
-                    `<img src="${variant.image_url}" class="variant-image" alt="Variant ${variant.variation_number || ''}">` :
-                    `<div class="no-image-placeholder">
-                        <i class='bx bx-image' style='font-size: 1rem;'></i>
-                </div>`;
-
-                const variantName = variant.variation_number ? 
-                    `Variant ${variant.variation_number}` : 
-                    'Default';
-
-                return `
-                    <div class="variant-item ${activeClass}" data-variant-id="${variant.id}">
-                        <span class="badge ${badgeClass} variant-badge">${variant.is_active ? 'Active' : 'Inactive'}</span>
-                        <div class="variant-image-container">
-                            ${imageHtml}
-                            <div class="variant-image-overlay">
-                                <button type="button" class="variant-image-btn" onclick="document.getElementById('imageUpload${variant.id}').click()">
-                                    <i class='bx bx-upload'></i> Upload
-                                </button>
-                                ${variant.image_url ? `<button type="button" class="variant-image-btn" onclick="removeVariantImage(${variant.id})">
-                                    <i class='bx bx-trash'></i> Remove
-                                </button>` : ''}
-                            </div>
-                            <input type="file" id="imageUpload${variant.id}" class="variant-image-upload-input" accept="image/*" onchange="uploadVariantImage(${variant.id}, this)">
-                        </div>
-                        <div class="variant-header">
-                            <div class="variant-name">${variantName}</div>
-                            <div class="variant-toggle">
-                                <label class="form-check form-switch mb-0">
-                                    <input class="form-check-input variant-switch" 
-                                           type="checkbox" 
-                                           data-variant-id="${variant.id}"
-                                           ${variant.is_active ? 'checked' : ''}>
-                                    <span class="form-check-label" style="font-size: 0.75rem;">${variant.is_active ? 'ON' : 'OFF'}</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="variant-content">
-                            <code>${variant.section_id}</code>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            const sectionHtml = `
-                <div class="section-group" data-base-name="${sectionGroup.base_name}" data-sort-order="${index}">
-                    <div class="section-group-header">
-                        <div class="section-group-title">
-                            <i class='bx bx-menu drag-handle'></i>
-                            <span>${pageNamePrefix}${sectionGroup.display_name} section</span>
-                            <span class="badge bg-primary" style="font-size: 0.7rem;">${sectionGroup.variants.length} variant${sectionGroup.variants.length !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div class="text-muted" style="font-size: 0.75rem;">
-                            Order: <strong>${index + 1}</strong>
-                        </div>
-                        </div>
-                    <div class="variants-container">
-                        ${variantsHtml}
-                    </div>
-                </div>
-            `;
-            container.append(sectionHtml);
-        });
-
-        initSortable();
-        initVariantToggles();
-    }
-
-    function initSortable() {
-        const el = document.getElementById('sectionsList');
-        if (!el) return;
-
-        if (sortable) sortable.destroy();
-
-        sortable = Sortable.create(el, {
-            animation: 150,
-            handle: '.drag-handle',
-            ghostClass: 'sortable-ghost',
-            dragClass: 'sortable-drag',
-            onEnd: function() {
-                $('.section-group').each(function(index) {
-                    $(this).find('.text-muted strong').text(index + 1);
-                    $(this).attr('data-sort-order', index);
-                });
-            }
-        });
-    }
-
-    function initVariantToggles() {
-        $('.variant-switch').off('change').on('change', function() {
-            const variantId = $(this).data('variant-id');
-            const isActive = $(this).is(':checked');
-            const variantItem = $(this).closest('.variant-item');
-            const switchLabel = $(this).siblings('.form-check-label');
-
-            // Disable toggle while processing
-            $(this).prop('disabled', true);
-
-        $.ajax({
-                url: '{{ route("sections.toggleVariant") }}',
-            type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                    id: variantId,
-                    is_active: isActive ? 1 : 0
-            },
-            success: function(response) {
-                if (response.success) {
-                        // Update UI
-                        if (isActive) {
-                            variantItem.removeClass('inactive').addClass('active');
-                            variantItem.find('.variant-badge').removeClass('bg-secondary').addClass('bg-success').text('Active');
-                            switchLabel.text('ON');
-                            
-                            // Deactivate other variants in the same section group
-                            const baseName = variantItem.closest('.section-group').data('base-name');
-                            variantItem.closest('.section-group').find('.variant-item').not(variantItem).each(function() {
-                                $(this).removeClass('active').addClass('inactive');
-                                $(this).find('.variant-switch').prop('checked', false);
-                                $(this).find('.variant-badge').removeClass('bg-success').addClass('bg-secondary').text('Inactive');
-                                $(this).find('.form-check-label').text('OFF');
-                            });
-                        } else {
-                            variantItem.removeClass('active').addClass('inactive');
-                            variantItem.find('.variant-badge').removeClass('bg-success').addClass('bg-secondary').text('Inactive');
-                            switchLabel.text('OFF');
-                        }
-                        
-                    showToast('success', response.message);
-                    }
-                },
-                error: function(xhr) {
-                    // Revert toggle state
-                    $(this).prop('checked', !isActive);
-                    const errorMsg = xhr.responseJSON?.message || 'Failed to update variant status';
-                    showToast('error', errorMsg);
-                },
-                complete: function() {
-                    $(this).prop('disabled', false);
-                }.bind(this)
-        });
-    });
-    }
-
-    // Initialize Home Page Sections
-    $('#initializeHomeBtn').on('click', function(e) {
+$(document).ready(function() { 
+    $('.activate-theme-btn').on('click', function(e) {
+        e.stopPropagation();
+        const themeName = $(this).data('theme') || null;
         const btn = $(this);
-        const originalHtml = btn.html();
+        const originalText = btn.html();
+         
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Activating...');
         
-        // Check if sections already exist
-        const hasSections = sections.length > 0;
-        
-        let confirmMessage = 'This will initialize all sections for the home page:\n\n';
-        confirmMessage += '• Banner & Slider (3 variants)\n';
-        confirmMessage += '• Popular Products (2 variants)\n';
-        confirmMessage += '• New Arrivals (2 variants)\n';
-        confirmMessage += '• Discount (2 variants)\n';
-        confirmMessage += '• Brand Logos (1 variant)\n';
-        confirmMessage += '• Blogs (1 variant)\n';
-        confirmMessage += '• Service Highlight (1 variant)\n\n';
-        
-        if (hasSections) {
-            confirmMessage += 'Existing sections will be skipped. To recreate all sections, hold SHIFT and click again.\n\n';
-            confirmMessage += 'Continue?';
-        } else {
-            confirmMessage += 'Continue?';
-        }
-        
-        if (!confirm(confirmMessage)) {
-            return;
-        }
-
-        // Check if Shift key is pressed (force recreate)
-        const forceRecreate = e.shiftKey && hasSections;
-        
-        if (forceRecreate) {
-            if (!confirm('⚠️ WARNING: This will DELETE all existing sections and recreate them from scratch!\n\nAll images and customizations will be lost. Are you sure?')) {
-                return;
-            }
-        }
-
-        btn.prop('disabled', true);
-        btn.html('<i class="bx bx-loader-circle bx-spin me-1"></i> Initializing...');
-
         $.ajax({
-            url: '{{ route("sections.initializeHome") }}',
+            url: '{{ route("sections.updateColorTheme") }}',
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
-                force: forceRecreate ? 1 : 0
+                theme_name: themeName
             },
             success: function(response) {
-                if (response.success) {
-                    showToast('success', response.message);
-                    // Reload sections if home page is selected
-                    if (currentPageId) {
-                        const selectedPage = pages.find(p => p.id === currentPageId);
-                        if (selectedPage && (selectedPage.url === '/' || selectedPage.name.toLowerCase().includes('home'))) {
-                            loadPageSections(currentPageId);
-                        }
+                if (response.success) { 
+                    const iframe = document.getElementById('frontendPreview');
+                    if (iframe) {
+                        iframe.src = iframe.src;
                     }
-                } else {
-                    showToast('error', response.message || 'Failed to initialize sections');
+                     
+                    showToast('success', response.message);
+                     
+                    setTimeout(function() {
+                        $('#colorThemeModal').modal('hide');
+                    }, 500);
+                     
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1000);
                 }
             },
             error: function(xhr) {
-                const errorMsg = xhr.responseJSON?.message || 'Failed to initialize sections';
-                showToast('error', errorMsg);
+                showToast('error', 'Failed to update color theme. Please try again.');
+                btn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+     
+    $('.theme-card').on('click', function() {
+        const themeName = $(this).data('theme');
+        const activateBtn = $(this).find('.activate-theme-btn');
+        if (activateBtn.length && !activateBtn.prop('disabled')) {
+            activateBtn.trigger('click');
+        }
+    });
+     
+    $('#fontFamilyModal').on('show.bs.modal', function() {
+        updateFontPreview();
+    });
+ 
+    $('#fontFamilySelect').on('change', function() {
+        updateFontPreview();
+    });
+ 
+    function updateFontPreview() {
+        const fontFamily = $('#fontFamilySelect').val();
+        const previewContainer = $('#fontPreview');
+        
+        if (fontFamily) {
+            previewContainer.css('font-family', fontFamily);
+        } else {
+            previewContainer.css('font-family', '');
+        }
+    }
+ 
+    $('#saveFontFamilyBtn').on('click', function() {
+        const fontFamily = $('#fontFamilySelect').val();
+        const btn = $(this);
+        const btnText = btn.find('.btn-text');
+        const spinner = btn.find('.spinner-border');
+         
+        btn.prop('disabled', true);
+        btnText.addClass('d-none');
+        spinner.removeClass('d-none');
+        
+        $.ajax({
+            url: '{{ route("sections.updateFontFamily") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                font_family: fontFamily
             },
-            complete: function() {
+            success: function(response) {
+                if (response.success) { 
+                    const iframe = document.getElementById('frontendPreview');
+                    if (iframe) {
+                        iframe.src = iframe.src;
+                    }
+                     
+                    showToast('success', 'Font family updated successfully!');
+                     
+                    setTimeout(function() {
+                        $('#fontFamilyModal').modal('hide');
+                    }, 500);
+                     
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1000);
+                }
+            },
+            error: function(xhr) {
+                showToast('error', 'Failed to update font family. Please try again.');
+            },
+            complete: function() { 
                 btn.prop('disabled', false);
-                btn.html(originalHtml);
+                btnText.removeClass('d-none');
+                spinner.addClass('d-none');
             }
         });
     });
-
-    // Save sort order
-    $('#saveSortOrderBtn').on('click', function() {
-        const sectionsData = [];
-        $('.section-group').each(function(index) {
-            const baseName = $(this).data('base-name');
-            const sectionGroup = sections.find(s => s.base_name === baseName);
-            
-            if (sectionGroup) {
-                sectionGroup.variants.forEach(function(variant) {
-                    sectionsData.push({
-                        id: variant.id,
-                        sort_order: index
-                    });
-                });
-            }
-        });
-
-        $.ajax({
-            url: '{{ route("sections.updateSortOrder") }}',
-            type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                sections: sectionsData
-            },
-            success: function(response) {
-                if (response.success) {
-                    showToast('success', response.message);
-                    loadPageSections(currentPageId);
-                }
-            }
-        });
-    });
-
-    // Upload variant image
-    window.uploadVariantImage = function(variantId, input) {
-        if (!input.files || !input.files[0]) {
-            return;
-        }
-
-        const file = input.files[0];
-        const formData = new FormData();
-        formData.append('_token', '{{ csrf_token() }}');
-        formData.append('id', variantId);
-        formData.append('image', file);
-
-        const variantItem = $(input).closest('.variant-item');
-        const imageContainer = variantItem.find('.variant-image-container');
-        const originalHtml = imageContainer.html();
-
-        // Show loading state
-        imageContainer.html(`
-            <div class="no-image-placeholder">
-                <i class='bx bx-loader-circle bx-spin' style='font-size: 1.5rem;'></i>
-            </div>
-        `);
-
-        $.ajax({
-            url: '{{ route("sections.updateVariantImage") }}',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                if (response.success) {
-                    showToast('success', response.message);
-                    // Update the image
-                    const imageHtml = response.section.image_url ? 
-                        `<img src="${response.section.image_url}" class="variant-image" alt="Variant">` :
-                        `<div class="no-image-placeholder">
-                            <i class='bx bx-image' style='font-size: 1rem;'></i>
-                        </div>`;
-                    
-                    // Update local data
-                    sections.forEach(function(sectionGroup) {
-                        sectionGroup.variants.forEach(function(variant) {
-                            if (variant.id === variantId) {
-                                variant.image_url = response.section.image_url;
-                            }
-                        });
-                    });
-                    
-                    imageContainer.html(imageHtml + `
-                        <div class="variant-image-overlay">
-                            <button type="button" class="variant-image-btn" onclick="document.getElementById('imageUpload${variantId}').click()">
-                                <i class='bx bx-upload'></i> Upload
-                            </button>
-                            ${response.section.image_url ? `<button type="button" class="variant-image-btn" onclick="removeVariantImage(${variantId})">
-                                <i class='bx bx-trash'></i> Remove
-                            </button>` : ''}
-                        </div>
-                        <input type="file" id="imageUpload${variantId}" class="variant-image-upload-input" accept="image/*" onchange="uploadVariantImage(${variantId}, this)">
-                    `);
-                } else {
-                    showToast('error', response.message || 'Failed to upload image');
-                    imageContainer.html(originalHtml);
-                }
-            },
-            error: function(xhr) {
-                const errorMsg = xhr.responseJSON?.message || 'Failed to upload image';
-                showToast('error', errorMsg);
-                imageContainer.html(originalHtml);
-            }
-        });
-
-        // Reset input
-        input.value = '';
-    };
-
-    // Remove variant image
-    window.removeVariantImage = function(variantId) {
-        if (!confirm('Are you sure you want to remove this image?')) {
-            return;
-        }
-
-        const variantItem = $(`.variant-item[data-variant-id="${variantId}"]`);
-        const imageContainer = variantItem.find('.variant-image-container');
-        const originalHtml = imageContainer.html();
-
-        // Show loading state
-        imageContainer.html(`
-            <div class="no-image-placeholder">
-                <i class='bx bx-loader-circle bx-spin' style='font-size: 1.5rem;'></i>
-            </div>
-        `);
-
-        $.ajax({
-            url: '{{ route("sections.updateVariantImage") }}',
-            type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                id: variantId,
-                remove_image: true
-            },
-            success: function(response) {
-                if (response.success) {
-                    showToast('success', response.message);
-                    // Update the image
-                    const imageHtml = `<div class="no-image-placeholder">
-                        <i class='bx bx-image' style='font-size: 1rem;'></i>
-                    </div>`;
-                    
-                    // Update local data
-                    sections.forEach(function(sectionGroup) {
-                        sectionGroup.variants.forEach(function(variant) {
-                            if (variant.id === variantId) {
-                                variant.image_url = null;
-                            }
-                        });
-                    });
-                    
-                    imageContainer.html(imageHtml + `
-                        <div class="variant-image-overlay">
-                            <button type="button" class="variant-image-btn" onclick="document.getElementById('imageUpload${variantId}').click()">
-                                <i class='bx bx-upload'></i> Upload
-                            </button>
-                        </div>
-                        <input type="file" id="imageUpload${variantId}" class="variant-image-upload-input" accept="image/*" onchange="uploadVariantImage(${variantId}, this)">
-                    `);
-                } else {
-                    showToast('error', response.message || 'Failed to remove image');
-                    imageContainer.html(originalHtml);
-                }
-            },
-            error: function(xhr) {
-                const errorMsg = xhr.responseJSON?.message || 'Failed to remove image';
-                showToast('error', errorMsg);
-                imageContainer.html(originalHtml);
-            }
-        });
-    };
-
-    // Toast notification
+     
     function showToast(type, message) {
         const toastContainer = $('.sa-app__toasts');
-        if (!toastContainer.length) {
+        if (toastContainer.length === 0) { 
             $('body').append('<div class="sa-app__toasts position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>');
         }
         
         const toastId = 'toast-' + Date.now();
         const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
-        const iconClass = type === 'success' ? 'bx-check-circle' : 'bx-error-circle';
-
+        
         const toast = `
-            <div id="${toastId}" class="toast ${bgClass} text-white" role="alert">
+            <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-body d-flex align-items-center">
-                    <i class='bx ${iconClass} me-2' style='font-size: 1.5rem;'></i>
+                    <i class='bx ${type === 'success' ? 'bx-check-circle' : 'bx-error-circle'} me-2' style='font-size: 1.5rem;'></i>
                     <div class="flex-grow-1">${message}</div>
-                    <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast"></button>
+                    <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
             </div>
         `;
-
+        
         $('.sa-app__toasts').append(toast);
         const toastElement = new bootstrap.Toast(document.getElementById(toastId), {
             autohide: true,
             delay: 3000
         });
         toastElement.show();
-
+         
         $('#' + toastId).on('hidden.bs.toast', function() {
             $(this).remove();
         });
     }
 });
+
+function refreshIframe() {
+    const $iframe = $('#frontendPreview');
+    if ($iframe.length) {
+        $iframe.attr('src', $iframe.attr('src'));
+    }
+}
+
+
 </script>
 @endpush
+  

@@ -197,21 +197,7 @@
         })();
     </script>
 
-    <!-- <script>
-            $(document).ready(function () {
-            const timeout = 5000;  //   5000 ms = 5 second 
-            var idleTimer = null;
-            $('*').bind('mousemove click mouseup mousedown keydown keypress keyup submit change mouseenter scroll resize dblclick', function () {
-                clearTimeout(idleTimer);
-        
-                idleTimer = setTimeout(function () {
-                    alert("5 second complete");
-                    // document.getElementById('logout-form').submit();
-                }, timeout);
-            });
-            $("body").trigger("mousemove");
-        });
-    </script> -->
+
 </body>
 </html>
 

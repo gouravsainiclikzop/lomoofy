@@ -155,7 +155,7 @@
                 text: "This will release all reserved stock and cannot be undone!",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#dc3545',
+                confirmButtonColor: '#e52d2d',
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Yes, delete it!'
             }).then((result) => {

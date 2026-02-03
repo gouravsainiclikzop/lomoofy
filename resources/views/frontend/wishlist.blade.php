@@ -137,7 +137,7 @@
 																			₹{{ number_format($minPrice, 2) }}
 																			@if($hasPriceRange) - ₹{{ number_format($maxPrice, 2) }} @endif
 																		</span>
-																		<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
+																		<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #e52d2d;">
 																			₹{{ number_format($minSalePrice, 2) }}
 																			@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
 																				- ₹{{ number_format($product['max_sale_price'], 2) }}

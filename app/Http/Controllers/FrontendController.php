@@ -27,13 +27,12 @@ class FrontendController extends Controller
     public function index(Request $request)
     {
         // Get parent categories (top-level categories) for homepage display
-        // Limit to first 3 for the 3-column layout, or get all if fewer than 3
+        // Get all active parent categories for dynamic tabs
         $parentCategories = Category::whereNull('parent_id')
             ->where(function($q) {
                 $q->where('is_active', true)->orWhereNull('is_active');
             })
             ->orderBy('sort_order')
-            ->limit(3)
             ->get();
         
         // Get wishlist product IDs for current user/session
@@ -152,8 +151,7 @@ class FrontendController extends Controller
                 if (!$variant->attributes) {
                     return false;
                 }
-                $parsed = self::parseVariantAttributes($variant->attributes);
-                // Has color if new format has color or old format has color key
+                $parsed = self::parseVariantAttributes($variant->attributes); 
                 return $parsed['color'] !== null || isset($parsed['all']['color']);
             });
             
@@ -336,15 +334,11 @@ class FrontendController extends Controller
         ->whereHas('variants', function($q) {
             $q->where('is_active', true);
         });
-        
-        // If we have best sellers from orders, use them; otherwise fall back to featured products
-        if (count($bestSellerProductIds) > 0) {
-            // Use actual sales data - maintain order by sales quantity
+         
+        if (count($bestSellerProductIds) > 0) { 
             $bestSellersQuery->whereIn('id', $bestSellerProductIds)
                 ->orderByRaw('FIELD(id, ' . implode(',', array_map('intval', $bestSellerProductIds)) . ')');
-        } else { 
-            // Fallback to featured products if no sales data yet
-            // Check if there are any featured products first
+        } else {  
             $hasFeaturedProducts = Product::where('status', 'published')
                 ->where('featured', true)
                 ->exists();
@@ -477,9 +471,7 @@ class FrontendController extends Controller
                 'has_price_range' => $hasPriceRange,
             ];
         });
-        
-        // Get active collections for homepage
-        // Get recently viewed products from session
+         
         $recentlyViewedProductIds = session('recently_viewed_products', []);
         
         // Get recently viewed products
@@ -612,7 +604,39 @@ class FrontendController extends Controller
         $collections = \App\Models\FeaturedCategoryStyle::where('is_active', true)
             ->with('category')
             ->orderBy('sort_order')
-            ->get();
+            ->get()
+            ->map(function($collection) {
+                $minPrice = null;
+                 
+                if ($collection->category) { 
+                    $categoryIds = $collection->category->getDescendantIds();
+                    $categoryIds[] = $collection->category->id;  
+                     
+                    $variants = \App\Models\ProductVariant::whereHas('product', function($query) use ($categoryIds) {
+                        $query->where('status', 'published')
+                              ->whereHas('categories', function($q) use ($categoryIds) {
+                                  $q->whereIn('categories.id', $categoryIds);
+                              });
+                    })
+                    ->where('is_active', true)
+                    ->get();
+                     
+                    if ($variants->count() > 0) {
+                        $prices = $variants->map(function($variant) { 
+                            return $variant->final_price;
+                        })->filter(function($price) {
+                            return $price !== null && $price > 0;
+                        });
+                        
+                        $minPrice = $prices->min();
+                    }
+                }
+                
+                // Add min_price to collection
+                $collection->min_price = $minPrice;
+                
+                return $collection;
+            });
         
         // Get Our Collection data for the banner section
         $ourCollection = \App\Models\OurCollection::with('category')->first();
@@ -627,6 +651,18 @@ class FrontendController extends Controller
                     'title' => $testimonial->title,
                     'description' => $testimonial->description,
                     'image' => $testimonial->image ? asset('storage/' . $testimonial->image) : asset('frontend/images/team-1.jpg'),
+                ];
+            });
+
+        // Get active Instagram Gallery items for the Instagram section
+        $instagramGallery = \App\Models\InstagramGallery::active()
+            ->ordered()
+            ->get()
+            ->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'thumbnail_image' => $item->thumbnail_image ? asset('storage/' . $item->thumbnail_image) : null,
+                    'instagram_link' => $item->instagram_link,
                 ];
             });
         
@@ -655,7 +691,110 @@ class FrontendController extends Controller
             ->limit(3)
             ->get();
         
-        return view('frontend.index', compact('parentCategories', 'newArrivals', 'bestSellers', 'recentlyViewed', 'collections', 'ourCollection', 'testimonials', 'homeSliders', 'latestBlogs'));
+        // Get products for each category for the category tabs section
+        $categoryProducts = [];
+        foreach ($parentCategories as $category) {
+            // Get all category IDs including children (for nested categories)
+            $categoryIds = $category->getDescendantIds();
+            $categoryIds[] = $category->id; // Include current category
+            
+            // Fetch products for this category
+            $products = Product::with([
+                'primaryImage',
+                'images' => function($q) {
+                    $q->orderBy('sort_order')->orderBy('id')->limit(1);
+                },
+                'variants' => function($q) {
+                    $q->where('is_active', true)
+                      ->orderBy('sort_order')
+                      ->with(['images' => function($imgQ) {
+                          $imgQ->orderBy('sort_order')->orderBy('id');
+                      }]);
+                }
+            ])
+            ->where('status', 'published')
+            ->whereHas('variants', function($q) {
+                $q->where('is_active', true);
+            })
+            ->whereHas('categories', function($q) use ($categoryIds) {
+                $q->whereIn('categories.id', $categoryIds);
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(8)
+            ->get()
+            ->map(function($product) use ($wishlistProductIds) {
+                return $this->mapProductForDisplay($product, $wishlistProductIds);
+            });
+            
+            $categoryProducts[$category->id] = $products;
+        }
+        
+        // Get trending/featured categories for the trending categories section
+        // Try to get featured categories first, fallback to parent categories if none are featured
+        $trendingCategories = Category::where(function($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            })
+            ->where('featured', true)
+            ->orderBy('sort_order')
+            ->limit(6)
+            ->get(); 
+        
+        // If no featured categories, use first 6 parent categories
+        if ($trendingCategories->count() == 0) {
+            $trendingCategories = Category::where(function($q) {
+                    $q->where('is_active', true)->orWhereNull('is_active');
+                })
+                ->orderBy('sort_order')
+                ->limit(6)
+                ->get();
+        }
+        
+        // Get deals of the day - products on sale (with sale_price or active discounts)
+        $dealsOfTheDay = Product::with([
+            'primaryImage',
+            'images' => function($q) {
+                $q->orderBy('sort_order')->orderBy('id')->limit(1);
+            },
+            'variants' => function($q) {
+                $q->where('is_active', true)
+                  ->orderBy('sort_order')
+                  ->with(['images' => function($imgQ) {
+                      $imgQ->orderBy('sort_order')->orderBy('id');
+                  }]);
+            }
+        ])
+        ->where('status', 'published')
+        ->whereHas('variants', function($q) {
+            $q->where('is_active', true)
+              ->where(function($variantQuery) {
+                  // Products with sale_price that is less than regular price
+                  $variantQuery->whereNotNull('sale_price')
+                               ->where('sale_price', '>', 0)
+                               ->whereColumn('sale_price', '<', 'price')
+                               // Or products with active discounts
+                               ->orWhere(function($discountQuery) {
+                                   $discountQuery->where('discount_active', true)
+                                                ->whereNotNull('discount_type')
+                                                ->whereNotNull('discount_value')
+                                                ->where('discount_value', '>', 0);
+                               });
+              });
+        })
+        ->orderBy('created_at', 'desc')
+        ->limit(10)
+        ->get()
+        ->map(function($product) use ($wishlistProductIds) {
+            return $this->mapProductForDisplay($product, $wishlistProductIds);
+        })
+        ->filter(function($product) {
+            // Only include products that actually have a sale (final price < regular price)
+            return $product['has_sale'] || 
+                   ($product['min_sale_price'] && $product['min_sale_price'] < $product['min_price']) ||
+                   ($product['min_display_price'] && $product['min_display_price'] < $product['min_price']);
+        })
+        ->take(8);
+        
+        return view('frontend.index', compact('parentCategories', 'newArrivals', 'bestSellers', 'recentlyViewed', 'collections', 'ourCollection', 'testimonials', 'instagramGallery', 'homeSliders', 'latestBlogs', 'categoryProducts', 'trendingCategories', 'dealsOfTheDay'));
     }
 
     public function shop(Request $request)
@@ -5499,5 +5638,124 @@ class FrontendController extends Controller
             ->get();
         
         return view('frontend.blog-detail', compact('blog', 'relatedBlogs'));
+    }
+    
+    /**
+     * Map product data for display in frontend
+     * 
+     * @param \App\Models\Product $product
+     * @param array $wishlistProductIds
+     * @return array
+     */
+    protected function mapProductForDisplay($product, $wishlistProductIds = [])
+    {
+        // Get price range from variants
+        $activeVariants = $product->variants->where('is_active', true);
+        $prices = $activeVariants->pluck('price')->filter();
+        $salePrices = $activeVariants->pluck('sale_price')->filter();
+        
+        // Calculate display prices (final price after discount, sale price if available, otherwise regular price)
+        $displayPrices = $activeVariants->map(function($variant) {
+            // Use final_price which accounts for discounts
+            return $variant->final_price ?? $variant->price ?? 0;
+        })->filter();
+        
+        $minPrice = $prices->min() ?? 0;
+        $maxPrice = $prices->max() ?? 0;
+        $minDisplayPrice = $displayPrices->min() ?? $minPrice;
+        $maxDisplayPrice = $displayPrices->max() ?? $maxPrice;
+        $minSalePrice = $salePrices->min();
+        $maxSalePrice = $salePrices->max();
+        
+        // Determine if product is on sale
+        $hasSale = $minSalePrice && $minSalePrice < $minPrice;
+        
+        // Get first variant image - use placeholder if no variant images
+        $imageUrl = asset('assets/images/placeholder.jpg'); // Default placeholder
+        $firstVariant = $activeVariants->first();
+        if ($firstVariant && $firstVariant->images && $firstVariant->images->count() > 0) {
+            $primaryVariantImage = $firstVariant->images->where('is_primary', true)->first();
+            if ($primaryVariantImage) {
+                $imageUrl = asset('storage/' . $primaryVariantImage->image_path);
+            } else {
+                $firstVariantImage = $firstVariant->images->first();
+                if ($firstVariantImage) {
+                    $imageUrl = asset('storage/' . $firstVariantImage->image_path);
+                }
+            }
+        }
+        
+        // Format price display
+        $priceDisplay = '';
+        if ($hasSale && $minSalePrice) {
+            $priceDisplay = '₹' . number_format($minSalePrice, 0);
+            if ($maxSalePrice && $minSalePrice != $maxSalePrice) {
+                $priceDisplay .= ' - ₹' . number_format($maxSalePrice, 0);
+            }
+        } else {
+            if ($minPrice != $maxPrice) {
+                $priceDisplay = '₹' . number_format($minPrice, 0) . ' - ₹' . number_format($maxPrice, 0);
+            } else {
+                $priceDisplay = '₹' . number_format($minPrice, 0);
+            }
+        }
+        
+        // Get GST settings from product
+        $gstType = $product->gst_type ?? true;
+        $gstPercentage = $product->gst_percentage ?? 0;
+        
+        // Check if has price range
+        $hasPriceRange = ($minDisplayPrice != $maxDisplayPrice && $maxDisplayPrice > 0);
+        
+        // Get first variant for single variant pricing
+        $firstVariantPrice = null;
+        $firstVariantSalePrice = null;
+        $firstVariantDiscountType = null;
+        $firstVariantDiscountValue = null;
+        $firstVariantDiscountActive = false;
+        if (!$hasPriceRange && $firstVariant) {
+            $firstVariantPrice = $firstVariant->price ?? 0;
+            $firstVariantSalePrice = $firstVariant->sale_price ?? null;
+            $firstVariantDiscountType = $firstVariant->discount_type ?? null;
+            $firstVariantDiscountValue = $firstVariant->discount_value ?? null;
+            $firstVariantDiscountActive = $firstVariant->discount_active ?? false;
+        }
+        
+        // Determine badge type
+        $badge = null;
+        if ($hasSale) {
+            $badge = 'sale';
+        } elseif ($product->created_at->isAfter(now()->subDays(30))) {
+            $badge = 'new';
+        } elseif ($product->featured) {
+            $badge = 'hot';
+        }
+        
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'image_url' => $imageUrl,
+            'min_price' => $minPrice,
+            'max_price' => $maxPrice,
+            'min_display_price' => $minDisplayPrice,
+            'max_display_price' => $maxDisplayPrice,
+            'min_sale_price' => $minSalePrice,
+            'max_sale_price' => $maxSalePrice,
+            'has_sale' => $hasSale,
+            'price_display' => $priceDisplay,
+            'badge' => $badge,
+            'is_new' => $product->created_at->isAfter(now()->subDays(30)),
+            'is_featured' => $product->featured,
+            'in_wishlist' => in_array($product->id, $wishlistProductIds),
+            'gst_type' => $gstType,
+            'gst_percentage' => $gstPercentage,
+            'has_price_range' => ($minPrice != $maxPrice && $maxPrice > 0),
+            'first_variant_price' => $firstVariantPrice,
+            'first_variant_sale_price' => $firstVariantSalePrice,
+            'first_variant_discount_type' => $firstVariantDiscountType,
+            'first_variant_discount_value' => $firstVariantDiscountValue,
+            'first_variant_discount_active' => $firstVariantDiscountActive,
+        ];
     }
 }

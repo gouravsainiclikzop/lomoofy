@@ -93,7 +93,7 @@ function renderCartItemPricingHTML(pricing, item) {
     }
     
     // Final Price (prominent)
-    html += '<span class="final-price-compact theme-cl fw-bold fs-lg" style="color: #dc3545;">';
+    html += '<span class="final-price-compact theme-cl fw-bold fs-lg" style="color: #e52d2d;">';
     html += formatPriceDisplay(displayFinalPrice);
     html += '</span>';
     

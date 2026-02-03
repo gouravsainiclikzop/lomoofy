@@ -187,7 +187,7 @@
             @endif
             
             {{-- Final Price (prominent) - Show 2 decimals --}}
-            <span class="final-price-compact theme-cl fw-bold {{ $compact ? 'fs-md' : 'fs-lg' }}" style="color: #dc3545;">
+            <span class="final-price-compact theme-cl fw-bold {{ $compact ? 'fs-md' : 'fs-lg' }}" style="color: #e52d2d;">
                 ₹{{ number_format($displayFinalPrice, 2) }}
             </span>
             

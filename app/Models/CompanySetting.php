@@ -10,6 +10,7 @@ class CompanySetting extends Model
         'company_name',
         'company_logo_text',
         'company_logo',
+        'secondary_logo',
         'phone',
         'customer_care_phone',
         'careers_phone',
@@ -23,10 +24,20 @@ class CompanySetting extends Model
         'gst_registration_no',
         'authorized_signatory',
         'coming_soon',
+        'facebook_url',
+        'twitter_url',
+        'youtube_url',
+        'instagram_url',
+        'linkedin_url',
+        'whatsapp_url',
+        'font_family',
+        'color_themes',
+        'active_color_theme',
     ];
 
     protected $casts = [
         'coming_soon' => 'boolean',
+        'color_themes' => 'array',
     ];
 
     /**

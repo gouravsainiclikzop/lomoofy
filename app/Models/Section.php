@@ -12,12 +12,10 @@ class Section extends Model
      * @var array
      */
     protected $fillable = [
-        'page_id',
         'section_id',
-        'content',
-        'image',
         'sort_order',
         'is_active',
+        'title',
     ];
 
     /**
@@ -30,21 +28,6 @@ class Section extends Model
         'sort_order' => 'integer',
     ];
 
-    /**
-     * Get the page that owns the section.
-     */
-    public function page()
-    {
-        return $this->belongsTo(Page::class);
-    }
-
-    /**
-     * Scope to filter by page ID.
-     */
-    public function scopeForPage($query, $pageId)
-    {
-        return $query->where('page_id', $pageId);
-    }
 
     /**
      * Scope to get only active sections.
@@ -62,13 +45,6 @@ class Section extends Model
         return $query->orderBy('sort_order', 'asc');
     }
 
-    /**
-     * Get the image URL attribute.
-     */
-    public function getImageUrlAttribute()
-    {
-        return $this->image ? asset('storage/' . $this->image) : null;
-    }
 
     /**
      * Get the base section name (without variation suffix).
@@ -106,8 +82,7 @@ class Section extends Model
     public function variations()
     {
         $baseName = $this->base_section_name;
-        return self::where('page_id', $this->page_id)
-            ->where(function($query) use ($baseName) {
+        return self::where(function($query) use ($baseName) {
                 $query->where('section_id', 'like', $baseName . '_variation_%')
                       ->orWhere('section_id', $baseName);
             })
@@ -122,8 +97,7 @@ class Section extends Model
     {
         if ($this->isVariation() && $this->is_active) {
             $baseName = $this->base_section_name;
-            self::where('page_id', $this->page_id)
-                ->where(function($query) use ($baseName) {
+            self::where(function($query) use ($baseName) {
                     $query->where('section_id', 'like', $baseName . '_variation_%')
                           ->orWhere('section_id', $baseName);
                 })

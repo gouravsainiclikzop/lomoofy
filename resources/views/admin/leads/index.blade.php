@@ -16,7 +16,7 @@
     }
     .priority-low { background-color: #28a745; color: white; }
     .priority-medium { background-color: #ffc107; color: #000; }
-    .priority-high { background-color: #dc3545; color: white; }
+    .priority-high { background-color: #e52d2d; color: white; }
     .slide-over {
         position: fixed;
         top: 0;
@@ -59,7 +59,7 @@
     .activity-item.email { border-color: #ffc107; }
     .activity-item.meeting { border-color: #6f42c1; }
     .activity-item.file { border-color: #fd7e14; }
-    .activity-item.reminder { border-color: #dc3545; }
+    .activity-item.reminder { border-color: #e52d2d; }
     .skeleton-loader {
         background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
         background-size: 200% 100%;

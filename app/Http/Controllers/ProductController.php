@@ -36,9 +36,7 @@ class ProductController extends Controller
         return view('admin.products.index');
     }
 
-    /**
-     * Get SEO data for a product.
-     */
+    
     public function getSeo(Product $product)
     {
         return response()->json([
@@ -1460,10 +1458,7 @@ class ProductController extends Controller
         ]);
     }
 
-    /**
-     * Get attributes for a specific category (AJAX JSON).
-     * Returns variant and static attributes assigned to the category and its ancestors.
-     */
+   
     public function getAttributesByCategory(Request $request)
     {
         try {

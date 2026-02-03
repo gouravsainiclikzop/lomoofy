@@ -203,6 +203,7 @@ class ProfileController extends Controller
             'company_name' => 'required|string|max:255',
             'company_logo_text' => 'nullable|string|max:255',
             'company_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'secondary_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
             'phone' => 'nullable|string|max:255',
             'customer_care_phone' => 'nullable|string|max:255',
             'careers_phone' => 'nullable|string|max:255',
@@ -215,6 +216,12 @@ class ProfileController extends Controller
             'pan_no' => 'nullable|string|max:20|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/',
             'gst_registration_no' => 'nullable|string|max:50|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/',
             'authorized_signatory' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'facebook_url' => 'nullable|url|max:255',
+            'twitter_url' => 'nullable|url|max:255',
+            'youtube_url' => 'nullable|url|max:255',
+            'instagram_url' => 'nullable|url|max:255',
+            'linkedin_url' => 'nullable|url|max:255',
+            'whatsapp_url' => 'nullable|url|max:255',
         ], [
             'pan_no.regex' => 'PAN number must be in valid format (e.g., ABCDE1234F)',
             'gst_registration_no.regex' => 'GST registration number must be in valid format (e.g., 22AAAAA0000A1Z5)',
@@ -242,6 +249,12 @@ class ProfileController extends Controller
             'state',
             'pan_no',
             'gst_registration_no',
+            'facebook_url',
+            'twitter_url',
+            'youtube_url',
+            'instagram_url',
+            'linkedin_url',
+            'whatsapp_url',
         ]);
         
         // Handle signature upload
@@ -276,10 +289,23 @@ class ProfileController extends Controller
             $data['company_logo'] = $logoPath;
         }
 
+        // Handle secondary logo upload
+        if ($request->hasFile('secondary_logo')) {
+            // Delete old secondary logo if exists
+            if ($settings->secondary_logo && Storage::disk('public')->exists($settings->secondary_logo)) {
+                Storage::disk('public')->delete($settings->secondary_logo);
+            }
+
+            // Store new secondary logo
+            $secondaryLogoPath = $request->file('secondary_logo')->store('company-logos', 'public');
+            $data['secondary_logo'] = $secondaryLogoPath;
+        }
+
         $settings->update($data);
 
         // Include logo and signature URLs in response
         $settings->logo_url = $settings->company_logo ? asset('storage/' . $settings->company_logo) : null;
+        $settings->secondary_logo_url = $settings->secondary_logo ? asset('storage/' . $settings->secondary_logo) : null;
         $settings->signature_url = $settings->authorized_signatory ? asset('storage/' . $settings->authorized_signatory) : null;
 
         return response()->json([

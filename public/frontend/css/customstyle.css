@@ -2,6 +2,9 @@
    Multi-Level Hierarchical Dropdown Menu Styles (3 Levels)
    Compatible with existing styles.css
    ============================================================== */
+   :root {
+    --secondary-color: #f4f5f7;
+} 
 
 /* Mobile - Show submenu structure, hide mega menu */
 @media(max-width: 992px) {
@@ -386,7 +389,7 @@
 /* Badge/Count Support */
 .nav-dropdown > li > a .category-count {
     float: right;
-    background: #f4f5f7;
+    background: var(--secondary-color);
     color: #6e7c90;
     padding: 2px 8px;
     border-radius: 12px;
@@ -782,3 +785,15 @@
 
 
 
+
+/* banner second variant category style */
+.overlio {
+	margin-top: -80px;
+	justify-content: center !important;
+}
+
+
+ 
+::-webkit-scrollbar {
+    display: none !important;
+}

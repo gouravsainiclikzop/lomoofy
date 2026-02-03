@@ -120,6 +120,16 @@
                                 </div>
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted mb-1">Secondary Logo</label>
+                                <div id="displaySecondaryLogo">
+                                    @if($companySettings->secondary_logo ?? null)
+                                        <img src="{{ asset('storage/' . $companySettings->secondary_logo) }}" alt="Secondary Logo" style="max-height: 60px; max-width: 200px;" class="img-thumbnail">
+                                    @else
+                                        <span class="text-muted">No secondary logo uploaded</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label text-muted mb-1">Phone</label>
                                 <div class="fw-medium" id="displayCompanyPhone">{{ $companySettings->phone ?? '-' }}</div>
                             </div>
@@ -171,6 +181,35 @@
                                     @else
                                         <span class="text-muted">No signature uploaded</span>
                                     @endif
+                                </div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label text-muted mb-1">Social Media Links</label>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Facebook</small>
+                                        <div class="fw-medium" id="displayFacebookUrl">{{ $companySettings->facebook_url ?? '-' }}</div>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Twitter</small>
+                                        <div class="fw-medium" id="displayTwitterUrl">{{ $companySettings->twitter_url ?? '-' }}</div>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">YouTube</small>
+                                        <div class="fw-medium" id="displayYoutubeUrl">{{ $companySettings->youtube_url ?? '-' }}</div>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Instagram</small>
+                                        <div class="fw-medium" id="displayInstagramUrl">{{ $companySettings->instagram_url ?? '-' }}</div>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">LinkedIn</small>
+                                        <div class="fw-medium" id="displayLinkedinUrl">{{ $companySettings->linkedin_url ?? '-' }}</div>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">WhatsApp</small>
+                                        <div class="fw-medium" id="displayWhatsappUrl">{{ $companySettings->whatsapp_url ?? '-' }}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -394,6 +433,20 @@
                         @endif
                         <div class="invalid-feedback"></div>
                     </div>
+                    <div class="mb-3">
+                        <label for="secondary_logo" class="form-label">Secondary Logo</label>
+                        <input type="file" class="form-control" id="secondary_logo" name="secondary_logo" accept="image/*">
+                        <small class="text-muted">Accepted formats: JPEG, PNG, JPG, GIF, SVG (Max: 2MB)</small>
+                        @if($companySettings->secondary_logo ?? null)
+                            <div class="mt-2">
+                                <img src="{{ asset('storage/' . $companySettings->secondary_logo) }}" alt="Current Secondary Logo" style="max-height: 80px; max-width: 200px;" class="img-thumbnail">
+                                <div class="mt-1">
+                                    <small class="text-muted">Current secondary logo</small>
+                                </div>
+                            </div>
+                        @endif
+                        <div class="invalid-feedback"></div>
+                    </div>
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
@@ -497,6 +550,55 @@
                             </div>
                         @endif
                         <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Social Media Links -->
+                    <div class="mb-3">
+                        <label class="form-label">Social Media Links</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="facebook_url" class="form-label">Facebook URL</label>
+                                    <input type="url" class="form-control" id="facebook_url" name="facebook_url" value="{{ $companySettings->facebook_url ?? '' }}" placeholder="https://facebook.com/yourpage">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="twitter_url" class="form-label">Twitter URL</label>
+                                    <input type="url" class="form-control" id="twitter_url" name="twitter_url" value="{{ $companySettings->twitter_url ?? '' }}" placeholder="https://twitter.com/yourhandle">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="youtube_url" class="form-label">YouTube URL</label>
+                                    <input type="url" class="form-control" id="youtube_url" name="youtube_url" value="{{ $companySettings->youtube_url ?? '' }}" placeholder="https://youtube.com/yourchannel">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="instagram_url" class="form-label">Instagram URL</label>
+                                    <input type="url" class="form-control" id="instagram_url" name="instagram_url" value="{{ $companySettings->instagram_url ?? '' }}" placeholder="https://instagram.com/yourprofile">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="linkedin_url" class="form-label">LinkedIn URL</label>
+                                    <input type="url" class="form-control" id="linkedin_url" name="linkedin_url" value="{{ $companySettings->linkedin_url ?? '' }}" placeholder="https://linkedin.com/company/yourcompany">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="whatsapp_url" class="form-label">WhatsApp URL</label>
+                                    <input type="url" class="form-control" id="whatsapp_url" name="whatsapp_url" value="{{ $companySettings->whatsapp_url ?? '' }}" placeholder="https://wa.me/1234567890">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -889,6 +991,21 @@ $(document).ready(function() {
                         $('#displayCompanyLogo').html('<span class="text-muted">No logo uploaded</span>');
                     }
                     
+                    // Update secondary logo display
+                    if (response.settings.secondary_logo_url) {
+                        $('#displaySecondaryLogo').html(`<img src="${response.settings.secondary_logo_url}" alt="Secondary Logo" style="max-height: 60px; max-width: 200px;" class="img-thumbnail">`);
+                    } else {
+                        $('#displaySecondaryLogo').html('<span class="text-muted">No secondary logo uploaded</span>');
+                    }
+                    
+                    // Update social media URLs
+                    $('#displayFacebookUrl').text(response.settings.facebook_url || '-');
+                    $('#displayTwitterUrl').text(response.settings.twitter_url || '-');
+                    $('#displayYoutubeUrl').text(response.settings.youtube_url || '-');
+                    $('#displayInstagramUrl').text(response.settings.instagram_url || '-');
+                    $('#displayLinkedinUrl').text(response.settings.linkedin_url || '-');
+                    $('#displayWhatsappUrl').text(response.settings.whatsapp_url || '-');
+                    
                     // Reset form and clear all fields
                     form[0].reset();
                     
@@ -954,6 +1071,14 @@ $(document).ready(function() {
         $('#company_state').val($('#displayCompanyState').text().trim() === '-' ? '' : $('#displayCompanyState').text().trim());
         $('#company_pan_no').val($('#displayCompanyPanNo').text().trim() === '-' ? '' : $('#displayCompanyPanNo').text().trim());
         $('#company_gst_registration_no').val($('#displayCompanyGstNo').text().trim() === '-' ? '' : $('#displayCompanyGstNo').text().trim());
+        
+        // Populate social media URLs
+        $('#facebook_url').val($('#displayFacebookUrl').text().trim() === '-' ? '' : $('#displayFacebookUrl').text().trim());
+        $('#twitter_url').val($('#displayTwitterUrl').text().trim() === '-' ? '' : $('#displayTwitterUrl').text().trim());
+        $('#youtube_url').val($('#displayYoutubeUrl').text().trim() === '-' ? '' : $('#displayYoutubeUrl').text().trim());
+        $('#instagram_url').val($('#displayInstagramUrl').text().trim() === '-' ? '' : $('#displayInstagramUrl').text().trim());
+        $('#linkedin_url').val($('#displayLinkedinUrl').text().trim() === '-' ? '' : $('#displayLinkedinUrl').text().trim());
+        $('#whatsapp_url').val($('#displayWhatsappUrl').text().trim() === '-' ? '' : $('#displayWhatsappUrl').text().trim());
         
         // Clear file inputs (they can't be pre-populated for security reasons)
         form.find('input[type="file"]').val('');

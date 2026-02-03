@@ -11,28 +11,22 @@ class Product extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = [
-        // Basic Information (product-level only)
+    protected $fillable = [ 
         'name',
         'slug',
         'short_description',
         'status',
-        'featured',
-        
-        // Categories & Tags
-        'brand_id', // Single brand (legacy) - primary brand
-        'category_id', // Single category (primary)
-        'default_warehouse_id', // Default warehouse for this product
-        'tags',
-        
+        'featured', 
+        'brand_id', 
+        'category_id',  
+        'default_warehouse_id',  
+        'tags', 
         // SEO Settings
         'meta_title',
         'meta_description',
         'meta_keywords',
-        'metadata', // Raw metadata / JSON-LD (optional)
-        'json_ld', // JSON-LD structured data (optional)
-        
-        // Optional fields (kept for backward compatibility, but not in unified structure)
+        'metadata', 
+        'json_ld',  
         'unit_id',
         'unit_quantity',
         'unit_display',
@@ -59,12 +53,7 @@ class Product extends Model
         'bundle_items',
         'subscription_period',
         'subscription_interval',
-        'subscription_length',
-        
-        // Note: Removed fields (variant-level only):
-        // sku, barcode, price, sale_price, sale_price_start, sale_price_end,
-        // manage_stock, stock_quantity, stock_status, allow_backorder,
-        // weight, length, width, height, diameter, type, sku_type
+        'subscription_length', 
     ];
 
     protected $casts = [
@@ -87,8 +76,7 @@ class Product extends Model
         static::creating(function ($product) {
             if (empty($product->slug) && !empty($product->name)) {
                 $product->slug = Str::slug($product->name);
-            }
-            // SKU is now variant-level only, removed from product creation
+            } 
         });
         
         static::updating(function ($product) {
@@ -130,17 +118,13 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class)->orderBy('sort_order');
     }
 
-    /**
-     * Relationship with reviews
-     */
+    // Relationship with reviews
     public function reviews()
     {
         return $this->hasMany(Review::class, 'product_id');
     }
 
-    /**
-     * Get only active reviews for this product
-     */
+    // * Get only active reviews for this product
     public function activeReviews()
     {
         return $this->hasMany(Review::class, 'product_id')->where('status', 'active');
@@ -177,12 +161,7 @@ class Product extends Model
         return $this->hasMany(ProductStaticAttribute::class);
     }
 
-    /**
-     * Get all ProductAttributes applicable to this product based on its category.
-     * Includes attributes from the product's category and all ancestor categories.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+    
     public function getApplicableProductAttributes()
     {
         if (!$this->category) {
@@ -191,12 +170,7 @@ class Product extends Model
 
         return $this->category->getAllProductAttributes();
     }
-
-    /**
-     * Get variant attributes (is_variation = true) for this product.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getVariantProductAttributes()
     {
         return $this->getApplicableProductAttributes()
@@ -205,12 +179,7 @@ class Product extends Model
             })
             ->values();
     }
-
-    /**
-     * Get static attributes (is_variation = false) for this product.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getStaticProductAttributes()
     {
         return $this->getApplicableProductAttributes()
@@ -219,14 +188,7 @@ class Product extends Model
             })
             ->values();
     }
-
-    /**
-     * Get all applicable category attributes for this product.
-     * Includes attributes from the product's category and all ancestor categories.
-     * Supports unlimited nesting depth.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getApplicableCategoryAttributes()
     {
         if (!$this->category) {
@@ -235,12 +197,7 @@ class Product extends Model
 
         return $this->category->getAllAttributes();
     }
-
-    /**
-     * Get filterable category attributes for this product.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getFilterableCategoryAttributes()
     {
         return $this->getApplicableCategoryAttributes()
@@ -322,15 +279,7 @@ class Product extends Model
         return asset('assets/images/placeholder.jpg');
     }
 
-    // Helper methods
-    // Note: Inventory and pricing methods removed - these are variant-level only
     
-    // Product type checks removed - unified structure doesn't use product types
-    // All products support variants (even if just a default one)
-    
-    /**
-     * Check if product has any active variants in stock
-     */
     public function hasStock()
     {
         return $this->variants()->where('is_active', true)
@@ -343,18 +292,13 @@ class Product extends Model
             })
             ->exists();
     }
-    
-    /**
-     * Get minimum price from all active variants
-     */
+     
     public function getMinPrice()
     {
         return $this->variants()->where('is_active', true)->min('price') ?? 0;
     }
     
-    /**
-     * Get maximum price from all active variants
-     */
+    
     public function getMaxPrice()
     {
         return $this->variants()->where('is_active', true)->max('price') ?? 0;
@@ -378,7 +322,7 @@ class Product extends Model
         return $combinations;
     }
 
-    // Get available attributes for this product
+ 
     public function getAvailableAttributes()
     {
         $variants = $this->variants()->active()->get();

@@ -360,7 +360,7 @@ Resend Code        ← Blue, clickable ✅
 │  Alert Types                        │
 ├─────────────────────────────────────┤
 │  ✅ Success  → Green (#28a745)     │
-│  ❌ Error    → Red (#dc3545)       │
+│  ❌ Error    → Red (#e52d2d)       │
 │  ℹ️  Info     → Blue (#17a2b8)     │
 │  ⚠️  Warning  → Yellow (#ffc107)   │
 └─────────────────────────────────────┘

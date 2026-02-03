@@ -5,6 +5,8 @@
 @push('styles')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/ui-lightness/jquery-ui.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.css">
 <style>
     .image-preview {
         max-width: 300px;
@@ -81,6 +83,13 @@
                             </select>
                             <div class="invalid-feedback" id="categoryError"></div>
                         </div>
+                        
+                        <div class="col-12">
+                            <label for="countdownEndAt" class="form-label">Countdown End Date & Time (Optional)</label>
+                            <input type="text" class="form-control" id="countdownEndAt" name="countdown_end_at" value="{{ old('countdown_end_at', $ourCollection->countdown_end_at ? $ourCollection->countdown_end_at->format('Y-m-d H:i') : '') }}" placeholder="Select date and time">
+                            <small class="form-text text-muted">Set the end date and time for the countdown timer</small>
+                            <div class="invalid-feedback" id="countdownEndAtError"></div>
+                        </div>
                     </div>
                     
                     <div class="row mt-4">
@@ -99,6 +108,8 @@
 @endsection
 
 @push('scripts')
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.js"></script>
 <script>
 let categorySelect2Initialized = false;
 let pendingCategoryData = null;
@@ -151,6 +162,19 @@ function initializeCategorySelect2() {
 $(document).ready(function() {
     // Initialize Select2 on page load
     initializeCategorySelect2();
+    
+    // Initialize jQuery UI DateTime Picker
+    $('#countdownEndAt').datetimepicker({
+        dateFormat: 'yy-mm-dd',
+        timeFormat: 'HH:mm',
+        showButtonPanel: true,
+        changeMonth: true,
+        changeYear: true,
+        yearRange: '2020:2050',
+        stepMinute: 1,
+        controlType: 'select',
+        oneLine: true
+    });
     
     // Set category if exists
     @if(isset($ourCollection) && $ourCollection->category_id)
@@ -235,6 +259,15 @@ $(document).ready(function() {
                         pendingCategoryData.id = response.data.category_id;
                         pendingCategoryData.name = response.data.category_full_path_name || response.data.category_name;
                     }
+                    
+                    // Update countdown_end_at if changed
+                    if (response.data.countdown_end_at) {
+                        // Format: Y-m-d H:i:s -> Y-m-d H:i for datetimepicker
+                        const dateTime = response.data.countdown_end_at.replace(/:\d{2}$/, '');
+                        $('#countdownEndAt').val(dateTime);
+                    } else {
+                        $('#countdownEndAt').val('');
+                    }
                 }
             },
             error: function(xhr) {
@@ -258,9 +291,16 @@ $(document).ready(function() {
         $('.form-control, .form-select').removeClass('is-invalid');
         
         $.each(errors, function(key, value) {
-            const field = key.replace('_', '');
-            $(`#${field}Error`).text(value[0]).show();
-            $(`#${field.charAt(0).toUpperCase() + field.slice(1)}`).addClass('is-invalid');
+            // Handle field name mapping
+            let fieldId = key;
+            if (key === 'countdown_end_at') {
+                fieldId = 'countdownEndAt';
+            } else {
+                fieldId = key.replace('_', '');
+            }
+            
+            $(`#${fieldId}Error`).text(value[0]).show();
+            $(`#${fieldId}`).addClass('is-invalid');
         });
     }
 

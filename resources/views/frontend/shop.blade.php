@@ -439,7 +439,7 @@
 																$inWishlist = isset($product['in_wishlist']) && $product['in_wishlist'];
 															@endphp
 															<button class="btn auto btn_love snackbar-wishlist {{ $inWishlist ? 'wishlist-active' : '' }}" data-product-id="{{ $product['id'] }}" data-in-wishlist="{{ $inWishlist ? '1' : '0' }}">
-																<i class="{{ $inWishlist ? 'fas' : 'far' }} fa-heart{{ $inWishlist ? ' text-danger wishlist-heart-red' : '' }}" style="{{ $inWishlist ? 'color: #dc3545 !important;' : '' }}"></i>
+																<i class="{{ $inWishlist ? 'fas' : 'far' }} fa-heart{{ $inWishlist ? ' text-danger wishlist-heart-red' : '' }}" style="{{ $inWishlist ? 'color: #e52d2d !important;' : '' }}"></i>
 															</button> 
 														</div>
 													</div>
@@ -486,7 +486,7 @@
 																					₹{{ number_format($minPrice, 2) }}
 																					@if($hasPriceRange) - ₹{{ number_format($maxPrice, 2) }} @endif
 																				</span>
-																				<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">
+																				<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #e52d2d;">
 																					₹{{ number_format($minSalePrice, 2) }}
 																					@if($product['max_sale_price'] && $minSalePrice != $product['max_sale_price'])
 																						- ₹{{ number_format($product['max_sale_price'], 2) }}
@@ -1454,7 +1454,7 @@ $(document).ready(function() {
         
         const wishlistClass = product.in_wishlist ? 'wishlist-active' : '';
         const wishlistIcon = product.in_wishlist ? 'fas' : 'far';
-        const wishlistStyle = product.in_wishlist ? 'style="color: #dc3545 !important;"' : '';
+        const wishlistStyle = product.in_wishlist ? 'style="color: #e52d2d !important;"' : '';
         const wishlistData = product.in_wishlist ? 'data-in-wishlist="1"' : 'data-in-wishlist="0"';
         
         // Generate pricing HTML using first variant or price range
@@ -1482,7 +1482,7 @@ $(document).ready(function() {
                         '<div class="d-flex align-items-baseline flex-wrap gap-1">' +
                         '<span class="base-price-compact text-muted text-decoration-line-through fs-sm fw-normal me-1">' +
                         '₹' + Math.round(product.min_price) + ' - ₹' + Math.round(product.max_price) + '</span>' +
-                        '<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #dc3545;">' +
+                        '<span class="final-price-compact theme-cl fw-bold fs-md" style="color: #e52d2d;">' +
                         '₹' + Math.round(product.min_sale_price) + ' - ₹' + Math.round(product.max_sale_price || product.min_sale_price) + '</span></div></div></div>';
                 } else {
                     pricingHtml = '<span class="ft-medium text-dark fs-sm">₹' + Math.round(product.min_display_price) + ' - ₹' + Math.round(product.max_display_price) + '</span>';
@@ -1565,8 +1565,8 @@ $(document).ready(function() {
 }
 
 #clearAllFilters:hover {
-    background-color: #dc3545;
-    border-color: #dc3545;
+    background-color: #e52d2d;
+    border-color: #e52d2d;
     color: #fff;
 }
 

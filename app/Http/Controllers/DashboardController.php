@@ -12,22 +12,12 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /**
-     * Display the admin dashboard.
-     *
-     * @return \Illuminate\View\View
-     */
+   
     public function index()
     {
         return view('admin.dashboard');
     }
-
-    /**
-     * Get dashboard statistics (AJAX JSON Response).
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+ 
     public function getStats(Request $request)
     {
         $period = $request->get('period', 'week');
@@ -97,12 +87,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Get sales chart data with anomaly detection.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+  
     public function getSalesChart(Request $request)
     {
         $period = $request->get('period', 'week');
@@ -167,14 +152,7 @@ class DashboardController extends Controller
             ]
         ]);
     }
-
-    /**
-     * Detect anomalies in sales and orders data.
-     *
-     * @param array $sales
-     * @param array $orders
-     * @return array
-     */
+ 
     private function detectAnomalies($sales, $orders)
     {
         $anomalies = [];
@@ -230,14 +208,7 @@ class DashboardController extends Controller
         
         return $anomalies;
     }
-
-    /**
-     * Calculate percentile.
-     *
-     * @param array $data
-     * @param float $percentile
-     * @return float
-     */
+ 
     private function percentile($data, $percentile)
     {
         $index = ($percentile / 100) * (count($data) - 1);
@@ -252,13 +223,7 @@ class DashboardController extends Controller
         return $data[$lower] * (1 - $weight) + $data[$upper] * $weight;
     }
 
-    /**
-     * Format labels based on period.
-     *
-     * @param array $labels
-     * @param string $period
-     * @return array
-     */
+   
     private function formatLabels($labels, $period)
     {
         $formatted = [];
@@ -311,12 +276,7 @@ class DashboardController extends Controller
         
         return $formatted;
     }
-
-    /**
-     * Get orders by status chart data.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+ 
     public function getOrdersByStatus()
     {
         $statusData = Order::whereNull('deleted_at')
@@ -332,13 +292,7 @@ class DashboardController extends Controller
             ]
         ]);
     }
-
-    /**
-     * Get top products chart data with trends and images.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+ 
     public function getTopProducts(Request $request)
     {
         $limit = $request->get('limit', 5);
@@ -444,12 +398,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Get recent orders (AJAX JSON Response).
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+  
     public function getRecentOrders(Request $request)
     {
         $limit = $request->get('limit', 10);
@@ -481,13 +430,7 @@ class DashboardController extends Controller
             'message' => 'Orders loaded successfully'
         ]);
     }
-
-    /**
-     * Get date range based on period.
-     *
-     * @param string $period
-     * @return array
-     */
+ 
     private function getDateRange($period)
     {
         $end = Carbon::now();
@@ -517,12 +460,7 @@ class DashboardController extends Controller
         return [$start, $end];
     }
 
-    /**
-     * Get previous period date range for comparison.
-     *
-     * @param string $period
-     * @return array
-     */
+ 
     private function getPreviousDateRange($period)
     {
         $end = Carbon::now();
@@ -552,23 +490,13 @@ class DashboardController extends Controller
         return [$start, $end];
     }
 
-    /**
-     * Get SQL date format for grouping.
-     *
-     * @param string $period
-     * @return string
-     */
+ 
     private function getGroupBy($period)
     {
         return $this->getDateFormat($period);
     }
 
-    /**
-     * Get MySQL date format string.
-     *
-     * @param string $period
-     * @return string
-     */
+ 
     private function getDateFormat($period)
     {
         switch($period) {

@@ -9,7 +9,8 @@
                 </div>
                 <!-- logo / end -->
             </a>
-        </div>
+        </div> 
+        @if(!request()->routeIs('sections.*'))  
         <div class="sa-sidebar__body" data-simplebar="">
             <ul class="sa-nav sa-nav--sidebar" data-sa-collapse="">
                 <li class="sa-nav__section">
@@ -243,7 +244,7 @@
                         </li>
                         
                         <!-- Section Management -->
-                        <li class="d-none sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('sections.*') ? 'sa-nav__menu-item--active' : '' }}">
+                        <li class=" sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('sections.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('sections.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__icon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
@@ -252,8 +253,8 @@
                                 </span>
                                 <span class="sa-nav__title">Section Management</span>
                             </a>
-                        </li>
-                        
+                        </li> 
+
                     </ul>
                 </li>
                 
@@ -324,8 +325,50 @@
                     </ul>
                 </li>
 
+                @php
+                    $activeSectionIds = \App\Models\Section::where('is_active', true)
+                        ->pluck('section_id')
+                        ->toArray();
+
+                    $sliderSections = [
+                        'issliderbanner-v1',
+                        'issliderbanner-v2',
+                    ];
+
+                    $featuredCategorySections = [
+                        'isfeaturedcategory-v1',
+                        'isfeaturedcategory-v2',
+                        'isfeaturedcategory-v3',
+                        'isfeaturedcategory-v4',
+                        'isfeaturedcategory-v5',
+                        'isfeaturedcategory-v6',
+                    ];
+
+                    $ourCollectionSections = [
+                        'isourcollection-v1',
+                        'isourcollection-v2',
+                    ];
+
+                    $istestimonialSections = [
+                        'istestimonials-v1',
+                    ];
+                    
+                    $blogSections = [
+                        'isblog-v1',
+                    ];
+
+                    $instagramGallerySections = [
+                        'isinstagram-v1',
+                    ];
+
+                    $serviceHighlightsSections = [
+                        'ishighlights-v1',
+                    ];
+
+                @endphp
+
                 <!-- Website Management Menu -->
-                <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('website.*') ?  (request()->routeIs('home-sliders.*') || request()->routeIs('featured-category-style.*') || request()->routeIs('our-collection.*') || request()->routeIs('testimonials.*') || request()->routeIs('reviews.*') || request()->routeIs('service-highlights.*') ? 'sa-nav__menu-item--open' : '') : '' }}" data-sa-collapse-item="sa-nav__menu-item--open" style="margin-bottom: 8px;">
+                <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('website.*') ?  (request()->routeIs('home-sliders.*') || request()->routeIs('featured-category-style.*') || request()->routeIs('our-collection.*') || request()->routeIs('testimonials.*') || request()->routeIs('instagram-gallery.*') || request()->routeIs('reviews.*') || request()->routeIs('service-highlights.*') ? 'sa-nav__menu-item--open' : '') : '' }}" data-sa-collapse-item="sa-nav__menu-item--open" style="margin-bottom: 8px;">
                     <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
                         <span class="sa-nav__icon">
                             <i class='bx bx-globe'></i>
@@ -338,105 +381,334 @@
                         </span>
                     </a>
 
-                    <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content="">
-                       
+                    <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content=""> 
 
-                    <li class="sa-nav__menu-item {{ request()->routeIs('home-sliders.*') ? 'sa-nav__menu-item--active' : '' }}">
+                    <!-- Slider Sections -->
+                    @if(array_intersect($sliderSections, $activeSectionIds))
+                        <li class="sa-nav__menu-item {{ request()->routeIs('home-sliders.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('home-sliders.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__menu-item-padding"></span>
                                 <span class="sa-nav__title">Home Sliders</span>
                             </a>
                         </li>
-                    <li class="sa-nav__menu-item {{ request()->routeIs('featured-category-style.*') ? 'sa-nav__menu-item--active' : '' }}">
+                        @endif
+
+                        @if(array_intersect($featuredCategorySections, $activeSectionIds))
+                        <li class="sa-nav__menu-item {{ request()->routeIs('featured-category-style.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('featured-category-style.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__menu-item-padding"></span>
                                 <span class="sa-nav__title">Featured Category Style</span>
                             </a>
                         </li>
+                        @endif
 
+                        @if(array_intersect($ourCollectionSections, $activeSectionIds)) 
                         <li class="sa-nav__menu-item {{ request()->routeIs('our-collection.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('our-collection.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__menu-item-padding"></span>
-                                <span class="sa-nav__title">Our Collection</span>
+                                <span class="sa-nav__title">Our Collection Section</span>
                             </a>
                         </li>
+                        @endif
 
+                        @if(array_intersect($istestimonialSections, $activeSectionIds))
                         <li class="sa-nav__menu-item {{ request()->routeIs('testimonials.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('testimonials.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__menu-item-padding"></span>
                                 <span class="sa-nav__title">Testimonials</span>
                             </a>
                         </li>
+                        @endif
 
+                        @if(array_intersect($instagramGallerySections, $activeSectionIds))
+                        <li class="sa-nav__menu-item {{ request()->routeIs('instagram-gallery.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('instagram-gallery.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__menu-item-padding"></span>
+                                <span class="sa-nav__title">Instagram Gallery</span>
+                            </a>
+                        </li>
+                        @endif
 
+                        @if(array_intersect($serviceHighlightsSections, $activeSectionIds))
                         <li class="sa-nav__menu-item {{ request()->routeIs('service-highlights.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('service-highlights.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__menu-item-padding"></span>
                                 <span class="sa-nav__title">Service Highlights</span>
                             </a>
                         </li> 
-
+                        @endif
+                        
                         <!-- Reviews -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('reviews.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('reviews.index') }}" class="sa-nav__link">
-                                <!-- <span class="sa-nav__icon">
-                                    <i class='bx bx-star'></i>
-                                </span> -->
+                            <a href="{{ route('reviews.index') }}" class="sa-nav__link"> 
                                 <span class="sa-nav__menu-item-padding"></span> 
                                 <span class="sa-nav__title">Reviews Management</span>
                             </a>
                         </li>
 
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('about-us.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('about-us.index') }}" class="sa-nav__link">
-                                <!-- <span class="sa-nav__icon">
-                                    <i class='bx bx-info-circle'></i>
-                                </span> -->
+                            <a href="{{ route('about-us.index') }}" class="sa-nav__link"> 
                                 <span class="sa-nav__menu-item-padding"></span> 
                                 <span class="sa-nav__title">About Us</span>
                             </a>
                         </li>
 
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('legal-pages.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('legal-pages.index') }}" class="sa-nav__link">
-                                <!-- <span class="sa-nav__icon">
-                                    <i class='bx bx-file-blank'></i>
-                                </span> -->
+                            <a href="{{ route('legal-pages.index') }}" class="sa-nav__link"> 
                                 <span class="sa-nav__menu-item-padding"></span> 
                                 <span class="sa-nav__title">Legal Pages</span>
                             </a>
                         </li>
 
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('faqs.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('faqs.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none">
-                                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M9.09 9C9.3251 8.33167 9.78915 7.76811 10.4 7.40913C11.0108 7.05016 11.7289 6.91894 12.4272 7.03871C13.1255 7.15849 13.7588 7.52152 14.2151 8.06353C14.6713 8.60553 14.9211 9.29152 14.92 10C14.92 12 11.92 13 11.92 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M12 17H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </span>
+                            <a href="{{ route('faqs.index') }}" class="sa-nav__link"> 
+                            <span class="sa-nav__menu-item-padding"></span> 
                                 <span class="sa-nav__title">FAQs</span>
                             </a>
                         </li>
 
+                        @if(array_intersect($blogSections, $activeSectionIds))
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('blogs.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('blogs.index') }}" class="sa-nav__link">
-                                <!-- <span class="sa-nav__icon">
-                                    <i class='bx bx-news'></i>
-                                </span> -->
+                            <a href="{{ route('blogs.index') }}" class="sa-nav__link"> 
                                 <span class="sa-nav__menu-item-padding"></span> 
                                 <span class="sa-nav__title">Blogs</span>
                             </a>
                         </li>
-                        
+                        @endif
                     </ul>
-                </li>
-
-
-                
+                </li> 
             </ul>
         </div>
+        @else
+        <div class="sa-sidebar__body" data-simplebar="">
+    <ul class="sa-nav sa-nav--sidebar" data-sa-collapse="" id="sectionsSidebarList">
+
+        <li class="sa-nav__section">
+            <div class="sa-nav__section-title">
+                <span>Sections</span>
+            </div>
+        </li>
+
+        @if(isset($groupedSections))
+            @foreach($groupedSections as $group)
+                <li class="sa-nav__menu-item sa-nav__menu-item--has-icon"
+                    data-section-base="{{ $group['base_name'] }}">
+
+                    <div class="w-100" style="padding: 0.5rem 1rem;">
+
+                        <!-- Row 1: Drag Handle + Title -->
+                        <div class="d-flex align-items-center">
+                            @if(!empty($group['show_sorting_btn']))
+                            <button type="button"
+                                    class="btn btn-sm p-0 me-2 section-sort-handle"
+                                    title="Drag to reorder">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     width="16" height="16"
+                                     viewBox="0 0 16 16"
+                                     fill="currentColor"
+                                     class="section-drag-icon">
+                                    <path d="M2,6h12v1H2V6z M2,9h12v1H2V9z M2,3h12v1H2V3z M2,12h12v1H2V12z"></path>
+                                </svg>
+                            </button>
+                            @else
+                            <span class="me-2" style="width: 24px;"></span>
+                            @endif
+
+                            <span class="sa-nav__title flex-grow-1 sections-item-title">
+                                {{ $group['display_name'] }}
+                            </span>
+                        </div>
+
+                        <!-- Row 2: Variants listed directly -->
+                        <div class="mt-1 ps-4 sections-variants-list">
+                            @foreach($group['variants'] as $variant)
+                                <div class="d-flex align-items-center justify-content-between sections-variant-row py-1">
+                                    <div class="flex-grow-1">
+                                        <span class="sections-variant-title">{{ $variant->title }}</span>
+                                        <small class="sections-variant-id d-block">{{ $variant->section_id }}</small>
+                                    </div>
+                                    <div class="form-check form-switch ms-2 mb-0">
+                                        <input class="form-check-input section-toggle"
+                                               type="checkbox"
+                                               data-section-id="{{ $variant->id }}"
+                                               {{ $variant->is_active ? 'checked' : '' }}
+                                               id="toggle{{ $variant->id }}">
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                    </div>
+                </li>
+            @endforeach
+        @endif
+
+    </ul>
+</div>
+
+        
+        <style>
+            /* Sections sidebar: high contrast on dark background */
+            #sectionsSidebarList {
+                list-style: none;
+                padding-left: 0;
+            }
+            #sectionsSidebarList .sa-nav__section-title {
+                color: rgba(255, 255, 255, 0.7);
+                font-size: 0.7rem;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+                padding: 0.5rem 1rem;
+                text-transform: uppercase;
+            }
+            #sectionsSidebarList .sa-nav__menu-item {
+                border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            }
+            #sectionsSidebarList .sa-nav__menu-item:last-child {
+                border-bottom: none;
+            }
+            #sectionsSidebarList .sections-item-title {
+                color: #fff;
+                font-weight: 600;
+            }
+            /* Drag handle: visible on dark sidebar */
+            #sectionsSidebarList .section-sort-handle {
+                cursor: move;
+                border: none;
+                background: none;
+                padding: 0.25rem;
+                color: rgba(255, 255, 255, 0.7);
+                line-height: 0;
+            }
+            #sectionsSidebarList .section-sort-handle:hover {
+                color: #fff;
+            }
+            #sectionsSidebarList .section-drag-icon {
+                opacity: 1;
+                display: block;
+            }
+            /* Variants list: visible on dark sidebar */
+            #sectionsSidebarList .sections-variants-list {
+                border-left: 1px solid rgba(255, 255, 255, 0.15);
+            }
+            #sectionsSidebarList .sections-variant-row {
+                padding-left: 0.5rem;
+            }
+            #sectionsSidebarList .sections-variant-title {
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 0.8rem;
+                font-weight: 500;
+            }
+            #sectionsSidebarList .sections-variant-id {
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 0.7rem;
+            }
+            #sectionsSidebarList .section-toggle {
+                cursor: pointer;
+            }
+        </style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Refresh frontend preview iframe (only on sections page)
+                function refreshFrontendPreview() {
+                    var iframe = document.getElementById('frontendPreview');
+                    if (iframe && iframe.src) {
+                        iframe.src = iframe.src;
+                    }
+                }
+
+                // Toggle active/inactive
+                document.querySelectorAll('.section-toggle').forEach(function(toggle) {
+                    toggle.addEventListener('change', function() {
+                        const sectionId = this.dataset.sectionId;
+                        const isActive = this.checked;
+                        if (typeof window.showPageSpinner === 'function') window.showPageSpinner();
+                        
+                        fetch('{{ route("sections.toggleVariant") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                section_id: sectionId,
+                                is_active: isActive
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                refreshFrontendPreview();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            this.checked = !isActive; // Revert on error
+                        })
+                        .finally(function() {
+                            if (typeof window.hidePageSpinner === 'function') window.hidePageSpinner();
+                        });
+                    });
+                });
+                
+                // Sortable functionality
+                const sortableList = document.getElementById('sectionsSidebarList');
+                if (sortableList && typeof Sortable !== 'undefined') {
+                    new Sortable(sortableList, {
+                        handle: '.section-sort-handle',
+                        animation: 150,
+                        filter: '.sa-nav__section', // Don't allow dragging the section title
+                        onEnd: function(evt) {
+                            const items = Array.from(sortableList.querySelectorAll('[data-section-base]'));
+                            const sortData = [];
+                            let currentOrder = 1;
+                            
+                            items.forEach((item) => {
+                                const baseName = item.dataset.sectionBase;
+                                const variants = Array.from(item.querySelectorAll('.section-toggle'));
+                                
+                                // Get variant IDs and update their sort orders
+                                variants.forEach(toggle => {
+                                    sortData.push({
+                                        id: parseInt(toggle.dataset.sectionId),
+                                        sort_order: currentOrder
+                                    });
+                                    currentOrder++;
+                                });
+                            });
+                            
+                            if (typeof window.showPageSpinner === 'function') window.showPageSpinner();
+                            
+                            fetch('{{ route("sections.updateSortOrder") }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({
+                                    items: sortData
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    refreshFrontendPreview();
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                            })
+                            .finally(function() {
+                                if (typeof window.hidePageSpinner === 'function') window.hidePageSpinner();
+                            });
+                        }
+                    });
+                }
+            });
+        </script>
+        @endif
     </div>
     <div class="sa-app__sidebar-shadow"></div>
     <div class="sa-app__sidebar-backdrop" data-sa-close-sidebar=""></div>

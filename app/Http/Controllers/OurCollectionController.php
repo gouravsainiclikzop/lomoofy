@@ -31,6 +31,7 @@ class OurCollectionController extends Controller
             'description' => 'nullable|string',
             'category_id' => 'nullable|exists:categories,id',
             'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'countdown_end_at' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -41,7 +42,12 @@ class OurCollectionController extends Controller
             ], 422);
         }
 
-        $data = $request->only(['heading', 'description', 'category_id']);
+        $data = $request->only(['heading', 'description', 'category_id', 'countdown_end_at']);
+        
+        // Convert empty string to null for countdown_end_at
+        if (isset($data['countdown_end_at']) && $data['countdown_end_at'] === '') {
+            $data['countdown_end_at'] = null;
+        }
 
         // Handle background image upload
         if ($request->hasFile('background_image')) {
@@ -69,6 +75,7 @@ class OurCollectionController extends Controller
                 'category_name' => $ourCollection->category ? $ourCollection->category->name : null,
                 'category_full_path_name' => $ourCollection->category ? $ourCollection->category->getFullPathName() : null,
                 'background_image' => $ourCollection->background_image ? asset('storage/' . $ourCollection->background_image) : null,
+                'countdown_end_at' => $ourCollection->countdown_end_at ? $ourCollection->countdown_end_at->format('Y-m-d H:i:s') : null,
             ]
         ]);
     }

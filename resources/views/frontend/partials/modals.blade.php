@@ -67,8 +67,7 @@
 									<div class="widget-boxed-body collapse" id="quickViewProductInfoCollapse" data-parent="#quickViewProductInfoCollapse">
 										<div class="side-list no-border">
 											<div class="single_filter_card">
-												<div class="card-body pt-0" id="quickViewHighlightsDetails">
-													<!-- Highlights will be populated dynamically -->
+												<div class="card-body pt-0" id="quickViewHighlightsDetails"> 
 												</div>
 											</div>
 										</div>
@@ -78,29 +77,30 @@
 							
 							<div class="prt_04 mb-2" id="quickViewColorsContainer" style="display: none;">
 								<p class="d-flex align-items-center mb-0 text-dark ft-medium">Color:</p>
-								<div class="text-left" id="quickViewColors">
-									<!-- Colors will be populated dynamically -->
+								<div class="text-left" id="quickViewColors"> 
 								</div>
 							</div>
 							
 							<div class="prt_04 " id="quickViewSizesContainer" style="display: none;">
 								<p class="d-flex align-items-center mb-0 text-dark ft-medium">Size:</p>
-								<div class="text-left pb-0 pt-2" id="quickViewSizes">
-									<!-- Sizes will be populated dynamically -->
+								<div class="text-left pb-0 pt-2" id="quickViewSizes"> 
 								</div>
 							</div>
 							
 							<div class="prt_05 mb-4">
 								<div class="form-row row g-3 mb-7">
-									<div class="col-12 col-md-6 col-lg-3">
-										<!-- Quantity -->
+									<div class="col-12 col-md-6 col-lg-3"> 
 										<select class="mb-2 custom-select" id="quickViewQuantity">
 										  <option value="1" selected="">1</option>
 										  <option value="2">2</option>
 										  <option value="3">3</option>
 										  <option value="4">4</option>
 										  <option value="5">5</option>
-										  <option value="10">10</option>
+										  <option value="6">6</option>
+                                          <option value="7">7</option>
+                                          <option value="8">8</option>
+                                          <option value="9">9</option>
+                                          <option value="10">10</option>
 										</select>
 									</div>
 									<div class="col-12 col-md-12 col-lg-6">
@@ -606,10 +606,10 @@
     #quickViewWishlist.active,
     #quickViewWishlist.active i,
     #quickViewWishlist.active .fa-heart {
-        color: #dc3545 !important;
+        color: #e52d2d !important;
     }
     #quickViewWishlist.active {
-        border-color: #dc3545 !important;
+        border-color: #e52d2d !important;
     }
 
     /* Ensure modal content doesn't overflow */
@@ -718,7 +718,7 @@
 
     /* Form validation styles */
     .form-control.is-invalid {
-        border-color: #dc3545;
+        border-color: #e52d2d;
         box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
     }
 
@@ -727,11 +727,11 @@
         width: 100%;
         margin-top: 0.25rem;
         font-size: 0.875rem;
-        color: #dc3545;
+        color: #e52d2d;
     }
 
     .form-control.is-invalid:focus {
-        border-color: #dc3545;
+        border-color: #e52d2d;
         box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
     }
 
@@ -1216,7 +1216,7 @@ $(document).ready(function() {
                                     showAction: false,
                                     duration: 3000,
                                     textColor: '#fff',
-                                    backgroundColor: '#dc3545'
+                                    backgroundColor: '#e52d2d'
                                 });
                             }
                         }
@@ -1235,8 +1235,8 @@ $(document).ready(function() {
                         if (response.success) {
                             $btn.addClass('active text-danger');
                             const $icon = $btn.find('i');
-                            $icon.removeClass('lni lni-heart').addClass('fas fa-heart').css('color', '#dc3545');
-                            $btn.css('color', '#dc3545');
+                            $icon.removeClass('lni lni-heart').addClass('fas fa-heart').css('color', '#e52d2d');
+                            $btn.css('color', '#e52d2d');
                             if (typeof Snackbar !== 'undefined') {
                                 Snackbar.show({
                                     text: 'Product added to wishlist successfully!',
@@ -1267,7 +1267,7 @@ $(document).ready(function() {
                                 showAction: false,
                                 duration: 3000,
                                 textColor: '#fff',
-                                backgroundColor: '#dc3545'
+                                backgroundColor: '#e52d2d'
                             });
                         }
                     }
@@ -1428,7 +1428,7 @@ $(document).ready(function() {
                                 showAction: false,
                                 duration: 3000,
                                 textColor: '#fff',
-                                backgroundColor: '#dc3545'
+                                backgroundColor: '#e52d2d'
                             });
                         }
                     }
@@ -1645,7 +1645,7 @@ $(document).ready(function() {
             }
             
             // Final Price (prominent)
-            priceHtml += '<span class="final-price theme-cl fw-bold ' + (hasDiscount ? 'fs-2' : 'fs-3') + '" style="color: #dc3545;">';
+            priceHtml += '<span class="final-price theme-cl fw-bold ' + (hasDiscount ? 'fs-2' : 'fs-3') + '" style="color: #e52d2d;">';
             priceHtml += formatPriceDisplay(displayFinalPrice);
             priceHtml += '</span>';
             
@@ -1708,14 +1708,14 @@ $(document).ready(function() {
             if (currentProductData.has_sale && displayMinSalePrice) {
                 priceHtml = '<span class="ft-medium text-muted text-decoration-line-through fs-5 fw-normal me-2">' + 
                            formatPriceDisplay(displayMinPrice) + '</span>' +
-                           '<span class="final-price theme-cl fw-bold fs-3 me-2" style="color: #dc3545;">' + 
+                           '<span class="final-price theme-cl fw-bold fs-3 me-2" style="color: #e52d2d;">' + 
                            formatPriceDisplay(displayMinSalePrice);
                 if (displayMaxSalePrice && displayMinSalePrice != displayMaxSalePrice) {
                     priceHtml += ' - ' + formatPriceDisplay(displayMaxSalePrice);
                 }
                 priceHtml += ' <span class="tax-label text-muted fs-sm align-self-end">(' + taxLabel + ')</span></span>';
             } else {
-                priceHtml = '<span class="final-price theme-cl fw-bold fs-3 me-2" style="color: #dc3545;">' + 
+                priceHtml = '<span class="final-price theme-cl fw-bold fs-3 me-2" style="color: #e52d2d;">' + 
                            formatPriceDisplay(displayMinPrice);
                 if (displayMaxPrice && displayMinPrice != displayMaxPrice) {
                     priceHtml += ' - ' + formatPriceDisplay(displayMaxPrice);
@@ -2166,8 +2166,8 @@ $(document).ready(function() {
                     
                     if (isInWishlist) {
                         $btn.addClass('active text-danger');
-                        $icon.removeClass('lni lni-heart').addClass('fas fa-heart').css('color', '#dc3545');
-                        $btn.css('color', '#dc3545');
+                        $icon.removeClass('lni lni-heart').addClass('fas fa-heart').css('color', '#e52d2d');
+                        $btn.css('color', '#e52d2d');
                     }
                 }
             },
