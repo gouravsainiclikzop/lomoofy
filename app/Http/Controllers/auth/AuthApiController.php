@@ -766,4 +766,127 @@ class AuthApiController extends Controller
         }
     }
 
+    /**
+     * Send OTP to new email for profile email update (customer must be logged in)
+     * POST /api/auth/profile/send-email-otp
+     */
+    public function profileSendEmailOtp(Request $request)
+    {
+        $customer = Auth::guard('customer')->user();
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'UNAUTHORIZED', 'message' => 'Please login to continue.'],
+            ], 401);
+        }
+
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => [
+                    'required',
+                    'email',
+                    'unique:customers,email,' . $customer->id,
+                ],
+            ], [
+                'email.unique' => 'This email is already registered to another account.',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => 'Validation failed',
+                        'errors' => $validator->errors(),
+                    ],
+                ], 422);
+            }
+
+            $newEmail = $request->email;
+            if (strcasecmp($newEmail, $customer->email) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'SAME_EMAIL',
+                        'message' => 'This is already your current email. No verification needed.',
+                        'errors' => ['email' => ['This is already your current email.']],
+                    ],
+                ], 422);
+            }
+
+            CustomerOtp::generateAndSend($newEmail, 'email_update');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification code sent to your new email.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'OTP_SEND_ERROR',
+                    'message' => 'Failed to send verification code: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify OTP for profile email update (customer must be logged in)
+     * POST /api/auth/profile/verify-email-otp
+     */
+    public function profileVerifyEmailOtp(Request $request)
+    {
+        $customer = Auth::guard('customer')->user();
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'UNAUTHORIZED', 'message' => 'Please login to continue.'],
+            ], 401);
+        }
+
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'otp' => 'required|string|size:6',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'VALIDATION_ERROR',
+                        'message' => 'Validation failed',
+                        'errors' => $validator->errors(),
+                    ],
+                ], 422);
+            }
+
+            $isValid = CustomerOtp::verify($request->email, $request->otp, 'email_update');
+
+            if ($isValid) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Email verified successfully. You can now save your profile.',
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'INVALID_OTP',
+                    'message' => 'Invalid or expired verification code',
+                ],
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'OTP_VERIFY_ERROR',
+                    'message' => 'Failed to verify code: ' . $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+
 }

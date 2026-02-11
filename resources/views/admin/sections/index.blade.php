@@ -15,31 +15,33 @@
                 <small class="text-muted">Manage sections and variants for pages</small>
              </div>
             <div class="d-flex gap-2 align-items-center flex-wrap"> 
-                <button type="button" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#colorThemeModal" title="Manage Color Theme">
-                    <i class='bx bx-palette me-1'></i>
-                    <span>Color Theme</span>
-                    @if($companySettings->active_color_theme ?? null)
-                        @php
-                            $themeName = str_replace('_', ' ', $companySettings->active_color_theme);
-                            $themeName = ucwords($themeName);
-                        @endphp
-                        <span class="badge bg-warning text-dark ms-1">{{ $themeName }}</span>
-                    @else
-                        <span class="badge bg-secondary ms-1">None</span>
-                    @endif
-                </button>
-                <button type="button" class="btn btn-outline-info btn-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#fontFamilyModal" title="Manage Font Family">
-                    <i class='bx bx-font me-1'></i>
-                    <span>Font Family</span>
-                    @if($companySettings->font_family ?? null)
-                        @php
-                            $fontName = explode(',', $companySettings->font_family)[0];
-                            $fontName = str_replace(["'", '"'], '', $fontName);
-                            $fontName = strlen($fontName) > 15 ? substr($fontName, 0, 15) . '...' : $fontName;
-                        @endphp
-                        <span class="badge bg-info text-dark ms-1">{{ $fontName }}</span>
-                    @endif
-                </button>
+                @if(auth()->user()->hasPermission('section_management.update'))
+                    <button type="button" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#colorThemeModal" title="Manage Color Theme">
+                        <i class='bx bx-palette me-1'></i>
+                        <span>Color Theme</span>
+                        @if($companySettings->active_color_theme ?? null)
+                            @php
+                                $themeName = str_replace('_', ' ', $companySettings->active_color_theme);
+                                $themeName = ucwords($themeName);
+                            @endphp
+                            <span class="badge bg-warning text-dark ms-1">{{ $themeName }}</span>
+                        @else
+                            <span class="badge bg-secondary ms-1">None</span>
+                        @endif
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#fontFamilyModal" title="Manage Font Family">
+                        <i class='bx bx-font me-1'></i>
+                        <span>Font Family</span>
+                        @if($companySettings->font_family ?? null)
+                            @php
+                                $fontName = explode(',', $companySettings->font_family)[0];
+                                $fontName = str_replace(["'", '"'], '', $fontName);
+                                $fontName = strlen($fontName) > 15 ? substr($fontName, 0, 15) . '...' : $fontName;
+                            @endphp
+                            <span class="badge bg-info text-dark ms-1">{{ $fontName }}</span>
+                        @endif
+                    </button>
+                @endif
                 <button type="button" class="btn btn-outline-primary btn-sm"  onclick="window.location.href='{{ route("dashboard") }}'">
                     <i class='bx bx-arrow-back me-1'></i> Back to Dashboard
                 </button>
@@ -271,8 +273,17 @@
 
 @push('scripts')
 <script>
+const sectionManagementPermissions = {
+    view: @json(auth()->user()->hasPermission('section_management.view')),
+    update: @json(auth()->user()->hasPermission('section_management.update'))
+};
+
 $(document).ready(function() { 
     $('.activate-theme-btn').on('click', function(e) {
+        if (!sectionManagementPermissions.update) {
+            showToast('error', 'You do not have permission to update sections.');
+            return;
+        }
         e.stopPropagation();
         const themeName = $(this).data('theme') || null;
         const btn = $(this);
@@ -340,6 +351,10 @@ $(document).ready(function() {
     }
  
     $('#saveFontFamilyBtn').on('click', function() {
+        if (!sectionManagementPermissions.update) {
+            showToast('error', 'You do not have permission to update sections.');
+            return;
+        }
         const fontFamily = $('#fontFamilySelect').val();
         const btn = $(this);
         const btnText = btn.find('.btn-text');

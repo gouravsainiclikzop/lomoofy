@@ -3,16 +3,18 @@
 @section('title', 'Shop - Lomoofy Industries')
 
 @section('content')
+
 @push('styles')
 <style>
 	.form-check-input:checked[type="checkbox"] {
 		--bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
 		display: none !important;
 	}
+
 </style>
 @endpush
-			<!-- ======================= Shop Style 1 ======================== -->
- 
+
+			<!-- ======================= Shop Style 1 ======================== --> 
 			<section class="bg-cover d-none d-md-block" style="background:url({{ asset('frontend/images/banner-2.png') }}) no-repeat;">
 				<div class="container">
 					<div class="row align-items-center justify-content-center">
@@ -110,22 +112,25 @@
 			<!-- ======================= All Product List ======================== -->
 			<section class="middle">
 				<div class="container">
-					<div class="row">
-						
+					<div class="row"> 
 						<div class="col-xl-3 col-lg-4 col-md-12 col-sm-12 p-xl-0">
 							<div class="search-sidebar sm-sidebar border">
 								<div class="search-sidebar-header p-3 border-bottom">
-									<div class="d-flex justify-content-between align-items-center">
-										<h5 class="mb-0">Filters</h5>
-										<button type="button" class="btn btn-sm btn-outline-secondary" id="clearAllFilters">
+									<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+										<button type="button" class="btn btn-sm btn-outline-dark d-lg-none order-first" id="shopFiltersToggle" data-bs-toggle="collapse" data-bs-target="#shopFiltersCollapse" aria-expanded="false" aria-controls="shopFiltersCollapse">
+											<i class="fas fa-filter me-1"></i>Filters
+											<i class="fas fa-chevron-down ms-1 toggle-icon"></i>
+										</button>
+										<h5 class="mb-0 order-2 flex-grow-1 d-none d-lg-block">Filters</h5>
+										<button type="button" class="btn btn-sm btn-outline-secondary order-3" id="clearAllFilters">
 											<i class="fas fa-times me-1"></i>Clear All
 										</button>
 									</div>
 								</div>
-								<div class="search-sidebar-body">
+								<div class="search-sidebar-body collapse" id="shopFiltersCollapse">
 								
-									<!-- Single Option -->
-									<div class="single_search_boxed">
+									<!-- Single Option - Categories (hidden on mobile) -->
+									<div class="single_search_boxed d-none d-lg-block">
 										<div class="widget-boxed-header px-3">
 											<h4 class="mt-3">Categories</h4>
 										</div>
@@ -261,10 +266,7 @@
 												</div>
 											</div>
 										</div>
-									</div>
-									 
- 
-									 
+									</div> 
 									
 									<!-- Single Option -->
 									<div class="single_search_boxed">
@@ -1573,6 +1575,22 @@ $(document).ready(function() {
 .search-sidebar-header {
     background-color: #f8f9fa;
     border-bottom: 1px solid #dee2e6;
+}
+
+/* Mobile: filter sidebar collapsed by default; desktop: always show */
+@media (min-width: 992px) {
+    #shopFiltersCollapse.collapse {
+        display: block !important;
+        visibility: visible !important;
+    }
+}
+
+/* Rotate chevron when filter panel is open on mobile */
+#shopFiltersToggle[aria-expanded="true"] .toggle-icon {
+    transform: rotate(180deg);
+}
+#shopFiltersToggle .toggle-icon {
+    transition: transform 0.2s ease;
 }
 
 /* Product Card Image Consistency - 4:5 Aspect Ratio */

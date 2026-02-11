@@ -181,9 +181,11 @@
                 <h1 class="h3 m-0">Lead Management</h1>
             </div>
             <div class="col-auto">
-                <button class="btn btn-primary" id="addLeadBtn">
-                    <i class='bx bx-plus'></i> Add Lead
-                </button>
+                @if(auth()->user()->hasPermission('leads.create'))
+                    <button class="btn btn-primary" id="addLeadBtn">
+                        <i class='bx bx-plus'></i> Add Lead
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -246,28 +248,36 @@
                     <input type="checkbox" id="selectAllLeads" class="form-check-input me-2">
                     <span id="selectedCount">0 selected</span>
                 </div>
-                <div class="btn-group" id="bulkActions" class="mt-4" style="display: none;">
-                    <button class="btn btn-sm btn-outline-primary" id="bulkStatusUpdate">
-                        <i class='bx bx-check-circle'></i> Update Status
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" id="bulkAssign">
-                        <i class='bx bx-user'></i> Assign User
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" id="bulkPriority">
-                        <i class='bx bx-star'></i> Change Priority
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" id="bulkDelete">
-                        <i class='bx bx-trash'></i> Delete
-                    </button>
-                </div>
+                @if(auth()->user()->hasPermission('leads.update') || auth()->user()->hasPermission('leads.delete'))
+                    <div class="btn-group" id="bulkActions" class="mt-4" style="display: none;">
+                        @if(auth()->user()->hasPermission('leads.update'))
+                            <button class="btn btn-sm btn-outline-primary" id="bulkStatusUpdate">
+                                <i class='bx bx-check-circle'></i> Update Status
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" id="bulkAssign">
+                                <i class='bx bx-user'></i> Assign User
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" id="bulkPriority">
+                                <i class='bx bx-star'></i> Change Priority
+                            </button>
+                        @endif
+                        @if(auth()->user()->hasPermission('leads.delete'))
+                            <button class="btn btn-sm btn-outline-danger" id="bulkDelete">
+                                <i class='bx bx-trash'></i> Delete
+                            </button>
+                        @endif
+                    </div>
+                @endif
             </div>
             <div class="table-responsive">
                 <table class="table table-hover" id="leadsTable">
                     <thead>
                         <tr>
-                            <th width="40">
-                                <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
-                            </th>
+                            @if(auth()->user()->hasPermission('leads.delete'))
+                                <th width="40">
+                                    <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
+                                </th>
+                            @endif
                             <th>Lead Name</th>
                             <th>Email</th>
                             <th>Phone</th>
@@ -570,6 +580,13 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-multiselect@1.1.2/dist/js/bootstrap-multiselect.js"></script>
 <script>
+const leadPermissions = {
+    view: @json(auth()->user()->hasPermission('leads.view')),
+    create: @json(auth()->user()->hasPermission('leads.create')),
+    update: @json(auth()->user()->hasPermission('leads.update')),
+    delete: @json(auth()->user()->hasPermission('leads.delete'))
+};
+
 $(document).ready(function() {
     // Global variables
     let currentPage = 1;
@@ -1065,9 +1082,10 @@ $(document).ready(function() {
             url: '{{ route("leads.index") }}?' + params.toString(),
             type: 'GET',
             beforeSend: function() {
+                let loadingColspan = leadPermissions.delete ? 13 : 12;
                 $('#leadsTableBody').html(`
                     <tr>
-                        <td colspan="13" class="text-center py-5">
+                        <td colspan="${loadingColspan}" class="text-center py-5">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
@@ -1083,7 +1101,8 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 console.error('Error loading leads:', xhr);
-                $('#leadsTableBody').html('<tr><td colspan="13" class="text-center py-4 text-danger">Error loading leads</td></tr>');
+                let errorColspan = leadPermissions.delete ? 13 : 12;
+                $('#leadsTableBody').html(`<tr><td colspan="${errorColspan}" class="text-center py-4 text-danger">Error loading leads</td></tr>`);
             }
         });
     }
@@ -1094,7 +1113,8 @@ $(document).ready(function() {
         tbody.empty();
 
         if(leads.length === 0) {
-            tbody.html('<tr><td colspan="13" class="text-center py-4">No leads found</td></tr>');
+            let noDataColspan = leadPermissions.delete ? 13 : 12;
+            tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No leads found</td></tr>`);
             return;
         }
 
@@ -1112,11 +1132,66 @@ $(document).ready(function() {
                 ).join('');
             }
 
+            let checkboxCell = leadPermissions.delete 
+                ? `<td>
+                        <input type="checkbox" class="form-check-input lead-checkbox" value="${lead.id}">
+                    </td>`
+                : '';
+            
+            let viewBtn = leadPermissions.view 
+                ? `<button class="btn btn-outline-primary view-lead" data-id="${lead.id}" title="View">
+                        <i class='bx bx-show'></i>
+                    </button>`
+                : '';
+            let editBtn = leadPermissions.update 
+                ? `<button class="btn btn-outline-secondary edit-lead" data-id="${lead.id}" title="Edit">
+                        <i class='bx bx-edit'></i>
+                    </button>`
+                : '';
+            
+            let actionsMenu = '';
+            if (leadPermissions.update || leadPermissions.delete) {
+                let menuItems = '';
+                if (leadPermissions.update) {
+                    menuItems += `<li><a class="dropdown-item quick-status" href="#" data-id="${lead.id}" data-status-id="${lead.status ? lead.status.id : ''}">Update Status</a></li>
+                                  <li><a class="dropdown-item quick-assign" href="#" data-id="${lead.id}" data-user-id="${lead.assigned_to ? lead.assigned_to.id : ''}">Assign User</a></li>
+                                  <li><a class="dropdown-item quick-priority" href="#" data-id="${lead.id}" data-priority="${lead.priority || ''}">Change Priority</a></li>`;
+                }
+                if (leadPermissions.update && leadPermissions.delete) {
+                    menuItems += '<li><hr class="dropdown-divider"></li>';
+                }
+                if (leadPermissions.delete) {
+                    menuItems += `<li><a class="dropdown-item text-danger delete-lead" href="#" data-id="${lead.id}">Delete</a></li>`;
+                }
+                actionsMenu = `<button type="button" class="btn btn-outline-info actions-popover" 
+                                    data-bs-toggle="popover" 
+                                    data-bs-placement="left"
+                                    data-bs-html="true"
+                                    data-bs-trigger="click"
+                                    data-bs-container="body"
+                                    data-lead-id="${lead.id}"
+                                    data-status-id="${lead.status ? lead.status.id : ''}"
+                                    data-user-id="${lead.assigned_to ? lead.assigned_to.id : ''}"
+                                    data-priority="${lead.priority || ''}"
+                                    data-bs-content='<ul class="list-unstyled mb-0" style="min-width: 180px;">${menuItems}</ul>'>
+                                <i class='bx bx-dots-vertical-rounded'></i>
+                            </button>`;
+            }
+            
+            let actionsHtml = '';
+            if (viewBtn || editBtn || actionsMenu) {
+                actionsHtml = `<div class="btn-group btn-group-sm">
+                    ${viewBtn}
+                    ${editBtn}
+                    ${actionsMenu}
+                </div>`;
+            } else {
+                actionsHtml = '<span class="text-muted">-</span>';
+            }
+            
             const row = `
                 <tr data-id="${lead.id}">
-                    <td>
-                        <input type="checkbox" class="form-check-input lead-checkbox" value="${lead.id}">
-                    </td>
+                    ${checkboxCell}
                     <td>
                         <strong>${lead.name}</strong>
                         ${lead.company ? `<br><small class="text-muted">${lead.company}</small>` : ''}
@@ -1132,27 +1207,7 @@ $(document).ready(function() {
                     <td>${tagsHtml}</td>
                     <td>${formatDate(lead.created_at)}</td>
                     <td>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary view-lead" data-id="${lead.id}" title="View">
-                                <i class='bx bx-show'></i>
-                            </button>
-                            <button class="btn btn-outline-secondary edit-lead" data-id="${lead.id}" title="Edit">
-                                <i class='bx bx-edit'></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-info actions-popover" 
-                                    data-bs-toggle="popover" 
-                                    data-bs-placement="left"
-                                    data-bs-html="true"
-                                    data-bs-trigger="click"
-                                    data-bs-container="body"
-                                    data-lead-id="${lead.id}"
-                                    data-status-id="${lead.status ? lead.status.id : ''}"
-                                    data-user-id="${lead.assigned_to ? lead.assigned_to.id : ''}"
-                                    data-priority="${lead.priority || ''}"
-                                    data-bs-content='<ul class="list-unstyled mb-0" style="min-width: 180px;"><li><a class="dropdown-item quick-status" href="#" data-id="${lead.id}" data-status-id="${lead.status ? lead.status.id : ''}">Update Status</a></li><li><a class="dropdown-item quick-assign" href="#" data-id="${lead.id}" data-user-id="${lead.assigned_to ? lead.assigned_to.id : ''}">Assign User</a></li><li><a class="dropdown-item quick-priority" href="#" data-id="${lead.id}" data-priority="${lead.priority || ''}">Change Priority</a></li><li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger delete-lead" href="#" data-id="${lead.id}">Delete</a></li></ul>'>
-                                <i class='bx bx-dots-vertical-rounded'></i>
-                            </button>
-                        </div>
+                        ${actionsHtml}
                     </td>
                 </tr>
             `;
@@ -1284,6 +1339,10 @@ $(document).ready(function() {
 
     // Add Lead Button
     $('#addLeadBtn').on('click', function() {
+        if (!leadPermissions.create) {
+            showToast('error', 'You do not have permission to create leads.');
+            return;
+        }
         resetLeadForm();
         populateMasterData(); // Ensure dropdowns are populated
         setTimeout(function() {
@@ -1409,6 +1468,10 @@ $(document).ready(function() {
 
     // Edit Lead
     $(document).on('click', '.edit-lead', function() {
+        if (!leadPermissions.update) {
+            showToast('error', 'You do not have permission to update leads.');
+            return;
+        }
         const leadId = $(this).data('id');
         loadLeadForEdit(leadId);
     });
@@ -1528,6 +1591,10 @@ $(document).ready(function() {
 
     // View Lead Details
     $(document).on('click', '.view-lead', function() {
+        if (!leadPermissions.view) {
+            showToast('error', 'You do not have permission to view leads.');
+            return;
+        }
         const leadId = $(this).data('id');
         loadLeadDetails(leadId);
     });
@@ -1594,9 +1661,11 @@ $(document).ready(function() {
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="m-0">Activities</h6>
-                    <button class="btn btn-sm btn-primary" id="addActivityBtn">
-                        <i class='bx bx-plus'></i> Add Activity
-                    </button>
+                    ${leadPermissions.update ? `
+                        <button class="btn btn-sm btn-primary" id="addActivityBtn">
+                            <i class='bx bx-plus'></i> Add Activity
+                        </button>
+                    ` : ''}
                 </div>
                 <div id="activitiesList">
                     <div class="text-center py-3">
@@ -1703,17 +1772,18 @@ $(document).ready(function() {
             `;
         });
         container.html(html);
-    }
+    } 
 
-    // Add Activity
-    // Initialize date-time picker for follow-up date
     let followUpDatePicker = null;
     
     $(document).on('click', '#addActivityBtn', function() {
+        if (!leadPermissions.update) {
+            showToast('error', 'You do not have permission to add activities.');
+            return;
+        }
         $('#activityLeadId').val(currentLeadId);
         $('#activityForm')[0].reset();
-        
-        // Initialize or reinitialize Flatpickr date-time picker
+         
         if (followUpDatePicker) {
             followUpDatePicker.destroy();
         }
@@ -1845,6 +1915,10 @@ $(document).ready(function() {
     });
 
     $(document).on('click', '.quick-assign', function(e) {
+        if (!leadPermissions.update) {
+            showToast('error', 'You do not have permission to update leads.');
+            return;
+        }
         e.preventDefault();
         e.stopPropagation();
         
@@ -1891,6 +1965,10 @@ $(document).ready(function() {
     });
 
     $(document).on('click', '.quick-priority', function(e) {
+        if (!leadPermissions.update) {
+            showToast('error', 'You do not have permission to update leads.');
+            return;
+        }
         e.preventDefault();
         e.stopPropagation();
         
@@ -2001,6 +2079,10 @@ $(document).ready(function() {
 
     // Delete Lead
     $(document).on('click', '.delete-lead', function(e) {
+        if (!leadPermissions.delete) {
+            showToast('error', 'You do not have permission to delete leads.');
+            return;
+        }
         e.preventDefault();
         e.stopPropagation();
         
@@ -2019,6 +2101,10 @@ $(document).ready(function() {
     });
 
     $('#confirmDelete').on('click', function() {
+        if (!leadPermissions.delete) {
+            showToast('error', 'You do not have permission to delete leads.');
+            return;
+        }
         if(selectedLeads.length === 0) return;
 
         $.ajax({

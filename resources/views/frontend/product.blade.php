@@ -278,7 +278,7 @@
                                     @php
                                         $hasMeasurements = false;
                                         if ($activeVariants && $activeVariants->count() > 0) {
-                                            foreach ($activeVariants as $variant) {
+                                            foreach ($activeVariants as $variant) { 
                                                 if ($variant->measurements) {
                                                     $measurements = is_string($variant->measurements) 
                                                         ? json_decode($variant->measurements, true) 
@@ -291,7 +291,7 @@
                                             }
                                         }
                                     @endphp
-
+ 
                                     @if($hasMeasurements)
                                     <div class="mt-2">
                                         <button 

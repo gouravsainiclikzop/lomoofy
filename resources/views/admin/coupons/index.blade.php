@@ -20,9 +20,11 @@
                         <p class="text-muted mb-0">Manage discount coupons for your store</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#couponModal" onclick="openCreateModal()">
-                            <i class='bx bx-plus'></i> Add Coupon
-                        </button>
+                        @if(auth()->user()->hasPermission('coupons.create'))
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#couponModal" onclick="openCreateModal()">
+                                <i class='bx bx-plus'></i> Add Coupon
+                            </button>
+                        @endif
                     </div>
                 </div>
 
@@ -240,6 +242,13 @@
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script>
+const couponPermissions = {
+    view: @json(auth()->user()->hasPermission('coupons.view')),
+    create: @json(auth()->user()->hasPermission('coupons.create')),
+    update: @json(auth()->user()->hasPermission('coupons.update')),
+    delete: @json(auth()->user()->hasPermission('coupons.delete'))
+};
+
 $(document).ready(function() {
     // CSRF Token Setup
     $.ajaxSetup({
@@ -298,12 +307,16 @@ $(document).ready(function() {
                     name: 'status',
                     orderable: false,
                     render: function(data, type, row) {
-                        return `
-                            <label class="switch">
-                                <input type="checkbox" ${data ? 'checked' : ''} onchange="toggleStatus(${row.id}, this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                        `;
+                        if (couponPermissions.update) {
+                            return `
+                                <label class="switch">
+                                    <input type="checkbox" ${data ? 'checked' : ''} onchange="toggleStatus(${row.id}, this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            `;
+                        } else {
+                            return `<span class="badge ${data ? 'bg-success' : 'bg-secondary'}">${data ? 'Active' : 'Inactive'}</span>`;
+                        }
                     }
                 },
                 { 
@@ -312,14 +325,25 @@ $(document).ready(function() {
                     orderable: false,
                     searchable: false,
                     render: function(data, type, row) {
+                        let editBtn = couponPermissions.update 
+                            ? `<button class="btn btn-sm btn-outline-primary" onclick="openEditModal(${data})" title="Edit">
+                                    <i class='bx bx-edit'></i>
+                                </button>`
+                            : '';
+                        let deleteBtn = couponPermissions.delete 
+                            ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteCoupon(${data})" title="Delete">
+                                    <i class='bx bx-trash'></i>
+                                </button>`
+                            : '';
+                        
+                        if (!editBtn && !deleteBtn) {
+                            return '<span class="text-muted">-</span>';
+                        }
+                        
                         return `
                             <div class="d-flex gap-2 justify-content-end">
-                                <button class="btn btn-sm btn-outline-primary" onclick="openEditModal(${data})" title="Edit">
-                                    <i class='bx bx-edit'></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteCoupon(${data})" title="Delete">
-                                    <i class='bx bx-trash'></i>
-                                </button>
+                                ${editBtn}
+                                ${deleteBtn}
                             </div>
                         `;
                     }
@@ -440,6 +464,10 @@ $(document).ready(function() {
 
 // Open create modal
 function openCreateModal() {
+    if (!couponPermissions.create) {
+        showToast('Error', 'You do not have permission to create coupons.', 'danger');
+        return;
+    }
     isEditMode = false;
     $('#couponModalLabel').text('Add Coupon');
     $('#submitBtn').text('Save Coupon');
@@ -449,6 +477,10 @@ function openCreateModal() {
 
 // Open edit modal
 function openEditModal(id) {
+    if (!couponPermissions.update) {
+        showToast('Error', 'You do not have permission to update coupons.', 'danger');
+        return;
+    }
     isEditMode = true;
     $('#couponModalLabel').text('Edit Coupon');
     $('#submitBtn').text('Update Coupon');
@@ -480,6 +512,10 @@ function openEditModal(id) {
 
 // Delete coupon
 function deleteCoupon(id) {
+    if (!couponPermissions.delete) {
+        showToast('Error', 'You do not have permission to delete coupons.', 'danger');
+        return;
+    }
     if (confirm('Are you sure you want to delete this coupon?')) {
         $.ajax({
             url: `{{ url('coupons') }}/${id}`,
@@ -499,6 +535,11 @@ function deleteCoupon(id) {
 
 // Toggle status
 function toggleStatus(id, status) {
+    if (!couponPermissions.update) {
+        showToast('Error', 'You do not have permission to update coupon status.', 'danger');
+        $('#couponsTable').DataTable().ajax.reload();
+        return;
+    }
     $.ajax({
         url: `{{ url('coupons') }}/${id}/toggle-status`,
         type: 'POST',

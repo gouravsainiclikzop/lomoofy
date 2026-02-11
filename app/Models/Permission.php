@@ -8,132 +8,64 @@ use Illuminate\Database\Eloquent\Builder;
 
 class Permission extends Model
 {
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+  
     protected $fillable = [
         'name',
         'slug',
-        'description',
-        'module',
-        'resource',
         'action',
-        'group',
-        'sort_order',
+        'sort_no',
         'is_active',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+   
     protected $casts = [
         'is_active' => 'boolean',
-        'sort_order' => 'integer',
+        'sort_no' => 'integer',
     ];
 
-    /**
-     * Get the roles that have this permission.
-     */
+   
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'permission_role')
                     ->withTimestamps();
     }
 
-    /**
-     * Get the users that have this permission directly.
-     */
+    
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'permission_user')
                     ->withPivot('granted', 'expires_at')
                     ->withTimestamps();
     }
-
-    /**
-     * Scope to get only active permissions.
-     */
+ 
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
     /**
-     * Scope to filter by module.
+     * Check if permission has a specific action
      */
-    public function scopeInModule(Builder $query, string $module): Builder
+    public function hasAction(string $action): bool
     {
-        return $query->where('module', $module);
-    }
-
-    /**
-     * Scope to filter by resource.
-     */
-    public function scopeInResource(Builder $query, string $resource): Builder
-    {
-        return $query->where('resource', $resource);
-    }
-
-    /**
-     * Scope to filter by action.
-     */
-    public function scopeWithAction(Builder $query, string $action): Builder
-    {
-        return $query->where('action', $action);
-    }
-
-    /**
-     * Scope to filter by group.
-     */
-    public function scopeInGroup(Builder $query, string $group): Builder
-    {
-        return $query->where('group', $group);
-    }
-
-    /**
-     * Check if permission matches a capability pattern
-     * 
-     * @param string $module
-     * @param string|null $resource
-     * @param string|null $action
-     * @return bool
-     */
-    public function matches(string $module, ?string $resource = null, ?string $action = null): bool
-    {
-        if ($this->module !== $module) {
+        if (empty($this->action)) {
             return false;
         }
 
-        if ($resource !== null && $this->resource !== $resource) {
-            return false;
+        // Parse actions from action field (stored as JSON)
+        $actions = [];
+        $parsedActions = json_decode($this->action, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($parsedActions)) {
+            $actions = $parsedActions;
+        } else {
+            // If not JSON, treat as single action or comma-separated
+            $actions = strpos($this->action, ',') !== false 
+                ? array_map('trim', explode(',', $this->action))
+                : [$this->action];
         }
 
-        if ($action !== null && $this->action !== $action) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Get permission identifier (module.resource.action or module.action)
-     */
-    public function getIdentifierAttribute(): string
-    {
-        $parts = [$this->module];
-        
-        if ($this->resource && $this->resource !== $this->module) {
-            $parts[] = $this->resource;
-        }
-        
-        if ($this->action) {
-            $parts[] = $this->action;
-        }
-        
-        return implode('.', $parts);
+        $actionLower = strtolower($action);
+        $actionsLower = array_map('strtolower', $actions);
+        return in_array($actionLower, $actionsLower);
     }
 }

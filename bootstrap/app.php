@@ -11,8 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        // Replace default CSRF middleware with our custom one
+    ->withMiddleware(function (Middleware $middleware): void { 
         $middleware->validateCsrfTokens(except: [
             'api/*',
         ]);
@@ -25,15 +24,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'checkout.prerequisites' => \App\Http\Middleware\CheckoutPrerequisites::class,
             'simple.checkout.prerequisites' => \App\Http\Middleware\SimpleCheckoutPrerequisites::class,
             'coming.soon' => \App\Http\Middleware\CheckComingSoon::class,
+            'api.token' => \App\Http\Middleware\ValidateApiToken::class,
         ]);
-        
-        // Apply coming soon middleware globally to web routes
+         
         $middleware->web(append: [
             \App\Http\Middleware\CheckComingSoon::class,
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        // Redirect unauthenticated users to admin.login instead of login
+    ->withExceptions(function (Exceptions $exceptions): void { 
         $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $exception, \Illuminate\Http\Request $request) {
             if ($exception instanceof \Illuminate\Auth\AuthenticationException && !$request->expectsJson() && !$request->is('api/*')) {
                 return redirect()->route('admin.login');

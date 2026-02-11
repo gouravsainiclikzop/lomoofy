@@ -28,6 +28,7 @@
                             </a>
                         </li>
                         
+                        @if(auth()->user()->hasPermission('product_master.view'))
                         <!-- Catalog Menu -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('products.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
                             <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
@@ -59,7 +60,13 @@
                                 </li>  
                             </ul>
                         </li>
-                        
+                        @endif
+                         
+                        @if(
+                            auth()->user()->hasPermission('brands.view') ||
+                            auth()->user()->hasPermission('categories.view') ||
+                            auth()->user()->hasPermission('units.view')
+                        )
                         <!-- Master Data Menu -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('master-data.*') || request()->routeIs('attributes.*') || request()->routeIs('brands.*') || request()->routeIs('categories.*') || request()->routeIs('units.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
                             <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
@@ -76,29 +83,32 @@
                                 </span>
                             </a>
                             <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content="">
+                                @if(auth()->user()->hasPermission('brands.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('brands.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('brands.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__title">Brands</span>
                                     </a>
                                 </li>
+                                @endif
+                                @if(auth()->user()->hasPermission('categories.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('categories.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('categories.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__title">Categories</span>
                                     </a>
                                 </li>
-                                <!-- <li class="sa-nav__menu-item {{ request()->routeIs('attributes.*') ? 'sa-nav__menu-item--active' : '' }}">
-                                    <a href="{{ route('attributes.index') }}" class="sa-nav__link"> 
-                                        <span class="sa-nav__title">Attributes</span>
-                                    </a>
-                                </li> -->
+                                @endif 
+                                @if(auth()->user()->hasPermission('units.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('units.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('units.index') }}" class="sa-nav__link"> 
                                         <span class="sa-nav__title">Units</span>
                                     </a>
                                 </li>
+                                @endif
                             </ul>
                         </li>
+                        @endif
                         
+                        @if(auth()->user()->hasPermission('warehouse.view'))
                         <!-- Warehouses -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('warehouses.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('warehouses.index') }}" class="sa-nav__link">
@@ -108,10 +118,17 @@
                                 <span class="sa-nav__title">Warehouses</span>
                             </a>
                         </li>
+                        @endif
                         
+                        @if(
+                            auth()->user()->hasPermission('shipping_zones.view') ||
+                            auth()->user()->hasPermission('shipping_methods.view') ||
+                            auth()->user()->hasPermission('shipping_rates.view')
+                        )
                         <!-- Shipping Menu -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('shipping.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
-                            <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
+                       
+                        <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
                                 <span class="sa-nav__icon">
                                     <i class='bx bx-box'></i> 
                                 </span>
@@ -121,29 +138,37 @@
                                         <path d="M5.605,0.213 C6.007,0.613 6.107,1.212 5.706,1.612 L2.696,4.511 L5.706,7.409 C6.107,7.809 6.107,8.509 5.605,8.808 C5.204,9.108 4.702,9.108 4.301,8.709 L-0.013,4.511 L4.401,0.313 C4.702,-0.087 5.304,-0.087 5.605,0.213 Z"></path>
                                     </svg>
                                 </span>
-                            </a>
+                            </a> 
                             <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content="">
+                                @if(auth()->user()->hasPermission('shipping_zones.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('shipping.zones.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('shipping.zones.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__menu-item-padding"></span>
                                         <span class="sa-nav__title">Zones</span>
                                     </a>
                                 </li>
+                                @endif
+                                @if(auth()->user()->hasPermission('shipping_methods.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('shipping.methods.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('shipping.methods.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__menu-item-padding"></span>
                                         <span class="sa-nav__title">Methods</span>
                                     </a>
                                 </li>
+                                @endif
+                                @if(auth()->user()->hasPermission('shipping_rates.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('shipping.rates.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('shipping.rates.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__menu-item-padding"></span>
                                         <span class="sa-nav__title">Rates</span>
                                     </a>
                                 </li>
+                                @endif
                             </ul>
-                        </li>
-                        
+                        </li> 
+                        @endif
+
+                         @if(auth()->user()->hasPermission('inventory.view'))
                         <!-- Inventory -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('inventory.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('inventory.index') }}" class="sa-nav__link">
@@ -153,7 +178,9 @@
                                 <span class="sa-nav__title">Inventory</span>
                             </a>
                         </li>
-                        
+                        @endif
+
+                        @if(auth()->user()->hasPermission('order.view'))
                         <!-- Orders -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('orders.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('orders.index') }}" class="sa-nav__link">
@@ -163,7 +190,9 @@
                                 <span class="sa-nav__title">Orders</span>
                             </a>
                         </li>
+                        @endif
                         
+                        @if(auth()->user()->hasPermission('carts.view'))
                         <!-- Carts -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('carts.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('carts.index') }}" class="sa-nav__link">
@@ -173,7 +202,8 @@
                                 <span class="sa-nav__title">Carts</span>
                             </a>
                         </li>
-                        
+                        @endif
+                        @if(auth()->user()->hasPermission('coupons.view'))
                         <!-- Coupons -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('coupons.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('coupons.index') }}" class="sa-nav__link">
@@ -183,8 +213,12 @@
                                 <span class="sa-nav__title">Coupons</span>
                             </a>
                         </li>
-                         
+                        @endif
                         
+                        @if(
+                            auth()->user()->hasPermission('customer.view') ||
+                            auth()->user()->hasPermission('field_management.view')  
+                        )
                         <!-- Customer Management Menu -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('customers.*') || request()->routeIs('field-management.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
                             <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
@@ -199,21 +233,30 @@
                                 </span>
                             </a>
                             <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content="">
+                                @if(auth()->user()->hasPermission('customer.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('customers.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('customers.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__menu-item-padding"></span>
                                         <span class="sa-nav__title">Customers</span>
                                     </a>
                                 </li> 
+                                @endif
+                                @if(auth()->user()->hasPermission('field_management.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('field-management.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('field-management.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__menu-item-padding"></span>
                                         <span class="sa-nav__title">Field Management</span>
                                     </a>
                                 </li>
+                                @endif
                             </ul>
                         </li>
+                        @endif
                         
+                        @if(
+                            auth()->user()->hasPermission('leads.view') ||
+                            auth()->user()->hasPermission('lead_masters.view')
+                        )
                         <!-- Lead Management Menu -->
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('leads.*') || request()->routeIs('lead-masters.*') ? 'sa-nav__menu-item--open' : '' }}" data-sa-collapse-item="sa-nav__menu-item--open">
                             <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
@@ -228,21 +271,90 @@
                                 </span>
                             </a>
                             <ul class="sa-nav__menu sa-nav__menu--sub" data-sa-collapse-content="">
+                                @if(auth()->user()->hasPermission('leads.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('leads.index') || (request()->routeIs('leads.*') && !request()->routeIs('lead-masters.*')) ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('leads.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__menu-item-padding"></span>
                                         <span class="sa-nav__title">Leads</span>
                                     </a>
                                 </li>
+                                @endif
+                                @if(auth()->user()->hasPermission('lead_masters.view'))
                                 <li class="sa-nav__menu-item {{ request()->routeIs('lead-masters.*') ? 'sa-nav__menu-item--active' : '' }}">
                                     <a href="{{ route('lead-masters.index') }}" class="sa-nav__link">
                                         <span class="sa-nav__menu-item-padding"></span>
                                         <span class="sa-nav__title">Lead Masters</span>
                                     </a>
                                 </li>
+                                @endif
                             </ul>
                         </li>
+                        @endif
+
+                    </ul>
+                </li>
+                
+              
+                @if(
+                    auth()->user()->hasPermission('user.view') ||
+                    auth()->user()->hasPermission('role_permission.view')
+                ) 
+                <!-- User Management Menu -->
+                <li class="sa-nav__section">
+                    <div class="sa-nav__section-title"><span>User Management</span></div>
+                    <ul class="sa-nav__menu sa-nav__menu--root">
+                        @if(auth()->user()->hasPermission('user.view'))
+                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('users.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('users.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8,9c2.206,0,4-1.794,4-4s-1.794-4-4-4S4,2.794,4,5S5.794,9,8,9z M8,3c1.103,0,2,0.897,2,2s-0.897,2-2,2S6,6.103,6,5 S6.897,3,8,3z M8,10c-3.314,0-6,2.686-6,6h2c0-2.206,1.794-4,4-4s4,1.794,4,4h2C14,12.686,11.314,10,8,10z"></path>
+                                    </svg>
+                                </span>
+                                <span class="sa-nav__title">Users</span>
+                            </a>
+                        </li>
+                        @endif
+                        @if(auth()->user()->hasPermission('role_permission.view'))
+                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('roles.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('roles.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M14,0H2C0.9,0,0,0.9,0,2v10c0,1.1,0.9,2,2,2h5l-2,2h6l-2-2h5c1.1,0,2-0.9,2-2V2C16,0.9,15.1,0,14,0z M14,12H2V2h12V12z M8,3 L8,3c-1.7,0-3,1.3-3,3v1c0,1.7,1.3,3,3,3h0c1.7,0,3-1.3,3-3V6C11,4.3,9.7,3,8,3z M9,7c0,0.6-0.4,1-1,1s-1-0.4-1-1V6 c0-0.6,0.4-1,1-1s1,0.4,1,1V7z"></path>
+                                    </svg>
+                                </span> 
+                                <span class="sa-nav__title">Role Permission</span> 
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </li>
+                @endif
+                
+                <!-- Settings Menu -->
+                @if(
+                    auth()->user()->hasPermission('company_profile.view') ||
+                    auth()->user()->hasPermission('integrations.view') ||   
+                    auth()->user()->hasPermission('contact_messages.view')  
+                )    
+                <li class="sa-nav__section">
+                    <div class="sa-nav__section-title"><span>Settings</span></div>
+                    <ul class="sa-nav__menu sa-nav__menu--root">
                         
+                        @if(auth()->user()->hasPermission('company_profile.view'))
+                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('profile.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('profile.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8,9c2.206,0,4-1.794,4-4s-1.794-4-4-4S4,2.794,4,5S5.794,9,8,9z M8,3c1.103,0,2,0.897,2,2s-0.897,2-2,2S6,6.103,6,5 S6.897,3,8,3z M8,10c-3.314,0-6,2.686-6,6h2c0-2.206,1.794-4,4-4s4,1.794,4,4h2C14,12.686,11.314,10,8,10z"></path>
+                                    </svg>
+                                </span>
+                                <span class="sa-nav__title">Company Profile</span>
+                            </a>
+                        </li>
+                        @endif
+                        
+                        @if(auth()->user()->hasPermission('section_management.view')) 
                         <!-- Section Management -->
                         <li class=" sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('sections.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('sections.index') }}" class="sa-nav__link">
@@ -254,54 +366,9 @@
                                 <span class="sa-nav__title">Section Management</span>
                             </a>
                         </li> 
+                        @endif 
 
-                    </ul>
-                </li>
-                
-              
-                
-             
-                <!-- User Management Menu -->
-                <li class="sa-nav__section">
-                    <div class="sa-nav__section-title"><span>User Management</span></div>
-                    <ul class="sa-nav__menu sa-nav__menu--root">
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('users.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('users.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8,9c2.206,0,4-1.794,4-4s-1.794-4-4-4S4,2.794,4,5S5.794,9,8,9z M8,3c1.103,0,2,0.897,2,2s-0.897,2-2,2S6,6.103,6,5 S6.897,3,8,3z M8,10c-3.314,0-6,2.686-6,6h2c0-2.206,1.794-4,4-4s4,1.794,4,4h2C14,12.686,11.314,10,8,10z"></path>
-                                    </svg>
-                                </span>
-                                <span class="sa-nav__title">Users</span>
-                            </a>
-                        </li>
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('roles.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('roles.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M14,0H2C0.9,0,0,0.9,0,2v10c0,1.1,0.9,2,2,2h5l-2,2h6l-2-2h5c1.1,0,2-0.9,2-2V2C16,0.9,15.1,0,14,0z M14,12H2V2h12V12z M8,3 L8,3c-1.7,0-3,1.3-3,3v1c0,1.7,1.3,3,3,3h0c1.7,0,3-1.3,3-3V6C11,4.3,9.7,3,8,3z M9,7c0,0.6-0.4,1-1,1s-1-0.4-1-1V6 c0-0.6,0.4-1,1-1s1,0.4,1,1V7z"></path>
-                                    </svg>
-                                </span> 
-                                <span class="sa-nav__title">Role Permission</span> 
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                
-                <!-- Settings Menu -->
-                <li class="sa-nav__section">
-                    <div class="sa-nav__section-title"><span>Settings</span></div>
-                    <ul class="sa-nav__menu sa-nav__menu--root">
-                        <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('profile.*') ? 'sa-nav__menu-item--active' : '' }}">
-                            <a href="{{ route('profile.index') }}" class="sa-nav__link">
-                                <span class="sa-nav__icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
-                                        <path d="M8,9c2.206,0,4-1.794,4-4s-1.794-4-4-4S4,2.794,4,5S5.794,9,8,9z M8,3c1.103,0,2,0.897,2,2s-0.897,2-2,2S6,6.103,6,5 S6.897,3,8,3z M8,10c-3.314,0-6,2.686-6,6h2c0-2.206,1.794-4,4-4s4,1.794,4,4h2C14,12.686,11.314,10,8,10z"></path>
-                                    </svg>
-                                </span>
-                                <span class="sa-nav__title">Company Profile</span>
-                            </a>
-                        </li>
+                        @if(auth()->user()->hasPermission('integrations.view'))
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('integrations.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('integrations.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__icon">
@@ -312,6 +379,9 @@
                                 <span class="sa-nav__title">Integrations</span>
                             </a>
                         </li>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('contact_messages.view'))
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('contacts.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('contacts.index') }}" class="sa-nav__link">
                                 <span class="sa-nav__icon">
@@ -322,8 +392,23 @@
                                 <span class="sa-nav__title">Contact Messages</span>
                             </a>
                         </li>
+                        @endif
+ 
+                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('themes.*') ? 'sa-nav__menu-item--active' : '' }}">
+                            <a href="{{ route('themes.index') }}" class="sa-nav__link">
+                                <span class="sa-nav__icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M8,9c2.206,0,4-1.794,4-4s-1.794-4-4-4S4,2.794,4,5S5.794,9,8,9z M8,3c1.103,0,2,0.897,2,2s-0.897,2-2,2S6,6.103,6,5 S6.897,3,8,3z M8,10c-3.314,0-6,2.686-6,6h2c0-2.206,1.794-4,4-4s4,1.794,4,4h2C14,12.686,11.314,10,8,10z"></path>
+                                    </svg>
+                                </span> 
+                                <span class="sa-nav__title">Themes</span>
+                            </a>
+                        </li>  
+
                     </ul>
                 </li>
+                @endif
+
 
                 @php
                     $activeSectionIds = \App\Models\Section::where('is_active', true)
@@ -367,6 +452,7 @@
 
                 @endphp
 
+                @if(auth()->user()->hasPermission('website_management.view'))
                 <!-- Website Management Menu -->
                 <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('website.*') ?  (request()->routeIs('home-sliders.*') || request()->routeIs('featured-category-style.*') || request()->routeIs('our-collection.*') || request()->routeIs('testimonials.*') || request()->routeIs('instagram-gallery.*') || request()->routeIs('reviews.*') || request()->routeIs('service-highlights.*') ? 'sa-nav__menu-item--open' : '') : '' }}" data-sa-collapse-item="sa-nav__menu-item--open" style="margin-bottom: 8px;">
                     <a href="#" class="sa-nav__link" data-sa-collapse-trigger="">
@@ -467,6 +553,7 @@
                             </a>
                         </li>
 
+
                         @if(array_intersect($blogSections, $activeSectionIds))
                         <li class="sa-nav__menu-item sa-nav__menu-item--has-icon {{ request()->routeIs('blogs.*') ? 'sa-nav__menu-item--active' : '' }}">
                             <a href="{{ route('blogs.index') }}" class="sa-nav__link"> 
@@ -475,8 +562,12 @@
                             </a>
                         </li>
                         @endif
+
+
+                        
                     </ul>
                 </li> 
+                @endif
             </ul>
         </div>
         @else

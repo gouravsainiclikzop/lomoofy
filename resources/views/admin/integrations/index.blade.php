@@ -189,7 +189,7 @@
                     
                     <div class="form-group">
                         <label class="form-label">Mail Driver</label>
-                        <select class="form-select" name="mail_driver" required>
+                        <select class="form-select" name="mail_driver" {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }} required>
                             <option value="smtp" {{ (isset($integrations['email']) && $integrations['email']->configuration['mail_driver'] ?? '' == 'smtp') ? 'selected' : '' }}>SMTP</option>
                         </select>
                     </div>
@@ -198,19 +198,19 @@
                         <label class="form-label">SMTP Host <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="smtp_host" 
                                value="{{ $integrations['email']->configuration['smtp_host'] ?? '' }}" 
-                               placeholder="smtp.example.com" required>
+                               placeholder="smtp.example.com" {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }} required>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label">SMTP Port <span class="text-danger">*</span></label>
                         <input type="number" class="form-control" name="smtp_port" 
                                value="{{ $integrations['email']->configuration['smtp_port'] ?? '' }}" 
-                               placeholder="587" required>
+                               placeholder="587" {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }} required>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label">Encryption</label>
-                        <select class="form-select" name="encryption">
+                        <select class="form-select" name="encryption" {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }}>
                             <option value="tls" {{ (isset($integrations['email']) && ($integrations['email']->configuration['encryption'] ?? 'tls') == 'tls') ? 'selected' : '' }}>TLS</option>
                             <option value="ssl" {{ (isset($integrations['email']) && ($integrations['email']->configuration['encryption'] ?? '') == 'ssl') ? 'selected' : '' }}>SSL</option>
                             <option value="none" {{ (isset($integrations['email']) && ($integrations['email']->configuration['encryption'] ?? '') == 'none') ? 'selected' : '' }}>None</option>
@@ -221,7 +221,7 @@
                         <label class="form-label">Username / Email <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="username" 
                                value="{{ $integrations['email']->configuration['username'] ?? '' }}" 
-                               placeholder="user@example.com" required>
+                               placeholder="user@example.com" {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }} required>
                     </div>
                     
                     <div class="form-group">
@@ -229,7 +229,7 @@
                         <div class="password-field-wrapper">
                             <input type="password" class="form-control password-field" name="password" 
                                    value="{{ isset($integrations['email']) ? ($integrations['email']->getMaskedConfiguration()['password'] ?? '') : '' }}" 
-                                   placeholder="Enter password" required>
+                                   placeholder="Enter password" {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }} required>
                             <i class="fas fa-eye password-toggle" data-toggle="password"></i>
                         </div>
                     </div>
@@ -238,38 +238,41 @@
                         <label class="form-label">From Email Address <span class="text-danger">*</span></label>
                         <input type="email" class="form-control" name="from_email" 
                                value="{{ $integrations['email']->configuration['from_email'] ?? '' }}" 
-                               placeholder="noreply@example.com" required>
+                               placeholder="noreply@example.com" {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }} required>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label">From Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="from_name" 
                                value="{{ $integrations['email']->configuration['from_name'] ?? '' }}" 
-                               placeholder="Your Company Name" required>
+                               placeholder="Your Company Name" {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }} required>
                     </div>
                     
                     <div class="status-toggle">
                         <label>Status</label>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="status" 
-                                   {{ (isset($integrations['email']) && $integrations['email']->status) ? 'checked' : '' }}>
+                                   {{ (isset($integrations['email']) && $integrations['email']->status) ? 'checked' : '' }}
+                                   {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }}>
                             <label class="form-check-label ms-2">
                                 <span class="status-text">{{ (isset($integrations['email']) && $integrations['email']->status) ? 'Enabled' : 'Disabled' }}</span>
                             </label>
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-save-integration">
-                        <i class="fas fa-save me-2"></i>Save Configuration
-                    </button>
+                    @if(auth()->user()->hasPermission('integrations.update'))
+                        <button type="submit" class="btn btn-save-integration">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    @endif
                 </form>
                 
-                @if(isset($integrations['email']) && $integrations['email']->status)
-                <div class="mt-3 pt-3 border-top">
-                    <button type="button" class="btn btn-sm btn-outline-primary w-100" id="testEmailBtn" data-integration-id="{{ $integrations['email']->id }}">
-                        <i class="fas fa-paper-plane me-2"></i>Send Test Email
-                    </button>
-                </div>
+                @if(isset($integrations['email']) && $integrations['email']->status && auth()->user()->hasPermission('integrations.update'))
+                    <div class="mt-3 pt-3 border-top">
+                        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="testEmailBtn" data-integration-id="{{ $integrations['email']->id }}">
+                            <i class="fas fa-paper-plane me-2"></i>Send Test Email
+                        </button>
+                    </div>
                 @endif
             </div>
         </div>
@@ -369,9 +372,11 @@
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-save-integration">
-                        <i class="fas fa-save me-2"></i>Save Configuration
-                    </button>
+                    @if(auth()->user()->hasPermission('integrations.update'))
+                        <button type="submit" class="btn btn-save-integration">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    @endif
                 </form>
             </div>
         </div>
@@ -457,16 +462,19 @@
                         <label>Status</label>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="status" 
-                                   {{ (isset($integrations['otp']) && $integrations['otp']->status) ? 'checked' : '' }}>
+                                   {{ (isset($integrations['otp']) && $integrations['otp']->status) ? 'checked' : '' }}
+                                   {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }}>
                             <label class="form-check-label ms-2">
                                 <span class="status-text">{{ (isset($integrations['otp']) && $integrations['otp']->status) ? 'Enabled' : 'Disabled' }}</span>
                             </label>
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-save-integration">
-                        <i class="fas fa-save me-2"></i>Save Configuration
-                    </button>
+                    @if(auth()->user()->hasPermission('integrations.update'))
+                        <button type="submit" class="btn btn-save-integration">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    @endif
                 </form>
             </div>
         </div>
@@ -548,16 +556,19 @@
                         <label>Status</label>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="status" 
-                                   {{ (isset($integrations['whatsapp']) && $integrations['whatsapp']->status) ? 'checked' : '' }}>
+                                   {{ (isset($integrations['whatsapp']) && $integrations['whatsapp']->status) ? 'checked' : '' }}
+                                   {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }}>
                             <label class="form-check-label ms-2">
                                 <span class="status-text">{{ (isset($integrations['whatsapp']) && $integrations['whatsapp']->status) ? 'Enabled' : 'Disabled' }}</span>
                             </label>
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-save-integration">
-                        <i class="fas fa-save me-2"></i>Save Configuration
-                    </button>
+                    @if(auth()->user()->hasPermission('integrations.update'))
+                        <button type="submit" class="btn btn-save-integration">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    @endif
                 </form>
             </div>
         </div>
@@ -654,16 +665,19 @@
                         <label>Status</label>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="status" 
-                                   {{ (isset($integrations['shipping']) && $integrations['shipping']->status) ? 'checked' : '' }}>
+                                   {{ (isset($integrations['shipping']) && $integrations['shipping']->status) ? 'checked' : '' }}
+                                   {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }}>
                             <label class="form-check-label ms-2">
                                 <span class="status-text">{{ (isset($integrations['shipping']) && $integrations['shipping']->status) ? 'Enabled' : 'Disabled' }}</span>
                             </label>
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-save-integration">
-                        <i class="fas fa-save me-2"></i>Save Configuration
-                    </button>
+                    @if(auth()->user()->hasPermission('integrations.update'))
+                        <button type="submit" class="btn btn-save-integration">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    @endif
                 </form>
             </div>
         </div>
@@ -759,16 +773,19 @@
                         <label>Status</label>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="status" 
-                                   {{ (isset($integrations['google_review']) && $integrations['google_review']->status) ? 'checked' : '' }}>
+                                   {{ (isset($integrations['google_review']) && $integrations['google_review']->status) ? 'checked' : '' }}
+                                   {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }}>
                             <label class="form-check-label ms-2">
                                 <span class="status-text">{{ (isset($integrations['google_review']) && $integrations['google_review']->status) ? 'Enabled' : 'Disabled' }}</span>
                             </label>
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-save-integration">
-                        <i class="fas fa-save me-2"></i>Save Configuration
-                    </button>
+                    @if(auth()->user()->hasPermission('integrations.update'))
+                        <button type="submit" class="btn btn-save-integration">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    @endif
                 </form>
             </div>
         </div>
@@ -842,16 +859,19 @@
                         <label>Status</label>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="status" 
-                                   {{ (isset($integrations['analytics']) && $integrations['analytics']->status) ? 'checked' : '' }}>
+                                   {{ (isset($integrations['analytics']) && $integrations['analytics']->status) ? 'checked' : '' }}
+                                   {{ !auth()->user()->hasPermission('integrations.update') ? 'disabled' : '' }}>
                             <label class="form-check-label ms-2">
                                 <span class="status-text">{{ (isset($integrations['analytics']) && $integrations['analytics']->status) ? 'Enabled' : 'Disabled' }}</span>
                             </label>
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-save-integration">
-                        <i class="fas fa-save me-2"></i>Save Configuration
-                    </button>
+                    @if(auth()->user()->hasPermission('integrations.update'))
+                        <button type="submit" class="btn btn-save-integration">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    @endif
                 </form>
             </div>
         </div>
@@ -861,10 +881,19 @@
 
 @push('scripts')
 <script>
+const integrationPermissions = {
+    view: @json(auth()->user()->hasPermission('integrations.view')),
+    update: @json(auth()->user()->hasPermission('integrations.update'))
+};
+
 $(document).ready(function() {
     const csrfToken = $('meta[name="csrf-token"]').attr('content');
-    
-    // Toast notification function
+     
+    if (!integrationPermissions.update) {
+        $('.integration-form input:not([type="hidden"]), .integration-form select, .integration-form textarea').prop('disabled', true);
+        $('.integration-form input[type="checkbox"], .integration-form input[type="radio"]').prop('disabled', true);
+    }
+     
     function showToast(type, title, message) {
         const toastContainer = $('.sa-app__toasts');
         const toastId = 'toast-' + Date.now();
@@ -898,43 +927,42 @@ $(document).ready(function() {
         });
         
         toast.show();
-        
-        // Remove toast from DOM after it's hidden
+         
         toastElement.addEventListener('hidden.bs.toast', function() {
             toastElement.remove();
         });
     }
-    
-    // Password toggle functionality
+     
     $(document).on('click', '.password-toggle', function() {
         const $input = $(this).siblings('.password-field');
         const type = $input.attr('type') === 'password' ? 'text' : 'password';
         $input.attr('type', type);
         $(this).toggleClass('fa-eye fa-eye-slash');
     });
-    
-    // Status toggle text update
+     
     $(document).on('change', '.form-check-input[name="status"]', function() {
         const $statusText = $(this).closest('.form-check').find('.status-text');
         $statusText.text(this.checked ? 'Enabled' : 'Disabled');
     });
-    
-    // Form submission
+     
     $('.integration-form').on('submit', function(e) {
         e.preventDefault();
+        
+        if (!integrationPermissions.update) {
+            showToast('error', 'Error!', 'You do not have permission to update integrations.');
+            return;
+        }
         
         const $form = $(this);
         const $btn = $form.find('.btn-save-integration');
         const originalText = $btn.html();
         const formData = new FormData(this);
-        
-        // Convert FormData to plain object
+          
         const data = {};
         formData.forEach((value, key) => {
             data[key] = value;
         });
-        
-        // Disable button and show loading
+         
         $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
         
         $.ajax({
@@ -946,17 +974,14 @@ $(document).ready(function() {
             },
             data: data,
             success: function(response) {
-                if (response.success) {
-                    // Update integration ID if it's a new integration
+                if (response.success) { 
                     if (response.integration && response.integration.id) {
                         $form.find('input[name="integration_id"]').val(response.integration.id);
                         $form.attr('data-integration-id', response.integration.id);
                     }
-                    
-                    // Show success toast
+                     
                     showToast('success', 'Success!', response.message);
-                    
-                    // Update status badge
+                     
                     const $card = $form.closest('.integration-card');
                     const statusBadge = $card.find('.integration-status-badge');
                     const isEnabled = $form.find('input[name="status"]').is(':checked');
@@ -965,8 +990,7 @@ $(document).ready(function() {
                         statusBadge.removeClass('status-enabled status-disabled')
                                    .addClass(isEnabled ? 'status-enabled' : 'status-disabled')
                                    .text(isEnabled ? 'Enabled' : 'Disabled');
-                    } else {
-                        // Add status badge if it doesn't exist
+                    } else { 
                         $card.find('.integration-header').append(
                             `<span class="integration-status-badge ${isEnabled ? 'status-enabled' : 'status-disabled'}">
                                 ${isEnabled ? 'Enabled' : 'Disabled'}
@@ -982,33 +1006,32 @@ $(document).ready(function() {
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
                 }
-                
-                // Show error toast
+                 
                 showToast('error', 'Error!', errorMessage);
             },
-            complete: function() {
-                // Re-enable button and restore text
+            complete: function() { 
                 $btn.prop('disabled', false).html(originalText);
             }
         });
     });
-    
-    // Initialize tooltips if needed
+     
     $('[data-bs-toggle="tooltip"]').tooltip();
-    
-    // Test Email functionality
+     
     $(document).on('click', '#testEmailBtn', function() {
+        if (!integrationPermissions.update) {
+            showToast('error', 'Error!', 'You do not have permission to update integrations.');
+            return;
+        }
+        
         const $btn = $(this);
         const originalText = $btn.html();
-        
-        // Prompt for email address
+         
         const testEmail = prompt('Enter email address to send test email:');
         
         if (!testEmail) {
             return;
         }
-        
-        // Validate email format
+         
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(testEmail)) {
             showToast('error', 'Invalid Email', 'Please enter a valid email address');

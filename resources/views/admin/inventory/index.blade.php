@@ -10,15 +10,21 @@
                     <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 m-0">Inventory Management</h1>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-info" onclick="exportInventory()">
-                            <i class="bx bx-export me-1"></i> Export Inventory
-                        </button>
-                        <button type="button" class="btn btn-success" onclick="openImportInventoryModal()">
-                            <i class="bx bx-import me-1"></i> Import Inventory
-                        </button>
-                        <button type="button" class="btn btn-primary" onclick="openAddInventoryModal()">
-                            <i class="bx bx-plus me-1"></i> Add Inventory
-                        </button>
+                        @if(auth()->user()->hasPermission('inventory.export'))
+                            <button type="button" class="btn btn-info" onclick="exportInventory()">
+                                <i class="bx bx-export me-1"></i> Export Inventory
+                            </button>
+                        @endif
+                        @if(auth()->user()->hasPermission('inventory.import'))
+                            <button type="button" class="btn btn-success" onclick="openImportInventoryModal()">
+                                <i class="bx bx-import me-1"></i> Import Inventory
+                            </button>
+                        @endif
+                        @if(auth()->user()->hasPermission('inventory.create'))
+                            <button type="button" class="btn btn-primary" onclick="openAddInventoryModal()">
+                                <i class="bx bx-plus me-1"></i> Add Inventory
+                            </button>
+                        @endif
                     </div>
                 </div>
 
@@ -283,9 +289,11 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="addStockBtn" onclick="addStockToSelected()" disabled>
-                    <i class="bx bx-plus me-1"></i> Add Stock
-                </button>
+                @if(auth()->user()->hasPermission('inventory.create'))
+                    <button type="button" class="btn btn-primary" id="addStockBtn" onclick="addStockToSelected()" disabled>
+                        <i class="bx bx-plus me-1"></i> Add Stock
+                    </button>
+                @endif
             </div>
         </div>
     </div>
@@ -553,9 +561,11 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" id="clearHistoryBtn" onclick="clearInventoryHistory()" style="display: none;">
-                    <i class="fas fa-trash me-1"></i> Clear History
-                </button>
+                @if(auth()->user()->hasPermission('inventory.delete'))
+                    <button type="button" class="btn btn-danger" id="clearHistoryBtn" onclick="clearInventoryHistory()" style="display: none;">
+                        <i class="fas fa-trash me-1"></i> Clear History
+                    </button>
+                @endif
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -566,6 +576,15 @@
 
 @push('scripts')
 <script>
+const inventoryPermissions = {
+    view: @json(auth()->user()->hasPermission('inventory.view')),
+    create: @json(auth()->user()->hasPermission('inventory.create')),
+    update: @json(auth()->user()->hasPermission('inventory.update')),
+    delete: @json(auth()->user()->hasPermission('inventory.delete')),
+    export: @json(auth()->user()->hasPermission('inventory.export')),
+    import: @json(auth()->user()->hasPermission('inventory.import'))
+};
+
 let inventoryTable;
 let editModal;
 
@@ -774,14 +793,25 @@ function initializeDataTable() {
             {
                 data: 'id',
                 render: function(data, type, row) {
+                    let editBtn = inventoryPermissions.update 
+                        ? `<button class="btn btn-sm btn-primary" onclick="editInventory(${data}, true, '${row.name.replace(/'/g, "\\'")}', '${row.sku.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>`
+                        : '';
+                    let historyBtn = inventoryPermissions.view 
+                        ? `<button class="btn btn-sm btn-info" onclick="viewHistory(${data}, '${row.name.replace(/'/g, "\\'")}', '${row.sku.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-history"></i> History
+                            </button>`
+                        : '';
+                    
+                    if (!editBtn && !historyBtn) {
+                        return '<span class="text-muted">-</span>';
+                    }
+                    
                     return `
                         <div class="d-flex gap-1">
-                            <button class="btn btn-sm btn-primary" onclick="editInventory(${data}, true, '${row.name.replace(/'/g, "\\'")}', '${row.sku.replace(/'/g, "\\'")}')">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-sm btn-info" onclick="viewHistory(${data}, '${row.name.replace(/'/g, "\\'")}', '${row.sku.replace(/'/g, "\\'")}')">
-                                <i class="fas fa-history"></i> History
-                            </button>
+                            ${editBtn}
+                            ${historyBtn}
                         </div>
                     `;
                 }

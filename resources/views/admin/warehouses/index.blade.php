@@ -18,12 +18,16 @@
                 <h1 class="h3 m-0">Warehouses</h1>
             </div>
             <div class="col-auto d-flex gap-2">
-                <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteWarehousesBtn">
-                    <i class="fas fa-trash me-2"></i>Delete Selected
-                </button>
-                <button class="btn btn-primary" id="addWarehouseBtn">
-                    <i class="fas fa-plus"></i> Add Warehouse
-                </button>
+                @if(auth()->user()->hasPermission('warehouse.delete'))
+                    <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteWarehousesBtn">
+                        <i class="fas fa-trash me-2"></i>Delete Selected
+                    </button>
+                @endif
+                @if(auth()->user()->hasPermission('warehouse.create'))
+                    <button class="btn btn-primary" id="addWarehouseBtn">
+                        <i class="fas fa-plus"></i> Add Warehouse
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -48,9 +52,11 @@
                 <table class="table table-hover" id="warehousesTable">
                     <thead>
                         <tr>
-                            <th width="50">
-                                <input type="checkbox" class="form-check-input" id="selectAllWarehouses" title="Select All">
-                            </th>
+                            @if(auth()->user()->hasPermission('warehouse.delete'))
+                                <th width="50">
+                                    <input type="checkbox" class="form-check-input" id="selectAllWarehouses" title="Select All">
+                                </th>
+                            @endif
                             <th>Name</th>
                             <th>Code</th>
                             <th>Address</th>
@@ -66,7 +72,7 @@
                     </thead>
                     <tbody id="warehousesTableBody">
                         <tr>
-                            <td colspan="12" class="text-center py-5">
+                            <td colspan="{{ auth()->user()->hasPermission('warehouse.delete') ? '12' : '11' }}" class="text-center py-5">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
@@ -204,9 +210,11 @@
                 <!-- Add Location Button -->
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <button type="button" class="btn btn-primary" id="addLocationBtn">
-                            <i class="fas fa-plus me-2"></i>Add Location
-                        </button>
+                        @if(auth()->user()->hasPermission('warehouse.create'))
+                            <button type="button" class="btn btn-primary" id="addLocationBtn">
+                                <i class="fas fa-plus me-2"></i>Add Location
+                            </button>
+                        @endif
                     </div>
                     <div>
                         <input type="text" placeholder="Search locations..." class="form-control form-control-sm" id="locationsSearch" style="width: 250px;">
@@ -218,9 +226,11 @@
                     <table class="table table-hover" id="locationsTable">
                         <thead>
                             <tr>
-                                <th width="50">
-                                    <input type="checkbox" class="form-check-input" id="selectAllLocations" title="Select All">
-                                </th>
+                                @if(auth()->user()->hasPermission('warehouse.delete'))
+                                    <th width="50">
+                                        <input type="checkbox" class="form-check-input" id="selectAllLocations" title="Select All">
+                                    </th>
+                                @endif
                                 <th>Rack</th>
                                 <th>Shelf</th>
                                 <th>Bin</th>
@@ -232,7 +242,7 @@
                         </thead>
                         <tbody id="locationsTableBody">
                             <tr>
-                                <td colspan="8" class="text-center py-5">
+                                <td colspan="{{ auth()->user()->hasPermission('warehouse.delete') ? '8' : '7' }}" class="text-center py-5">
                                     <div class="spinner-border text-primary" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
@@ -338,6 +348,13 @@
 
 @push('scripts')
 <script>
+const warehousePermissions = {
+    view: @json(auth()->user()->hasPermission('warehouse.view')),
+    create: @json(auth()->user()->hasPermission('warehouse.create')),
+    update: @json(auth()->user()->hasPermission('warehouse.update')),
+    delete: @json(auth()->user()->hasPermission('warehouse.delete'))
+};
+
 $(document).ready(function() {
     let deleteWarehouseId = null;
     let currentPage = 1;
@@ -547,11 +564,40 @@ $(document).ready(function() {
                             ? warehouse.address.substring(0, 50) + (warehouse.address.length > 50 ? '...' : '')
                             : '<span class="text-muted">-</span>';
                         
+                        let checkboxCell = warehousePermissions.delete 
+                            ? `<td>
+                                    <input type="checkbox" class="form-check-input warehouse-checkbox" value="${warehouse.id}">
+                                </td>`
+                            : '';
+                        
+                        let manageLocationsBtn = warehousePermissions.view 
+                            ? `<button class="btn btn-outline-info manage-locations" data-id="${warehouse.id}" data-name="${warehouse.name}" title="Manage Locations">
+                                    Locations
+                                </button>`
+                            : '';
+                        let editBtn = warehousePermissions.update 
+                            ? `<button class="btn btn-outline-primary edit-warehouse" data-id="${warehouse.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>`
+                            : '';
+                        let deleteBtn = warehousePermissions.delete 
+                            ? `<button class="btn btn-outline-danger delete-warehouse" data-id="${warehouse.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>`
+                            : '';
+                        
+                        let actionsHtml = '';
+                        if (manageLocationsBtn || editBtn || deleteBtn) {
+                            actionsHtml = `<div class="btn-group btn-group-sm">
+                                ${manageLocationsBtn}
+                                ${editBtn}
+                                ${deleteBtn}
+                            </div>`;
+                        }
+                        
                         let row = `
                             <tr data-id="${warehouse.id}">
-                                <td>
-                                    <input type="checkbox" class="form-check-input warehouse-checkbox" value="${warehouse.id}">
-                                </td>
+                                ${checkboxCell}
                                 <td>
                                     <strong>${warehouse.name}</strong>
                                 </td>
@@ -565,24 +611,15 @@ $(document).ready(function() {
                                 <td>${warehouse.is_default ? '<span class="badge bg-primary"><i class="fas fa-star me-1"></i>Primary</span>' : '<span class="text-muted">-</span>'}</td>
                                 <td>${new Date(warehouse.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info manage-locations" data-id="${warehouse.id}" data-name="${warehouse.name}" title="Manage Locations">
-                                            Locations
-                                        </button>
-                                        <button class="btn btn-outline-primary edit-warehouse" data-id="${warehouse.id}" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger delete-warehouse" data-id="${warehouse.id}" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
+                                    ${actionsHtml}
                                 </td>
                             </tr>
                         `;
                         tbody.append(row);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="12" class="text-center py-4">No warehouses found</td></tr>');
+                    let noDataColspan = warehousePermissions.delete ? 12 : 11;
+                    tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No warehouses found</td></tr>`);
                 }
                 
                 // Update pagination
@@ -594,7 +631,8 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 console.error('Error loading warehouses:', xhr);
-                $('#warehousesTableBody').html('<tr><td colspan="12" class="text-center py-4 text-danger">Error loading warehouses</td></tr>');
+                let errorColspan = warehousePermissions.delete ? 12 : 11;
+                $('#warehousesTableBody').html(`<tr><td colspan="${errorColspan}" class="text-center py-4 text-danger">Error loading warehouses</td></tr>`);
             }
         });
     }
@@ -751,8 +789,7 @@ $(document).ready(function() {
         bulkDeleteWarehouses();
     });
 
-    // Show Toast
-    // ==================== LOCATIONS MANAGEMENT ====================
+    // Show Toast 
     let currentWarehouseId = null;
     let currentWarehouseName = null;
     let locationsPage = 1;
@@ -767,8 +804,7 @@ $(document).ready(function() {
         locationsPage = 1;
         loadLocations();
     });
-    
-    // Load Locations
+     
     function loadLocations() {
         if (!currentWarehouseId) return;
         
@@ -788,8 +824,7 @@ $(document).ready(function() {
             success: function(response) {
                 const tbody = $('#locationsTableBody');
                 tbody.empty();
-                
-                // Handle both DataTables format and simple array format
+                 
                 let locations = [];
                 if (response.data && Array.isArray(response.data)) {
                     locations = response.data;
@@ -799,13 +834,11 @@ $(document).ready(function() {
                 
                 if (locations.length > 0) {
                     locations.forEach(function(location) {
-                        // Handle status - can be boolean or string
                         const statusValue = location.status === true || location.status === 'active' || location.status === 1 ? 'active' : 'inactive';
                         const statusBadge = statusValue === 'active' 
                             ? '<span class="badge bg-success">Active</span>'
                             : '<span class="badge bg-secondary">Inactive</span>';
-                        
-                        // Format created_at - handle both date string and timestamp
+                         
                         let createdDate = 'N/A';
                         if (location.created_at) {
                             try {
@@ -815,11 +848,34 @@ $(document).ready(function() {
                             }
                         }
                         
+                        let locationCheckboxCell = warehousePermissions.delete 
+                            ? `<td>
+                                    <input type="checkbox" class="form-check-input location-checkbox" value="${location.id}">
+                                </td>`
+                            : '';
+                        
+                        let locationEditBtn = warehousePermissions.update 
+                            ? `<button class="btn btn-outline-primary edit-location" data-id="${location.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>`
+                            : '';
+                        let locationDeleteBtn = warehousePermissions.delete 
+                            ? `<button class="btn btn-outline-danger delete-location" data-id="${location.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>`
+                            : '';
+                        
+                        let locationActionsHtml = '';
+                        if (locationEditBtn || locationDeleteBtn) {
+                            locationActionsHtml = `<div class="btn-group btn-group-sm">
+                                ${locationEditBtn}
+                                ${locationDeleteBtn}
+                            </div>`;
+                        }
+                        
                         const row = `
                             <tr data-id="${location.id}">
-                                <td>
-                                    <input type="checkbox" class="form-check-input location-checkbox" value="${location.id}">
-                                </td>
+                                ${locationCheckboxCell}
                                 <td>${location.rack || '<span class="text-muted">-</span>'}</td>
                                 <td>${location.shelf || '<span class="text-muted">-</span>'}</td>
                                 <td>${location.bin || '<span class="text-muted">-</span>'}</td>
@@ -827,21 +883,15 @@ $(document).ready(function() {
                                 <td>${statusBadge}</td>
                                 <td>${createdDate}</td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary edit-location" data-id="${location.id}" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger delete-location" data-id="${location.id}" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
+                                    ${locationActionsHtml}
                                 </td>
                             </tr>
                         `;
                         tbody.append(row);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="8" class="text-center py-4">No locations found. Click "Add Location" to create one.</td></tr>');
+                    let noDataColspan = warehousePermissions.delete ? 8 : 7;
+                    tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No locations found. Click "Add Location" to create one.</td></tr>`);
                 }
                 
                 updateLocationsBulkDeleteButton();
@@ -853,7 +903,8 @@ $(document).ready(function() {
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                $('#locationsTableBody').html(`<tr><td colspan="8" class="text-center py-4 text-danger">${errorMsg}</td></tr>`);
+                let errorColspan = warehousePermissions.delete ? 8 : 7;
+                $('#locationsTableBody').html(`<tr><td colspan="${errorColspan}" class="text-center py-4 text-danger">${errorMsg}</td></tr>`);
             }
         });
     }

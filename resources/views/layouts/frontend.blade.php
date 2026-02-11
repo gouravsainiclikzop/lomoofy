@@ -76,7 +76,7 @@
 
   background-color: color-mix(
     in srgb,
-    var(--theme-bg-primary) 90%,
+    var(--theme-bg-primary, #ffffff) 90%,
     transparent
   );
 
@@ -89,8 +89,16 @@
   display: flex;
   position: relative;
 
-  --c1: linear-gradient(var(--theme-text-primary) 0 0);
-  --c2: linear-gradient(var(--theme-span) 0 0);
+  /* Text / neutral blocks */
+  --c1: linear-gradient(
+    var(--theme-text-primary, #111827) 0 0
+  );
+
+  /* Accent / brand blocks */
+  --c2: linear-gradient(
+    var(--theme-span, #4f46e5) 0 0
+  );
+
   --s: calc(100% / 3) calc(100% / 3);
 
   background:
@@ -108,10 +116,14 @@
   width: calc(100% / 3);
   height: calc(100% / 3);
 
-  background: var(--theme-anchor-hover);
+  background: var(
+    --theme-anchor-hover,
+    var(--theme-span, #4f46e5)
+  );
 
   animation: l8-1 1.5s infinite alternate;
 }
+
 
 
 @keyframes l8-0 {
@@ -472,11 +484,25 @@
 .modal .gray.circle:hover {
     color: var(--theme-anchor-hover);
 }
+
 .modal .modal-headers .close {
 	background: var(--theme-anchor-hover);
 	/* color: var(--theme-bg-primary); */
 }
+ 
+#isfeaturedcategory-v6  .text-light {
+	color: var(--theme-bg-secondary) !important;
+} 
 
+#cartItemsContainer .alert-info {
+	color: var(--theme-text-secondary) !important;
+	background-color: var(--theme-bg-tertiary) !important;
+	border-color: var(--theme-bg-secondary) !important;
+}
+
+#isfeaturedcategory-v4 .text-light {
+	color: var(--theme-bg-primary) !important;
+}
 
 </style>
 @endif
@@ -486,8 +512,10 @@
 body {
     font-family: {!! htmlspecialchars_decode($settings->font_family) !!} !important;
 }
+ 
 </style>
 @endif
+
 
 
 
@@ -514,13 +542,11 @@ body {
 		<a id="back2Top" class="top-scroll" title="Back to top" href="#"><i class="ti-arrow-up"></i></a>
 
 	</div>
+	
 	<!-- ============================================================== -->
 	<!-- End Wrapper -->
 	<!-- ============================================================== -->
-
-	<!-- ============================================================== -->
-	<!-- All Jquery -->
-	<!-- ============================================================== -->
+ 
 	<script src="{{ asset('frontend/js/jquery.min.js') }}"></script>
 	<script src="{{ asset('frontend/js/popper.min.js') }}"></script>
 	<script src="{{ asset('frontend/js/bootstrap.min.js') }}"></script>

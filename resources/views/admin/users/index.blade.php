@@ -9,9 +9,11 @@
             <div class="col">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 m-0">Users Management</h1>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" id="addUserBtn">
-                        <i class='fas fa-plus'></i> Add User
-                    </button>
+                    @if(auth()->user()->hasPermission('user.create'))
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" id="addUserBtn">
+                            <i class='fas fa-plus'></i> Add User
+                        </button>
+                    @endif
                 </div>
 
                 <div class="card">
@@ -83,19 +85,21 @@
                                 <img id="imagePreview" src="" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 8px;">
                             </div>
                         </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Roles</label>
-                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
-                                <div id="rolesList">
-                                    <div class="text-center py-3">
-                                        <div class="spinner-border spinner-border-sm" role="status">
-                                            <span class="visually-hidden">Loading...</span>
+                        @if(auth()->user()->hasPermission('user.assign'))
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Roles</label>
+                                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    <div id="rolesList">
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <div class="mt-2">Loading roles...</div>
                                         </div>
-                                        <div class="mt-2">Loading roles...</div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -157,6 +161,14 @@
 
 @push('scripts')
 <script>
+const userPermissions = {
+    view: @json(auth()->user()->hasPermission('user.view')),
+    create: @json(auth()->user()->hasPermission('user.create')),
+    update: @json(auth()->user()->hasPermission('user.update')),
+    delete: @json(auth()->user()->hasPermission('user.delete')),
+    assign: @json(auth()->user()->hasPermission('user.assign'))
+};
+
 $(document).ready(function() {
     let dataTable;
     let deleteId = null;
@@ -208,14 +220,18 @@ $(document).ready(function() {
                 orderable: false,
                 searchable: false,
                 render: function(data, type, row) {
-                    return `
-                        <button class="btn btn-sm btn-secondary edit-btn" data-id="${row.id}" title="Edit">
+                    let actions = '';
+                    if (userPermissions.update) {
+                        actions += `<button class="btn btn-sm btn-secondary edit-btn" data-id="${row.id}" title="Edit">
                             <i class='fas fa-edit'></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" title="Delete">
+                        </button>`;
+                    }
+                    if (userPermissions.delete) {
+                        actions += `<button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" title="Delete">
                             <i class='fas fa-trash'></i>
-                        </button>
-                    `;
+                        </button>`;
+                    }
+                    return actions || '<span class="text-muted">-</span>';
                 }
             }
         ],
@@ -224,6 +240,10 @@ $(document).ready(function() {
 
     // Load roles
     function loadRoles(selectedIds = []) {
+        if (!userPermissions.assign) {
+            $('#rolesList').html('<div class="alert alert-warning">You do not have permission to assign roles.</div>');
+            return;
+        }
         $.ajax({
             url: '{{ route("users.roles") }}',
             type: 'GET',
@@ -271,6 +291,10 @@ $(document).ready(function() {
 
     // Add User Button
     $('#addUserBtn').on('click', function() {
+        if (!userPermissions.create) {
+            showToast('error', 'You do not have permission to create users.');
+            return;
+        }
         isEditMode = false;
         $('#userForm')[0].reset();
         $('#userId').val('');
@@ -291,6 +315,10 @@ $(document).ready(function() {
 
     // Edit User
     $(document).on('click', '.edit-btn', function() {
+        if (!userPermissions.update) {
+            showToast('error', 'You do not have permission to update users.');
+            return;
+        }
         isEditMode = true;
         const id = $(this).data('id');
         
@@ -384,11 +412,19 @@ $(document).ready(function() {
 
     // Delete User
     $(document).on('click', '.delete-btn', function() {
+        if (!userPermissions.delete) {
+            showToast('error', 'You do not have permission to delete users.');
+            return;
+        }
         deleteId = $(this).data('id');
         $('#deleteModal').modal('show');
     });
 
     $('#confirmDelete').on('click', function() {
+        if (!userPermissions.delete) {
+            showToast('error', 'You do not have permission to delete users.');
+            return;
+        }
         const btn = $(this);
         const btnText = btn.find('.btn-text');
         const spinner = btn.find('.spinner-border');

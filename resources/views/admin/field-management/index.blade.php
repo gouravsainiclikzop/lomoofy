@@ -327,6 +327,11 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
+const fieldManagementPermissions = {
+    view: @json(auth()->user()->hasPermission('field_management.view')),
+    update: @json(auth()->user()->hasPermission('field_management.update'))
+};
+
 let fieldsTable;
 let isEditMode = false;
 let formFields = [];
@@ -483,9 +488,10 @@ function initializeDataTable() {
                 render: function(data, type, row) {
                     const badgeClass = data ? 'bg-danger' : 'bg-secondary';
                     const text = data ? 'Yes' : 'No';
-                    const cursor = row.is_system ? 'not-allowed' : 'pointer';
-                    const title = row.is_system ? 'System field - Cannot be changed' : 'Click to toggle';
-                    return `<span class="badge ${badgeClass} ${row.is_system ? '' : 'toggle-required'}" data-id="${row.id}" data-value="${data ? 1 : 0}" style="cursor: ${cursor};" title="${title}">${text}</span>`;
+                    const canToggle = !row.is_system && fieldManagementPermissions.update;
+                    const cursor = canToggle ? 'pointer' : 'not-allowed';
+                    const title = row.is_system ? 'System field - Cannot be changed' : (canToggle ? 'Click to toggle' : 'No permission to update');
+                    return `<span class="badge ${badgeClass} ${canToggle ? 'toggle-required' : ''}" data-id="${row.id}" data-value="${data ? 1 : 0}" style="cursor: ${cursor};" title="${title}">${text}</span>`;
                 }
             },
             { data: 'sort_order' },
@@ -494,9 +500,10 @@ function initializeDataTable() {
                 render: function(data, type, row) {
                     const badgeClass = data ? 'bg-success' : 'bg-secondary';
                     const text = data ? 'Active' : 'Inactive';
-                    const cursor = row.is_system ? 'not-allowed' : 'pointer';
-                    const title = row.is_system ? 'System field - Cannot be deactivated' : 'Click to toggle';
-                    return `<span class="badge ${badgeClass} ${row.is_system ? '' : 'toggle-status'}" data-id="${row.id}" data-value="${data ? 1 : 0}" style="cursor: ${cursor};" title="${title}">${text}</span>`;
+                    const canToggle = !row.is_system && fieldManagementPermissions.update;
+                    const cursor = canToggle ? 'pointer' : 'not-allowed';
+                    const title = row.is_system ? 'System field - Cannot be deactivated' : (canToggle ? 'Click to toggle' : 'No permission to update');
+                    return `<span class="badge ${badgeClass} ${canToggle ? 'toggle-status' : ''}" data-id="${row.id}" data-value="${data ? 1 : 0}" style="cursor: ${cursor};" title="${title}">${text}</span>`;
                 }
             },
             {
@@ -514,6 +521,9 @@ function initializeDataTable() {
                     if (row.is_system) {
                         return `<span class="badge bg-info" title="System Field - Cannot be edited or deleted"><i class='bx bx-lock'></i> System</span>`;
                     }
+                    if (!fieldManagementPermissions.update) {
+                        return '<span class="text-muted">-</span>';
+                    }
                     return `
                         <div class="btn-group" role="group">
                             <button class="btn btn-sm btn-secondary edit-field" data-id="${row.id}" title="Edit">
@@ -530,6 +540,10 @@ function initializeDataTable() {
 
 // Edit Field
 $(document).on('click', '.edit-field', function() {
+    if (!fieldManagementPermissions.update) {
+        showToast('Error', 'You do not have permission to update fields.', 'danger');
+        return;
+    }
     const id = $(this).data('id');
     const row = fieldsTable.row($(this).closest('tr')).data();
     
@@ -563,6 +577,10 @@ $(document).on('click', '.edit-field', function() {
 
 // Toggle Status
 $(document).on('click', '.toggle-status', function() {
+    if (!fieldManagementPermissions.update) {
+        showToast('Error', 'You do not have permission to update fields.', 'danger');
+        return;
+    }
     const id = $(this).data('id');
     const row = fieldsTable.row($(this).closest('tr')).data();
     
@@ -595,6 +613,10 @@ $(document).on('click', '.toggle-status', function() {
 
 // Toggle Required
 $(document).on('click', '.toggle-required', function() {
+    if (!fieldManagementPermissions.update) {
+        showToast('Error', 'You do not have permission to update fields.', 'danger');
+        return;
+    }
     const id = $(this).data('id');
     const row = fieldsTable.row($(this).closest('tr')).data();
     

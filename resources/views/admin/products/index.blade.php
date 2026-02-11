@@ -17,15 +17,21 @@
                 <h1 class="h3 m-0">Products</h1>
             </div>
             <div class="col-auto d-flex flex-wrap gap-2 justify-content-end">
-                <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteBtn" onclick="bulkDeleteProducts()">
-                    <i class="fas fa-trash"></i> Delete Selected
-                </button>
-                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importProductsModal">
-                    <i class="fas fa-file-import"></i> Import Products
-                </button>
-                <a href="{{ route('products.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Add Product
-                </a>
+                @if(auth()->user()->hasPermission('product_master.delete'))
+                    <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteBtn" onclick="bulkDeleteProducts()">
+                        <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                @endif
+                @if(auth()->user()->hasPermission('product_master.import'))
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importProductsModal">
+                        <i class="fas fa-file-import"></i> Import Products
+                    </button>
+                @endif
+                @if(auth()->user()->hasPermission('product_master.create'))
+                    <a href="{{ route('products.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Product
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -170,6 +176,7 @@
 </div>
 
 <!-- Import Products Modal -->
+@if(auth()->user()->hasPermission('product_master.import'))
 <div class="modal fade" id="importProductsModal" tabindex="-1" aria-labelledby="importProductsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -266,6 +273,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -300,8 +308,8 @@
     </div>
 </div>
 
-<style>
-/* Theme-specific styles */
+
+<style> 
 .sa-symbol {
     display: inline-flex;
     align-items: center;
@@ -518,8 +526,16 @@
 <script>
 let productsTable;
 let deleteProductId = null;
+ 
+const productPermissions = {
+    view: @json(auth()->user()->hasPermission('product_master.view')),
+    create: @json(auth()->user()->hasPermission('product_master.create')),
+    update: @json(auth()->user()->hasPermission('product_master.update')),
+    delete: @json(auth()->user()->hasPermission('product_master.delete')),
+    import: @json(auth()->user()->hasPermission('product_master.import')),
+    export: @json(auth()->user()->hasPermission('product_master.export'))
+};
 
-// Wait for both DOM and jQuery to be ready
 function waitForJQuery(callback) {
     if (typeof jQuery !== 'undefined') {
         callback();
@@ -559,16 +575,29 @@ function initializeProductPopovers() {
             // Initialize new popovers with dynamic content
             document.querySelectorAll('.product-action-btn').forEach(function(element) {
                 const productId = element.getAttribute('data-product-id');
-                const popoverContent = '<div class="list-group list-group-flush" style="min-width: 150px;">' +
-                    '<a class="list-group-item list-group-item-action" href="/products/' + productId + '">' +
-                    '<i class="fas fa-eye me-2"></i>View Product</a>' +
-                    '<a class="list-group-item list-group-item-action" href="/products/' + productId + '/edit">' +
-                    '<i class="fas fa-edit me-2"></i>Edit</a>' +
-                    '<a class="list-group-item list-group-item-action" href="#" data-action="seo" data-product-id="' + productId + '">' +
-                    '<i class="fas fa-search me-2"></i>Manage SEO</a>' + 
-                    '<a class="list-group-item list-group-item-action text-danger" href="#" data-action="delete" data-product-id="' + productId + '">' +
-                    '<i class="fas fa-trash me-2"></i>Delete</a>' +
-                    '</div>';
+                let popoverContent = '<div class="list-group list-group-flush" style="min-width: 150px;">';
+                
+                // View Product - check permission
+                if (productPermissions.view) {
+                    popoverContent += '<a class="list-group-item list-group-item-action" href="/products/' + productId + '">' +
+                        '<i class="fas fa-eye me-2"></i>View Product</a>';
+                }
+                
+                // Edit - check permission
+                if (productPermissions.update) {
+                    popoverContent += '<a class="list-group-item list-group-item-action" href="/products/' + productId + '/edit">' +
+                        '<i class="fas fa-edit me-2"></i>Edit</a>';
+                    popoverContent += '<a class="list-group-item list-group-item-action" href="#" data-action="seo" data-product-id="' + productId + '">' +
+                        '<i class="fas fa-search me-2"></i>Manage SEO</a>';
+                }
+                
+                // Delete - check permission
+                if (productPermissions.delete) {
+                    popoverContent += '<a class="list-group-item list-group-item-action text-danger" href="#" data-action="delete" data-product-id="' + productId + '">' +
+                        '<i class="fas fa-trash me-2"></i>Delete</a>';
+                }
+                
+                popoverContent += '</div>';
                 
                 new bootstrap.Popover(element, {
                     container: 'body',

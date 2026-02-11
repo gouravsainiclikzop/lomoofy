@@ -147,9 +147,11 @@
                 <h1 class="h3 m-0">Customers</h1>
             </div>
             <div class="col-auto">
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customerModal" id="addCustomerBtn">
-                    <i class="fas fa-plus"></i> Add Customer
-                </button>
+                @if(auth()->user()->hasPermission('customer.create'))
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customerModal" id="addCustomerBtn">
+                        <i class="fas fa-plus"></i> Add Customer
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -506,6 +508,13 @@ function showCartItemsPopup(customerId) {
 
 @push('scripts')
 <script>
+const customerPermissions = {
+    view: @json(auth()->user()->hasPermission('customer.view')),
+    create: @json(auth()->user()->hasPermission('customer.create')),
+    update: @json(auth()->user()->hasPermission('customer.update')),
+    delete: @json(auth()->user()->hasPermission('customer.delete'))
+};
+
 // Override Bootstrap's enforceFocus to prevent interference with Select2 dropdowns in modals
 // This fixes the issue where clicking on Select2 options closes the modal
 // Works for both Bootstrap 4 and Bootstrap 5
@@ -569,6 +578,10 @@ $(document).ready(function() {
     
     // Add Customer Button
     $('#addCustomerBtn').on('click', function() {
+        if (!customerPermissions.create) {
+            showToast('error', 'You do not have permission to create customers.');
+            return;
+        }
         isEditMode = false;
         editingCustomerData = null;
         $('#customerModalLabel').text('Add New Customer');
@@ -691,10 +704,26 @@ function initializeDataTable() {
                 orderable: false,
                 searchable: false,
                 render: function(data, type, row) {
+                    let editBtn = customerPermissions.update 
+                        ? `<button class="btn btn-sm btn-secondary edit-customer" data-id="${row.id}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>`
+                        : '';
+                    let deleteBtn = customerPermissions.delete 
+                        ? `<button class="btn btn-sm btn-danger delete-customer" data-id="${row.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>`
+                        : '';
+                    
+                    if (!editBtn && !deleteBtn) {
+                        return '<span class="text-muted">-</span>';
+                    }
+                    
                     return `
-                        <button class="btn btn-sm btn-secondary edit-customer" data-id="${row.id}" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                        <div class="d-flex gap-1">
+                            ${editBtn}
+                            ${deleteBtn}
+                        </div>
                     `;
                 }
             }
@@ -1456,6 +1485,10 @@ function checkConditionalField($field, rules) {
 
 // Edit Customer
 $(document).on('click', '.edit-customer', function() {
+    if (!customerPermissions.update) {
+        showToast('error', 'You do not have permission to update customers.');
+        return;
+    }
     const id = $(this).data('id');
     $.ajax({
         url: `/customers/${id}/edit`,
@@ -1736,6 +1769,10 @@ function showErrors(errors) {
 
 // Delete customer
 $(document).on('click', '.delete-customer', function() {
+    if (!customerPermissions.delete) {
+        showToast('error', 'You do not have permission to delete customers.');
+        return;
+    }
     const id = $(this).data('id');
     if (confirm('Are you sure you want to delete this customer?')) {
         $.ajax({

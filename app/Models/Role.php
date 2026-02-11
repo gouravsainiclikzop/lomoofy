@@ -26,40 +26,28 @@ class Role extends Model
         'sort_order',
         'metadata',
     ];
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+ 
     protected $casts = [
         'is_active' => 'boolean',
         'is_system' => 'boolean',
         'metadata' => 'array',
         'sort_order' => 'integer',
     ];
-
-    /**
-     * Get the users that have this role.
-     */
+ 
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'role_user')
                     ->withTimestamps();
     }
 
-    /**
-     * Get the permissions assigned to this role.
-     */
+    
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'permission_role')
+                    ->withPivot('actions')
                     ->withTimestamps();
     }
-
-    /**
-     * Get the parent role (for role hierarchy).
-     */
+ 
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'parent_id');
@@ -72,64 +60,52 @@ class Role extends Model
     {
         return $this->hasMany(Role::class, 'parent_id');
     }
-
-    /**
-     * Scope to get only active roles.
-     */
+ 
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
-
-    /**
-     * Scope to exclude system roles.
-     */
+ 
     public function scopeNonSystem(Builder $query): Builder
     {
         return $query->where('is_system', false);
     }
 
-    /**
-     * Scope to get only system roles.
-     */
+    
     public function scopeSystem(Builder $query): Builder
     {
         return $query->where('is_system', true);
     }
 
-    /**
-     * Check if role has a specific permission.
-     * 
-     * @param string|Permission $permission Permission slug or Permission instance
-     * @return bool
-     */
+    
     public function hasPermission($permission): bool
     {
+        $permissionName = null;
+        
         if ($permission instanceof Permission) {
-            $permissionSlug = $permission->slug;
+            $permissionName = $permission->name;
         } else {
-            $permissionSlug = $permission;
+            $permissionName = $permission;
         }
 
-        // Check direct permissions
-        if ($this->permissions()->where('slug', $permissionSlug)->exists()) {
+        if (empty($permissionName)) {
+            return false;
+        }
+
+        // Check direct permissions by name (case-insensitive)
+        if ($this->permissions()->whereRaw('LOWER(name) = ?', [strtolower($permissionName)])->exists()) {
             return true;
         }
 
         // Check inherited permissions from parent role
         if ($this->parent) {
-            return $this->parent->hasPermission($permissionSlug);
+            return $this->parent->hasPermission($permissionName);
         }
 
         return false;
     }
 
-    /**
-     * Check if role has any of the given permissions.
-     * 
-     * @param array $permissions
-     * @return bool
-     */
+     
     public function hasAnyPermission(array $permissions): bool
     {
         foreach ($permissions as $permission) {
@@ -140,13 +116,7 @@ class Role extends Model
 
         return false;
     }
-
-    /**
-     * Check if role has all of the given permissions.
-     * 
-     * @param array $permissions
-     * @return bool
-     */
+ 
     public function hasAllPermissions(array $permissions): bool
     {
         foreach ($permissions as $permission) {
@@ -157,13 +127,7 @@ class Role extends Model
 
         return true;
     }
-
-    /**
-     * Assign a permission to the role.
-     * 
-     * @param Permission|string $permission
-     * @return void
-     */
+ 
     public function givePermission($permission): void
     {
         if (is_string($permission)) {
@@ -172,13 +136,7 @@ class Role extends Model
 
         $this->permissions()->syncWithoutDetaching([$permission->id]);
     }
-
-    /**
-     * Remove a permission from the role.
-     * 
-     * @param Permission|string $permission
-     * @return void
-     */
+ 
     public function removePermission($permission): void
     {
         if (is_string($permission)) {
@@ -187,23 +145,12 @@ class Role extends Model
 
         $this->permissions()->detach($permission->id);
     }
-
-    /**
-     * Sync permissions for the role.
-     * 
-     * @param array $permissionIds
-     * @return void
-     */
+ 
     public function syncPermissions(array $permissionIds): void
     {
         $this->permissions()->sync($permissionIds);
     }
-
-    /**
-     * Get all permissions including inherited from parent.
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+ 
     public function getAllPermissions()
     {
         $permissions = $this->permissions;

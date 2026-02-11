@@ -14,15 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            InitialDataSeeder::class,
-            EnhancedRolesAndPermissionsSeeder::class,
-            // Reset all product-related data first
-            ResetProductDataSeeder::class,
-            // Seed attributes and values
-            AttributeSeeder::class,
-            AttributeValueSeeder::class,
-            // Seed products (requires attributes to be seeded first)
-            ProductSeeder::class,
+            InitialDataSeeder::class, 
         ]);
     }
 }

@@ -68,10 +68,27 @@ class RoleController extends Controller
     public function edit(Request $request)
     {
         $role = Role::with('permissions')->findOrFail($request->id);
+        
+        // Get permissions with their selected actions
+        $permissionsData = $role->permissions->map(function($permission) {
+            $actions = [];
+            if ($permission->pivot->actions) {
+                $actions = json_decode($permission->pivot->actions, true);
+                if (!is_array($actions)) {
+                    $actions = [];
+                }
+            }
+            return [
+                'id' => $permission->id,
+                'actions' => $actions
+            ];
+        });
+        
         return response()->json([
             'success' => true,
             'role' => $role,
-            'permission_ids' => $role->permissions->pluck('id')->toArray()
+            'permission_ids' => $role->permissions->pluck('id')->toArray(),
+            'permissions_data' => $permissionsData
         ]);
     }
 
@@ -80,12 +97,20 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'name' => 'required|string|max:255|unique:roles,name',
             'description' => 'nullable|string',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id'
-        ]);
+        ];
+        
+        // Only validate permissions if they are provided
+        if ($request->has('permissions') && is_array($request->permissions) && count($request->permissions) > 0) {
+            $rules['permissions'] = 'array';
+            $rules['permissions.*.id'] = 'required|exists:permissions,id';
+            $rules['permissions.*.actions'] = 'nullable|array';
+            $rules['permissions.*.actions.*'] = 'string';
+        }
+        
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -100,9 +125,23 @@ class RoleController extends Controller
             'description' => $request->description,
         ]);
 
-        // Attach permissions if provided
+        // Attach permissions with actions if provided
         if ($request->has('permissions')) {
-            $role->permissions()->sync($request->permissions);
+            $syncData = [];
+            foreach ($request->permissions as $permData) {
+                // Ensure permData is an array and has an id
+                if (!is_array($permData) || !isset($permData['id'])) {
+                    continue; // Skip invalid entries
+                }
+                
+                $permissionId = $permData['id'];
+                $actions = isset($permData['actions']) && is_array($permData['actions']) ? $permData['actions'] : [];
+                
+                $syncData[$permissionId] = [
+                    'actions' => json_encode($actions)
+                ];
+            }
+            $role->permissions()->sync($syncData);
         }
 
         return response()->json([
@@ -118,16 +157,20 @@ class RoleController extends Controller
     public function update(Request $request)
     {
         $role = Role::findOrFail($request->id);
-
-        // If only permissions are being updated (no name provided), skip name validation
-        $rules = [
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id'
-        ];
+ 
+        $rules = [];
         
         if ($request->has('name')) {
             $rules['name'] = 'required|string|max:255|unique:roles,name,' . $role->id;
             $rules['description'] = 'nullable|string';
+        }
+
+        // Only validate permissions if they are provided
+        if ($request->has('permissions')) {
+            $rules['permissions'] = 'nullable|array';
+            $rules['permissions.*.id'] = 'required|exists:permissions,id';
+            $rules['permissions.*.actions'] = 'nullable|array';
+            $rules['permissions.*.actions.*'] = 'string';
         }
 
         $validator = Validator::make($request->all(), $rules);
@@ -138,8 +181,7 @@ class RoleController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-
-        // Update name and description only if provided
+ 
         if ($request->has('name')) {
             $role->update([
                 'name' => $request->name,
@@ -148,11 +190,23 @@ class RoleController extends Controller
             ]);
         }
 
-        // Sync permissions (always update permissions if provided)
         if ($request->has('permissions')) {
-            $role->permissions()->sync($request->permissions);
-        } else if (!$request->has('name')) {
-            // If only permissions modal is open and no permissions sent, clear them
+            $syncData = [];
+            foreach ($request->permissions as $permData) {
+                // Ensure permData is an array and has an id
+                if (!is_array($permData) || !isset($permData['id'])) {
+                    continue; // Skip invalid entries
+                }
+                
+                $permissionId = $permData['id'];
+                $actions = isset($permData['actions']) && is_array($permData['actions']) ? $permData['actions'] : [];
+                
+                $syncData[$permissionId] = [
+                    'actions' => json_encode($actions)
+                ];
+            }
+            $role->permissions()->sync($syncData);
+        } else if (!$request->has('name')) { 
             $role->permissions()->sync([]);
         }
 
@@ -162,15 +216,11 @@ class RoleController extends Controller
             'role' => $role->load('permissions')
         ]);
     }
-
-    /**
-     * Delete a role.
-     */
+ 
     public function delete(Request $request)
     {
         $role = Role::findOrFail($request->id);
-
-        // Check if role has users
+ 
         if ($role->users()->count() > 0) {
             return response()->json([
                 'success' => false,
@@ -185,117 +235,58 @@ class RoleController extends Controller
             'message' => 'Role deleted successfully'
         ]);
     }
-
-    /**
-     * Get all permissions grouped by module for assignment.
-     */
+ 
+   
     public function getPermissions()
     {
+        // Order by sort_no, then by name
         $permissions = Permission::where('is_active', true)
-            ->orderBy('module')
-            ->orderBy('sort_order')
+            ->orderBy('sort_no', 'asc')
+            ->orderBy('name', 'asc')
             ->get();
         
-        // Extract module and action from slug/name if module is null
-        $permissions = $permissions->map(function($permission) {
-            if (empty($permission->module)) {
-                // Try to extract from slug - handle both formats:
-                // New format: "module.resource.action" or "module.action"
-                // Old format: "action-resource" or "action-module"
-                
-                $slug = $permission->slug;
-                
-                // Check if slug uses dots (new format)
-                if (strpos($slug, '.') !== false) {
-                    $slugParts = explode('.', $slug);
-                    if (count($slugParts) >= 2) {
-                        $permission->module = ucfirst($slugParts[0]);
-                        $permission->resource = ucfirst($slugParts[1] ?? $slugParts[0]);
-                        $permission->action = $slugParts[2] ?? $slugParts[1] ?? 'view';
-                    }
-                } else {
-                    // Old format: "action-resource" (e.g., "view-categories", "create-products")
-                    $slugParts = explode('-', $slug);
-                    if (count($slugParts) >= 2) {
-                        $permission->action = strtolower($slugParts[0]);
-                        // Combine remaining parts as resource/module
-                        $resource = ucfirst(implode(' ', array_slice($slugParts, 1)));
-                        $permission->module = $resource;
-                        $permission->resource = $resource;
-                    } else {
-                        // Fallback: extract from name
-                        $nameParts = explode(' ', $permission->name);
-                        if (count($nameParts) >= 2) {
-                            $permission->action = strtolower($nameParts[0]);
-                            $permission->module = ucfirst(implode(' ', array_slice($nameParts, 1)));
-                            $permission->resource = $permission->module;
-                        } else {
-                            $permission->module = 'Other';
-                            $permission->resource = 'Other';
-                            $permission->action = 'view';
-                        }
-                    }
-                }
-            }
-            
-            // Set resource if empty
-            if (empty($permission->resource)) {
-                $permission->resource = $permission->module;
-            }
-            
-            // Set action if empty
-            if (empty($permission->action)) {
-                // Try to extract from name (format: "Action Resource")
-                $nameParts = explode(' ', $permission->name);
-                if (count($nameParts) > 0) {
-                    $permission->action = strtolower($nameParts[0]);
-                } else {
-                    $permission->action = 'view';
-                }
-            }
-            
-            return $permission;
-        });
-        
-        // Group by module and resource
+        $allPermissions = [];
         $grouped = [];
+
         foreach ($permissions as $permission) {
-            $module = $permission->module ?? 'Other';
-            $resource = $permission->resource ?? $module;
-            $key = $module . '.' . $resource;
-            
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = [
-                    'module' => $module,
-                    'resource' => $resource,
-                    'permissions' => []
-                ];
+            // Parse actions from action field (stored as JSON)
+            $actions = [];
+            if (!empty($permission->action)) {
+                $parsedActions = json_decode($permission->action, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($parsedActions)) {
+                    $actions = $parsedActions;
+                } else {
+                    // If not JSON, treat as single action or comma-separated
+                    $actions = strpos($permission->action, ',') !== false 
+                        ? array_map('trim', explode(',', $permission->action))
+                        : [$permission->action];
+                }
             }
-            
-            $grouped[$key]['permissions'][] = [
+
+            // Create permission data with actions
+            $permissionData = [
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'slug' => $permission->slug,
-                'module' => $permission->module,
-                'resource' => $permission->resource,
-                'action' => $permission->action,
-                'description' => $permission->description,
+                'actions' => $actions,
             ];
+            
+            $allPermissions[] = $permissionData;
+            
+            // Group by permission name (for display purposes)
+            $groupKey = $permission->name;
+            if (!isset($grouped[$groupKey])) {
+                $grouped[$groupKey] = [
+                    'name' => $permission->name,
+                    'permissions' => []
+                ];
+            }
+            $grouped[$groupKey]['permissions'][] = $permissionData;
         }
-        
+
         return response()->json([
             'success' => true,
-            'permissions' => $permissions->map(function($p) {
-                return [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'slug' => $p->slug,
-                    'module' => $p->module,
-                    'resource' => $p->resource,
-                    'action' => $p->action,
-                    'description' => $p->description,
-                ];
-            }),
+            'permissions' => $allPermissions,
             'grouped' => array_values($grouped)
         ]);
     }

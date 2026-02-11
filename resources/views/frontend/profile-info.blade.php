@@ -92,6 +92,7 @@
 										$sortedFields->push($field);
 									}
 								}
+								$hasEmailField = $fieldsKeyed->has('email');
 							@endphp
 							
 							@foreach($sortedFields as $field)
@@ -316,6 +317,40 @@
 							</div>
 						@endif
 						
+						<!-- Email verification (OTP) when changing email -->
+						@if(!empty($hasEmailField))
+						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12" id="emailVerifySection" style="display: none;">
+							<div class="card-wrap border rounded mb-3">
+								<div class="card-wrap-body px-3 py-3">
+									<div class="alert alert-info py-2 mb-2 small">
+										<i class="fas fa-info-circle"></i> You changed your email. Verify the new email to save your profile.
+									</div>
+									<div id="emailVerifyMessage" class="mb-2" style="display: none;"></div>
+									<div id="emailVerifyStep1">
+										<button type="button" id="profileSendEmailOtpBtn" class="btn btn-outline-dark btn-sm">
+											<span id="profileSendOtpBtnText">Send verification code to new email</span>
+											<span id="profileSendOtpBtnSpinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+										</button>
+									</div>
+									<div id="emailVerifyStep2" style="display: none;">
+										<label for="profileEmailOtp" class="small text-dark ft-medium mb-1">Verification code (6 digits)</label>
+										<div class="d-flex flex-wrap align-items-center gap-2">
+											<input type="text" class="form-control form-control-sm" id="profileEmailOtp" placeholder="Enter code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" style="max-width: 140px;">
+											<button type="button" id="profileVerifyEmailOtpBtn" class="btn btn-dark btn-sm">
+												<span id="profileVerifyOtpBtnText">Verify</span>
+												<span id="profileVerifyOtpBtnSpinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+											</button>
+										</div>
+										<small class="text-muted d-block mt-1">Didn't receive? <a href="#" id="profileResendEmailOtp" class="text-primary">Resend code</a> <span id="profileResendTimer" class="text-muted"></span></small>
+									</div>
+									<div id="emailVerifySuccess" style="display: none;">
+										<span class="text-success small"><i class="fas fa-check-circle"></i> New email verified. You can save your profile.</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						@endif
+						
 						<div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
 							<div class="form-group">
 								<button type="submit" class="btn btn-dark" id="submitBtn">
@@ -337,6 +372,48 @@
 	</div>
 </section>
 <!-- ======================= Dashboard Detail End ======================== -->
+
+<!-- Email verification modal (shown when user must verify new email) -->
+@if(!empty($hasEmailField))
+<div class="modal fade" id="emailVerifyModal" tabindex="-1" aria-labelledby="emailVerifyModalLabel" aria-hidden="true" data-bs-backdrop="static">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="emailVerifyModalLabel">Verify your new email</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<p class="small text-muted mb-3">A verification code was sent to your new email address. Enter it below to confirm the change.</p>
+				<div id="modalEmailVerifyMessage" class="mb-2" style="display: none;"></div>
+				<div id="modalEmailVerifyStep1">
+					<button type="button" id="modalSendEmailOtpBtn" class="btn btn-dark">
+						<span id="modalSendOtpBtnText">Send verification code</span>
+						<span id="modalSendOtpBtnSpinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+					</button>
+				</div>
+				<div id="modalEmailVerifyStep2" style="display: none;">
+					<label for="modalProfileEmailOtp" class="form-label small">Verification code (6 digits)</label>
+					<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+						<input type="text" class="form-control" id="modalProfileEmailOtp" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" style="max-width: 140px;">
+						<button type="button" id="modalVerifyEmailOtpBtn" class="btn btn-dark">
+							<span id="modalVerifyOtpBtnText">Verify</span>
+							<span id="modalVerifyOtpBtnSpinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+						</button>
+					</div>
+					<small class="text-muted">Didn't receive? <a href="#" id="modalResendEmailOtp" class="text-primary">Resend code</a> <span id="modalResendTimer" class="text-muted"></span></small>
+				</div>
+				<div id="modalEmailVerifySuccess" style="display: none;">
+					<div class="alert alert-success py-2 mb-0 small"><i class="fas fa-check-circle"></i> Email verified. You can now save your profile.</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+@endif
+
 @endsection
 
 @push('scripts')
@@ -346,6 +423,88 @@
 	
 	// Get CSRF token
 	const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+	
+	// Email verification state (when changing email)
+	const originalEmail = @json($customer->email ?? '');
+	let emailOtpVerified = false;
+	let verifiedEmail = '';
+	let profileResendTimer = null;
+	let profileResendSeconds = 0;
+	
+	function profileEmailChanged() {
+		const emailEl = $('#email');
+		if (!emailEl.length) return false;
+		const current = (emailEl.val() || '').trim().toLowerCase();
+		const orig = (originalEmail || '').trim().toLowerCase();
+		return current !== '' && current !== orig;
+	}
+	
+	function updateEmailVerifySection() {
+		if ($('#emailVerifySection').length === 0) return;
+		if (profileEmailChanged()) {
+			$('#emailVerifySection').show();
+			emailOtpVerified = false;
+			verifiedEmail = '';
+			$('#emailVerifyStep1').show();
+			$('#emailVerifyStep2').hide();
+			$('#emailVerifySuccess').hide();
+			$('#profileEmailOtp').val('');
+			$('#emailVerifyMessage').hide().html('');
+		} else {
+			$('#emailVerifySection').hide();
+			emailOtpVerified = false;
+			verifiedEmail = '';
+		}
+	}
+	
+		function startProfileResendTimer(seconds) {
+		profileResendSeconds = seconds;
+		$('#profileResendEmailOtp').addClass('disabled pe-none text-muted').removeClass('text-primary');
+		$('#modalResendEmailOtp').addClass('disabled pe-none text-muted').removeClass('text-primary');
+		if (profileResendTimer) clearInterval(profileResendTimer);
+		profileResendTimer = setInterval(function() {
+			profileResendSeconds--;
+			$('#profileResendTimer').text('(' + profileResendSeconds + 's)');
+			$('#modalResendTimer').text('(' + profileResendSeconds + 's)');
+			if (profileResendSeconds <= 0) {
+				clearInterval(profileResendTimer);
+				$('#profileResendTimer').text('');
+				$('#modalResendTimer').text('');
+				$('#profileResendEmailOtp').text('Resend code').removeClass('disabled pe-none text-muted').addClass('text-primary');
+				$('#modalResendEmailOtp').text('Resend code').removeClass('disabled pe-none text-muted').addClass('text-primary');
+			}
+		}, 1000);
+	}
+	
+	function showEmailVerifyMessage(html, type) {
+		type = type || 'success';
+		const cls = type === 'success' ? 'alert-success' : 'alert-danger';
+		$('#emailVerifyMessage').html('<div class="alert ' + cls + ' py-2 mb-0 small">' + html + '</div>').show();
+	}
+	
+	function openEmailVerifyModal() {
+		if ($('#emailVerifyModal').length === 0) return;
+		$('#emailVerifyStep1').show();
+		$('#emailVerifyStep2').hide();
+		$('#emailVerifySuccess').hide();
+		$('#emailVerifyMessage').hide().html('');
+		$('#modalEmailVerifyStep1').show();
+		$('#modalEmailVerifyStep2').hide();
+		$('#modalEmailVerifySuccess').hide();
+		$('#modalEmailVerifyMessage').hide().html('');
+		$('#modalProfileEmailOtp').val('');
+		var modalEl = document.getElementById('emailVerifyModal');
+		if (typeof bootstrap !== 'undefined' && modalEl) {
+			var modal = new bootstrap.Modal(modalEl);
+			modal.show();
+		}
+	}
+	
+	function showModalEmailVerifyMessage(html, type) {
+		type = type || 'success';
+		const cls = type === 'success' ? 'alert-success' : 'alert-danger';
+		$('#modalEmailVerifyMessage').html('<div class="alert ' + cls + ' py-2 mb-0 small">' + html + '</div>').show();
+	}
 	
 	// Image preview function
 	function previewImage(input, previewId, containerId, labelId, fieldLabel) {
@@ -451,8 +610,199 @@
 		}
 	}
 	
+	// Email verification: show/hide section when email field changes
+	$(document).on('input change', '#email', function() {
+		updateEmailVerifySection();
+	});
+	updateEmailVerifySection();
+	
+	// If page loaded with email verification error (e.g. form submit without AJAX), open modal
+	@if(session('error') && strpos(session('error', ''), 'verify your new email') !== false)
+	if ($('#emailVerifyModal').length && profileEmailChanged()) {
+		openEmailVerifyModal();
+	}
+	@endif
+	
+	// Send OTP to new email
+	$('#profileSendEmailOtpBtn').on('click', function() {
+		const email = $('#email').val().trim();
+		if (!email || !profileEmailChanged()) return;
+		$('#profileSendOtpBtnText').text('Sending...');
+		$('#profileSendOtpBtnSpinner').removeClass('d-none');
+		$('#profileSendEmailOtpBtn').prop('disabled', true);
+		$('#emailVerifyMessage').hide().html('');
+		$.ajax({
+			url: '/api/auth/profile/send-email-otp',
+			method: 'POST',
+			headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+			data: { email: email },
+			success: function(res) {
+				if (res.success) {
+					$('#emailVerifyStep1').hide();
+					$('#emailVerifyStep2').show();
+					showEmailVerifyMessage('<i class="fas fa-check-circle"></i> Verification code sent to ' + email, 'success');
+					startProfileResendTimer(60);
+				}
+			},
+			error: function(xhr) {
+				const msg = (xhr.responseJSON && xhr.responseJSON.error && xhr.responseJSON.error.message) ? xhr.responseJSON.error.message : 'Failed to send code. Try again.';
+				if (xhr.responseJSON && xhr.responseJSON.error && xhr.responseJSON.error.errors && xhr.responseJSON.error.errors.email) {
+					showEmailVerifyMessage(xhr.responseJSON.error.errors.email[0], 'error');
+				} else {
+					showEmailVerifyMessage(msg, 'error');
+				}
+			},
+			complete: function() {
+				$('#profileSendOtpBtnText').text('Send verification code to new email');
+				$('#profileSendOtpBtnSpinner').addClass('d-none');
+				$('#profileSendEmailOtpBtn').prop('disabled', false);
+			}
+		});
+	});
+	
+	$(document).on('click', '#profileResendEmailOtp', function(e) {
+		e.preventDefault();
+		if ($(this).hasClass('disabled')) return;
+		$('#profileSendEmailOtpBtn').click();
+	});
+	
+	$('#profileVerifyEmailOtpBtn').on('click', function() {
+		const email = $('#email').val().trim();
+		const otp = $('#profileEmailOtp').val().trim();
+		if (!email || otp.length !== 6) {
+			showEmailVerifyMessage('Please enter the 6-digit code.', 'error');
+			$('#profileEmailOtp').focus();
+			return;
+		}
+		$('#profileVerifyOtpBtnText').text('Verifying...');
+		$('#profileVerifyOtpBtnSpinner').removeClass('d-none');
+		$('#profileVerifyEmailOtpBtn').prop('disabled', true);
+		$('#emailVerifyMessage').hide().html('');
+		$.ajax({
+			url: '/api/auth/profile/verify-email-otp',
+			method: 'POST',
+			headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+			data: { email: email, otp: otp },
+			success: function(res) {
+				if (res.success) {
+					emailOtpVerified = true;
+					verifiedEmail = email;
+					$('#emailVerifyStep2').hide();
+					$('#emailVerifySuccess').show();
+					if (profileResendTimer) { clearInterval(profileResendTimer); profileResendTimer = null; }
+					$('#profileResendTimer').text('');
+					showEmailVerifyMessage('<i class="fas fa-check-circle"></i> Email verified. You can save your profile.', 'success');
+				}
+			},
+			error: function(xhr) {
+				const msg = (xhr.responseJSON && xhr.responseJSON.error && xhr.responseJSON.error.message) ? xhr.responseJSON.error.message : 'Invalid or expired code.';
+				showEmailVerifyMessage(msg, 'error');
+			},
+			complete: function() {
+				$('#profileVerifyOtpBtnText').text('Verify');
+				$('#profileVerifyOtpBtnSpinner').addClass('d-none');
+				$('#profileVerifyEmailOtpBtn').prop('disabled', false);
+			}
+		});
+	});
+	
+	// Modal: Send OTP to new email
+	$('#modalSendEmailOtpBtn').on('click', function() {
+		const email = $('#email').val().trim();
+		if (!email || !profileEmailChanged()) return;
+		$('#modalSendOtpBtnText').text('Sending...');
+		$('#modalSendOtpBtnSpinner').removeClass('d-none');
+		$('#modalSendEmailOtpBtn').prop('disabled', true);
+		$('#modalEmailVerifyMessage').hide().html('');
+		$.ajax({
+			url: '/api/auth/profile/send-email-otp',
+			method: 'POST',
+			headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+			data: { email: email },
+			success: function(res) {
+				if (res.success) {
+					$('#modalEmailVerifyStep1').hide();
+					$('#modalEmailVerifyStep2').show();
+					showModalEmailVerifyMessage('<i class="fas fa-check-circle"></i> Code sent to ' + email, 'success');
+					startProfileResendTimer(60);
+				}
+			},
+			error: function(xhr) {
+				const msg = (xhr.responseJSON && xhr.responseJSON.error && xhr.responseJSON.error.message) ? xhr.responseJSON.error.message : 'Failed to send code. Try again.';
+				if (xhr.responseJSON && xhr.responseJSON.error && xhr.responseJSON.error.errors && xhr.responseJSON.error.errors.email) {
+					showModalEmailVerifyMessage(xhr.responseJSON.error.errors.email[0], 'error');
+				} else {
+					showModalEmailVerifyMessage(msg, 'error');
+				}
+			},
+			complete: function() {
+				$('#modalSendOtpBtnText').text('Send verification code');
+				$('#modalSendOtpBtnSpinner').addClass('d-none');
+				$('#modalSendEmailOtpBtn').prop('disabled', false);
+			}
+		});
+	});
+	
+	$(document).on('click', '#modalResendEmailOtp', function(e) {
+		e.preventDefault();
+		if ($(this).hasClass('disabled')) return;
+		$('#modalSendEmailOtpBtn').click();
+	});
+	
+	$('#modalVerifyEmailOtpBtn').on('click', function() {
+		const email = $('#email').val().trim();
+		const otp = $('#modalProfileEmailOtp').val().trim();
+		if (!email || otp.length !== 6) {
+			showModalEmailVerifyMessage('Please enter the 6-digit code.', 'error');
+			$('#modalProfileEmailOtp').focus();
+			return;
+		}
+		$('#modalVerifyOtpBtnText').text('Verifying...');
+		$('#modalVerifyOtpBtnSpinner').removeClass('d-none');
+		$('#modalVerifyEmailOtpBtn').prop('disabled', true);
+		$('#modalEmailVerifyMessage').hide().html('');
+		$.ajax({
+			url: '/api/auth/profile/verify-email-otp',
+			method: 'POST',
+			headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+			data: { email: email, otp: otp },
+			success: function(res) {
+				if (res.success) {
+					emailOtpVerified = true;
+					verifiedEmail = email;
+					$('#modalEmailVerifyStep2').hide();
+					//$('#modalEmailVerifySuccess').show();
+					if (profileResendTimer) { clearInterval(profileResendTimer); profileResendTimer = null; }
+					$('#profileResendTimer').text('');
+					$('#modalResendTimer').text('');
+					showModalEmailVerifyMessage('<i class="fas fa-check-circle"></i> Email verified. You can save your profile.', 'success');
+				}
+			},
+			error: function(xhr) {
+				const msg = (xhr.responseJSON && xhr.responseJSON.error && xhr.responseJSON.error.message) ? xhr.responseJSON.error.message : 'Invalid or expired code.';
+				showModalEmailVerifyMessage(msg, 'error');
+			},
+			complete: function() {
+				$('#modalVerifyOtpBtnText').text('Verify');
+				$('#modalVerifyOtpBtnSpinner').addClass('d-none');
+				$('#modalVerifyEmailOtpBtn').prop('disabled', false);
+			}
+		});
+	});
+	
 	// Form submission handler
 	$('#profileInfoForm').on('submit', function(e) {
+		// Require email OTP when email was changed
+		if (profileEmailChanged()) {
+			const currentEmail = $('#email').val().trim().toLowerCase();
+			if (!emailOtpVerified || verifiedEmail.toLowerCase() !== currentEmail) {
+				e.preventDefault();
+				showMessage('Please verify your new email with the code sent to it before saving.', 'error');
+				openEmailVerifyModal();
+				return;
+			}
+		}
+		
 		e.preventDefault();
 		
 		const form = $(this);
@@ -586,8 +936,13 @@
 				if (xhr.status === 422) {
 					// Validation errors
 					const errors = xhr.responseJSON.errors || {};
+					const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : '';
+					const isEmailVerifyError = msg.indexOf('verify your new email') !== -1 || (errors.email && (errors.email[0] + '').indexOf('verify') !== -1);
 					showValidationErrors(errors);
-					showMessage('Please correct the errors below.', 'error');
+					showMessage(msg || 'Please correct the errors below.', 'error');
+					if (isEmailVerifyError) {
+						openEmailVerifyModal();
+					}
 				} else if (xhr.status === 401) {
 					// Unauthorized
 					showMessage('Your session has expired. Please login again.', 'error');

@@ -1,18 +1,10 @@
 {{-- JavaScript Helper for Cart Item Pricing Display - Uses Centralized Pricing from Backend --}}
 <script>
-/**
- * Generate pricing HTML for cart items
- * Now consumes pricing data from centralized ProductVariant::getPricingData() method
- * Cart items should include pricing data from Cart API, or fetch via variant_id if available
- */
-function generateCartItemPricing(item) {
-    // Check if item has pricing data from backend (preferred)
-    if (item.pricing && typeof item.pricing === 'object' && item.pricing.display_final_price !== undefined) {
-        // Use pricing data from backend (centralized method)
+ 
+function generateCartItemPricing(item) { 
+    if (item.pricing && typeof item.pricing === 'object' && item.pricing.display_final_price !== undefined) { 
         return renderCartItemPricingHTML(item.pricing, item);
-    } else if (item.variant_id) {
-        // If cart item has variant_id but no pricing, fetch it via API
-        // Note: This is async, so we return a placeholder and update via callback
+    } else if (item.variant_id) { 
         fetch(`/api/catalog/variants/${item.variant_id}/pricing`, {
             headers: {
                 'Accept': 'application/json',

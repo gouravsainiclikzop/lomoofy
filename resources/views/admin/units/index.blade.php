@@ -19,12 +19,16 @@
                     <p class="text-muted mb-0">Manage measurement units for products. Units define how products are measured and sold (weight, volume, length, etc.)</p>
                 </div>
                 <div class="col-auto d-flex gap-2">
-                    <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteUnitsBtn" onclick="bulkDeleteUnits()">
-                        <i class="fas fa-trash me-2"></i>Delete Selected
-                    </button>
-                    <button class="btn btn-primary" id="addUnitBtn">
-                        <i class="fas fa-plus me-2"></i>New Unit
-                    </button>
+                    @if(auth()->user()->hasPermission('units.delete'))
+                        <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteUnitsBtn" onclick="bulkDeleteUnits()">
+                            <i class="fas fa-trash me-2"></i>Delete Selected
+                        </button>
+                    @endif
+                    @if(auth()->user()->hasPermission('units.create'))
+                        <button class="btn btn-primary" id="addUnitBtn">
+                            <i class="fas fa-plus me-2"></i>New Unit
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -92,9 +96,11 @@
                 <table class="table table-hover" id="unitsTable">
                     <thead>
                         <tr>
-                            <th style="width: 40px;">
-                                <input type="checkbox" id="selectAllUnits" class="form-check-input">
-                            </th>
+                            @if(auth()->user()->hasPermission('units.delete'))
+                                <th style="width: 40px;">
+                                    <input type="checkbox" id="selectAllUnits" class="form-check-input">
+                                </th>
+                            @endif
                             <th>Name</th>
                             <th>Symbol</th>
                             <th>Type</th>
@@ -104,7 +110,7 @@
                     </thead>
                     <tbody id="unitsTableBody">
                         <tr>
-                            <td colspan="5" class="text-center py-5">
+                            <td colspan="{{ auth()->user()->hasPermission('units.delete') ? '6' : '5' }}" class="text-center py-5">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
@@ -228,6 +234,13 @@
 
 @push('scripts')
 <script>
+const unitPermissions = {
+    view: @json(auth()->user()->hasPermission('units.view')),
+    create: @json(auth()->user()->hasPermission('units.create')),
+    update: @json(auth()->user()->hasPermission('units.update')),
+    delete: @json(auth()->user()->hasPermission('units.delete'))
+};
+
 $(document).ready(function() {
     let currentUnitId = null;
     let deleteUnitId = null;
@@ -296,14 +309,12 @@ $(document).ready(function() {
         toggleStatus(unitId, isActive);
     });
     
-    // Select All Units
     $('#selectAllUnits').on('change', function() {
         const isChecked = $(this).is(':checked');
         $('.unit-checkbox').prop('checked', isChecked);
         updateBulkDeleteUnitsButton();
     });
     
-    // Individual checkbox change
     $(document).on('change', '.unit-checkbox', function() {
         updateBulkDeleteUnitsButton();
     });
@@ -360,7 +371,6 @@ $(document).ready(function() {
         });
     }
     
-    // Load Units Function
     function loadUnits() {
         let typeFilter = $('#typeFilter').val();
         let url = '{{ route("units.index") }}';
@@ -382,11 +392,40 @@ $(document).ready(function() {
                                 ? '<span class="badge badge-sa-success">Active</span>' 
                                 : '<span class="badge badge-sa-secondary">Inactive</span>';
                             
+                            let checkboxCell = unitPermissions.delete 
+                                ? `<td>
+                                        <input type="checkbox" class="form-check-input unit-checkbox" value="${unit.id}">
+                                    </td>`
+                                : '';
+                            
+                            let editOption = unitPermissions.update 
+                                ? `<li><a class="dropdown-item edit-unit" href="#" data-id="${unit.id}">Edit</a></li>`
+                                : '';
+                            let deleteOption = unitPermissions.delete 
+                                ? `<li><a class="dropdown-item text-danger delete-unit" href="#" data-id="${unit.id}">Delete</a></li>`
+                                : '';
+                            
+                            let separator = editOption && deleteOption ? '<li><hr class="dropdown-divider"/></li>' : '';
+                            let dropdownMenu = '';
+                            
+                            if (editOption || deleteOption) {
+                                dropdownMenu = `
+                                    <div class="dropdown">
+                                        <button class="btn btn-sa-muted btn-sm" type="button" data-bs-toggle="dropdown">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="3" height="13" fill="currentColor">
+                                                <path d="M1.5,8C0.7,8,0,7.3,0,6.5S0.7,5,1.5,5S3,5.7,3,6.5S2.3,8,1.5,8z M1.5,3C0.7,3,0,2.3,0,1.5S0.7,0,1.5,0 S3,0.7,3,1.5S2.3,3,1.5,3z M1.5,10C2.3,10,3,10.7,3,11.5S2.3,13,1.5,13S0,12.3,0,11.5S0.7,10,1.5,10z"></path>
+                                            </svg>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            ${editOption}${separator}${deleteOption}
+                                        </ul>
+                                    </div>
+                                `;
+                            }
+                            
                             let row = `
                                 <tr data-id="${unit.id}">
-                                    <td>
-                                        <input type="checkbox" class="form-check-input unit-checkbox" value="${unit.id}">
-                                    </td>
+                                    ${checkboxCell}
                                     <td>
                                         <a href="#" class="text-reset fw-medium">${unit.name || '-'}</a>
                                     </td>
@@ -402,55 +441,41 @@ $(document).ready(function() {
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sa-muted btn-sm" type="button" data-bs-toggle="dropdown">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="3" height="13" fill="currentColor">
-                                                    <path d="M1.5,8C0.7,8,0,7.3,0,6.5S0.7,5,1.5,5S3,5.7,3,6.5S2.3,8,1.5,8z M1.5,3C0.7,3,0,2.3,0,1.5S0.7,0,1.5,0 S3,0.7,3,1.5S2.3,3,1.5,3z M1.5,10C2.3,10,3,10.7,3,11.5S2.3,13,1.5,13S0,12.3,0,11.5S0.7,10,1.5,10z"></path>
-                                                </svg>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item edit-unit" href="#" data-id="${unit.id}">Edit</a></li>
-                                                <li><hr class="dropdown-divider"/></li>
-                                                <li><a class="dropdown-item text-danger delete-unit" href="#" data-id="${unit.id}">Delete</a></li>
-                                            </ul>
-                                        </div>
+                                        ${dropdownMenu}
                                     </td>
                                 </tr>
                             `;
                             tbody.append(row);
                         });
                     } else {
-                        tbody.html('<tr><td colspan="5" class="text-center py-4">No units found</td></tr>');
+                        let noDataColspan = unitPermissions.delete ? 6 : 5;
+                        tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No units found</td></tr>`);
                     }
                 }
             },
             error: function(xhr) {
                 console.error('Error loading units:', xhr);
-                $('#unitsTableBody').html('<tr><td colspan="5" class="text-center py-4 text-danger">Error loading units</td></tr>');
+                let errorColspan = unitPermissions.delete ? 6 : 5;
+                $('#unitsTableBody').html(`<tr><td colspan="${errorColspan}" class="text-center py-4 text-danger">Error loading units</td></tr>`);
             }
         });
     }
     
-    // Safe modal close function (Bootstrap 5 compatible)
     function closeModalSafely(modalSelector) {
         try {
             const modalElement = document.querySelector(modalSelector);
             if (modalElement) {
-                // Try Bootstrap 5 API first
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                     const modal = bootstrap.Modal.getInstance(modalElement);
                     if (modal) {
                         modal.hide();
                     } else {
-                        // If no instance exists, create one and hide
                         const newModal = new bootstrap.Modal(modalElement);
                         newModal.hide();
                     }
                 } else if (typeof $.fn.modal !== 'undefined') {
-                    // Fallback to jQuery/Bootstrap 4
                     $(modalSelector).modal('hide');
                 } else {
-                    // Last resort: hide via CSS
                     $(modalElement).removeClass('show').css('display', 'none');
                     $('body').removeClass('modal-open');
                     $('.modal-backdrop').remove();
@@ -458,19 +483,16 @@ $(document).ready(function() {
             }
         } catch (error) {
             console.error('Error closing modal:', error);
-            // Fallback: hide via CSS
             $(modalSelector).removeClass('show').css('display', 'none');
             $('body').removeClass('modal-open');
             $('.modal-backdrop').remove();
         }
     }
     
-    // Safe modal show function (Bootstrap 5 compatible)
     function showModalSafely(modalSelector) {
         try {
             const modalElement = document.querySelector(modalSelector);
-            if (modalElement) {
-                // Try Bootstrap 5 API first
+            if (modalElement) { 
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                     const modal = bootstrap.Modal.getOrCreateInstance(modalElement, {
                         backdrop: true,
@@ -480,22 +502,18 @@ $(document).ready(function() {
                     if (!modalElement.classList.contains('show')) {
                         modal.show();
                     }
-                } else if (typeof $.fn.modal !== 'undefined') {
-                    // Fallback to jQuery/Bootstrap 4
+                } else if (typeof $.fn.modal !== 'undefined') { 
                     if (!$(modalSelector).hasClass('show')) {
                         $(modalSelector).modal('show');
                     }
-                } else {
-                    // Last resort: show via CSS
+                } else { 
                     $(modalElement).addClass('show').css('display', 'block');
                     $('body').addClass('modal-open');
                     $('.modal-backdrop').remove();
                     $('body').append('<div class="modal-backdrop fade show"></div>');
                 }
             }
-        } catch (error) {
-            console.error('Error showing modal:', error);
-            // Fallback: show via CSS
+        } catch (error) { 
             $(modalSelector).addClass('show').css('display', 'block');
             $('body').addClass('modal-open');
             $('.modal-backdrop').remove();
@@ -543,11 +561,9 @@ $(document).ready(function() {
     }
     
     // Save Unit
-    function saveUnit() {
-        // Clear previous validation errors
+    function saveUnit() { 
         clearValidationErrors();
-        
-        // Get form values explicitly to ensure all fields are included
+         
         let formData = {
             name: $('#unitName').val(),
             symbol: $('#unitSymbol').val(),
@@ -555,13 +571,11 @@ $(document).ready(function() {
             is_active: $('#unitIsActive').is(':checked') ? '1' : '0',
             _token: $('meta[name="csrf-token"]').attr('content')
         };
-        
-        // Add _method for PUT requests
+         
         if (currentUnitId) {
             formData._method = 'PUT';
         }
-        
-        // Validate required fields before submission
+         
         if (!formData.name || !formData.symbol || !formData.type) {
             let missingFields = [];
             if (!formData.name) {
@@ -586,8 +600,7 @@ $(document).ready(function() {
         let url = currentUnitId 
             ? '{{ route("units.update", ":id") }}'.replace(':id', currentUnitId)
             : '{{ route("units.store") }}';
-        
-        // Show loading state
+         
         $('#saveSpinner').removeClass('d-none');
         $('#saveBtnText').text('Saving...');
         $('#saveUnitBtn').prop('disabled', true);
@@ -601,8 +614,7 @@ $(document).ready(function() {
             },
             success: function(response) {
                 if(response.success) {
-                    showToast('Success', response.message, 'success');
-                    // Close modal using Bootstrap 5 API
+                    showToast('Success', response.message, 'success'); 
                     closeModalSafely('#unitModal');
                     loadUnits();
                 } else {
@@ -610,8 +622,7 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
-                if(xhr.status === 422) {
-                    // Validation errors
+                if(xhr.status === 422) { 
                     let errors = xhr.responseJSON.errors;
                     displayValidationErrors(errors);
                     let errorMessage = xhr.responseJSON.message || 'Validation failed';
@@ -624,8 +635,7 @@ $(document).ready(function() {
                     showToast('Error', 'Failed to save unit', 'error');
                 }
             },
-            complete: function() {
-                // Hide loading state
+            complete: function() { 
                 $('#saveSpinner').addClass('d-none');
                 $('#saveBtnText').text('Save Unit');
                 $('#saveUnitBtn').prop('disabled', false);
@@ -633,11 +643,9 @@ $(document).ready(function() {
         });
     }
     
-    // Delete Unit
     function deleteUnit() {
         if(!deleteUnitId) return;
-        
-        // Show loading state
+          
         $('#deleteSpinner').removeClass('d-none');
         $('#deleteBtnText').text('Deleting...');
         $('#confirmDeleteBtn').prop('disabled', true);
@@ -650,8 +658,7 @@ $(document).ready(function() {
             },
             success: function(response) {
                 if(response.success) {
-                    showToast('Success', response.message, 'success');
-                    // Close modal using Bootstrap 5 API
+                    showToast('Success', response.message, 'success'); 
                     closeModalSafely('#deleteUnitModal');
                     loadUnits();
                 } else {
@@ -665,8 +672,7 @@ $(document).ready(function() {
                     showToast('Error', 'Failed to delete unit', 'error');
                 }
             },
-            complete: function() {
-                // Hide loading state
+            complete: function() { 
                 $('#deleteSpinner').addClass('d-none');
                 $('#deleteBtnText').text('Delete');
                 $('#confirmDeleteBtn').prop('disabled', false);
@@ -675,7 +681,6 @@ $(document).ready(function() {
         });
     }
     
-    // Toggle Status
     function toggleStatus(unitId, isActive) {
         $.ajax({
             url: '{{ route("units.toggle-status", ":id") }}'.replace(':id', unitId),
@@ -688,23 +693,19 @@ $(document).ready(function() {
                     showToast('Success', response.message, 'success');
                 } else {
                     showToast('Error', response.message || 'Failed to update status', 'error');
-                    // Revert toggle
                     $('.status-toggle[data-id="' + unitId + '"]').prop('checked', !isActive);
                 }
             },
             error: function(xhr) {
                 showToast('Error', 'Failed to update status', 'error');
-                // Revert toggle
                 $('.status-toggle[data-id="' + unitId + '"]').prop('checked', !isActive);
             }
         });
     }
     
-    // Display Validation Errors
     function displayValidationErrors(errors) {
         clearValidationErrors();
         
-        // Map field names to their corresponding input IDs
         const fieldMap = {
             'name': 'unitName',
             'symbol': 'unitSymbol',
@@ -721,19 +722,16 @@ $(document).ready(function() {
                 errorElement.text(errors[field][0]);
                 inputElement.addClass('is-invalid');
             } else if(inputElement.length) {
-                // If error element doesn't exist, add class to input
                 inputElement.addClass('is-invalid');
             }
         });
     }
     
-    // Clear Validation Errors
     function clearValidationErrors() {
         $('.form-control, .form-select').removeClass('is-invalid');
         $('.invalid-feedback').text('');
     }
     
-    // Show Toast
     function showToast(title, message, type = 'info') {
         $('#toastTitle').text(title);
         $('#toastMessage').text(message);

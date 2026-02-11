@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'master_panel' => [
+        'api_key' => env('MASTER_PANEL_API_KEY'),
+    ],
+
 ];

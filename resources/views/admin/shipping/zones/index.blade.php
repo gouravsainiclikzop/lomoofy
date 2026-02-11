@@ -19,12 +19,16 @@
                 <h1 class="h3 m-0">Shipping Zones</h1>
             </div>
             <div class="col-auto d-flex gap-2">
-                <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteZonesBtn">
-                    <i class="fas fa-trash me-2"></i>Delete Selected
-                </button>
-                <button class="btn btn-primary" id="addZoneBtn">
-                    <i class="fas fa-plus"></i> Add Zone
-                </button>
+                @if(auth()->user()->hasPermission('shipping_zones.delete'))
+                    <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteZonesBtn">
+                        <i class="fas fa-trash me-2"></i>Delete Selected
+                    </button>
+                @endif
+                @if(auth()->user()->hasPermission('shipping_zones.create'))
+                    <button class="btn btn-primary" id="addZoneBtn">
+                        <i class="fas fa-plus"></i> Add Zone
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -58,9 +62,11 @@
                 <table class="table table-hover" id="zonesTable">
                     <thead>
                         <tr>
-                            <th width="50">
-                                <input type="checkbox" class="form-check-input" id="selectAllZones" title="Select All">
-                            </th>
+                            @if(auth()->user()->hasPermission('shipping_zones.delete'))
+                                <th width="50">
+                                    <input type="checkbox" class="form-check-input" id="selectAllZones" title="Select All">
+                                </th>
+                            @endif
                             <th>Name</th>
                             <th>Code</th>
                             <th>Type</th>
@@ -75,7 +81,7 @@
                     </thead>
                     <tbody id="zonesTableBody">
                         <tr>
-                            <td colspan="11" class="text-center py-5">
+                            <td colspan="{{ auth()->user()->hasPermission('shipping_zones.delete') ? '11' : '10' }}" class="text-center py-5">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
@@ -220,6 +226,13 @@
 
 @push('scripts')
 <script>
+const shippingZonePermissions = {
+    view: @json(auth()->user()->hasPermission('shipping_zones.view')),
+    create: @json(auth()->user()->hasPermission('shipping_zones.create')),
+    update: @json(auth()->user()->hasPermission('shipping_zones.update')),
+    delete: @json(auth()->user()->hasPermission('shipping_zones.delete'))
+};
+
 $(document).ready(function() {
     let deleteZoneId = null;
     let currentPage = 1;
@@ -434,9 +447,32 @@ $(document).ready(function() {
                         
                         let typeBadge = '<span class="badge bg-info">' + zone.type.charAt(0).toUpperCase() + zone.type.slice(1) + '</span>';
                         
+                        let checkboxCell = shippingZonePermissions.delete 
+                            ? `<td><input type="checkbox" class="form-check-input zone-checkbox" value="${zone.id}"></td>`
+                            : '';
+                        
+                        let editBtn = shippingZonePermissions.update 
+                            ? `<button class="btn btn-outline-primary edit-zone" data-id="${zone.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>`
+                            : '';
+                        let deleteBtn = shippingZonePermissions.delete 
+                            ? `<button class="btn btn-outline-danger delete-zone" data-id="${zone.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>`
+                            : '';
+                        
+                        let actionsHtml = '';
+                        if (editBtn || deleteBtn) {
+                            actionsHtml = `<div class="btn-group btn-group-sm">
+                                ${editBtn}
+                                ${deleteBtn}
+                            </div>`;
+                        }
+                        
                         let row = `
                             <tr data-id="${zone.id}">
-                                <td><input type="checkbox" class="form-check-input zone-checkbox" value="${zone.id}"></td>
+                                ${checkboxCell}
                                 <td><strong>${zone.name}</strong></td>
                                 <td><code>${zone.code}</code></td>
                                 <td>${typeBadge}</td>
@@ -447,25 +483,20 @@ $(document).ready(function() {
                                 <td>${zone.sort_order || 0}</td>
                                 <td>${new Date(zone.created_at).toLocaleDateString()}</td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary edit-zone" data-id="${zone.id}" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger delete-zone" data-id="${zone.id}" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
+                                    ${actionsHtml}
                                 </td>
                             </tr>
                         `;
                         tbody.append(row);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="11" class="text-center py-4">No zones found</td></tr>');
+                    let noDataColspan = shippingZonePermissions.delete ? 11 : 10;
+                    tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No zones found</td></tr>`);
                 }
             },
             error: function() {
-                $('#zonesTableBody').html('<tr><td colspan="11" class="text-center py-4 text-danger">Error loading zones</td></tr>');
+                let errorColspan = shippingZonePermissions.delete ? 11 : 10;
+                $('#zonesTableBody').html(`<tr><td colspan="${errorColspan}" class="text-center py-4 text-danger">Error loading zones</td></tr>`);
             }
         });
     }

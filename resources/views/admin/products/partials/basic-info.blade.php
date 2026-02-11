@@ -294,20 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="alert alert-light mt-4">
-                    <h6 class="alert-heading">
-                        <i class="fas fa-lightbulb me-2"></i>Best Practices
-                    </h6>
-                    <div class="mb-0">
-                        <div><strong>Use clear, descriptive product names</strong> that customers can easily understand <small class="text-muted">(Improves searchability and clarity)</small></div>
-                        <div><strong>Write compelling short descriptions</strong> that highlight key benefits <small class="text-muted">(Increases conversion rates)</small></div>
-                        <div><strong>Use rich descriptions</strong> with formatting, images, and detailed specifications <small class="text-muted">(Builds customer confidence)</small></div>
-                        <div><strong>Keep slugs clean and keyword-friendly</strong> using lowercase letters and hyphens <small class="text-muted">(Helps with SEO and readability)</small></div>
-                        <div><strong>Note:</strong> SKU, pricing, stock, and dimensions are managed at the variant level in the Variants section <small class="text-muted">(Each variant has its own SKU, pricing, and inventory)</small></div>
-                    </div>
-                </div>
+                </div> 
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

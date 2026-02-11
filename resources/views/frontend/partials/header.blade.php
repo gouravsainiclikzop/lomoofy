@@ -325,8 +325,7 @@
 		
 		// Wait a bit and try again (give Google Translate time to load)
 		setTimeout(function() {
-			if (!tryTriggerSelect()) {
-				// Use URL hash method - this is the standard Google Translate way
+			if (!tryTriggerSelect()) { 
 				console.log('Using URL hash method');
 				const currentUrl = window.location.href.split('#')[0];
 				const langHash = '#googtrans(en|' + langCode + ')';
@@ -343,8 +342,7 @@
 	}
 
 	// Update language selector UI
-	function updateLanguageUI(langCode) {
-		// Update current language display
+	function updateLanguageUI(langCode) { 
 		const currentLangElement = document.getElementById('current-language');
 		if (currentLangElement) {
 			currentLangElement.textContent = languageNames[langCode] || 'English';
@@ -359,8 +357,7 @@
 			activeLi.classList.add('current');
 		}
 	}
-
-	// Load Google Translate API
+ 
 	(function() {
 		// Check if script already exists
 		if (document.querySelector('script[src*="translate.google.com"]')) {
@@ -376,8 +373,7 @@
 		};
 		document.head.appendChild(script);
 	})();
-
-	// Handle language option clicks - use event delegation (works even if DOM already loaded)
+ 
 	document.addEventListener('click', function(e) {
 		const languageOption = e.target.closest('.language-option');
 		if (languageOption) {
@@ -423,21 +419,15 @@
 		} else {
 			// No hash means English (default) - ensure UI shows English
 			updateLanguageUI('en');
-			
-			// Clear any saved non-English preference if URL doesn't have hash
-			// This ensures that if user selected English, we don't restore a different language
+			 
 			const savedLang = localStorage.getItem('selectedLanguage');
-			if (savedLang && savedLang !== 'en') {
-				// URL shows English but localStorage has different language - clear it
+			if (savedLang && savedLang !== 'en') { 
 				localStorage.removeItem('selectedLanguage');
 			}
-			
-			// Also check if page is still translated (Google Translate might persist)
-			// Wait for Google Translate to load, then check and fix if needed
+			 
 			setTimeout(function() {
 				const select = document.querySelector('.goog-te-combo');
-				if (select) {
-					// Check if select is set to a non-English language but URL has no hash
+				if (select) { 
 					const currentValue = select.value;
 					if (currentValue && currentValue !== '' && currentValue !== 'en' && 
 					    !window.location.hash.includes('googtrans')) {
@@ -454,16 +444,14 @@
 								break;
 							}
 						}
-					} else if (!currentValue || currentValue === '' || currentValue === 'en') {
-						// Already in English, ensure UI matches
+					} else if (!currentValue || currentValue === '' || currentValue === 'en') { 
 						updateLanguageUI('en');
 					}
 				}
-			}, 2000); // Wait 2 seconds for Google Translate to fully load
+			}, 2000);  
 		}
 	}
-
-	// Run initialization when DOM is ready
+ 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', initLanguageTranslator);
 	} else {
@@ -471,8 +459,7 @@
 		initLanguageTranslator();
 	}
 </script>
-
-<!-- Google Translate widget - hidden but accessible -->
+ 
 <div id="google_translate_element" style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;"></div>
 
 <script>
@@ -487,21 +474,17 @@
 jQuery(document).ready(function($) {
 	// Get CSRF token
 	const csrfToken = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
-	
-	// Update UI based on customer auth status
+	 
 	function updateCustomerAuthUI(isLoggedIn, customerData) {
-		if (isLoggedIn) {
-			// Hide guest icon, show customer menu
+		if (isLoggedIn) { 
 			$('#guestUserIcon').hide();
 			$('#customerUserMenu').show(); 
-		} else {
-			// Show guest icon, hide customer menu
+		} else { 
 			$('#guestUserIcon').show();
 			$('#customerUserMenu').hide();
 		}
 	}
-	
-	// Check customer auth and update UI
+	 
 	function checkAndUpdateCustomerAuth() {
 		$.ajax({
 			url: '/api/auth/me',
@@ -522,15 +505,12 @@ jQuery(document).ready(function($) {
 			}
 		});
 	}
-	
-	// Make function globally accessible
+	 
 	window.checkAndUpdateCustomerAuth = checkAndUpdateCustomerAuth;
-	
-	// Handle guest user icon click - check auth before showing modal
+	 
 	$('#guestUserIconLink').on('click', function(e) {
 		e.preventDefault();
-		
-		// Check if user is actually logged in before showing modal
+		 
 		$.ajax({
 			url: '/api/auth/me',
 			method: 'GET',
@@ -539,34 +519,28 @@ jQuery(document).ready(function($) {
 				'Accept': 'application/json'
 			},
 			success: function(response) {
-				if (response.success && response.data) {
-					// User is logged in, update UI and don't show modal
+				if (response.success && response.data) { 
 					updateCustomerAuthUI(true, response.data);
-				} else {
-					// User is not logged in, show login modal
+				} else { 
 					$('#login').modal('show');
 				}
 			},
-			error: function(xhr) {
-				// On error, assume not logged in and show modal
+			error: function(xhr) { 
 				$('#login').modal('show');
 			}
 		});
 	});
-	
-	// Run on page load (with delay to ensure DOM is ready)
+	 
 	setTimeout(function() {
 		checkAndUpdateCustomerAuth();
 	}, 500);
-	
-	// Trigger check when modal is closed (in case user just logged in)
+	 
 	$('#login').on('hidden.bs.modal', function() {
 		setTimeout(function() {
 			checkAndUpdateCustomerAuth();
 		}, 500);
 	});
-	
-	// Handle customer logout - unified handler for all logout buttons
+	 
 	function handleCustomerLogout(e) {
 		if (e) {
 			e.preventDefault();
@@ -583,8 +557,7 @@ jQuery(document).ready(function($) {
 				updateCustomerAuthUI(false);
 				window.location.href = '{{ route("frontend.index") }}';
 			},
-			error: function() {
-				// Even if logout fails, redirect to home
+			error: function() { 
 				updateCustomerAuthUI(false);
 				window.location.href = '{{ route("frontend.index") }}';
 			}
@@ -593,24 +566,21 @@ jQuery(document).ready(function($) {
 	
 	// Attach logout handler to all logout buttons
 	$('#customerLogoutBtn, #customerLogoutBtn2, #customerLogoutBtn3').on('click', handleCustomerLogout);
-	
-	// Update cart links based on auth status
+	 
 	function updateCartLinks(isLoggedIn) {
 		const $cartLinks = $('a[href*="shoping-cart"]');
 		$cartLinks.each(function() {
 			const $link = $(this);
 			let href = $link.attr('href');
 			
-			if (isLoggedIn) {
-				// User is logged in - remove session_id from URL if present
+			if (isLoggedIn) { 
 				if (href.includes('session_id=')) {
 					const url = new URL(href, window.location.origin);
 					url.searchParams.delete('session_id');
 					href = url.pathname + (url.search ? url.search : '');
 					$link.attr('href', href);
 				}
-			} else {
-				// User is not logged in - ensure session_id is in URL
+			} else { 
 				if (!href.includes('session_id=')) {
 					let sessionId = localStorage.getItem('session_id');
 					if (!sessionId) {
@@ -625,8 +595,7 @@ jQuery(document).ready(function($) {
 			}
 		});
 	}
-	
-	// Update cart links when auth status is checked - override the function
+	 
 	const originalCheckAuth = checkAndUpdateCustomerAuth;
 	window.checkAndUpdateCustomerAuth = function() {
 		originalCheckAuth();
@@ -665,20 +634,18 @@ jQuery(document).ready(function($) {
 		});
 	}, 100);
 
-		}); // End jQuery ready
-	} // End initCustomerAuth
-	
-	// Start initialization
+		}); 
+	}  
+	 
 	initCustomerAuth();
-})(); // End IIFE
+})(); 
 
 // Search Sidebar Functions
 function openSearch() {
 	var searchSidebar = document.getElementById('Search');
 	if (searchSidebar) {
 		searchSidebar.style.display = 'block';
-		searchSidebar.style.right = '0px';
-		// Add overlay if needed
+		searchSidebar.style.right = '0px'; 
 		var overlay = document.createElement('div');
 		overlay.id = 'searchOverlay';
 		overlay.className = 'search-overlay';

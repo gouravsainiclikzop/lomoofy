@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,9 +30,9 @@ class AppServiceProvider extends ServiceProvider
             // Silently fail during migration or when database is not available
             \Log::debug('Email configuration not loaded: ' . $e->getMessage());
         }
+  
+            view()->composer('frontend.*', function ($view) {
 
-        // Share data globally for footer and other views
-        view()->composer('*', function ($view) {
             $serviceHighlight = \App\Models\ServiceHighlight::getInstance();
             $legalPages = \App\Models\LegalPage::getInstance();
             $categories = \App\Models\Category::where('parent_id', null)

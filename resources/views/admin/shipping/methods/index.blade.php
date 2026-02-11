@@ -18,12 +18,16 @@
                 <h1 class="h3 m-0">Shipping Methods</h1>
             </div>
             <div class="col-auto d-flex gap-2">
-                <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteMethodsBtn">
-                    <i class="fas fa-trash me-2"></i>Delete Selected
-                </button>
-                <button class="btn btn-primary" id="addMethodBtn">
-                    <i class="fas fa-plus"></i> Add Method
-                </button>
+                @if(auth()->user()->hasPermission('shipping_methods.delete'))
+                    <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteMethodsBtn">
+                        <i class="fas fa-trash me-2"></i>Delete Selected
+                    </button>
+                @endif
+                @if(auth()->user()->hasPermission('shipping_methods.create'))
+                    <button class="btn btn-primary" id="addMethodBtn">
+                        <i class="fas fa-plus"></i> Add Method
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -47,7 +51,9 @@
                 <table class="table table-hover" id="methodsTable">
                     <thead>
                         <tr>
-                            <th width="50"><input type="checkbox" class="form-check-input" id="selectAllMethods"></th>
+                            @if(auth()->user()->hasPermission('shipping_methods.delete'))
+                                <th width="50"><input type="checkbox" class="form-check-input" id="selectAllMethods"></th>
+                            @endif
                             <th>Name</th>
                             <th>Code</th>
                             <th>Description</th>
@@ -60,7 +66,7 @@
                         </tr>
                     </thead>
                     <tbody id="methodsTableBody">
-                        <tr><td colspan="10" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
+                        <tr><td colspan="{{ auth()->user()->hasPermission('shipping_methods.delete') ? '10' : '9' }}" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -166,6 +172,13 @@
 
 @push('scripts')
 <script>
+const shippingMethodPermissions = {
+    view: @json(auth()->user()->hasPermission('shipping_methods.view')),
+    create: @json(auth()->user()->hasPermission('shipping_methods.create')),
+    update: @json(auth()->user()->hasPermission('shipping_methods.update')),
+    delete: @json(auth()->user()->hasPermission('shipping_methods.delete'))
+};
+
 $(document).ready(function() {
     let deleteMethodId = null;
     let currentPage = 1;
@@ -317,9 +330,32 @@ $(document).ready(function() {
                             ? '<span class="badge bg-success">Active</span>' 
                             : '<span class="badge bg-secondary">Inactive</span>';
                         
+                        let checkboxCell = shippingMethodPermissions.delete 
+                            ? `<td><input type="checkbox" class="form-check-input method-checkbox" value="${method.id}"></td>`
+                            : '';
+                        
+                        let editBtn = shippingMethodPermissions.update 
+                            ? `<button class="btn btn-outline-primary edit-method" data-id="${method.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>`
+                            : '';
+                        let deleteBtn = shippingMethodPermissions.delete 
+                            ? `<button class="btn btn-outline-danger delete-method" data-id="${method.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>`
+                            : '';
+                        
+                        let actionsHtml = '';
+                        if (editBtn || deleteBtn) {
+                            actionsHtml = `<div class="btn-group btn-group-sm">
+                                ${editBtn}
+                                ${deleteBtn}
+                            </div>`;
+                        }
+                        
                         let row = `
                             <tr data-id="${method.id}">
-                                <td><input type="checkbox" class="form-check-input method-checkbox" value="${method.id}"></td>
+                                ${checkboxCell}
                                 <td><strong>${method.name}</strong></td>
                                 <td><code>${method.code}</code></td>
                                 <td>${method.description || '-'}</td>
@@ -329,25 +365,20 @@ $(document).ready(function() {
                                 <td>${method.sort_order || 0}</td>
                                 <td>${new Date(method.created_at).toLocaleDateString()}</td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary edit-method" data-id="${method.id}" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger delete-method" data-id="${method.id}" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
+                                    ${actionsHtml}
                                 </td>
                             </tr>
                         `;
                         tbody.append(row);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="10" class="text-center py-4">No methods found</td></tr>');
+                    let noDataColspan = shippingMethodPermissions.delete ? 10 : 9;
+                    tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No methods found</td></tr>`);
                 }
             },
             error: function() {
-                $('#methodsTableBody').html('<tr><td colspan="10" class="text-center py-4 text-danger">Error loading methods</td></tr>');
+                let errorColspan = shippingMethodPermissions.delete ? 10 : 9;
+                $('#methodsTableBody').html(`<tr><td colspan="${errorColspan}" class="text-center py-4 text-danger">Error loading methods</td></tr>`);
             }
         });
     }

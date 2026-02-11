@@ -18,12 +18,16 @@
                 <h1 class="h3 m-0">Shipping Rates</h1>
             </div>
             <div class="col-auto d-flex gap-2">
-                <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteRatesBtn">
-                    <i class="fas fa-trash me-2"></i>Delete Selected
-                </button>
-                <button class="btn btn-primary" id="addRateBtn">
-                    <i class="fas fa-plus"></i> Add Rate
-                </button>
+                @if(auth()->user()->hasPermission('shipping_rates.delete'))
+                    <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteRatesBtn">
+                        <i class="fas fa-trash me-2"></i>Delete Selected
+                    </button>
+                @endif
+                @if(auth()->user()->hasPermission('shipping_rates.create'))
+                    <button class="btn btn-primary" id="addRateBtn">
+                        <i class="fas fa-plus"></i> Add Rate
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -65,7 +69,9 @@
                 <table class="table table-hover" id="ratesTable">
                     <thead>
                         <tr>
-                            <th width="50"><input type="checkbox" class="form-check-input" id="selectAllRates"></th>
+                            @if(auth()->user()->hasPermission('shipping_rates.delete'))
+                                <th width="50"><input type="checkbox" class="form-check-input" id="selectAllRates"></th>
+                            @endif
                             <th>Zone</th>
                             <th>Method</th>
                             <th>Rate Type</th>
@@ -78,7 +84,7 @@
                         </tr>
                     </thead>
                     <tbody id="ratesTableBody">
-                        <tr><td colspan="10" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
+                        <tr><td colspan="{{ auth()->user()->hasPermission('shipping_rates.delete') ? '10' : '9' }}" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -229,6 +235,13 @@
 
 @push('scripts')
 <script>
+const shippingRatePermissions = {
+    view: @json(auth()->user()->hasPermission('shipping_rates.view')),
+    create: @json(auth()->user()->hasPermission('shipping_rates.create')),
+    update: @json(auth()->user()->hasPermission('shipping_rates.update')),
+    delete: @json(auth()->user()->hasPermission('shipping_rates.delete'))
+};
+
 $(document).ready(function() {
     let deleteRateId = null;
     let currentPage = 1;
@@ -446,9 +459,32 @@ $(document).ready(function() {
                         
                         let typeBadge = '<span class="badge bg-info">' + rate.rate_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) + '</span>';
                         
+                        let checkboxCell = shippingRatePermissions.delete 
+                            ? `<td><input type="checkbox" class="form-check-input rate-checkbox" value="${rate.id}"></td>`
+                            : '';
+                        
+                        let editBtn = shippingRatePermissions.update 
+                            ? `<button class="btn btn-outline-primary edit-rate" data-id="${rate.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>`
+                            : '';
+                        let deleteBtn = shippingRatePermissions.delete 
+                            ? `<button class="btn btn-outline-danger delete-rate" data-id="${rate.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>`
+                            : '';
+                        
+                        let actionsHtml = '';
+                        if (editBtn || deleteBtn) {
+                            actionsHtml = `<div class="btn-group btn-group-sm">
+                                ${editBtn}
+                                ${deleteBtn}
+                            </div>`;
+                        }
+                        
                         let row = `
                             <tr data-id="${rate.id}">
-                                <td><input type="checkbox" class="form-check-input rate-checkbox" value="${rate.id}"></td>
+                                ${checkboxCell}
                                 <td>${rate.zone_name}</td>
                                 <td>${rate.method_name}</td>
                                 <td>${typeBadge}</td>
@@ -458,25 +494,20 @@ $(document).ready(function() {
                                 <td>${statusBadge}</td>
                                 <td>${new Date(rate.created_at).toLocaleDateString()}</td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary edit-rate" data-id="${rate.id}" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger delete-rate" data-id="${rate.id}" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
+                                    ${actionsHtml}
                                 </td>
                             </tr>
                         `;
                         tbody.append(row);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="10" class="text-center py-4">No rates found</td></tr>');
+                    let noDataColspan = shippingRatePermissions.delete ? 10 : 9;
+                    tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No rates found</td></tr>`);
                 }
             },
             error: function() {
-                $('#ratesTableBody').html('<tr><td colspan="10" class="text-center py-4 text-danger">Error loading rates</td></tr>');
+                let errorColspan = shippingRatePermissions.delete ? 10 : 9;
+                $('#ratesTableBody').html(`<tr><td colspan="${errorColspan}" class="text-center py-4 text-danger">Error loading rates</td></tr>`);
             }
         });
     }

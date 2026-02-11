@@ -499,12 +499,16 @@
                 </div>
                 <div class="col-auto">
                     <div class="category-header-actions">
-                        <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteCategoriesBtn">
-                            <i class="fas fa-trash me-2"></i>Delete Selected
-                        </button>
-                        <button class="btn btn-primary" id="addCategoryBtn">
-                            <i class="fas fa-plus me-2"></i>New Category
-                        </button>
+                        @if(auth()->user()->hasPermission('categories.delete'))
+                            <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteCategoriesBtn">
+                                <i class="fas fa-trash me-2"></i>Delete Selected
+                            </button>
+                        @endif
+                        @if(auth()->user()->hasPermission('categories.create'))
+                            <button class="btn btn-primary" id="addCategoryBtn">
+                                <i class="fas fa-plus me-2"></i>New Category
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -559,9 +563,11 @@
                     <table class="table table-hover mb-0" id="categoriesTable">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 40px;">
-                                    <input type="checkbox" id="selectAllCategories" class="form-check-input">
-                                </th>
+                                @if(auth()->user()->hasPermission('categories.delete'))
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" id="selectAllCategories" class="form-check-input">
+                                    </th>
+                                @endif
                                 <th style="width: 80px;">Image</th>
                                 <th>Category Name</th>
                                 <th>Slug</th>
@@ -575,7 +581,7 @@
                         </thead>
                         <tbody id="categoriesTableBody">
                             <tr>
-                                <td colspan="9" class="text-center py-5">
+                                <td colspan="{{ auth()->user()->hasPermission('categories.delete') ? '10' : '9' }}" class="text-center py-5">
                                     <div class="spinner-border text-primary" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
@@ -766,6 +772,14 @@
 
 @push('scripts')
 <script>
+const categoryPermissions = {
+    view: @json(auth()->user()->hasPermission('categories.view')),
+    create: @json(auth()->user()->hasPermission('categories.create')),
+    update: @json(auth()->user()->hasPermission('categories.update')),
+    delete: @json(auth()->user()->hasPermission('categories.delete'))
+};
+</script>
+<script>
 $(document).ready(function() {
     // CSRF Token Setup
     $.ajaxSetup({
@@ -953,7 +967,8 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 console.error('Error loading categories:', xhr);
-                $('#categoriesTableBody').html('<tr><td colspan="9" class="text-center py-4 text-danger">Error loading categories</td></tr>');
+                let errorColspan = categoryPermissions.delete ? 10 : 9;
+                $('#categoriesTableBody').html(`<tr><td colspan="${errorColspan}" class="text-center py-4 text-danger">Error loading categories</td></tr>`);
             }
         });
     }
@@ -1048,12 +1063,12 @@ $(document).ready(function() {
                             </div>
                         </div>
                         <div class="category-tree-actions">
-                            <button class="btn btn-sm btn-outline-primary edit-category" data-id="${category.id}">
+                            ${categoryPermissions.update ? `<button class="btn btn-sm btn-outline-primary edit-category" data-id="${category.id}">
                                 <i class="fas fa-edit me-1"></i>Edit
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger delete-category" data-id="${category.id}">
+                            </button>` : ''}
+                            ${categoryPermissions.delete ? `<button class="btn btn-sm btn-outline-danger delete-category" data-id="${category.id}">
                                 <i class="fas fa-trash me-1"></i>Delete
-                            </button>
+                            </button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1157,10 +1172,12 @@ $(document).ready(function() {
                     renderTableRowRecursive(category, tbody, 0);
                 });
             } else {
-                tbody.html('<tr><td colspan="9" class="text-center py-4">No categories found</td></tr>');
+                let noDataColspan = categoryPermissions.delete ? 10 : 9;
+                tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No categories found</td></tr>`);
             }
         } else {
-            tbody.html('<tr><td colspan="9" class="text-center py-4">No categories found</td></tr>');
+            let noDataColspan = categoryPermissions.delete ? 10 : 9;
+            tbody.html(`<tr><td colspan="${noDataColspan}" class="text-center py-4">No categories found</td></tr>`);
         }
     }
 
@@ -1169,11 +1186,9 @@ $(document).ready(function() {
         let parentName = category.parent_name || '<span class="text-muted">—</span>';
         let hasChildren = category.has_children || (category.children && category.children.length > 0);
         let isRoot = level === 0;
-        
-        // Calculate indentation based on level
-        let indentPx = level * 20; // 20px per level
-        
-        // Collapse/expand icon - show for ANY category with children (not just root)
+         
+        let indentPx = level * 20; 
+         
         let collapseIcon = '';
         if (hasChildren) {
             collapseIcon = `<button type="button" class="btn btn-sm btn-link p-0 me-2 category-toggle-btn" data-category-id="${category.id}" style="text-decoration: none; min-width: 20px;">
@@ -1182,8 +1197,7 @@ $(document).ready(function() {
         } else {
             collapseIcon = '<span class="me-2" style="display: inline-block; width: 20px;"></span>';
         }
-        
-        // Count only immediate (first level) children, not all nested children
+         
         let totalChildrenCount = hasChildren && category.children ? category.children.length : 0;
         let categoryCountBadge = '';
         if (totalChildrenCount > 0) {
@@ -1246,29 +1260,37 @@ $(document).ready(function() {
             }).join('');
             attributesCell = `<div class="d-flex flex-wrap">${attributeBadges}</div>`;
         }
-        
-        // Child rows are hidden by default (collapsed)
+         
         let rowClass = level > 0 ? 'category-child-row d-none' : '';
         let parentIdValue = category.parent_id ? String(category.parent_id) : '';
-        
-        // Check if category can have children (max depth is 4, so level 0, 1, 2, or 3 can have children)
-        let canHaveChildren = level < 3; // Level 0, 1, 2, or 3 can have children (max level is 4)
-        
-        // Build popover content - conditionally show "Add Child" option
+         
+        let canHaveChildren = level < 3;  
+         
         let addChildOption = '';
-        if (canHaveChildren) {
+        if (canHaveChildren && categoryPermissions.create) {
             addChildOption = `<a href="#" class="manage-children-category d-block py-2 px-3 text-decoration-none  " data-id="${category.id}" data-name="${category.name}"><i class="fas fa-sitemap me-2"></i>Manage Children</a><hr class="my-1">`;
         }
         
-        let popoverContent = `<div class="category-actions-popover">${addChildOption}<a href="#" class="edit-category d-block py-2 px-3 text-decoration-none" data-id="${category.id}"><i class="fas fa-edit me-2"></i>Edit</a><hr class="my-1"><a href="#" class="delete-category d-block py-2 px-3 text-decoration-none text-danger" data-id="${category.id}"><i class="fas fa-trash me-2"></i>Delete</a></div>`;
+        let editOption = categoryPermissions.update 
+            ? `<a href="#" class="edit-category d-block py-2 px-3 text-decoration-none" data-id="${category.id}"><i class="fas fa-edit me-2"></i>Edit</a>`
+            : '';
+        let deleteOption = categoryPermissions.delete 
+            ? `<a href="#" class="delete-category d-block py-2 px-3 text-decoration-none text-danger" data-id="${category.id}"><i class="fas fa-trash me-2"></i>Delete</a>`
+            : '';
+        
+        let separator = (addChildOption && (editOption || deleteOption)) || (editOption && deleteOption) ? '<hr class="my-1">' : '';
+        let popoverContent = `<div class="category-actions-popover">${addChildOption}${addChildOption && (editOption || deleteOption) ? separator : ''}${editOption}${editOption && deleteOption ? separator : ''}${deleteOption}</div>`;
         
         let slugCell = category.slug ? `<code class=" ">${escapeHtml(category.slug)}</code>` : '<span class="text-muted">—</span>';
         
+        let checkboxCell = categoryPermissions.delete 
+            ? `<td>
+                    <input type="checkbox" class="form-check-input category-checkbox" value="${category.id}">
+                </td>`
+            : '';
         let row = `
             <tr data-id="${category.id}" data-parent-id="${parentIdValue}" class="${rowClass}" data-has-children="${hasChildren ? '1' : '0'}" data-level="${level}">
-                <td>
-                    <input type="checkbox" class="form-check-input category-checkbox" value="${category.id}">
-                </td>
+                ${checkboxCell}
                 <td>${imageCell}</td>
                 <td>${nameCell}</td>
                 <td>${slugCell}</td>
@@ -1297,8 +1319,7 @@ $(document).ready(function() {
             </tr>
         `;
         tbody.append(row);
-        
-        // Initialize popover for actions button
+         
         let rowElement = tbody.find(`tr[data-id="${category.id}"]`);
         let actionsBtn = rowElement.find('.category-actions-btn');
         if (actionsBtn.length) {
@@ -1308,8 +1329,7 @@ $(document).ready(function() {
                 html: true,
                 trigger: 'click'
             });
-            
-            // When popover is shown, attach the category ID and name to the links inside it
+             
             actionsBtn.on('shown.bs.popover', function() {
                 let categoryId = $(this).data('category-id');
                 let categoryName = $(this).data('category-name') || $(this).attr('data-category-name') || '';
@@ -1321,22 +1341,19 @@ $(document).ready(function() {
                 }
             });
         }
-        
-        // Recursively render child categories (all levels)
+         
         if (hasChildren && category.children && category.children.length > 0) {
             category.children.forEach(function(child) {
                 renderTableRowRecursive(child, tbody, level + 1);
             });
         }
     }
-
-    // Keep old function for backward compatibility
+ 
     function renderTableRow(category, tbody, isParent = false) {
         renderTableRowRecursive(category, tbody, isParent ? 0 : 1);
     }
 
-
-    // Flatten hierarchical categories for stats calculation
+ 
     function flattenCategories(categories) {
         let flat = [];
         categories.forEach(function(category) {
@@ -1347,10 +1364,8 @@ $(document).ready(function() {
         });
         return flat;
     }
-
-    // Update Stats
-    function updateStats(categories) {
-        // Flatten nested structure if needed
+ 
+    function updateStats(categories) { 
         let flatCategories = categories;
         if (categories.length > 0 && categories[0].children !== undefined) {
             flatCategories = flattenCategories(categories);
@@ -1367,31 +1382,24 @@ $(document).ready(function() {
         $('#totalProducts').text(totalProducts);
     }
 
-
-
-    // Cache for parent categories to avoid duplicate requests
+ 
     const parentCategoriesCache = {};
-    const parentCategoriesCacheTimeout = 5 * 60 * 1000; // 5 minutes
-    
-    // Clear parent categories cache (call after create/update/delete)
+    const parentCategoriesCacheTimeout = 5 * 60 * 1000;  
+     
     function clearParentCategoriesCache() {
         Object.keys(parentCategoriesCache).forEach(key => {
             delete parentCategoriesCache[key];
         });
         console.log('Parent categories cache cleared');
     }
-    
-    // Load Parent Categories for Dropdown with caching
-    function loadParentCategories(excludeId = null, currentParentId = null, callback = null) {
-        // Create cache key
+     
+    function loadParentCategories(excludeId = null, currentParentId = null, callback = null) { 
         const cacheKey = `exclude_${excludeId || 'none'}_parent_${currentParentId || 'none'}`;
-        
-        // Check cache first
+         
         if (parentCategoriesCache[cacheKey]) {
             const cached = parentCategoriesCache[cacheKey];
             const now = Date.now();
-            
-            // Use cached data if it's still valid (not expired)
+             
             if (now - cached.timestamp < parentCategoriesCacheTimeout) { 
                 
                 let select = $('#parentCategory');
@@ -1409,8 +1417,7 @@ $(document).ready(function() {
                     callback();
                 }
                 return;
-            } else {
-                // Cache expired, remove it
+            } else { 
                 delete parentCategoriesCache[cacheKey];
             }
         }
@@ -1462,8 +1469,7 @@ $(document).ready(function() {
                     if (select.hasClass('select2-hidden-accessible')) {
                         select.trigger('change');
                     }
-                    
-                    // Call callback if provided (for setting selection after loading)
+                     
                     if (callback && typeof callback === 'function') { 
                         callback();
                     }

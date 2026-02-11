@@ -110,9 +110,11 @@
                             <h5 class="mb-0">Lead Statuses</h5>
                             <small class="text-muted">Manage the status options for leads</small>
                         </div>
-                        <button class="btn btn-primary btn-sm" id="addStatusBtn">
-                            <i class='bx bx-plus'></i> Add Status
-                        </button>
+                        @if(auth()->user()->hasPermission('lead_masters.create'))
+                            <button class="btn btn-primary btn-sm" id="addStatusBtn">
+                                <i class='bx bx-plus'></i> Add Status
+                            </button>
+                        @endif
                     </div>
                     <div class="card-body" id="statusList">
                         <div class="text-center py-5">
@@ -132,9 +134,11 @@
                             <h5 class="mb-0">Lead Sources</h5>
                             <small class="text-muted">Manage where leads come from</small>
                         </div>
-                        <button class="btn btn-primary btn-sm" id="addSourceBtn">
-                            <i class='bx bx-plus'></i> Add Source
-                        </button>
+                        @if(auth()->user()->hasPermission('lead_masters.create'))
+                            <button class="btn btn-primary btn-sm" id="addSourceBtn">
+                                <i class='bx bx-plus'></i> Add Source
+                            </button>
+                        @endif
                     </div>
                     <div class="card-body" id="sourceList">
                         <div class="text-center py-5">
@@ -154,9 +158,11 @@
                             <h5 class="mb-0">Lead Priorities</h5>
                             <small class="text-muted">Manage priority levels</small>
                         </div>
-                        <button class="btn btn-primary btn-sm" id="addPriorityBtn">
-                            <i class='bx bx-plus'></i> Add Priority
-                        </button>
+                        @if(auth()->user()->hasPermission('lead_masters.create'))
+                            <button class="btn btn-primary btn-sm" id="addPriorityBtn">
+                                <i class='bx bx-plus'></i> Add Priority
+                            </button>
+                        @endif
                     </div>
                     <div class="card-body" id="priorityList">
                         <div class="text-center py-5">
@@ -176,9 +182,11 @@
                             <h5 class="mb-0">Lead Tags</h5>
                             <small class="text-muted">Manage tags for categorizing leads</small>
                         </div>
-                        <button class="btn btn-primary btn-sm" id="addTagBtn">
-                            <i class='bx bx-plus'></i> Add Tag
-                        </button>
+                        @if(auth()->user()->hasPermission('lead_masters.create'))
+                            <button class="btn btn-primary btn-sm" id="addTagBtn">
+                                <i class='bx bx-plus'></i> Add Tag
+                            </button>
+                        @endif
                     </div>
                     <div class="card-body" id="tagList">
                         <div class="text-center py-5">
@@ -425,12 +433,16 @@ $(document).ready(function() {
                         </div>
                         <div class="col-md-1 text-end">
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary edit-master" data-type="status" data-id="${status.id}" title="Edit">
-                                    <i class='bx bx-edit'></i>
-                                </button>
-                                <button class="btn btn-outline-danger delete-master" data-type="status" data-id="${status.id}" data-name="${status.name}" title="Delete">
-                                    <i class='bx bx-trash'></i>
-                                </button>
+                                ${leadMasterPermissions.update ? `
+                                    <button class="btn btn-outline-primary edit-master" data-type="status" data-id="${status.id}" title="Edit">
+                                        <i class='bx bx-edit'></i>
+                                    </button>
+                                ` : ''}
+                                ${leadMasterPermissions.delete ? `
+                                    <button class="btn btn-outline-danger delete-master" data-type="status" data-id="${status.id}" data-name="${status.name}" title="Delete">
+                                        <i class='bx bx-trash'></i>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -484,12 +496,16 @@ $(document).ready(function() {
                         </div>
                         <div class="col-md-2 text-end">
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary edit-master" data-type="source" data-id="${source.id}" title="Edit">
-                                    <i class='bx bx-edit'></i>
-                                </button>
-                                <button class="btn btn-outline-danger delete-master" data-type="source" data-id="${source.id}" data-name="${source.name}" title="Delete">
-                                    <i class='bx bx-trash'></i>
-                                </button>
+                                ${leadMasterPermissions.update ? `
+                                    <button class="btn btn-outline-primary edit-master" data-type="source" data-id="${source.id}" title="Edit">
+                                        <i class='bx bx-edit'></i>
+                                    </button>
+                                ` : ''}
+                                ${leadMasterPermissions.delete ? `
+                                    <button class="btn btn-outline-danger delete-master" data-type="source" data-id="${source.id}" data-name="${source.name}" title="Delete">
+                                        <i class='bx bx-trash'></i>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -546,12 +562,16 @@ $(document).ready(function() {
                         </div>
                         <div class="col-md-1 text-end">
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary edit-master" data-type="priority" data-id="${priority.id}" title="Edit">
-                                    <i class='bx bx-edit'></i>
-                                </button>
-                                <button class="btn btn-outline-danger delete-master" data-type="priority" data-id="${priority.id}" data-name="${priority.name}" title="Delete">
-                                    <i class='bx bx-trash'></i>
-                                </button>
+                                ${leadMasterPermissions.update ? `
+                                    <button class="btn btn-outline-primary edit-master" data-type="priority" data-id="${priority.id}" title="Edit">
+                                        <i class='bx bx-edit'></i>
+                                    </button>
+                                ` : ''}
+                                ${leadMasterPermissions.delete ? `
+                                    <button class="btn btn-outline-danger delete-master" data-type="priority" data-id="${priority.id}" data-name="${priority.name}" title="Delete">
+                                        <i class='bx bx-trash'></i>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -607,12 +627,16 @@ $(document).ready(function() {
                         </div>
                         <div class="col-md-2 text-end">
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary edit-master" data-type="tag" data-id="${tag.id}" title="Edit">
-                                    <i class='bx bx-edit'></i>
-                                </button>
-                                <button class="btn btn-outline-danger delete-master" data-type="tag" data-id="${tag.id}" data-name="${tag.name}" title="Delete">
-                                    <i class='bx bx-trash'></i>
-                                </button>
+                                ${leadMasterPermissions.update ? `
+                                    <button class="btn btn-outline-primary edit-master" data-type="tag" data-id="${tag.id}" title="Edit">
+                                        <i class='bx bx-edit'></i>
+                                    </button>
+                                ` : ''}
+                                ${leadMasterPermissions.delete ? `
+                                    <button class="btn btn-outline-danger delete-master" data-type="tag" data-id="${tag.id}" data-name="${tag.name}" title="Delete">
+                                        <i class='bx bx-trash'></i>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -644,6 +668,10 @@ $(document).ready(function() {
 
     // Edit button click
     $(document).on('click', '.edit-master', function() {
+        if (!leadMasterPermissions.update) {
+            showToast('Error', 'You do not have permission to update lead masters.', 'danger');
+            return;
+        }
         const item = $(this).closest('.master-item');
         const form = item.find('.edit-form');
         item.addClass('editing');
@@ -784,21 +812,37 @@ $(document).ready(function() {
 
     // Add button clicks
     $('#addStatusBtn').on('click', function() {
+        if (!leadMasterPermissions.create) {
+            showToast('Error', 'You do not have permission to create lead masters.', 'danger');
+            return;
+        }
         $('#addStatusForm')[0].reset();
         $('#addStatusModal').modal('show');
     });
 
     $('#addSourceBtn').on('click', function() {
+        if (!leadMasterPermissions.create) {
+            showToast('Error', 'You do not have permission to create lead masters.', 'danger');
+            return;
+        }
         $('#addSourceForm')[0].reset();
         $('#addSourceModal').modal('show');
     });
 
     $('#addPriorityBtn').on('click', function() {
+        if (!leadMasterPermissions.create) {
+            showToast('Error', 'You do not have permission to create lead masters.', 'danger');
+            return;
+        }
         $('#addPriorityForm')[0].reset();
         $('#addPriorityModal').modal('show');
     });
 
     $('#addTagBtn').on('click', function() {
+        if (!leadMasterPermissions.create) {
+            showToast('Error', 'You do not have permission to create lead masters.', 'danger');
+            return;
+        }
         $('#addTagForm')[0].reset();
         $('#addTagModal').modal('show');
     });
@@ -933,6 +977,10 @@ $(document).ready(function() {
     let deleteId = null;
 
     $(document).on('click', '.delete-master', function() {
+        if (!leadMasterPermissions.delete) {
+            showToast('Error', 'You do not have permission to delete lead masters.', 'danger');
+            return;
+        }
         deleteType = $(this).data('type');
         deleteId = $(this).data('id');
         const name = $(this).data('name');

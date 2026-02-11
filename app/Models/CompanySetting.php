@@ -33,6 +33,7 @@ class CompanySetting extends Model
         'font_family',
         'color_themes',
         'active_color_theme',
+        'software_id',
     ];
 
     protected $casts = [

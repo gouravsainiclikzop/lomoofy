@@ -9,32 +9,11 @@
             <div class="col">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 m-0">Permissions Management</h1>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPermissionModal" id="addPermissionBtn">
+                        <i class='bx bx-plus'></i> Add Permission
+                    </button>
                 </div>
 
-                <!-- Filter by Module/Group -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label for="filterModule" class="form-label">Filter by Module</label>
-                                <select class="form-select" id="filterModule">
-                                    <option value="">All Modules</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="filterGroup" class="form-label">Filter by Page/Group</label>
-                                <select class="form-select" id="filterGroup">
-                                    <option value="">All Groups</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <button type="button" class="btn btn-secondary w-100" id="clearFilters">
-                                    <i class='bx bx-x'></i> Clear Filters
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="card">
                     <div class="card-body p-4">
@@ -42,12 +21,10 @@
                             <table class="table table-hover" id="permissionsTable">
                                 <thead>
                                     <tr>
-                                        <th>Module</th>
-                                        <th>Resource</th>
-                                        <th>Action</th>
-                                        <th>Name</th>
-                                        <th>Slug</th>
-                                        <th>Page/Group</th>
+                                        <th style="width: 40px;"><i class='bx bx-menu'></i></th>
+                                        <th>Sort No</th>
+                                        <th>Permission Name</th>
+                                        <th>Actions</th>
                                         <th>Roles</th>
                                         <th>Status</th>
                                         <th>Actions</th>
@@ -59,6 +36,83 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Permission Modal -->
+<div class="modal fade" id="addPermissionModal" tabindex="-1" aria-labelledby="addPermissionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPermissionModalLabel">
+                    <i class='bx bx-plus'></i> Add Permission
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addPermissionForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="permissionName" class="form-label">Permission Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="permissionName" name="name" required placeholder="e.g., Product Management, Order Management">
+                        <small class="form-text text-muted">Enter a descriptive name for this permission</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Actions <span class="text-danger">*</span></label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actions[]" value="view" id="permActionView" checked>
+                                    <label class="form-check-label" for="permActionView">View</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actions[]" value="create" id="permActionCreate" checked>
+                                    <label class="form-check-label" for="permActionCreate">Create</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actions[]" value="update" id="permActionUpdate" checked>
+                                    <label class="form-check-label" for="permActionUpdate">Update</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actions[]" value="delete" id="permActionDelete" checked>
+                                    <label class="form-check-label" for="permActionDelete">Delete</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actions[]" value="export" id="permActionExport">
+                                    <label class="form-check-label" for="permActionExport">Export</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actions[]" value="import" id="permActionImport">
+                                    <label class="form-check-label" for="permActionImport">Import</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actions[]" value="approve" id="permActionApprove">
+                                    <label class="form-check-label" for="permActionApprove">Approve</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actions[]" value="assign" id="permActionAssign">
+                                    <label class="form-check-label" for="permActionAssign">Assign</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="permissionSortNo" class="form-label">Sort Number</label>
+                        <input type="number" class="form-control" id="permissionSortNo" name="sort_no" min="0" value="0" placeholder="e.g., 1, 2, 3...">
+                        <small class="form-text text-muted">Lower numbers appear first. Used for ordering permissions.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">Create Permission</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -75,9 +129,59 @@
             </div>
             <form id="permissionEditForm">
                 @csrf
-                <input type="hidden" id="permissionId" name="id">
-                <div class="modal-body" id="permissionDetails">
-                    <!-- Permission details will be loaded here -->
+                <input type="hidden" id="editPermissionId" name="id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editPermissionName" class="form-label">Permission Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editPermissionName" name="name" required placeholder="e.g., Product Management, Order Management">
+                        <small class="form-text text-muted">Enter a descriptive name for this permission</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Actions <span class="text-danger">*</span></label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="edit_actions[]" value="view" id="editPermActionView">
+                                    <label class="form-check-label" for="editPermActionView">View</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="edit_actions[]" value="create" id="editPermActionCreate">
+                                    <label class="form-check-label" for="editPermActionCreate">Create</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="edit_actions[]" value="update" id="editPermActionUpdate">
+                                    <label class="form-check-label" for="editPermActionUpdate">Update</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="edit_actions[]" value="delete" id="editPermActionDelete">
+                                    <label class="form-check-label" for="editPermActionDelete">Delete</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="edit_actions[]" value="export" id="editPermActionExport">
+                                    <label class="form-check-label" for="editPermActionExport">Export</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="edit_actions[]" value="import" id="editPermActionImport">
+                                    <label class="form-check-label" for="editPermActionImport">Import</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="edit_actions[]" value="approve" id="editPermActionApprove">
+                                    <label class="form-check-label" for="editPermActionApprove">Approve</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="edit_actions[]" value="assign" id="editPermActionAssign">
+                                    <label class="form-check-label" for="editPermActionAssign">Assign</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPermissionSortNo" class="form-label">Sort Number</label>
+                        <input type="number" class="form-control" id="editPermissionSortNo" name="sort_no" min="0" value="0" placeholder="e.g., 1, 2, 3...">
+                        <small class="form-text text-muted">Lower numbers appear first. Used for ordering permissions.</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -94,6 +198,7 @@
 
 @push('styles')
 <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link href="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.css" rel="stylesheet">
 <style>
     .bx {
         vertical-align: middle;
@@ -103,96 +208,108 @@
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
     }
+    .sortable-handle {
+        cursor: move;
+        cursor: grab;
+        color: #6c757d;
+        font-size: 1.2rem;
+        padding: 0.5rem;
+    }
+    .sortable-handle:active {
+        cursor: grabbing;
+    }
+    .sortable-ghost {
+        opacity: 0.4;
+        background-color: #f8f9fa;
+    }
+    .sortable-drag {
+        background-color: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    #permissionsTable tbody tr {
+        cursor: move;
+    }
 </style>
 @endpush
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
 $(document).ready(function() {
     let dataTable;
-
-    // Load modules and groups for filters
-    function loadFilters() {
-        $.ajax({
-            url: '{{ route("permissions.data") }}',
-            type: 'GET',
-            data: { length: 1000 }, // Get more records for filters
-            success: function(response) {
-                if (response.data && response.data.length > 0) {
-                    const modules = [...new Set(response.data.map(p => p.module).filter(Boolean))].sort();
-                    const groups = [...new Set(response.data.map(p => p.group).filter(Boolean))].sort();
-                    
-                    modules.forEach(module => {
-                        $('#filterModule').append(`<option value="${module}">${module}</option>`);
-                    });
-                    
-                    groups.forEach(group => {
-                        $('#filterGroup').append(`<option value="${group}">${group}</option>`);
-                    });
-                }
-            },
-            error: function() {
-                // Silently fail - filters are optional
-            }
-        });
-    }
+    let sortableInstance = null;
 
     // Initialize DataTable
     dataTable = $('#permissionsTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
-            url: '{{ route("permissions.data") }}',
-            data: function(d) {
-                d.module = $('#filterModule').val();
-                d.group = $('#filterGroup').val();
-            }
+            url: '{{ route("permissions.data") }}'
         },
         columns: [
             { 
-                data: 'module', 
-                name: 'module',
-                render: function(data) {
-                    return data ? `<span class="badge bg-primary permission-badge">${data}</span>` : '<span class="text-muted">-</span>';
+                data: null,
+                orderable: false,
+                searchable: false,
+                width: '40px',
+                render: function(data, type, row) {
+                    return `<div class="sortable-handle"><i class='bx bx-menu'></i></div>`;
+                }
+            },
+            {
+                data: 'sort_no',
+                name: 'sort_no',
+                orderable: true,
+                searchable: false,
+                width: '80px',
+                render: function(data, type, row) {
+                    const sortNo = data || 0;
+                    return `<span class="badge bg-primary">${sortNo}</span>`;
                 }
             },
             { 
-                data: 'resource', 
-                name: 'resource',
+                data: 'name', 
+                name: 'name',
                 render: function(data) {
-                    return data || '<span class="text-muted">-</span>';
+                    return data ? `<strong>${data}</strong>` : '<span class="text-muted">-</span>';
                 }
             },
             { 
-                data: 'action', 
-                name: 'action',
-                render: function(data) {
+                data: 'actions', 
+                name: 'actions',
+                orderable: false,
+                searchable: false,
+                render: function(data, type, row) {
                     if (!data) return '<span class="text-muted">-</span>';
+                    
+                    // Parse actions if it's a JSON string
+                    let actions = [];
+                    try {
+                        actions = typeof data === 'string' ? JSON.parse(data) : data;
+                    } catch(e) {
+                        // If not JSON, treat as comma-separated or single value
+                        actions = data.includes(',') ? data.split(',').map(a => a.trim()) : [data];
+                    }
+                    
+                    if (!Array.isArray(actions)) {
+                        actions = [actions];
+                    }
+                    
                     const actionColors = {
                         'view': 'info',
                         'create': 'success',
                         'update': 'warning',
                         'delete': 'danger',
                         'export': 'secondary',
-                        'import': 'primary'
+                        'import': 'primary',
+                        'approve': 'success',
+                        'assign': 'info'
                     };
-                    const color = actionColors[data] || 'secondary';
-                    return `<span class="badge bg-${color} permission-badge">${data}</span>`;
-                }
-            },
-            { data: 'name', name: 'name' },
-            { 
-                data: 'slug', 
-                name: 'slug',
-                render: function(data) {
-                    return `<code class="text-muted">${data}</code>`;
-                }
-            },
-            { 
-                data: 'group', 
-                name: 'group',
-                render: function(data) {
-                    return data ? `<span class="badge bg-secondary permission-badge">${data}</span>` : '<span class="text-muted">-</span>';
+                    
+                    return actions.map(action => {
+                        const color = actionColors[action.toLowerCase()] || 'secondary';
+                        return `<span class="badge bg-${color} permission-badge me-1">${action}</span>`;
+                    }).join('');
                 }
             },
             { 
@@ -227,25 +344,87 @@ $(document).ready(function() {
                         <button class="btn btn-sm btn-warning edit-btn" data-id="${row.id}" title="Edit">
                             <i class='bx bx-edit'></i>
                         </button>
+                        <input type="hidden" class="permission-id" value="${row.id}" data-permission-id="${row.id}">
                     `;
                 }
             }
         ],
-        order: [[0, 'asc'], [1, 'asc'], [2, 'asc']]
+        order: [[1, 'asc']], 
+        drawCallback: function(settings) {
+            // Initialize SortableJS after DataTable draws
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+            
+            const tbody = $('#permissionsTable tbody')[0];
+            if (tbody) {
+                sortableInstance = new Sortable(tbody, {
+                    handle: '.sortable-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    onEnd: function(evt) {
+                        // Update sort order
+                        updateSortOrder();
+                    }
+                });
+            }
+        }
     });
-
-    // Load filters on page load
-    loadFilters();
-
-    // Apply filters
-    $('#filterModule, #filterGroup').on('change', function() {
-        dataTable.ajax.reload();
-    });
-
-    // Clear filters
-    $('#clearFilters').on('click', function() {
-        $('#filterModule, #filterGroup').val('').trigger('change');
-    });
+    
+    // Function to update sort order
+    function updateSortOrder() {
+        const rows = $('#permissionsTable tbody tr');
+        const sortData = [];
+        
+        rows.each(function(index) {
+            const row = $(this); 
+                        let permissionId = row.find('.edit-btn').data('id');
+                        if (!permissionId) { 
+                            permissionId = row.data('id');
+                        }
+                        if (!permissionId) { 
+                            permissionId = row.find('[data-permission-id]').data('permission-id');
+                        }
+            if (permissionId) {
+                sortData.push({
+                    id: permissionId,
+                    sort_no: index + 1
+                });
+            }
+        });
+        
+        if (sortData.length === 0) {
+            return;
+        }
+        
+        // Show loading indicator
+        const loadingToast = showToast('info', 'Updating sort order...', true);
+        
+        $.ajax({
+            url: '{{ route("permissions.updateSort") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                permissions: sortData
+            },
+            success: function(response) {
+                if (response.success) {
+                    showToast('success', response.message || 'Sort order updated successfully'); 
+                    dataTable.ajax.reload(null, false); // false = don't reset paging
+                } else {
+                    showToast('error', response.message || 'Failed to update sort order');
+                    // Reload to revert changes
+                    dataTable.ajax.reload(null, false);
+                }
+            },
+            error: function(xhr) {
+                showToast('error', xhr.responseJSON?.message || 'An error occurred while updating sort order');
+                // Reload to revert changes
+                dataTable.ajax.reload(null, false);
+            }
+        });
+    }
 
     // Edit Permission
     $(document).on('click', '.edit-btn', function() {
@@ -258,168 +437,50 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     const p = response.permission;
-                    const hasIsActive = p.is_active !== undefined && p.is_active !== null;
                     
-                    // Format module, resource, action, group - show parsed values if available
-                    const module = p.module || parseModuleFromSlug(p.slug) || '-';
-                    const resource = p.resource || parseResourceFromSlug(p.slug) || '-';
-                    const action = p.action || parseActionFromSlug(p.slug) || '-';
-                    const group = p.group || parseGroupFromSlug(p.slug, module) || '-';
+                    // Parse actions
+                    let actions = [];
+                    if (p.actions && Array.isArray(p.actions)) {
+                        actions = p.actions;
+                    } else if (p.action) {
+                        try {
+                            actions = JSON.parse(p.action);
+                            if (!Array.isArray(actions)) {
+                                actions = [p.action];
+                            }
+                        } catch(e) {
+                            actions = p.action.includes(',') ? p.action.split(',').map(a => a.trim()) : [p.action];
+                        }
+                    }
                     
-                    const details = `
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label"><strong>Name:</strong></label>
-                                <div>${p.name || '-'}</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label"><strong>Slug:</strong></label>
-                                <div><code>${p.slug || '-'}</code></div>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label"><strong>Module:</strong></label>
-                                <div>${module !== '-' ? `<span class="badge bg-primary">${module}</span>` : '<span class="text-muted">-</span>'}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label"><strong>Resource:</strong></label>
-                                <div>${resource !== '-' ? resource : '<span class="text-muted">-</span>'}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label"><strong>Action:</strong></label>
-                                <div>${action !== '-' ? `<span class="badge bg-info">${action}</span>` : '<span class="text-muted">-</span>'}</div>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label"><strong>Page/Group:</strong></label>
-                                <div>${group !== '-' ? `<span class="badge bg-secondary">${group}</span>` : '<span class="text-muted">-</span>'}</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label"><strong>Assigned to Roles:</strong></label>
-                                <div><span class="badge bg-success">${p.roles_count || 0} role(s)</span></div>
-                            </div>
-                        </div>
-                        ${hasIsActive ? `
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="permissionIsActive" name="is_active" ${p.is_active ? 'checked' : ''}>
-                                <label class="form-check-label" for="permissionIsActive">
-                                    <strong>Active</strong>
-                                </label>
-                            </div>
-                        </div>
-                        ` : ''}
-                        <div class="mb-3">
-                            <label for="permissionDescription" class="form-label"><strong>Description</strong></label>
-                            <textarea class="form-control" id="permissionDescription" name="description" rows="4" placeholder="Enter permission description...">${p.description || ''}</textarea>
-                            <div class="invalid-feedback"></div>
-                        </div>
-                    `;
-                    $('#permissionId').val(p.id);
-                    $('#permissionDetails').html(details);
+                    // Populate form
+                    $('#editPermissionId').val(p.id);
+                    $('#editPermissionName').val(p.name || '');
+                    $('#editPermissionSortNo').val(p.sort_no || 0);
+                    
+                    // Clear all action checkboxes
+                    $('input[name="edit_actions[]"]').prop('checked', false);
+                    
+                    // Check the actions that this permission has
+                    actions.forEach(function(action) {
+                        const actionLower = action.toLowerCase();
+                        const actionId = 'editPermAction' + actionLower.charAt(0).toUpperCase() + actionLower.slice(1);
+                        const checkbox = $('#' + actionId);
+                        if (checkbox.length > 0) {
+                            checkbox.prop('checked', true);
+                        }
+                    });
+                    
+                    // Reset form validation
+                    $('#permissionEditForm').find('.is-invalid').removeClass('is-invalid');
+                    $('#permissionEditForm').find('.invalid-feedback').text('');
+                    
                     $('#editPermissionModal').modal('show');
                 }
             }
         });
     });
 
-    // Helper functions to parse permission slug
-    function parseModuleFromSlug(slug) {
-        if (!slug) return null;
-        
-        const moduleMap = {
-            'dashboard': 'dashboard',
-            'users': 'users',
-            'user': 'users',
-            'roles': 'roles',
-            'role': 'roles',
-            'permissions': 'permissions',
-            'permission': 'permissions',
-            'products': 'products',
-            'product': 'products',
-            'categories': 'categories',
-            'category': 'categories',
-            'orders': 'orders',
-            'order': 'orders',
-            'customers': 'customers',
-            'customer': 'customers',
-            'leads': 'leads',
-            'lead': 'leads',
-            'inventory': 'inventory',
-            'reports': 'reports',
-            'report': 'reports',
-            'settings': 'settings',
-            'setting': 'settings',
-        };
-
-        const parts = slug.split('-');
-        for (let part of parts) {
-            if (moduleMap[part]) {
-                return moduleMap[part];
-            }
-        }
-        return parts.length > 1 ? parts[1] : parts[0];
-    }
-
-    function parseResourceFromSlug(slug) {
-        if (!slug) return null;
-        const parts = slug.split('-');
-        return parts.length >= 2 ? parts[1] : null;
-    }
-
-    function parseActionFromSlug(slug) {
-        if (!slug) return null;
-        
-        const actionMap = {
-            'view': 'view',
-            'create': 'create',
-            'edit': 'update',
-            'update': 'update',
-            'delete': 'delete',
-            'export': 'export',
-            'import': 'import',
-            'assign': 'assign',
-            'approve': 'approve',
-            'reject': 'reject',
-        };
-
-        const parts = slug.split('-');
-        if (parts.length > 0) {
-            const action = parts[0].toLowerCase();
-            return actionMap[action] || action;
-        }
-        return null;
-    }
-
-    function parseGroupFromSlug(slug, module) {
-        const groupMap = {
-            'dashboard': 'Dashboard',
-            'users': 'User Management',
-            'roles': 'Roles & Permissions',
-            'permissions': 'Roles & Permissions',
-            'products': 'Products',
-            'categories': 'Categories',
-            'orders': 'Orders',
-            'customers': 'Customers',
-            'leads': 'Leads',
-            'inventory': 'Inventory',
-            'reports': 'Reports',
-            'settings': 'Settings',
-        };
-
-        if (module && groupMap[module]) {
-            return groupMap[module];
-        }
-
-        const moduleFromSlug = parseModuleFromSlug(slug);
-        if (moduleFromSlug && groupMap[moduleFromSlug]) {
-            return groupMap[moduleFromSlug];
-        }
-
-        return null;
-    }
 
     // Submit Edit Form
     $('#permissionEditForm').on('submit', function(e) {
@@ -429,6 +490,22 @@ $(document).ready(function() {
         const submitBtn = form.find('button[type="submit"]');
         const btnText = submitBtn.find('.btn-text');
         const spinner = submitBtn.find('.spinner-border');
+        const id = $('#editPermissionId').val();
+        const name = $('#editPermissionName').val().trim();
+        const actions = $('input[name="edit_actions[]"]:checked').map(function() {
+            return $(this).val();
+        }).get();
+        const sortNo = $('#editPermissionSortNo').val() || 0;
+        
+        if (!name) {
+            alert('Please enter a permission name');
+            return;
+        }
+        
+        if (actions.length === 0) {
+            alert('Please select at least one action');
+            return;
+        }
         
         // Clear previous errors
         form.find('.is-invalid').removeClass('is-invalid');
@@ -442,12 +519,18 @@ $(document).ready(function() {
         $.ajax({
             url: '{{ route("permissions.update") }}',
             type: 'POST',
-            data: form.serialize(),
+            data: {
+                _token: '{{ csrf_token() }}',
+                id: id,
+                name: name,
+                actions: actions,
+                sort_no: sortNo
+            },
             success: function(response) {
                 if (response.success) {
                     $('#editPermissionModal').modal('hide');
                     dataTable.ajax.reload();
-                    showToast('success', response.message);
+                    showToast('success', response.message || 'Permission updated successfully');
                 }
             },
             error: function(xhr) {
@@ -470,19 +553,43 @@ $(document).ready(function() {
         });
     });
 
+    // Reset edit form when modal is closed
+    $('#editPermissionModal').on('hidden.bs.modal', function() {
+        $('#permissionEditForm')[0].reset();
+        $('#permissionEditForm').find('.is-invalid').removeClass('is-invalid');
+        $('#permissionEditForm').find('.invalid-feedback').text('');
+        $('input[name="edit_actions[]"]').prop('checked', false);
+    });
+
     // Toast notification function
-    function showToast(type, message) {
+    function showToast(type, message, persistent = false) {
         const toastContainer = $('.sa-app__toasts');
         if (toastContainer.length === 0) {
             $('body').append('<div class="sa-app__toasts position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>');
         }
         const toastId = 'toast-' + Date.now();
-        const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+        
+        let bgClass = 'bg-info';
+        let icon = 'bx-info-circle';
+        
+        if (type === 'success') {
+            bgClass = 'bg-success';
+            icon = 'bx-check-circle';
+        } else if (type === 'error') {
+            bgClass = 'bg-danger';
+            icon = 'bx-error-circle';
+        } else if (type === 'warning') {
+            bgClass = 'bg-warning';
+            icon = 'bx-error-circle';
+        } else if (type === 'info') {
+            bgClass = 'bg-info';
+            icon = 'bx-info-circle';
+        }
         
         const toast = `
             <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-body d-flex align-items-center">
-                    <i class='bx ${type === 'success' ? 'bx-check-circle' : 'bx-error-circle'} me-2' style='font-size: 1.5rem;'></i>
+                    <i class='bx ${icon} me-2' style='font-size: 1.5rem;'></i>
                     <div class="flex-grow-1">${message}</div>
                     <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
@@ -491,15 +598,85 @@ $(document).ready(function() {
         
         $('.sa-app__toasts').append(toast);
         const toastElement = new bootstrap.Toast(document.getElementById(toastId), {
-            autohide: true,
-            delay: 3000
+            autohide: !persistent,
+            delay: persistent ? 0 : 3000
         });
         toastElement.show();
         
         $('#' + toastId).on('hidden.bs.toast', function() {
             $(this).remove();
         });
+        
+        return toastId;
     }
+
+    // Add Permission
+    $('#addPermissionBtn').on('click', function() {
+        $('#addPermissionForm')[0].reset();
+        $('input[name="actions[]"]').prop('checked', false);
+        $('#permActionView, #permActionCreate, #permActionUpdate, #permActionDelete').prop('checked', true);
+    });
+
+    // Submit Add Permission Form
+    $('#addPermissionForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const submitBtn = form.find('button[type="submit"]');
+        const btnText = submitBtn.find('.btn-text');
+        const spinner = submitBtn.find('.spinner-border');
+        const name = $('#permissionName').val().trim();
+        const actions = $('input[name="actions[]"]:checked').map(function() {
+            return $(this).val();
+        }).get();
+        
+        if (!name) {
+            alert('Please enter a permission name');
+            return;
+        }
+        
+        if (actions.length === 0) {
+            alert('Please select at least one action');
+            return;
+        }
+        
+        // Disable submit button
+        submitBtn.prop('disabled', true);
+        btnText.addClass('d-none');
+        spinner.removeClass('d-none');
+        
+        // Generate slug from name
+        const slug = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        
+        $.ajax({
+            url: '{{ route("permissions.store") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                name: name,
+                slug: slug,
+                actions: actions
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#addPermissionModal').modal('hide');
+                    dataTable.ajax.reload();
+                    showToast('success', response.message || 'Permission created successfully');
+                } else {
+                    showToast('error', response.message || 'Failed to create permission');
+                }
+            },
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || 'Failed to create permission';
+                showToast('error', message);
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false);
+                btnText.removeClass('d-none');
+                spinner.addClass('d-none');
+            }
+        });
+    });
 });
 </script>
 @endpush

@@ -17,9 +17,11 @@
                         </div>
                         <h5 class="mb-1" id="profileName">{{ Auth::user()->name }}</h5>
                         <p class="text-muted mb-3" id="profileEmail">{{ Auth::user()->email }}</p>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#changeImageModal">
-                            <i class='fas fa-image-add'></i> Change Photo
-                        </button>
+                        @if(auth()->user()->hasPermission('company_profile.update'))
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#changeImageModal">
+                                <i class='fas fa-image-add'></i> Change Photo
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -37,9 +39,11 @@
                                     <label class="form-label text-muted mb-1">Full Name</label>
                                     <div class="fw-medium" id="displayName">{{ Auth::user()->name }}</div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#changeNameModal">
-                                    <i class='fas fa-edit'></i> Edit
-                                </button>
+                                @if(auth()->user()->hasPermission('company_profile.update'))
+                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#changeNameModal">
+                                        <i class='fas fa-edit'></i> Edit
+                                    </button>
+                                @endif
                             </div>
                         </div>
 
@@ -50,9 +54,11 @@
                                     <label class="form-label text-muted mb-1">Email Address</label>
                                     <div class="fw-medium" id="displayEmail">{{ Auth::user()->email }}</div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#changeEmailModal">
-                                    <i class='fas fa-edit'></i> Edit
-                                </button>
+                                @if(auth()->user()->hasPermission('company_profile.update'))
+                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#changeEmailModal">
+                                        <i class='fas fa-edit'></i> Edit
+                                    </button>
+                                @endif
                             </div>
                         </div>
 
@@ -63,9 +69,11 @@
                                     <label class="form-label text-muted mb-1">Password</label>
                                     <div class="fw-medium">••••••••</div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
-                                    <i class='fas fa-lock-alt'></i> Change
-                                </button>
+                                @if(auth()->user()->hasPermission('company_profile.update'))
+                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                        <i class='fas fa-lock-alt'></i> Change
+                                    </button>
+                                @endif
                             </div>
                         </div>
 
@@ -95,9 +103,11 @@
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h5 class="card-title mb-0">Company Information</h5>
-                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#companySettingsModal">
-                                <i class='fas fa-edit'></i> Edit
-                            </button>
+                            @if(auth()->user()->hasPermission('company_profile.update'))
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#companySettingsModal">
+                                    <i class='fas fa-edit'></i> Edit
+                                </button>
+                            @endif
                         </div>
                         
                         <div class="row">
@@ -235,10 +245,12 @@
                                         @endif
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-secondary" id="toggleComingSoonBtn">
-                                    <i class='fas fa-toggle-{{ $companySettings->coming_soon ?? false ? "on" : "off" }}'></i> 
-                                    <span id="toggleComingSoonText">{{ ($companySettings->coming_soon ?? false) ? 'Disable' : 'Enable' }}</span>
-                                </button>
+                                @if(auth()->user()->hasPermission('company_profile.update'))
+                                    <button type="button" class="btn btn-sm btn-secondary" id="toggleComingSoonBtn">
+                                        <i class='fas fa-toggle-{{ $companySettings->coming_soon ?? false ? "on" : "off" }}'></i> 
+                                        <span id="toggleComingSoonText">{{ ($companySettings->coming_soon ?? false) ? 'Disable' : 'Enable' }}</span>
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -630,6 +642,11 @@
 
 @push('scripts')
 <script>
+const companyProfilePermissions = {
+    view: @json(auth()->user()->hasPermission('company_profile.view')),
+    update: @json(auth()->user()->hasPermission('company_profile.update'))
+};
+
 $(document).ready(function() {
     
     // Image preview on file selection
@@ -647,6 +664,11 @@ $(document).ready(function() {
     // Change Image Form
     $('#changeImageForm').on('submit', function(e) {
         e.preventDefault();
+        
+        if (!companyProfilePermissions.update) {
+            showToast('error', 'You do not have permission to update company profile.');
+            return;
+        }
         
         const form = $(this);
         const submitBtn = form.find('button[type="submit"]');
@@ -711,6 +733,11 @@ $(document).ready(function() {
     $('#changeNameForm').on('submit', function(e) {
         e.preventDefault();
         
+        if (!companyProfilePermissions.update) {
+            showToast('error', 'You do not have permission to update company profile.');
+            return;
+        }
+        
         const form = $(this);
         const submitBtn = form.find('button[type="submit"]');
         const btnText = submitBtn.find('.btn-text');
@@ -766,6 +793,11 @@ $(document).ready(function() {
     // Change Email Form
     $('#changeEmailForm').on('submit', function(e) {
         e.preventDefault();
+        
+        if (!companyProfilePermissions.update) {
+            showToast('error', 'You do not have permission to update company profile.');
+            return;
+        }
         
         const form = $(this);
         const submitBtn = form.find('button[type="submit"]');
@@ -825,6 +857,11 @@ $(document).ready(function() {
     // Change Password Form
     $('#changePasswordForm').on('submit', function(e) {
         e.preventDefault();
+        
+        if (!companyProfilePermissions.update) {
+            showToast('error', 'You do not have permission to update company profile.');
+            return;
+        }
         
         const form = $(this);
         const submitBtn = form.find('button[type="submit"]');
@@ -933,6 +970,11 @@ $(document).ready(function() {
     // Company Settings Form
     $('#companySettingsForm').on('submit', function(e) {
         e.preventDefault();
+        
+        if (!companyProfilePermissions.update) {
+            showToast('error', 'You do not have permission to update company profile.');
+            return;
+        }
         
         const form = $(this);
         const submitBtn = form.find('button[type="submit"]');
@@ -1086,6 +1128,11 @@ $(document).ready(function() {
 
     // Toggle Coming Soon
     $('#toggleComingSoonBtn').on('click', function() {
+        if (!companyProfilePermissions.update) {
+            showToast('error', 'You do not have permission to update company profile.');
+            return;
+        }
+        
         const btn = $(this);
         const originalText = btn.find('#toggleComingSoonText').text();
         

@@ -18,12 +18,16 @@
                 <h1 class="h3 m-0">Brands</h1>
             </div>
             <div class="col-auto d-flex gap-2">
-                <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteBrandsBtn">
-                    <i class="fas fa-trash me-2"></i>Delete Selected
-                </button>
-                <button class="btn btn-primary" id="addBrandBtn">
-                    <i class="fas fa-plus"></i> Add Brand
-                </button>
+                @if(auth()->user()->hasPermission('brands.delete'))
+                    <button type="button" class="btn btn-outline-danger d-none" id="bulkDeleteBrandsBtn">
+                        <i class="fas fa-trash me-2"></i>Delete Selected
+                    </button>
+                @endif
+                @if(auth()->user()->hasPermission('brands.create'))
+                    <button class="btn btn-primary" id="addBrandBtn">
+                        <i class="fas fa-plus"></i> Add Brand
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -48,9 +52,11 @@
                 <table class="table table-hover" id="brandsTable">
                     <thead>
                         <tr>
-                            <th width="50">
-                                <input type="checkbox" class="form-check-input" id="selectAllBrands" title="Select All">
-                            </th>
+                            @if(auth()->user()->hasPermission('brands.delete'))
+                                <th width="50">
+                                    <input type="checkbox" class="form-check-input" id="selectAllBrands" title="Select All">
+                                </th>
+                            @endif
                             <th width="80">Logo</th>
                             <th>Name</th>
                             <th>Slug</th>
@@ -64,7 +70,7 @@
                     </thead>
                     <tbody id="brandsTableBody">
                         <tr>
-                            <td colspan="9" class="text-center py-5">
+                            <td colspan="{{ auth()->user()->hasPermission('brands.delete') ? '10' : '9' }}" class="text-center py-5">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
@@ -223,6 +229,13 @@
 
 @push('scripts')
 <script>
+const brandPermissions = {
+    view: @json(auth()->user()->hasPermission('brands.view')),
+    create: @json(auth()->user()->hasPermission('brands.create')),
+    update: @json(auth()->user()->hasPermission('brands.update')),
+    delete: @json(auth()->user()->hasPermission('brands.delete'))
+};
+
 $(document).ready(function() {
     let deleteBrandId = null;
     let currentPage = 1;
@@ -571,11 +584,14 @@ $(document).ready(function() {
                             ? `<br><small class="text-muted">${brand.description.substring(0, 50)}${brand.description.length > 50 ? '...' : ''}</small>`
                             : '';
                         
+                        let checkboxCell = brandPermissions.delete 
+                            ? `<td>
+                                    <input type="checkbox" class="form-check-input brand-checkbox" value="${brand.id}">
+                                </td>`
+                            : '';
                         let row = `
                             <tr data-id="${brand.id}">
-                                <td>
-                                    <input type="checkbox" class="form-check-input brand-checkbox" value="${brand.id}">
-                                </td>
+                                ${checkboxCell}
                                 <td>${logoHtml}</td>
                                 <td>
                                     <strong>${brand.name}</strong>
@@ -589,12 +605,12 @@ $(document).ready(function() {
                                 <td>${new Date(brand.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary edit-brand" data-id="${brand.id}" title="Edit">
+                                        ${brandPermissions.update ? `<button class="btn btn-outline-primary edit-brand" data-id="${brand.id}" title="Edit">
                                             <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger delete-brand" data-id="${brand.id}" title="Delete">
+                                        </button>` : ''}
+                                        ${brandPermissions.delete ? `<button class="btn btn-outline-danger delete-brand" data-id="${brand.id}" title="Delete">
                                             <i class="fas fa-trash"></i>
-                                        </button>
+                                        </button>` : ''}
                                     </div>
                                 </td>
                             </tr>
@@ -602,7 +618,8 @@ $(document).ready(function() {
                         tbody.append(row);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="10" class="text-center py-4">No brands found</td></tr>');
+                    let colspan = brandPermissions.delete ? 10 : 9;
+                    tbody.html(`<tr><td colspan="${colspan}" class="text-center py-4">No brands found</td></tr>`);
                 }
                 
                 // Update pagination
@@ -614,7 +631,8 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 console.error('Error loading brands:', xhr);
-                $('#brandsTableBody').html('<tr><td colspan="10" class="text-center py-4 text-danger">Error loading brands</td></tr>');
+                let colspan = brandPermissions.delete ? 10 : 9;
+                $('#brandsTableBody').html(`<tr><td colspan="${colspan}" class="text-center py-4 text-danger">Error loading brands</td></tr>`);
             }
         });
     }
@@ -626,13 +644,11 @@ $(document).ready(function() {
         
         if (totalPages > 1) {
             paginationHtml = '<nav><ul class="pagination">';
-            
-            // Previous button
+             
             if (currentPage > 1) {
                 paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage - 1}">Previous</a></li>`;
             }
-            
-            // Page numbers
+             
             let startPage = Math.max(1, currentPage - 2);
             let endPage = Math.min(totalPages, currentPage + 2);
             
@@ -654,8 +670,7 @@ $(document).ready(function() {
                 }
                 paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
             }
-            
-            // Next button
+             
             if (currentPage < totalPages) {
                 paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${parseInt(currentPage) + 1}">Next</a></li>`;
             }
@@ -788,7 +803,7 @@ $(document).ready(function() {
         const toast = $('#toast');
         if (!toast.length || !toast[0]) {
             console.error('Toast element not found');
-            alert(message); // Fallback to alert
+            alert(message); 
             return;
         }
         const toastBody = toast.find('.toast-body');

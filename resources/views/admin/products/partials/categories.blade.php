@@ -38,7 +38,7 @@
     }
 
     $categoriesById = $categories->keyBy('id');
-    
+     
     // Build hierarchical category list with paths
     $allCategoriesData = $categories->map(function ($category) use ($categoriesById) {
         $path = buildCategoryPath($category, $categoriesById);
@@ -189,17 +189,7 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="alert alert-light mt-4">
-                    <h6 class="alert-heading">
-                        <i class="fas fa-lightbulb me-2"></i>Best Practices
-                    </h6>
-                    <div class="mb-0">
-                        <div><strong>Select relevant brands</strong> that match your product's manufacturer or distributor <small class="text-muted">(Builds brand association and trust)</small></div>
-                        <div><strong>Choose the deepest category</strong> in the hierarchy that best represents your product <small class="text-muted">(Helps customers find your product easily)</small></div>
-                        <div><strong>Use descriptive tags</strong> that customers might search for <small class="text-muted">(Improves search functionality and SEO)</small></div>
-                    </div>
-                </div>
+                 
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -227,16 +217,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedCategoryId = selectedCategoryIdScript ? JSON.parse(selectedCategoryIdScript.textContent) : null;
     
     console.log('=== CATEGORIES SECTION WITH SELECT2 INITIALIZED ===');
-
-    // Initialize Select2 for single brand selection
+ 
     $('#productBrand').select2({
         theme: 'bootstrap-5',
         placeholder: 'Select Brand (Optional)...',
         allowClear: true,
         width: '100%',
     });
-    
-    // Initialize Select2 for multiple category selection
+     
     $('.select2-multiple').select2({
         theme: 'bootstrap-5',
         placeholder: 'Select options...',
@@ -247,8 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!data.id) {
                 return data.text;
             }
-            
-            // Add checkbox styling with data attribute for option value
+             
             var $result = $(
                 '<span class="select2-result-item" data-option-value="' + data.id + '">' +
                     '<input type="checkbox" class="me-2 select2-checkbox" data-option-value="' + data.id + '" ' + (data.selected ? 'checked' : '') + '>' +
@@ -262,8 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return data.text;
         }
     });
-    
-    // Initialize Select2 for multiple category selection with hierarchical display and checkboxes
+     
     $('#productCategory').select2({
         theme: 'bootstrap-5',
         placeholder: 'Select Categories...',
@@ -274,8 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!data.id) {
                 return data.text;
             }
-            
-            // Add checkbox styling with data attribute for option value
+             
             var $result = $('<span class="select2-result-item" data-option-value="' + data.id + '"></span>');
             
             // Display with indentation based on depth
@@ -300,8 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return data.text;
         }
     });
-    
-    // Update checkbox states for category select
+     
     function updateCategoryCheckboxes() {
         var $select = $('#productCategory');
         var selectedValues = $select.val() || [];
@@ -332,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Handle clicks on category Select2 option items to toggle checkboxes
+   
     $(document).on('click', '#productCategory + .select2-container .select2-results__option', function(e) {
         var $option = $(this);
         var $checkbox = $option.find('.select2-checkbox');
@@ -381,8 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateCategoryCheckboxes();
         }, 150);
     });
-    
-    // Function to update checkbox states based on Select2 selection
+     
     function updateSelect2Checkboxes($select) {
         var selectedValues = $select.val() || [];
         
@@ -391,11 +374,9 @@ document.addEventListener('DOMContentLoaded', function() {
             var $option = $(this);
             var $checkbox = $option.find('.select2-checkbox');
             
-            if ($checkbox.length) {
-                // Get option value from data attribute
+            if ($checkbox.length) { 
                 var optionValue = $checkbox.data('option-value') || $option.find('.select2-result-item').data('option-value');
-                
-                // Check if this value is in the selected values array
+                 
                 var isSelected = false;
                 if (optionValue !== undefined && optionValue !== null) {
                     // Convert to string for comparison
@@ -407,8 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 }
-                
-                // Also check the selected class as fallback
+                 
                 if (!isSelected) {
                     isSelected = $option.hasClass('select2-results__option--selected');
                 }
@@ -417,22 +397,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    // Handle clicks on Select2 option items to toggle checkboxes
+     
     $(document).on('click', '.select2-results__option', function(e) {
         var $option = $(this);
         var $checkbox = $option.find('.select2-checkbox');
-        
-        // Don't interfere if clicking directly on checkbox
-        if ($checkbox.length && !$(e.target).is('input[type="checkbox"]')) {
-            // Find the parent select element
+         
+        if ($checkbox.length && !$(e.target).is('input[type="checkbox"]')) { 
             var $select = $option.closest('.select2-container').prev('select');
             var selectedValues = $select.val() || [];
-            
-            // Get the option value
+             
             var optionValue = $checkbox.data('option-value') || $option.find('.select2-result-item').data('option-value');
-            
-            // Determine current selection state
+             
             var currentlySelected = false;
             if (optionValue !== undefined && optionValue !== null) {
                 optionValue = String(optionValue);
@@ -443,55 +418,43 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
-            
-            // Toggle checkbox immediately to the new state (opposite of current)
+             
             var newState = !currentlySelected;
             $checkbox.prop('checked', newState);
-            
-            // Use setTimeout with 0 to ensure it runs after current execution
-            setTimeout(function() {
-                // Update again after Select2 processes to ensure accuracy
+             
+            setTimeout(function() { 
                 updateSelect2Checkboxes($select);
             }, 0);
-            
-            // Also update after a short delay to catch any async updates
+             
             setTimeout(function() {
                 updateSelect2Checkboxes($select);
             }, 50);
         }
     });
-    
-    // Update checkbox states when Select2 selection changes
+     
     $('.select2-multiple').on('select2:select select2:unselect', function(e) {
         var $select = $(this);
         setTimeout(function() {
             updateSelect2Checkboxes($select);
         }, 100);
     });
-    
-    // Also update checkboxes when dropdown opens to show current state
+     
     $('.select2-multiple').on('select2:open', function() {
         var $select = $(this);
         setTimeout(function() {
             updateSelect2Checkboxes($select);
         }, 150);
     });
-    
-    // Set selected categories if editing
-    // Always load all attributes by default on page load
+     
     loadAllAttributes();
-    
-    // Set pre-selected categories if any (for edit mode) - but don't filter attributes
+     
     const selectedCategoryIdsScript = document.getElementById('selectedCategoryIdsJSON');
     const selectedCategoryIds = selectedCategoryIdsScript ? JSON.parse(selectedCategoryIdsScript.textContent) : [];
-    if (selectedCategoryIds && selectedCategoryIds.length > 0) {
-        // Set the category selection but don't trigger filtering
+    if (selectedCategoryIds && selectedCategoryIds.length > 0) { 
         $('#productCategory').val(selectedCategoryIds);
         // Don't call loadAttributesByCategories here - keep showing all attributes
     }
-    
-    // Load attributes when category changes (filter by category if selected, otherwise show all)
-    // Only filter when user manually changes category, not on initial page load
+     
     let categoryChangeTimeout;
     let isInitialLoad = true;
     $('#productCategory').on('change', function() {

@@ -108,6 +108,12 @@
 
 @push('scripts')
 <script>
+const contactPermissions = {
+    view: @json(auth()->user()->hasPermission('contact_messages.view')),
+    update: @json(auth()->user()->hasPermission('contact_messages.update')),
+    delete: @json(auth()->user()->hasPermission('contact_messages.delete'))
+};
+
 let contactsTable;
 
 $(document).ready(function() {
@@ -126,18 +132,30 @@ $(document).ready(function() {
 
     // View contact
     $(document).on('click', '.view-contact', function() {
+        if (!contactPermissions.view) {
+            alert('You do not have permission to view contact messages.');
+            return;
+        }
         const contactId = $(this).data('id');
         viewContact(contactId);
     });
 
     // Toggle read status
     $(document).on('click', '.toggle-read', function() {
+        if (!contactPermissions.update) {
+            alert('You do not have permission to update contact messages.');
+            return;
+        }
         const contactId = $(this).data('id');
         toggleReadStatus(contactId);
     });
 
     // Delete contact
     $(document).on('click', '.delete-contact', function() {
+        if (!contactPermissions.delete) {
+            alert('You do not have permission to delete contact messages.');
+            return;
+        }
         const contactId = $(this).data('id');
         deleteContact(contactId);
     });
@@ -202,19 +220,24 @@ function initializeDataTable() {
                 orderable: false,
                 searchable: false,
                 render: function(data, type, row) {
-                    return `
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-primary view-contact" data-id="${row.id}" title="View">
+                    let actions = '<div class="d-flex gap-2">';
+                    if (contactPermissions.view) {
+                        actions += `<button class="btn btn-sm btn-outline-primary view-contact" data-id="${row.id}" title="View">
                                 <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-info toggle-read" data-id="${row.id}" title="${row.is_read ? 'Mark as Unread' : 'Mark as Read'}">
+                            </button>`;
+                    }
+                    if (contactPermissions.update) {
+                        actions += `<button class="btn btn-sm btn-outline-info toggle-read" data-id="${row.id}" title="${row.is_read ? 'Mark as Unread' : 'Mark as Read'}">
                                 <i class="fas fa-${row.is_read ? 'envelope' : 'envelope-open'}"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger delete-contact" data-id="${row.id}" title="Delete">
+                            </button>`;
+                    }
+                    if (contactPermissions.delete) {
+                        actions += `<button class="btn btn-sm btn-outline-danger delete-contact" data-id="${row.id}" title="Delete">
                                 <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
+                            </button>`;
+                    }
+                    actions += '</div>';
+                    return actions || '<span class="text-muted">-</span>';
                 }
             }
         ],
@@ -262,8 +285,7 @@ function viewContact(id) {
                 `;
                 $('#contactDetails').html(html);
                 $('#viewContactModal').modal('show');
-                
-                // Reload table to update read status
+                 
                 contactsTable.ajax.reload();
             }
         },
@@ -315,12 +337,10 @@ function deleteContact(id) {
     });
 }
 
-function showToast(title, message, type) {
-    // Use the existing toast system if available
+function showToast(title, message, type) { 
     if (typeof window.showToast === 'function') {
         window.showToast(title, message, type);
-    } else {
-        // Fallback alert
+    } else { 
         alert(message);
     }
 }

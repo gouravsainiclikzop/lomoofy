@@ -9,9 +9,16 @@
             <div class="col">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 m-0">Roles Management</h1>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal" id="addRoleBtn">
-                        <i class='fas fa-plus'></i> Add Role
-                    </button>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('permissions.index') }}" class="btn btn-info d-none">
+                            <i class='fas fa-shield-alt'></i> Manage Permissions
+                        </a>
+                        @if(auth()->user()->hasPermission('role_permission.create'))
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal" id="addRoleBtn">
+                                <i class='fas fa-plus'></i> Add Role
+                            </button>
+                        @endif
+                    </div>
                 </div>
 
                 <div class="card">
@@ -148,27 +155,43 @@
     .permission-checkbox {
         margin-bottom: 0.5rem;
     }
-    #permissionsList table {
-        font-size: 0.9rem;
+    #permissionsList {
+        max-height: 500px;
+        overflow-y: auto;
     }
-    #permissionsList table th {
-        background-color: #f8f9fa;
-        font-weight: 600;
-        white-space: nowrap;
+    .permission-item {
+        border-left: 3px solid #0d6efd;
     }
-    #permissionsList table td {
-        vertical-align: middle;
+    .permission-item .card-body {
+        padding: 1rem;
     }
-    #permissionsList .form-check-input {
+    .permission-main-checkbox {
         cursor: pointer;
         width: 1.2em;
         height: 1.2em;
+        margin-right: 0.5rem;
+    }
+    .action-checkbox {
+        cursor: pointer;
+        width: 1.1em;
+        height: 1.1em;
+    }
+    .permissions-container {
+        padding: 0.5rem;
     }
 </style>
 @endpush
 
 @push('scripts')
 <script>
+const rolePermissions = {
+    view: @json(auth()->user()->hasPermission('role_permission.view')),
+    create: @json(auth()->user()->hasPermission('role_permission.create')),
+    update: @json(auth()->user()->hasPermission('role_permission.update')),
+    delete: @json(auth()->user()->hasPermission('role_permission.delete')),
+    assign: @json(auth()->user()->hasPermission('role_permission.assign'))
+};
+
 $(document).ready(function() {
     let dataTable;
     let deleteId = null;
@@ -203,11 +226,14 @@ $(document).ready(function() {
                 orderable: false,
                 searchable: false,
                 render: function(data, type, row) {
-                    return `
-                        <button class="btn btn-sm btn-info permissions-btn" data-id="${row.id}" data-name="${row.name}" title="Manage Permissions">
-                          Permissions
-                        </button>
-                    `;
+                    if (rolePermissions.assign) {
+                        return `
+                            <button class="btn btn-sm btn-info permissions-btn" data-id="${row.id}" data-name="${row.name}" title="Manage Permissions">
+                              Assign Permissions
+                            </button>
+                        `;
+                    }
+                    return '<span class="text-muted">-</span>';
                 }
             },
             
@@ -223,16 +249,19 @@ $(document).ready(function() {
                 orderable: false,
                 searchable: false,
                 render: function(data, type, row) {
-                    return `
-                        <div class="d-flex gap-1">
-                            <button class="btn btn-sm btn-secondary edit-btn" data-id="${row.id}" title="Edit">
+                    let actions = '<div class="d-flex gap-1">';
+                    if (rolePermissions.update) {
+                        actions += `<button class="btn btn-sm btn-secondary edit-btn" data-id="${row.id}" title="Edit">
                                 <i class='fas fa-edit'></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" title="Delete">
+                            </button>`;
+                    }
+                    if (rolePermissions.delete) {
+                        actions += `<button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}" title="Delete">
                                 <i class='fas fa-trash'></i>
-                            </button>
-                        </div>
-                    `;
+                            </button>`;
+                    }
+                    actions += '</div>';
+                    return actions || '<span class="text-muted">-</span>';
                 }
             }
         ],
@@ -240,7 +269,15 @@ $(document).ready(function() {
     });
 
     // Load permissions for permissions modal
-    function loadPermissionsForModal(roleId, selectedIds = []) {
+    function loadPermissionsForModal(roleId, permissionsData = []) {
+        // Convert permissions_data array to a map for easy lookup
+        const permissionsMap = {};
+        permissionsData.forEach(function(perm) {
+            permissionsMap[perm.id] = perm.actions || [];
+        });
+        
+        // Store for use in renderPermissionsGrouped
+        window.selectedPermissionsData = permissionsMap;
         $.ajax({
             url: '{{ route("roles.permissions") }}',
             type: 'GET',
@@ -249,7 +286,8 @@ $(document).ready(function() {
                     allPermissions = response.permissions || [];
                     console.log('Permissions loaded:', allPermissions.length);
                     console.log('Grouped data:', response.grouped);
-                    renderPermissionsGrouped(selectedIds, response.grouped || []);
+                    console.log('Structure:', response.structure);
+                    renderPermissionsGrouped([], response.grouped || [], response.structure || null);
                 } else {
                     console.error('Failed to load permissions:', response);
                 }
@@ -260,158 +298,169 @@ $(document).ready(function() {
         });
     }
 
-    // Render permissions grouped by module with related actions in same row - Table Layout
-    function renderPermissionsGrouped(selectedIds = [], grouped = []) {
-        // Collect all permissions and group them properly
+    // Render permissions with actions as checkboxes
+    function renderPermissionsGrouped(selectedIds = [], grouped = [], structureData = null) {
+        // Get selected permissions data from window if available
+        const selectedPermissionsData = window.selectedPermissionsData || {};
+        // Collect all permissions
         let allPermsData = [];
         
-        console.log('Rendering permissions. Grouped length:', grouped.length, 'All permissions:', allPermissions.length);
+        if (allPermissions && allPermissions.length > 0) {
+            allPermissions.forEach(function(permission) {
+                allPermsData.push(permission);
+            });
+        }
         
         if (grouped && grouped.length > 0) {
             grouped.forEach(function(group) {
                 if (group.permissions && group.permissions.length > 0) {
                     group.permissions.forEach(function(permission) {
-                        allPermsData.push({
-                            module: group.module || permission.module || 'Other',
-                            resource: permission.resource || group.resource || group.module || 'Other',
-                            permission: permission
+                        // Check if already added
+                        const alreadyAdded = allPermsData.some(function(item) {
+                            return item.id === permission.id;
                         });
+                        
+                        if (!alreadyAdded) {
+                            allPermsData.push(permission);
+                        }
                     });
                 }
             });
         }
-        
-        // Also process allPermissions directly if grouped is empty or incomplete
-        if (allPermissions && allPermissions.length > 0) {
-            allPermissions.forEach(function(permission) {
-                // Only add if not already added from grouped data
-                const alreadyAdded = allPermsData.some(function(item) {
-                    return item.permission.id === permission.id;
-                });
-                
-                if (!alreadyAdded) {
-                    allPermsData.push({
-                        module: permission.module || 'Other',
-                        resource: permission.resource || permission.module || 'Other',
-                        permission: permission
-                    });
-                }
-            });
+
+        if (allPermsData.length === 0) {
+            $('#permissionsList').html('<div class="alert alert-info">No permissions found.</div>');
+            return;
         }
-        
-        console.log('Total permissions to render:', allPermsData.length);
-        
-        // Group by module and resource
-        const tableData = {};
-        allPermsData.forEach(function(item) {
-            const key = item.module + '|' + item.resource;
-            if (!tableData[key]) {
-                tableData[key] = {
-                    module: item.module,
-                    resource: item.resource,
-                    permissions: {}
-                };
-            }
-            const action = item.permission.action || 'other';
-            tableData[key].permissions[action] = item.permission;
-        });
-        
-        // Get all unique actions to create columns
-        const allActions = new Set();
-        Object.values(tableData).forEach(function(row) {
-            Object.keys(row.permissions).forEach(function(action) {
-                allActions.add(action);
-            });
-        });
-        
+
         // Standard action order
-        const actionOrder = ['view', 'create', 'update', 'edit', 'delete', 'export', 'import', 'approve', 'publish'];
-        const sortedActions = Array.from(allActions).sort(function(a, b) {
-            const aIndex = actionOrder.indexOf(a);
-            const bIndex = actionOrder.indexOf(b);
-            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-            if (aIndex === -1) return 1;
-            if (bIndex === -1) return -1;
-            return aIndex - bIndex;
-        });
+        const actionOrder = ['view', 'create', 'update', 'edit', 'delete', 'export', 'import', 'approve', 'publish', 'assign'];
         
-        // Build table HTML
-        let html = `
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 20%;">Module</th>
-                            <th style="width: 20%;">Resource</th>
-        `;
+        // Build HTML with permissions and their actions as checkboxes
+        let html = '<div class="permissions-container">';
         
-        sortedActions.forEach(function(action) {
-            const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
-            html += `<th class="text-center" style="width: ${80 / sortedActions.length}%;">${actionLabel}</th>`;
-        });
-        
-        html += `
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        // Sort table data by module then resource
-        const sortedRows = Object.values(tableData).sort(function(a, b) {
-            if (a.module !== b.module) {
-                return a.module.localeCompare(b.module);
+        allPermsData.forEach(function(permission) {
+            // Parse actions
+            let actions = [];
+            if (permission.actions && Array.isArray(permission.actions)) {
+                actions = permission.actions;
+            } else if (permission.action) {
+                try {
+                    actions = JSON.parse(permission.action);
+                    if (!Array.isArray(actions)) {
+                        actions = [permission.action];
+                    }
+                } catch(e) {
+                    actions = permission.action.includes(',') 
+                        ? permission.action.split(',').map(a => a.trim()) 
+                        : [permission.action];
+                }
             }
-            return a.resource.localeCompare(b.resource);
-        });
-        
-        sortedRows.forEach(function(row) {
-            html += `<tr>`;
-            html += `<td><strong class="text-primary">${row.module}</strong></td>`;
-            html += `<td>${row.resource}</td>`;
+            
+            if (actions.length === 0) {
+                return; // Skip permissions without actions
+            }
+            
+            // Sort actions
+            const sortedActions = actions.sort(function(a, b) {
+                const aIndex = actionOrder.indexOf(a.toLowerCase());
+                const bIndex = actionOrder.indexOf(b.toLowerCase());
+                if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                if (aIndex === -1) return 1;
+                if (bIndex === -1) return -1;
+                return aIndex - bIndex;
+            });
+            
+            // Check if this permission is selected and get selected actions
+            const isPermissionSelected = selectedIds.includes(permission.id);
+            const selectedActions = selectedPermissionsData[permission.id] || [];
+            const isMainChecked = isPermissionSelected || selectedActions.length > 0;
+            
+            html += '<div class="card mb-3 permission-item">';
+            html += '<div class="card-body">';
+            html += '<div class="row align-items-center">';
+            
+            // Permission Name with checkbox
+            html += '<div class="col-md-3">';
+            html += `<div class="form-check">`;
+            html += `<input class="form-check-input permission-main-checkbox" 
+                           type="checkbox" 
+                           name="permissions[]" 
+                           value="${permission.id}" 
+                           id="perm_${permission.id}" 
+                           ${isMainChecked ? 'checked' : ''}
+                           data-permission-id="${permission.id}">`;
+            html += `<label class="form-check-label fw-bold" for="perm_${permission.id}">`;
+            html += `${permission.name || 'Unnamed Permission'}`;
+            html += `</label>`;
+            html += `</div>`;
+            html += `</div>`;
+            
+            // Actions checkboxes
+            html += '<div class="col-md-9">';
+            html += '<div class="d-flex flex-wrap gap-3">';
             
             sortedActions.forEach(function(action) {
-                const permission = row.permissions[action];
-                if (permission) {
-                    const checked = selectedIds.includes(permission.id) ? 'checked' : '';
-                    html += `
-                        <td class="text-center">
-                            <input class="form-check-input permission-checkbox" 
-                                   type="checkbox" 
-                                   name="permissions[]" 
-                                   value="${permission.id}" 
-                                   id="perm_${permission.id}" 
-                                   ${checked}
-                                   title="${permission.name || (action + ' ' + row.resource)}">
-                        </td>
-                    `;
-                } else {
-                    html += `<td class="text-center text-muted">-</td>`;
-                }
+                const actionId = `perm_${permission.id}_action_${action}`;
+                const isActionSelected = selectedActions.includes(action) || (isPermissionSelected && selectedActions.length === 0);
+                html += `<div class="form-check">`;
+                html += `<input class="form-check-input action-checkbox" 
+                               type="checkbox" 
+                               id="${actionId}"
+                               data-permission-id="${permission.id}"
+                               data-action="${action}"
+                               ${isActionSelected ? 'checked' : ''}>`;
+                html += `<label class="form-check-label" for="${actionId}">`;
+                html += `${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                html += `</label>`;
+                html += `</div>`;
             });
             
-            html += `</tr>`;
+            html += '</div>';  
+            html += '</div>'; 
+            html += '</div>'; 
+            html += '</div>';  
+            html += '</div>';  
         });
         
-        html += `
-                    </tbody>
-                </table>
-            </div>
-        `;
+        html += '</div>'; 
         
         $('#permissionsList').html(html);
+         
+        $(document).off('change', '.permission-main-checkbox').on('change', '.permission-main-checkbox', function() {
+            const permissionId = $(this).data('permission-id');
+            const isChecked = $(this).is(':checked');
+             
+            $(`.action-checkbox[data-permission-id="${permissionId}"]`).prop('checked', isChecked);
+        });
+         
+        $(document).off('change', '.action-checkbox').on('change', '.action-checkbox', function() {
+            const permissionId = $(this).data('permission-id');
+            const mainCheckbox = $(`.permission-main-checkbox[data-permission-id="${permissionId}"]`);
+             
+            const anyActionChecked = $(`.action-checkbox[data-permission-id="${permissionId}"]:checked`).length > 0;
+            mainCheckbox.prop('checked', anyActionChecked);
+        });
     }
 
-    // Add Role Button
+ 
     $('#addRoleBtn').on('click', function() {
+        if (!rolePermissions.create) {
+            showToast('error', 'You do not have permission to create roles.');
+            return;
+        }
         $('#roleForm')[0].reset();
         $('#roleId').val('');
         $('#modalTitle').text('Add Role');
         $('#roleForm').find('.is-invalid').removeClass('is-invalid');
         $('#roleForm').find('.invalid-feedback').text('');
     });
-
-    // Edit Role
+ 
     $(document).on('click', '.edit-btn', function() {
+        if (!rolePermissions.update) {
+            showToast('error', 'You do not have permission to update roles.');
+            return;
+        }
         const id = $(this).data('id');
         
         $.ajax({
@@ -430,23 +479,25 @@ $(document).ready(function() {
             }
         });
     });
-
-    // Open Permissions Modal
+ 
     $(document).on('click', '.permissions-btn', function() {
+        if (!rolePermissions.assign) {
+            showToast('error', 'You do not have permission to assign permissions.');
+            return;
+        }
         const roleId = $(this).data('id');
         const roleName = $(this).data('name');
         
         $('#permissionsRoleId').val(roleId);
         $('#permissionsRoleName').text(roleName);
-        
-        // Load role permissions
+         
         $.ajax({
             url: '{{ route("roles.edit") }}',
             type: 'GET',
             data: { id: roleId },
             success: function(response) {
                 if (response.success) {
-                    loadPermissionsForModal(roleId, response.permission_ids || []);
+                    loadPermissionsForModal(roleId, response.permissions_data || []);
                     $('#permissionsModal').modal('show');
                 }
             }
@@ -455,15 +506,47 @@ $(document).ready(function() {
 
     // Save Permissions
     $('#savePermissionsBtn').on('click', function() {
+        if (!rolePermissions.assign) {
+            showToast('error', 'You do not have permission to assign permissions.');
+            return;
+        }
         const btn = $(this);
         const btnText = btn.find('.btn-text');
         const spinner = btn.find('.spinner-border');
         const roleId = $('#permissionsRoleId').val();
         const selectedPermissions = [];
-        
-        $('#permissionsList .permission-checkbox:checked').each(function() {
-            selectedPermissions.push($(this).val());
+         
+        $('#permissionsList .permission-item').each(function() {
+            const mainCheckbox = $(this).find('.permission-main-checkbox'); 
+            const permissionId = mainCheckbox.attr('data-permission-id') || mainCheckbox.data('permission-id');
+             
+            if (!permissionId || isNaN(permissionId)) {
+                console.warn('Permission ID not found or invalid for permission item:', permissionId);
+                return;
+            }
+             
+            const anyActionChecked = $(this).find('.action-checkbox:checked').length > 0;
+            
+            if (mainCheckbox.is(':checked') || anyActionChecked) {
+                const selectedActions = [];
+                $(this).find('.action-checkbox:checked').each(function() {
+                    const action = $(this).attr('data-action') || $(this).data('action');  
+                    if (action) {
+                        selectedActions.push(action);
+                    }
+                });
+                
+                const permId = parseInt(permissionId, 10);
+                if (permId && !isNaN(permId)) {
+                    selectedPermissions.push({
+                        id: permId,
+                        actions: selectedActions
+                    });
+                }
+            }
         });
+        
+        console.log('Sending permissions:', selectedPermissions);
         
         btn.prop('disabled', true);
         btnText.addClass('d-none');
@@ -555,11 +638,19 @@ $(document).ready(function() {
 
     // Delete Role
     $(document).on('click', '.delete-btn', function() {
+        if (!rolePermissions.delete) {
+            showToast('error', 'You do not have permission to delete roles.');
+            return;
+        }
         deleteId = $(this).data('id');
         $('#deleteModal').modal('show');
     });
 
     $('#confirmDelete').on('click', function() {
+        if (!rolePermissions.delete) {
+            showToast('error', 'You do not have permission to delete roles.');
+            return;
+        }
         const btn = $(this);
         const btnText = btn.find('.btn-text');
         const spinner = btn.find('.spinner-border');

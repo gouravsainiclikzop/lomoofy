@@ -450,9 +450,7 @@ class ProductController extends Controller
             if ($request->hasFile('images')) {
                 $this->handleImageUploads($product, $request);
             }
-
-            // Variants are now managed on a separate page
-            // Only create variants if explicitly provided (no default variant creation)
+ 
             if ($request->has('variants') && !empty($request->input('variants'))) {
                 $variantsPayload = $this->filterProvidedVariants($request->input('variants', []));
                 $variantsPayload = $this->mergeVariantFileUploads($variantsPayload, $request->file('variants', []));
@@ -461,10 +459,8 @@ class ProductController extends Controller
                 if (!empty($variantsPayload)) {
                     $this->synchronizeVariants($product, $variantsPayload);
                 }
-            }
-            // No default variant creation - variants can be added later on the variants page
-
-            // Handle static attributes
+            } 
+ 
             $this->synchronizeStaticAttributes($product, $request);
 
             $product->load(['variants.images', 'category.parent']);
@@ -533,10 +529,7 @@ class ProductController extends Controller
             ], 500);
         }
     }
-
-    /**
-     * Display the specified product.
-     */
+ 
     public function show(Product $product)
     {
         $product->load([
@@ -553,9 +546,7 @@ class ProductController extends Controller
         return view('admin.products.show', compact('product'));
     }
 
-    /**
-     * Show the form for editing the specified product.
-     */
+    
     public function edit(Product $product)
     {
         // Get brands excluding "other" brand

@@ -124,7 +124,14 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 <script>
-    let cartsTable;
+const cartPermissions = {
+    view: @json(auth()->user()->hasPermission('carts.view')),
+    create: @json(auth()->user()->hasPermission('carts.create')),
+    update: @json(auth()->user()->hasPermission('carts.update')),
+    delete: @json(auth()->user()->hasPermission('carts.delete'))
+};
+
+let cartsTable;
 
     $(document).ready(function() {
         // CSRF Token Setup
@@ -143,12 +150,20 @@
 
         // View cart details
         $(document).on('click', '.view-cart-btn', function() {
+            if (!cartPermissions.view) {
+                showToast('Error', 'You do not have permission to view cart details.', 'danger');
+                return;
+            }
             const cartId = $(this).data('id');
             viewCartDetails(cartId);
         });
 
         // Delete cart
         $(document).on('click', '.delete-cart-btn', function() {
+            if (!cartPermissions.delete) {
+                showToast('Error', 'You do not have permission to delete carts.', 'danger');
+                return;
+            }
             const cartId = $(this).data('id');
             Swal.fire({
                 title: 'Are you sure?',
@@ -283,14 +298,25 @@
                     orderable: false,
                     searchable: false,
                     render: function(data, type, row) {
+                        let viewBtn = cartPermissions.view 
+                            ? `<button class="btn btn-sm btn-outline-info view-cart-btn" data-id="${data}" title="View Details">
+                                    <i class='bx bx-show'></i>
+                                </button>`
+                            : '';
+                        let deleteBtn = cartPermissions.delete 
+                            ? `<button class="btn btn-sm btn-outline-danger delete-cart-btn" data-id="${data}" title="Delete">
+                                    <i class='bx bx-trash'></i>
+                                </button>`
+                            : '';
+                        
+                        if (!viewBtn && !deleteBtn) {
+                            return '<span class="text-muted">-</span>';
+                        }
+                        
                         return `
                             <div class="d-flex gap-2 justify-content-end">
-                                <button class="btn btn-sm btn-outline-info view-cart-btn" data-id="${data}" title="View Details">
-                                    <i class='bx bx-show'></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-cart-btn" data-id="${data}" title="Delete">
-                                    <i class='bx bx-trash'></i>
-                                </button>
+                                ${viewBtn}
+                                ${deleteBtn}
                             </div>
                         `;
                     }

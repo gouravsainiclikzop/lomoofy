@@ -18,9 +18,11 @@
                 <h1 class="h3 m-0">Orders</h1>
             </div>
             <div class="col-auto">
-                <button class="btn btn-primary" id="addOrderBtn">
-                    <i class='bx bx-plus'></i> Add Order
-                </button>
+                @if(auth()->user()->hasPermission('order.create'))
+                    <button class="btn btn-primary" id="addOrderBtn">
+                        <i class='bx bx-plus'></i> Add Order
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -620,6 +622,13 @@
 
 @push('scripts')
 <script>
+const orderPermissions = {
+    view: @json(auth()->user()->hasPermission('order.view')),
+    create: @json(auth()->user()->hasPermission('order.create')),
+    update: @json(auth()->user()->hasPermission('order.update')),
+    delete: @json(auth()->user()->hasPermission('order.delete'))
+};
+
 $(document).ready(function() {
     let deleteOrderId = null;
     let currentPage = 1;
@@ -772,6 +781,11 @@ $(document).ready(function() {
     
     // Inline Status Change
     $(document).on('change', '.status-select', function() {
+        if (!orderPermissions.update) {
+            showToast('error', 'You do not have permission to update orders');
+            $(this).val($(this).data('old-status'));
+            return;
+        }
         let orderId = $(this).data('id');
         let newStatus = $(this).val();
         let $select = $(this);
@@ -889,34 +903,32 @@ $(document).ready(function() {
                         let isEditable = order.source !== 'frontend' && order.source !== 'online'; 
                         let actionButtons = '';
                         
-                        if (isEditable) {
+                        let invoiceBtn = orderPermissions.view 
+                            ? `<a href="/orders/${order.id}/invoice" target="_blank" class="btn btn-outline-success" title="Download Invoice">
+                                    <i class='bx bx-download'></i>
+                                </a>`
+                            : '';
+                        let editBtn = (isEditable && orderPermissions.update)
+                            ? `<button class="btn btn-outline-primary edit-order" data-id="${order.id}" title="Edit">
+                                    <i class='bx bx-edit'></i>
+                                </button>`
+                            : '';
+                        let deleteBtn = (isEditable && orderPermissions.delete)
+                            ? `<button class="btn btn-outline-danger delete-order" data-id="${order.id}" title="Delete">
+                                    <i class='bx bx-trash'></i>
+                                </button>`
+                            : '';
+                        
+                        if (invoiceBtn || editBtn || deleteBtn) {
                             actionButtons = `
                                 <div class="btn-group btn-group-sm">
-                                     <!-- <button class="btn btn-outline-info view-order" data-id="${order.id}" title="View">
-                                        <i class='bx bx-show'></i>
-                                    </button> -->
-                                    <a href="/orders/${order.id}/invoice" target="_blank" class="btn btn-outline-success" title="Download Invoice">
-                                        <i class='bx bx-download'></i>
-                                    </a>
-                                    <button class="btn btn-outline-primary edit-order" data-id="${order.id}" title="Edit">
-                                        <i class='bx bx-edit'></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger delete-order" data-id="${order.id}" title="Delete">
-                                        <i class='bx bx-trash'></i>
-                                    </button>
+                                    ${invoiceBtn}
+                                    ${editBtn}
+                                    ${deleteBtn}
                                 </div>
                             `;
                         } else {
-                            actionButtons = `
-                                <div class="btn-group btn-group-sm">
-                                    <!-- <button class="btn btn-outline-info view-order" data-id="${order.id}" title="View">
-                                        <i class='bx bx-show'></i>
-                                    </button> -->
-                                    <a href="/orders/${order.id}/invoice" target="_blank" class="btn btn-outline-success" title="Download Invoice">
-                                        <i class='bx bx-download'></i>
-                                    </a>
-                                </div>
-                            `;
+                            actionButtons = '<span class="text-muted">-</span>';
                         }
                         
                         let row = `
@@ -938,14 +950,17 @@ $(document).ready(function() {
                                 </td>
                                 <td><span class="badge ${paymentStatusColor} status-badge">${order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}</span></td>
                                 <td>
-                                    <select class="form-select form-select-sm status-select" data-id="${order.id}" data-old-status="${order.status}">
-                                        <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
-                                        <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Processing</option>
-                                        <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Shipped</option>
-                                        <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Delivered</option>
-                                        <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-                                        <option value="refunded" ${order.status === 'refunded' ? 'selected' : ''}>Refunded</option>
-                                    </select>
+                                    ${orderPermissions.update 
+                                        ? `<select class="form-select form-select-sm status-select" data-id="${order.id}" data-old-status="${order.status}">
+                                            <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                            <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Processing</option>
+                                            <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Shipped</option>
+                                            <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+                                            <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                                            <option value="refunded" ${order.status === 'refunded' ? 'selected' : ''}>Refunded</option>
+                                        </select>`
+                                        : `<span class="badge ${statusColor}">${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>`
+                                    }
                                 </td>
                                 <td>${actionButtons}</td>
                             </tr>

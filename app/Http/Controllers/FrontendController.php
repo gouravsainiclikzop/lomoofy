@@ -21,6 +21,7 @@ use App\Models\FieldManagement;
 use App\Models\CustomerAddress;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\CustomerOtp;
 
 class FrontendController extends Controller
 {
@@ -1551,38 +1552,42 @@ class FrontendController extends Controller
                 ->select('product_variants.attributes')
                 ->get();
             
+            // Key by normalized color code to avoid duplicate color codes
             $colorValuesMap = [];
             foreach ($variants as $variant) {
                 $parsed = self::parseVariantAttributes($variant->attributes);
+                $colorValue = null;
+                $colorCode = '#ccc';
                 
                 // Get color from new structured format
                 if ($parsed['color'] && $parsed['color']['label']) {
                     $colorValue = trim($parsed['color']['label']);
                     $colorCode = $parsed['color']['code'] ?? '#ccc';
-                    
-                    if ($colorValue && !isset($colorValuesMap[$colorValue])) {
-                        $colorValuesMap[$colorValue] = [
-                            'name' => $colorValue,
-                            'code' => $colorCode,
-                            'id' => strtolower(str_replace(' ', '', $colorValue)) . 'a8'
-                        ];
-                    }
                 }
                 // Fallback: check old format
                 elseif (isset($parsed['all']['color'])) {
                     $colorValue = trim($parsed['all']['color']);
-                    if ($colorValue && !isset($colorValuesMap[$colorValue])) {
-                        $colorCode = self::getColorCodeFromName($colorValue);
-                        $colorValuesMap[$colorValue] = [
-                            'name' => $colorValue,
-                            'code' => $colorCode,
-                            'id' => strtolower(str_replace(' ', '', $colorValue)) . 'a8'
-                        ];
-                    }
+                    $colorCode = self::getColorCodeFromName($colorValue);
+                }
+                
+                if (!$colorValue) {
+                    continue;
+                }
+                // Normalize code for deduplication (lowercase, consistent hex)
+                $codeKey = strtolower(trim($colorCode));
+                if (strpos($codeKey, '#') !== 0) {
+                    $codeKey = '#' . ltrim($codeKey, '#');
+                }
+                if (!isset($colorValuesMap[$codeKey])) {
+                    $colorValuesMap[$codeKey] = [
+                        'name' => $colorValue,
+                        'code' => $colorCode,
+                        'id' => strtolower(str_replace(' ', '', $colorValue)) . 'a8'
+                    ];
                 }
             }
             
-            // Convert to collection and sort
+            // Convert to collection and sort by name
             $availableColors = collect($colorValuesMap)->values()->sortBy('name');
         }
         
@@ -3711,6 +3716,10 @@ class FrontendController extends Controller
                 
                 if ($field->input_type === 'email') {
                     $fieldRules[] = 'email';
+                    // Ensure email is unique when updating (ignore current customer)
+                    if ($field->field_key === 'email') {
+                        $fieldRules[] = 'unique:customers,email,' . $customer->id;
+                    }
                 }
                 
                 if ($field->input_type === 'tel') {
@@ -3745,6 +3754,28 @@ class FrontendController extends Controller
             $validated = $request->validate($rules);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
+        }
+        
+        // If email is being changed, require OTP verification for the new email
+        $newEmail = $request->input('email');
+        if ($newEmail && strcasecmp($newEmail, $customer->email) !== 0) {
+            $otpVerified = CustomerOtp::where('email', $newEmail)
+                ->where('purpose', 'email_update')
+                ->where('is_verified', true)
+                ->where('expires_at', '>', now())
+                ->exists();
+            if (!$otpVerified) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please verify your new email with the OTP sent to it before saving.',
+                        'errors' => ['email' => ['Please verify your new email with the verification code sent to it.']],
+                    ], 422);
+                }
+                return redirect()->route('frontend.profile-info')
+                    ->with('error', 'Please verify your new email with the OTP sent to it before saving.')
+                    ->withInput();
+            }
         }
         
         // Handle file uploads first
@@ -3846,7 +3877,12 @@ class FrontendController extends Controller
         
         $saved = $customer->save();
         
-         
+        // Invalidate email-update OTPs for the new email after successful update
+        if ($saved && $newEmail && strcasecmp($newEmail, $customer->email) === 0) {
+            CustomerOtp::where('email', $newEmail)
+                ->where('purpose', 'email_update')
+                ->delete();
+        }
         
         // Refresh customer data
         $customer->refresh();
